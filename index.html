@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Coding Plan 全球比价中心 · 2026年9月</title>
 <meta name="description" content="国内外模型官方、云厂商、第三方工具的 AI Coding Plan 订阅价格与 token 额度可视化对比（2026年9月）">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=27">
 </head>
 <body>
 
@@ -30,7 +30,7 @@
   <section class="hero">
     <div class="hero-inner">
       <div class="hero-badges">
-        <span class="badge badge-accent">数据更新 2026-09-23</span>
+        <span class="badge badge-accent">数据更新 2026-09-29</span>
         <span class="badge">模型官方 · 云厂商 · 第三方工具</span>
         <span class="badge">国内 + 国际</span>
       </div>
@@ -40,7 +40,7 @@
         <strong>每月价格</strong>与<strong>可用 token / 积分额度</strong>，以及 API 按量计费下"每块钱能买多少 token"。
       </p>
       <p class="hero-note">
-        所有数据均来自官方定价页或权威报道（来源见页脚）；图表中美元价格按 1 USD ≈ <span id="rateText">7.2</span> CNY 统一折算展示，实际支付以官方计价货币为准。
+        所有数据均来自官方定价页或权威报道（来源见页脚）；图表中美元价格按 1 USD ≈ <span id="rateText">6.71</span> CNY 统一折算展示，实际支付以官方计价货币为准。
       </p>
       <div class="stats-row" id="statsRow"></div>
     </div>
@@ -50,7 +50,7 @@
   <section class="section" id="quick" style="padding-top:36px">
     <div class="section-head">
       <h2>⚡ 30 秒决策卡</h2>
-      <p>不想看 154 行数据？这四张卡片告诉你答案。</p>
+      <p>不想翻 170 行数据？这四张卡片告诉你答案。</p>
     </div>
     <div class="quick-grid" id="quickGrid"></div>
   </section>
@@ -61,7 +61,7 @@
       <h2>💵 每百万 tokens 实际成本排行</h2>
       <p>订阅制的<strong>"真实单价"</strong> = 月费 ÷ 月可用 tokens，越低越划算 —— 这是跨厂商最公平的比较维度（比名义月费更真实，因为各家额度差异巨大）。</p>
     </div>
-    <div class="chart-card"><div id="chartRank" class="chart chart-fixed"></div></div>
+    <div class="chart-card"><div id="chartRank" class="chart"></div></div>
     <p class="chart-note" id="rankNote"></p>
   </section>
 
@@ -100,8 +100,8 @@
   <!-- ======== Section 2: 团队 / 企业 / 云厂商 ======== -->
   <section class="section" id="s2">
     <div class="section-head">
-      <h2>🏢 团队 / 企业档（每席位价格）</h2>
-      <p>按席位计费的团队与企业档（Claude Team、Copilot Business、Cursor Teams 等），以及云厂商企业级服务（AWS Q、Gemini Code Assist、阿里云灵码企业版、智谱 GLM 团队版、百炼 Token Plan 团队版等）。云厂商面向个人的 API 套餐（腾讯云/百炼/方舟 Coding Plan 等）已归入上方「个人订阅价格全景」。</p>
+      <h2>🏢 团队 / 企业档（席位 / 整包价格）</h2>
+      <p>按席位计费的团队与企业档（Claude Team、Copilot Business、Cursor Teams 等），以及云厂商企业级服务（AWS Q、Gemini Code Assist、阿里云灵码企业版、智谱 GLM 团队版、百炼 Token Plan 团队版等）。标注「整包」的为按团队/账户整体计费（如 Roo Roomote 按团队规模、Augment Business 按账户），悬停可查看各自计价口径。云厂商面向个人的 API 套餐（腾讯云/百炼/方舟 Coding Plan 等）已归入上方「个人订阅价格全景」。</p>
     </div>
     <div class="chart-card"><div id="chartTeam" class="chart"></div></div>
   </section>
@@ -178,7 +178,7 @@
   <section class="section" id="s4">
     <div class="section-head">
       <h2>💧 API 按量计费：token 的单价</h2>
-      <p>订阅之外另一条路线：直接按 token 付费。左图为各厂商主流编程模型每百万 tokens 的输入/输出单价（含国际与国内厂商，统一折算美元，🇨🇳 为国内模型，悬停查看人民币原价）；右图为同等 $10 预算按<strong>输出价</strong>能买到的 token 量（青色为国际模型、绿色为国内模型）。</p>
+      <p>订阅之外另一条路线：直接按 token 付费。左图为各厂商主流编程模型每百万 tokens 的输入/输出单价（含国际与国内厂商，统一折算美元，标注「国内」的为国内厂商，悬停查看人民币原价）；右图为同等 $10 预算按<strong>输出价</strong>能买到的 token 量（青色为国际模型、绿色为国内模型）。</p>
     </div>
     <div class="grid-2">
       <div class="chart-card"><div id="chartApi" class="chart chart-fixed"></div></div>
@@ -249,7 +249,7 @@
         <h3>📌 阅读提示</h3>
         <ul class="uncertain-list">
           <li>各家「额度」口径不同（每 5 小时 prompts / 每周 tokens / 每日请求 / credits），<strong>不能直接互比</strong>，表内保留官方原文。</li>
-          <li>USD 价格统一按 1 USD ≈ <span id="rateText2">7.2</span> CNY 折算仅用于图表对比；国内计划以人民币原价为准。</li>
+          <li>USD 价格统一按 1 USD ≈ <span id="rateText2">6.71</span> CNY 折算仅用于图表对比；国内计划以人民币原价为准。</li>
           <li>「定制」表示需联系销售，无公开定价。</li>
           <li>价格随官方随时调整，购买前请以官网为准。</li>
         </ul>
@@ -260,11 +260,11 @@
 </main>
 
 <footer class="footer">
-  <p>Coding Plan 全球比价中心 · 数据调研与核实日期 <span id="footDate">2026-09-23</span> · 仅供参考，以各厂商官方页面为准</p>
+  <p>Coding Plan 全球比价中心 · 数据调研与核实日期 <span id="footDate">2026-09-29</span> · 仅供参考，以各厂商官方页面为准</p>
 </footer>
 
-<script src="libs/echarts.min.js"></script>
-<script src="js/data.js"></script>
-<script src="js/app.js"></script>
+<script src="libs/echarts.min.js?v=27"></script>
+<script src="js/data.js?v=27"></script>
+<script src="js/app.js?v=27"></script>
 </body>
 </html>

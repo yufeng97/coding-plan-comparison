@@ -28,9 +28,20 @@ const VENDOR_SHORT = {
 
 const RATE = RATE_USD_CNY;
 
+/* ---------- 计划主索引：METRICS_RAW / ESTIMATES / PLAN_TOKENS 经 ref 引用 PLANS 的价格（单一数据源） ---------- */
+const PLAN_INDEX = new Map(PLANS.map((p) => [p.vendor + "|" + p.plan, p]));
+function resolvePlan(m) {
+  const p = PLAN_INDEX.get(m.ref[0] + "|" + m.ref[1]);
+  if (!p) throw new Error("[data] ref 无法解析: " + m.ref.join(" | ") + "（请核对 PLANS 中的厂商/计划名）");
+  return { ...m, priceM: p.priceM, cur: p.cur };
+}
+const METRICS_ALL = [
+  ...METRICS_RAW.map((m) => ({ ...resolvePlan(m), isEst: false })),
+  ...ESTIMATES.map((m) => ({ ...resolvePlan(m), isEst: true })),
+];
+
 /* ---------- 工具函数 ---------- */
 const shortVendor = (v) => VENDOR_SHORT[v] || v;
-const fmtUSD = (n) => "$" + (Number.isInteger(n) ? n : n.toFixed(2).replace(/0$/, ""));
 const fmtCNY = (n) => "¥" + (Math.round(n * 10) / 10).toLocaleString("zh-CN");
 const trunc = (s, n) => (!s ? "—" : (s.length > n ? s.slice(0, n) + "…" : s));
 
@@ -57,7 +68,11 @@ function makeChart(id) {
   }
   return chartCache[id];
 }
-window.addEventListener("resize", () => Object.values(chartCache).forEach((c) => c.resize()));
+let resizeTimer;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => Object.values(chartCache).forEach((c) => c.resize()), 150);
+});
 
 const AXIS_STYLE = {
   axisLine: { lineStyle: { color: "rgba(154,167,194,.35)" } },
@@ -134,7 +149,7 @@ function renderPersonalChart() {
   el.style.height = Math.max(420, rows.length * 30 + 130) + "px";
   const chart = makeChart("chartPersonal");
 
-  const labels = rows.map((p) => shortVendor(p.vendor) + " · " + p.plan + (p.region === "cn" ? " 🇨🇳" : ""));
+  const labels = rows.map((p) => shortVendor(p.vendor) + " · " + p.plan + (p.region === "cn" ? "·国内" : ""));
   const data = rows.map((p, i) => ({
     value: Math.round(cnyOf(p, state1.billing) * 10) / 10,
     itemStyle: { color: CAT_COLOR[p.cat], borderRadius: [0, 4, 4, 0] },
@@ -168,7 +183,7 @@ function renderPersonalChart() {
     `当前筛选：${rows.length} 个档位 ｜ 汇率 1 USD ≈ ${RATE} CNY（2026-09-23 实测） ｜ 无年付价的计划在「年付」视图下仍按月付价显示 ｜ 免费档见「免费入口」区`;
 }
 
-/* ---------- 团队 / 企业 / 云厂商（每席位） ---------- */
+/* ---------- 团队 / 企业 / 云厂商（席位价 + 整包价） ---------- */
 function renderTeamChart() {
   const rows = PLANS.filter(
     (p) => (p.cat === "team" || (p.cat === "cloud" && p.seat)) && p.priceM != null && p.priceM > 0
@@ -190,16 +205,16 @@ function renderTeamChart() {
         formatter: (d) => {
           const p = d.data._p;
           return `<b style="font-size:13.5px">${p.vendor} · ${p.plan}</b><br/>
-            每席位/用户/月：${p.cur === "USD" ? "$" + p.priceM : "¥" + p.priceM} ≈ ${fmtCNY(cnyOf(p, "M"))}${p.priceY != null ? `（年付 ${p.cur === "USD" ? "$" + p.priceY : "¥" + p.priceY}/月）` : ""}<br/>
+            ${p.seat ? "每席位/用户/月" : "整包价/月"}：${p.cur === "USD" ? "$" + p.priceM : "¥" + p.priceM} ≈ ${fmtCNY(cnyOf(p, "M"))}${p.priceY != null ? `（年付 ${p.cur === "USD" ? "$" + p.priceY : "¥" + p.priceY}/月）` : ""}<br/>
             <span style="color:#fcd34d">额度：</span>${trunc(p.quota, 90)}<br/>
             <span style="color:#6b7893;font-size:11.5px">来源：${p.url}</span>`;
         },
       },
       grid: { left: 16, right: 70, top: 20, bottom: 20, containLabel: true },
-      xAxis: { type: "value", name: "每席位折算人民币（元/月）", nameTextStyle: { color: "#6b7893" }, ...AXIS_STYLE },
+      xAxis: { type: "value", name: "折算人民币（元/月）", nameTextStyle: { color: "#6b7893" }, ...AXIS_STYLE },
       yAxis: {
         type: "category", inverse: true,
-        data: rows.map((p) => shortVendor(p.vendor) + " · " + p.plan + (p.region === "cn" ? " 🇨🇳" : "")),
+        data: rows.map((p) => shortVendor(p.vendor) + " · " + p.plan + (p.region === "cn" ? "·国内" : "") + (!p.seat ? "·整包" : "")),
         ...AXIS_STYLE, axisLabel: { color: "#c3cde4", fontSize: 12.5 },
         axisLine: { lineStyle: { color: "rgba(154,167,194,.25)" } },
       },
@@ -226,36 +241,33 @@ function renderTokensChart() {
     m.includes("K3") ? "K3" :
     m.includes("Gemini") ? "Gemini" : "混合";
 
-  const planLabel = (v, p) => {
+  const tokPlanLabel = (v, p) => {
     let s = p.replace("Kimi Code Plan ", "Kimi ").replace(/[（）]/g, " ").replace(/\s+/g, " ").trim();
     if (/^(Pro|Max|Free|Go)$/i.test(s)) s = shortVendor(v) + " " + s;
     return s;
   };
 
-  const official = PLAN_TOKENS.map((t) => ({
-    label: t.plan + "·" + modelShort(t.model),
-    model: t.model,
-    lowM: t.lowM, highM: t.highM,
-    priceCNY: t.priceCNY != null ? t.priceCNY : t.priceUSD * RATE,
-    isOfficial: true, url: t.url,
-  }));
-  /* 社区推算来源：ESTIMATES 全部 + METRICS_RAW 中非智谱的有每周 token 估算者（如 MiniMax 第三方估算）
+  const official = PLAN_TOKENS.map((t) => {
+    const p = PLAN_INDEX.get(t.ref[0] + "|" + t.ref[1]);
+    if (!p) throw new Error("[data] PLAN_TOKENS ref 无法解析: " + t.ref.join(" | "));
+    return {
+      label: t.plan + "·" + modelShort(t.model),
+      model: t.model,
+      lowM: t.lowM, highM: t.highM,
+      priceCNY: toCNY(p.priceM, p.cur),
+      isOfficial: true, url: t.url,
+    };
+  });
+  /* 社区推算来源：ESTIMATES（≈估行）全部 + METRICS_RAW 中非智谱的有每周 token 估算者（如 MiniMax 第三方估算）
    * （智谱 GLM 各档已由 PLAN_TOKENS 官方数据代表，避免重复；
-   *  LKEAP / 百炼为请求数制（tokens 按 ~20K/请求假设折算，误差过大），不入本图，仅在额度深度对比表中呈现） */
-  const communitySrc = [
-    ...ESTIMATES,
-    ...METRICS_RAW.filter((m) => m.wkLowM != null && !m.vendor.includes("智谱")).map((m) => ({
-      vendor: m.vendor, plan: m.plan, model: m.model, priceM: m.priceM, cur: m.cur,
-      wkLowM: m.wkLowM, wkHighM: m.wkHighM,
-      source: m.source, note: m.note, method: "第三方估算", confidence: "低",
-    })),
-  ];
+   *  LKEAP / 百炼 / 讯飞 / Canopy 为请求数制（tokens 按 ~20K/请求假设折算，误差过大），不入本图，仅在额度深度对比表中呈现） */
+  const communitySrc = METRICS_ALL.filter((m) => m.isEst || (m.wkLowM != null && !m.vendor.includes("智谱")));
   const community = communitySrc.filter((e) => e.wkLowM != null).map((e) => ({
-    label: planLabel(e.vendor, e.plan) + "·" + modelShort(e.model),
+    label: tokPlanLabel(e.vendor, e.plan) + "·" + modelShort(e.model),
     model: e.model,
     lowM: e.wkLowM, highM: e.wkHighM,
     priceCNY: toCNY(e.priceM, e.cur),
-    isOfficial: false, url: e.source, note: e.note, method: e.method, conf: e.confidence,
+    isOfficial: false, url: e.source, note: e.note, method: e.method || "第三方估算", conf: e.confidence || "低",
   }));
   const rows = [...official, ...community].map((r) => ({ ...r, midM: (r.lowM + r.highM) / 2 }));
   rows.sort((a, b) => b.midM - a.midM);
@@ -340,7 +352,7 @@ function renderApiChart() {
   })
     .filter((a) => a.inUSD != null && a.outUSD != null)
     .sort((x, y) => x.outUSD - y.outUSD);
-  const cats = rows.map((a) => a.label + (a.cur === "CNY" ? " 🇨🇳" : ""));
+  const cats = rows.map((a) => a.label + (a.cur === "CNY" ? "·国内" : ""));
 
   const fmtPrice = (a, inU, outU) =>
     a.cur === "CNY"
@@ -376,7 +388,7 @@ function renderApiChart() {
   const chart2 = makeChart("chartPower");
   const el2 = document.getElementById("chartPower");
   el2.style.height = Math.max(420, rows.length * 26 + 120) + "px";
-  const power = rows.map((a) => ({ name: a.label + (a.cur === "CNY" ? " 🇨🇳" : ""), m: 10 / a.outUSD, a }));
+  const power = rows.map((a) => ({ name: a.label + (a.cur === "CNY" ? "·国内" : ""), m: 10 / a.outUSD, a }));
   power.sort((x, y) => y.m - x.m);
   chart2.setOption(
     {
@@ -429,13 +441,19 @@ function renderTable() {
     (!q || (p.vendor + p.plan + p.models + p.tools + p.quota).toLowerCase().includes(q))
   );
   const k = tableState.sortKey;
-  const sortVal = (p) => (p[k] == null ? Infinity : p.cur === "USD" ? p[k] * RATE : p[k]);
-  rows = rows.slice().sort((a, b) => (sortVal(a) - sortVal(b)) * tableState.sortDir);
+  const sortVal = (p) => (p[k] == null ? NaN : p.cur === "USD" ? p[k] * RATE : p[k]);
+  rows = rows.slice().sort((a, b) => {
+    const va = sortVal(a), vb = sortVal(b);
+    const aN = Number.isNaN(va), bN = Number.isNaN(vb);
+    if (aN || bN) { if (aN && bN) return 0; return aN ? 1 : -1; } /* 「定制」（无公开价）恒排末尾 */
+    return (va - vb) * tableState.sortDir;
+  });
   document.getElementById("tableCount").textContent = `${rows.length} / ${PLANS.length} 档`;
   document.querySelectorAll("#planTable thead th.sortable").forEach((th) => {
     th.classList.toggle("sort-active", th.dataset.sort === k);
     const arrow = th.dataset.sort === k ? (tableState.sortDir === 1 ? " ↑" : " ↓") : "";
     th.childNodes[0].nodeValue = (th.dataset.sort === "priceM" ? "月付" : "年付折月") + arrow;
+    th.setAttribute("aria-sort", th.dataset.sort === k ? (tableState.sortDir === 1 ? "ascending" : "descending") : "none");
   });
   document.getElementById("tableBody").innerHTML = rows
     .map((p) => {
@@ -468,7 +486,6 @@ function renderMisc() {
       (g) => `<div class="source-group"><b>${g.group}</b><ul>${g.urls.map((u) => `<li><a href="${u}" target="_blank" rel="noopener">${u}</a></li>`).join("")}</ul></div>`
     ).join("");
   document.getElementById("uncertainList").innerHTML = UNCERTAIN.map((u) => `<li>${u}</li>`).join("");
-  document.querySelectorAll(".hero-badges, .hero-note").forEach(() => {});
   document.getElementById("rateText").textContent = RATE;
   document.getElementById("rateText2").textContent = RATE;
   document.getElementById("footDate").textContent = META.updated;
@@ -476,6 +493,7 @@ function renderMisc() {
 
 /* ---------- 事件绑定 ---------- */
 function bindEvents() {
+  document.querySelectorAll("#planTable thead th, #metricsTable thead th").forEach((th) => (th.scope = "col"));
   document.querySelectorAll("#chipCat .chip").forEach((c) =>
     c.addEventListener("click", () => {
       document.querySelectorAll("#chipCat .chip").forEach((x) => x.classList.remove("active"));
@@ -527,7 +545,7 @@ function blendPrice(m) {
 function toCNY(v, cur) { return cur === "USD" ? v * RATE : v; }
 function fmtTok(m) { return m >= 1000 ? (m / 1000).toFixed(1) + "B" : m.toFixed(0) + "M"; }
 function fmtVal(v, cur) {
-  if (cur === "CNY") return "¥" + (v >= 10000 ? (v / 10000).toFixed(1) + "万" : v.toFixed(0));
+  if (cur === "CNY") return "¥" + (v >= 10000 ? (v / 10000).toFixed(1) + "万" : Math.round(v).toLocaleString("zh-CN"));
   return "$" + (v >= 1000 ? (v / 1000).toFixed(1) + "K" : v.toFixed(1));
 }
 function rateClass(r) { return r >= 5 ? "rate-hi" : r >= 1.5 ? "rate-mid" : "rate-lo"; }
@@ -598,33 +616,33 @@ function provenance(m) {
 }
 
 function renderMetricsTable() {
-  const allRaw = [
-    ...METRICS_RAW.map((m) => ({ ...m, isEst: false })),
-    ...ESTIMATES.map((m) => ({ ...m, isEst: true })),
-  ];
-  let rows = allRaw.map((m) => ({ m, c: computeMetrics(m) })).filter((r) => r.c);
+  let rows = METRICS_ALL.map((m) => ({ m, c: computeMetrics(m) })).filter((r) => r.c);
   if (metricsState.model !== "all") rows = rows.filter((r) => r.m.model === metricsState.model);
   if (metricsState.ver !== "all") rows = rows.filter((r) => r.m.ver === metricsState.ver);
 
   const k = metricsState.sortKey;
   const sv = (r) => {
-    if (k === "cpm") return r.c.costPerM || Infinity;
-    if (k === "t5h") return r.c.fLow ?? Infinity;
+    if (k === "cpm") return r.c.costPerM ?? NaN;
+    if (k === "t5h") return r.c.fLow;
     if (k === "r5h") return r.c.r5h;
-    if (k === "twk") return r.c.wkLowM ?? Infinity;
+    if (k === "twk") return r.c.wkLowM;
     if (k === "rwk") return r.c.rwk;
-    if (k === "tmo") return r.c.moLow ?? Infinity;
+    if (k === "tmo") return r.c.moLow;
     if (k === "rmo") return r.c.rmo;
     return 0;
   };
-  rows.sort((a, b) => (sv(a) - sv(b)) * metricsState.sortDir);
+  rows.sort((a, b) => {
+    const va = sv(a), vb = sv(b);
+    const aN = va == null || Number.isNaN(va), bN = vb == null || Number.isNaN(vb);
+    if (aN || bN) { if (aN && bN) return 0; return aN ? 1 : -1; } /* 无对应额度（credits 制等）恒排末尾 */
+    return (va - vb) * metricsState.sortDir;
+  });
 
   document.getElementById("metricsCount").textContent = `${rows.length} 行`;
   const body = document.getElementById("metricsBody");
   body.innerHTML = rows.map(({ m, c }) => {
     const cur = m.cur;
     const verCls = m.ver === "V3" ? "ver-v3" : m.ver === "V2" ? "ver-v2" : "ver-na";
-    const fmtV = (v) => m.cur === "CNY" ? "¥" + (v >= 10000 ? (v / 10000).toFixed(1) + "万" : v.toFixed(0)) : "$" + (v >= 1000 ? (v / 1000).toFixed(1) + "K" : v.toFixed(1));
     const fTok = (lo, hi) => lo == null ? '<span style="color:var(--text-faint)">credits制</span>' : `${fmtTok(lo)}${hi > lo ? "–" + fmtTok(hi) : ""}`;
     const prov = provenance(m);
     const confCls = prov.conf === "高" ? "conf-hi" : prov.conf === "中" ? "conf-mid" : "conf-lo";
@@ -635,13 +653,13 @@ function renderMetricsTable() {
       <td class="tps-cell">${m.tps || "—"}</td>
       <td style="font-weight:800;color:${cpmColor(c.costPerM)}" title="每百万 tokens 实际成本（统一折算人民币）">${fmtCpm(c.costPerM)}</td>
       <td class="tok-cell">${fTok(c.fLow, c.fHigh)}</td>
-      <td class="val-cell">${fmtV(c.val5h)}</td>
+      <td class="val-cell">${fmtVal(c.val5h, cur)}</td>
       <td class="rate-cell ${rateClass(c.r5h)}">${c.r5h.toFixed(1)}×</td>
       <td class="tok-cell">${fTok(c.wkLowM, c.wkHighM)}</td>
-      <td class="val-cell">${fmtV(c.valWk)}</td>
+      <td class="val-cell">${fmtVal(c.valWk, cur)}</td>
       <td class="rate-cell ${rateClass(c.rwk)}">${c.rwk.toFixed(1)}×</td>
       <td class="tok-cell">${fTok(c.moLow, c.moHigh)}</td>
-      <td class="val-cell">${fmtV(c.valMo)}</td>
+      <td class="val-cell">${fmtVal(c.valMo, cur)}</td>
       <td class="rate-cell ${rateClass(c.rmo)}">${c.rmo.toFixed(1)}×</td>
       <td class="prov-cell" title="${m.isEst ? (m.note || "") : ""}"><span class="conf ${confCls}">${prov.conf}</span>${prov.text}</td>
     </tr>`;
@@ -653,6 +671,7 @@ function renderMetricsTable() {
     const arrow = isActive ? (metricsState.sortDir === 1 ? " ↑" : " ↓") : "";
     const base = th.textContent.replace(/[ ↑↓]+$/, "");
     th.childNodes[th.childNodes.length - 1].nodeValue = base + arrow;
+    th.setAttribute("aria-sort", isActive ? (metricsState.sortDir === 1 ? "ascending" : "descending") : "none");
   });
 
   document.getElementById("metricsNote").innerHTML =
@@ -663,7 +682,7 @@ function renderMetricsTable() {
 /* 模型筛选下拉：从全部数据源动态填充 */
 function populateModelFilter() {
   const sel = document.getElementById("metricsModel");
-  const models = [...new Set([...METRICS_RAW, ...ESTIMATES].map((m) => m.model))];
+  const models = [...new Set(METRICS_ALL.map((m) => m.model))];
   sel.innerHTML = '<option value="all">全部模型</option>' + models.map((x) => `<option value="${x}">${x}</option>`).join("");
 }
 
@@ -682,7 +701,7 @@ function bindMetricsEvents() {
 /* ---------- 快速决策卡 ---------- */
 function renderQuickCards() {
   // 1. 性价比首选：GLM-5.3 模型下最低每M成本（token估算计划）
-  const tokenPlans = METRICS_RAW.filter((m) => m.wkLowM != null && m.model === "GLM-5.3")
+  const tokenPlans = METRICS_ALL.filter((m) => !m.isEst && m.wkLowM != null && m.model === "GLM-5.3")
     .map((m) => ({ m, c: computeMetrics(m) }))
     .filter((r) => r.c && r.c.costPerM != null)
     .sort((a, b) => a.c.costPerM - b.c.costPerM);
@@ -712,7 +731,7 @@ function renderQuickCards() {
       icon: "💵", accent: "#f59e0b", title: "国内付费最便宜",
       value: `<em>${priceText(cnPaid, "priceM")}</em>/月`,
       sub: `<b>${cnPaid.vendor} ${cnPaid.plan}</b><br>${trunc(cnPaid.quota, 80)}`,
-      tag: "入门.try 一下",
+      tag: "国内最低付费档",
     });
   }
   if (gemini) {
@@ -746,13 +765,16 @@ function renderQuickCards() {
 
 /* ---------- 性价比排行图（每 M tokens 成本） ---------- */
 function renderRankChart() {
-  const chart = makeChart("chartRank");
-  const rows = METRICS_RAW.map((m) => ({ m, c: computeMetrics(m) }))
+  const rows = METRICS_ALL.filter((m) => !m.isEst).map((m) => ({ m, c: computeMetrics(m) }))
     .filter((r) => r.c && r.c.costPerM != null)
     .sort((a, b) => a.c.costPerM - b.c.costPerM)
     .slice(0, 20);
 
-  const labels = rows.map((r) => r.m.vendor.replace(/（.*）/, "") + " · " + r.m.plan.replace(/GLM Coding /, "") + " · " + (r.m.model.includes("Flash") ? "Flash" : r.m.model.split("-")[0]));
+  const el = document.getElementById("chartRank");
+  el.style.height = Math.max(420, rows.length * 30 + 130) + "px";
+  const chart = makeChart("chartRank");
+
+  const labels = rows.map((r) => r.m.vendor.replace(/（.*）/, "").trim() + " · " + r.m.plan.replace(/GLM Coding /, "") + " · " + (r.m.model.includes("Flash") ? "Flash" : r.m.model.split("-")[0]));
   const data = rows.map((r) => {
     const cp = r.c.costPerM;
     const color = cp <= 0.3 ? "#34d399" : cp <= 1 ? "#f59e0b" : "#f87171";
