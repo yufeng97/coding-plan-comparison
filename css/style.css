@@ -262,7 +262,9 @@ html[data-theme="dark"] .search-input:focus, html[data-theme="dark"] .select:foc
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-l);
   padding: 16px 12px 6px; margin-bottom: 10px;
 }
-.chart { width: 100%; min-height: 420px; }
+.chart { width: 100%; min-height: 420px; overflow: visible; }
+.payg-row td { background: var(--surface); }
+.payg-row td:first-child { box-shadow: inset 3px 0 0 var(--accent-2); }
 .chart-fixed { height: 480px; }
 .chart-note { color: var(--faint); font-size: 12.5px; margin: 8px 6px 20px; line-height: 1.7; }
 .chart-note a { color: var(--accent); }
