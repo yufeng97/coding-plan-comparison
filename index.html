@@ -15,7 +15,7 @@
 <script>try{var __m=localStorage.getItem("cp-theme")||"system";var __d=matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.dataset.theme=__m==="system"?(__d?"dark":"light"):__m;}catch(e){}</script>
   <link rel="stylesheet" href="libs/fonts/fonts.css?v=43">
   <link rel="stylesheet" href="libs/fonts/remixicon.css?v=43">
-  <link rel="stylesheet" href="css/style.css?v=43">
+  <link rel="stylesheet" href="css/style.css?v=44">
 </head>
 <body>
     <div class="scroll-progress" aria-hidden="true"><span id="scrollBar"></span></div>
@@ -76,7 +76,7 @@
   <section class="section" id="s3b">
     <div class="section-head">
       <h2><span class="sec-no">03</span>额度深度对比（TPS · Tokens · 额度价值 · 额度倍率）</h2>
-      <p>按 <strong>5 小时 / 周 / 月</strong> 三个时间窗口，计算可用 tokens、折算 API 市值（额度价值）与性价比倍率（该时段额度价值 ÷ 该时段分摊的月费）。官方周 tokens 按每周 5 个 5 小时窗口、每月 4.33 周折算；请求数制计划使用数据里写明的 5 小时、周、月请求上限。点击表头可排序，月倍率越高表示性价比越高。</p>
+      <p>按 <strong>5 小时 / 周 / 月</strong> 三个时间窗口，计算可用 tokens、折算 API 市值（额度价值）与性价比倍率（该时段额度价值 ÷ 该时段分摊的月费）。模型列同时给出该模型的输入、输出和缓存挂牌，而不只是套餐的每百万 tokens 成本。官方周 tokens 按每周 5 个 5 小时窗口、每月 4.33 周折算；请求数制计划使用数据里写明的 5 小时、周、月请求上限。小米 Token Plan、腾讯云通用 Token Plan 按官方积分系数折成 tokens（依据列标「官方系数」），不进入每周 tokens 对比图。点击表头可排序，月倍率越高表示性价比越高。</p>
     </div>
     <div class="controls controls-table">
       <select id="metricsModel" class="select">
@@ -174,7 +174,7 @@
   <section class="section" id="s2">
     <div class="section-head">
       <h2><span class="sec-no">06</span>团队 / 企业档（席位 / 整包价格）</h2>
-      <p>按席位计费的团队与企业档（Claude Team、Copilot Business、Cursor Teams 等），以及云厂商企业级服务（AWS Q、Gemini Code Assist、阿里云灵码企业版、智谱 GLM 团队版、百炼 Token Plan 团队版等）。标注「整包」的为按团队/账户整体计费（如 Roo Roomote 按团队规模、Augment Business 按账户），悬停可查看各自计价口径。云厂商面向个人的 API 套餐（腾讯云/百炼/方舟 Coding Plan 等）已归入上方「个人订阅价格全景」。</p>
+      <p>按席位计费的团队与企业档（Claude Team、Copilot Business、Cursor Teams 等），以及云厂商企业级服务（AWS Q、Gemini Code Assist、阿里云灵码企业版、智谱 BigModel 团队版、百炼 Token Plan 团队版等）。标注「整包」的为按团队/账户整体计费（如 Roo Roomote 按团队规模、Augment Business 按账户），悬停可查看各自计价口径。云厂商面向个人的 API 套餐（腾讯云/百炼/方舟 Coding Plan 等）已归入上方「个人订阅价格全景」。</p>
     </div>
     <div class="chart-card"><div id="chartTeam" class="chart"></div></div>
   </section>
@@ -183,7 +183,7 @@
   <section class="section" id="s3">
     <div class="section-head">
       <h2><span class="sec-no">07</span>每周可用 tokens 对比（官方公布 + 社区推算）</h2>
-      <p>跨厂商比较「一周能用多少 token」：<strong style="color:#34d399">绿色柱</strong>为智谱官方公布的估算区间（目前唯一官方公布每周 tokens 的厂商，标注所用模型 GLM-5.3 / Flash）；<strong style="color:#fbbf24">黄色柱</strong>为 MiniMax、Claude、ChatGPT、Cursor、Kimi、Copilot、Devin、Google 等官方未公布者的<strong>社区推算</strong>（推算方法与置信度见「额度深度对比」表的「依据」列与「方法论」折叠块）。悬停查看月费与推算依据。</p>
+      <p>跨厂商比较「一周能用多少 token」：<strong style="color:#34d399">绿色柱</strong>为 Z.ai 官方公布的估算区间（目前唯一官方公布每周 tokens 的厂商，标注所用模型 GLM-5.3 / Flash）；<strong style="color:#fbbf24">黄色柱</strong>为 MiniMax、Claude、ChatGPT、Cursor、Kimi、Copilot、Devin、Google 等官方未公布者的<strong>社区推算</strong>（推算方法与置信度见「额度深度对比」表的「依据」列与「方法论」折叠块）。悬停查看月费与推算依据。</p>
     </div>
     <div class="grid-2">
       <div class="chart-card"><div id="chartTokens" class="chart chart-fixed"></div></div>
@@ -276,7 +276,7 @@
 </footer>
 
 <script src="libs/echarts.min.js?v=43"></script>
-<script src="js/data.js?v=43"></script>
-<script src="js/app.js?v=44"></script>
+<script src="js/data.js?v=48"></script>
+<script src="js/app.js?v=47"></script>
 </body>
 </html>

@@ -84,6 +84,7 @@ for (const m of allMetrics) {
     check(typeof m.priceM === "number", `无 ref 且缺 priceM: ${key}`);
   }
   if (m.isEst) check(!!m.method && !!m.confidence, `估算条目缺 method/confidence: ${key}`);
+  warn(!/多模型|混合|全系|全模型/.test(m.model || ""), `模型名仍含糊（多模型/混合/全系/全模型）: ${key}`);
 }
 /* ref 覆盖率（提醒：指标条目应尽量通过 ref 指向 PLANS 单一价格源） */
 const noRef = allMetrics.filter((m) => !Array.isArray(m.ref)).length;

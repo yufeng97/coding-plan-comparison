@@ -170,10 +170,16 @@ html[data-theme="light"] .brand-mark { color: #315f59; background: var(--brand);
 
 /* ---------- Hero stats（裸排，等宽） ---------- */
 .stats-row {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 26px 20px; margin: 34px 0 0; max-width: 980px;
+  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 22px 18px; margin: 34px 0 0;
 }
 .stats-row > div { min-width: 0; }
+@media (max-width: 1180px) {
+  .stats-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .stats-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 .stats-row dt {
   display: flex; align-items: center; gap: 7px; margin-bottom: 4px;
   color: var(--muted); font: 600 12px var(--mono); letter-spacing: .01em;
@@ -186,7 +192,10 @@ html[data-theme="light"] .brand-mark { color: #315f59; background: var(--brand);
 .stats-row > div:nth-child(5) dt i { color: var(--green); }
 .stats-row > div:nth-child(6) dt i { color: var(--gold); }
 .stats-row dd { color: var(--ink); font: 700 24px var(--mono); letter-spacing: -.02em; }
-.stats-row dd small { display: block; margin-top: 3px; color: var(--faint); font: 500 11.5px var(--sans); letter-spacing: 0; }
+.stats-row dd small {
+  display: block; margin-top: 3px; color: var(--faint); font: 500 11.5px var(--sans); letter-spacing: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 
 /* ---------- Section ---------- */
 .section { max-width: 1280px; margin: 0 auto; padding: 56px 24px 6px; }
