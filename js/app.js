@@ -31,13 +31,38 @@ const RATE = RATE_USD_CNY;
 /* ---------- 计划主索引：METRICS_RAW / ESTIMATES / PLAN_TOKENS 经 ref 引用 PLANS 的价格（单一数据源） ---------- */
 const PLAN_INDEX = new Map(PLANS.map((p) => [p.vendor + "|" + p.plan, p]));
 function resolvePlan(m) {
-  /* ref 可解析时以 PLANS 价格为准（单一数据源）；解析失败时优雅回退到条目自身价格，避免整页崩溃 */
+  /* ref 可解析时以 PLANS 价格为准（单一数据源）；解析失败时回退到条目自身价格，避免整页崩溃 */
   if (Array.isArray(m.ref)) {
     const p = PLAN_INDEX.get(m.ref[0] + "|" + m.ref[1]);
     if (p) return { ...m, priceM: p.priceM, cur: p.cur };
     console.warn("[data] ref 未解析，使用条目自身价格:", m.ref.join(" | "));
   }
   return m;
+}
+
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[ch]));
+}
+function safeHref(u) {
+  const s = String(u ?? "").trim();
+  return /^https?:\/\//i.test(s) ? esc(s) : "";
+}
+function isRetiredPlan(p) { return /已停售|已下架/.test((p && p.plan) || ""); }
+function isOneTimePlan(p) { return /一次性|预付/.test((p && p.plan) || ""); }
+function isRenewalOnly(p) { return /老用户/.test((p && p.plan) || ""); }
+/* 在售个人月付：不含团队整包、已停售/已下架、一次性预付、仅老用户可续的档 */
+function isPersonalMonthly(p) {
+  return !!(p && p.priceM > 0 && !p.seat && p.cat !== "team" && !isRetiredPlan(p) && !isOneTimePlan(p) && !isRenewalOnly(p));
+}
+function metricOfferOk(m) {
+  if (/已停售|已下架|老用户|一次性|预付/.test(m.plan || "")) return false;
+  if (Array.isArray(m.ref)) {
+    const p = PLAN_INDEX.get(m.ref[0] + "|" + m.ref[1]);
+    if (p && (isRetiredPlan(p) || isOneTimePlan(p) || isRenewalOnly(p))) return false;
+  }
+  return true;
 }
 const METRICS_ALL = [
   ...METRICS_RAW.map((m) => ({ ...resolvePlan(m), isEst: false })),
@@ -157,21 +182,21 @@ function planLabel(p) {
 function renderStats() {
   const vendors = new Set(PLANS.map((p) => p.vendor));
   const freeCnt = PLANS.filter((p) => p.priceM === 0).length;
-  const paid = PLANS.filter((p) => p.priceM > 0);
-  const minCny = Math.min(...paid.map((p) => cnyOf(p, "M")));
-  const maxCny = Math.max(...paid.map((p) => cnyOf(p, "M")));
-  const minP = paid.find((p) => cnyOf(p, "M") === minCny);
-  const maxP = paid.find((p) => cnyOf(p, "M") === maxCny);
+  const paid = PLANS.filter(isPersonalMonthly);
+  const minCny = paid.length ? Math.min(...paid.map((p) => cnyOf(p, "M"))) : null;
+  const maxCny = paid.length ? Math.max(...paid.map((p) => cnyOf(p, "M"))) : null;
+  const minP = minCny == null ? null : paid.find((p) => cnyOf(p, "M") === minCny);
+  const maxP = maxCny == null ? null : paid.find((p) => cnyOf(p, "M") === maxCny);
   const items = [
     { icon: "ri-global-line", num: vendors.size, lbl: "覆盖厂商", sub: "官方 / 云厂商 / 第三方" },
     { icon: "ri-stack-line", num: PLANS.length, lbl: "在售订阅计划", sub: "官方 / 工具 / 中转站" },
     { icon: "ri-gift-line", num: freeCnt, lbl: "免费可用入口", sub: "见「免费 Coding 入口」" },
     { icon: "ri-price-tag-3-line", num: API_PRICES.length, lbl: "API 模型单价", sub: "输入 / 输出对比" },
-    { icon: "ri-arrow-down-circle-line", lbl: "最低付费档", num: fmtCNY(minCny), sub: "/月起 · " + planLabel(minP) },
-    { icon: "ri-arrow-up-circle-line", lbl: "最高付费档", num: fmtCNY(maxCny), sub: "/月 · " + planLabel(maxP) },
-  ];
+    minP && { icon: "ri-arrow-down-circle-line", lbl: "最低月费", num: fmtCNY(minCny), sub: "/月 · " + planLabel(minP) },
+    maxP && { icon: "ri-arrow-up-circle-line", lbl: "最高月费", num: fmtCNY(maxCny), sub: "/月 · " + planLabel(maxP) },
+  ].filter(Boolean);
   document.getElementById("statsRow").innerHTML = items
-    .map((i) => `<div><dt><i class="${i.icon}"></i>${i.lbl}</dt><dd>${i.num}${i.sub ? `<small>${i.sub}</small>` : ""}</dd></div>`)
+    .map((i) => `<div><dt><i class="${esc(i.icon)}"></i>${esc(i.lbl)}</dt><dd>${esc(i.num)}${i.sub ? `<small>${esc(i.sub)}</small>` : ""}</dd></div>`)
     .join("");
 }
 
@@ -182,21 +207,24 @@ function personalTooltip(p) {
   const y = p.priceY != null ? `年付：${p.cur === "USD" ? "$" + p.priceY : "¥" + p.priceY}/月（年付折算）` : "年付：—（仅月付）";
   const unified = priceOf(p, state1.billing);
   const uni = unified != null ? `${p.cur === "USD" ? "$" + unified : "¥" + unified} ≈ ${fmtCNY(cnyOf(p, state1.billing))}` : "—";
-  return `<b style="font-size:13.5px">${p.vendor} · ${p.plan}</b><br/>
-    ${state1.billing === "Y" ? `折算价：${uni}<br/>` : ""}
-    月付：${p.priceM != null ? (p.cur === "USD" ? "$" + p.priceM : "¥" + p.priceM) : "—"} ｜ ${y}<br/>
-    <span style="color:#fcd34d">额度：</span>${trunc(p.quota, 90)}<br/>
-    <span style="color:#a5b4fc">模型：</span>${trunc(p.models, 80)}<br/>
-    ${p.note ? `<span style="color:${PAL.dim}">备注：${trunc(p.note, 60)}</span><br/>` : ""}
-    <span style="color:#6b7893;font-size:11.5px">来源：${p.url}</span>`;
+  const href = safeHref(p.url);
+  return `<b style="font-size:13.5px">${esc(p.vendor)} · ${esc(p.plan)}</b><br/>
+    ${state1.billing === "Y" ? `折算价：${esc(uni)}<br/>` : ""}
+    月付：${p.priceM != null ? esc(p.cur === "USD" ? "$" + p.priceM : "¥" + p.priceM) : "—"} ｜ ${esc(y)}<br/>
+    <span style="color:#fcd34d">额度：</span>${esc(trunc(p.quota, 90))}<br/>
+    <span style="color:#a5b4fc">模型：</span>${esc(trunc(p.models, 80))}<br/>
+    ${p.note ? `<span style="color:${PAL.dim}">备注：${esc(trunc(p.note, 60))}</span><br/>` : ""}
+    ${href ? `<span style="color:#6b7893;font-size:11.5px">来源：${href}</span>` : ""}`;
 }
 
 function renderPersonalChart() {
+  const q1 = state1.q.trim().toLowerCase();
   const rows = PLANS.filter(
     (p) => p.cat !== "team" && !p.seat && p.priceM != null && p.priceM > 0 &&
+      !isRetiredPlan(p) && !isOneTimePlan(p) &&
       (state1.cat === "all" || p.cat === state1.cat) &&
       (state1.region === "all" || p.region === state1.region) &&
-      (!state1.q || (p.vendor + " " + p.plan + " " + p.models).toLowerCase().includes(state1.q))
+      (!q1 || (p.vendor + " " + p.plan + " " + (p.models || "")).toLowerCase().includes(q1))
   ).sort((a, b) => cnyOf(a, state1.billing) - cnyOf(b, state1.billing));
 
   // 无筛选时默认只展示最便宜的前 N 档，避免图表过长；可点「显示全部」展开
@@ -240,8 +268,8 @@ function renderPersonalChart() {
 
   const hidden = rows.length - shown.length;
   document.getElementById("notePersonal").innerHTML =
-    `当前筛选：${rows.length} 个档位（显示 ${shown.length}） ｜ 汇率 1 USD ≈ ${RATE} CNY（2026-09-23 实测） ｜ 无年付价的计划在「年付」视图下仍按月付价显示 ｜ 免费档见「免费入口」区` +
-    (hidden > 0 ? ` ｜ <a href="javascript:void(0)" id="showAllPersonal" style="color:var(--accent-2)">📋 显示全部 ${rows.length} 档</a>` : "");
+    `当前筛选：${rows.length} 个档位（显示 ${shown.length}） ｜ 汇率 1 USD ≈ ${RATE} CNY（2026-09-23 实测） ｜ 无年付价的计划在「年付」视图下仍按月付价显示 ｜ 已停售、已下架与一次性预付不在本图，见完整数据表` +
+    (hidden > 0 ? ` ｜ <button type="button" id="showAllPersonal" class="linkish">显示全部 ${rows.length} 档</button>` : "");
 }
 
 /* ---------- 团队 / 企业 / 云厂商（席位价 + 整包价） ---------- */
@@ -265,10 +293,11 @@ function renderTeamChart() {
         trigger: "item", ...tipStyle(),
         formatter: (d) => {
           const p = d.data._p;
-          return `<b style="font-size:13.5px">${p.vendor} · ${p.plan}</b><br/>
-            ${p.seat ? "每席位/用户/月" : "整包价/月"}：${p.cur === "USD" ? "$" + p.priceM : "¥" + p.priceM} ≈ ${fmtCNY(cnyOf(p, "M"))}${p.priceY != null ? `（年付 ${p.cur === "USD" ? "$" + p.priceY : "¥" + p.priceY}/月）` : ""}<br/>
-            <span style="color:#fcd34d">额度：</span>${trunc(p.quota, 90)}<br/>
-            <span style="color:#6b7893;font-size:11.5px">来源：${p.url}</span>`;
+          const href = safeHref(p.url);
+          return `<b style="font-size:13.5px">${esc(p.vendor)} · ${esc(p.plan)}</b><br/>
+            ${p.seat ? "每席位/用户/月" : "整包价/月"}：${esc(p.cur === "USD" ? "$" + p.priceM : "¥" + p.priceM)} ≈ ${fmtCNY(cnyOf(p, "M"))}${p.priceY != null ? `（年付 ${esc(p.cur === "USD" ? "$" + p.priceY : "¥" + p.priceY)}/月）` : ""}<br/>
+            <span style="color:#fcd34d">额度：</span>${esc(trunc(p.quota, 90))}<br/>
+            ${href ? `<span style="color:#6b7893;font-size:11.5px">来源：${href}</span>` : ""}`;
         },
       },
       grid: { left: 16, right: 70, top: 20, bottom: 20, containLabel: true },
@@ -297,6 +326,7 @@ function renderTokensChart() {
   const modelShort = (m) =>
     m.includes("Flash") ? "Flash" :
     m.includes("GLM-5.3") ? "GLM-5.3" :
+    m.includes("MiniMax") ? "M3" :
     m.includes("Sonnet") ? "Sonnet 5" :
     m.includes("GPT-6") ? "GPT-6 Sol" :
     m.includes("K3") ? "K3" :
@@ -304,20 +334,26 @@ function renderTokensChart() {
 
   const tokPlanLabel = (v, p) => {
     let s = p.replace("Kimi Code Plan ", "Kimi ").replace(/[（）]/g, " ").replace(/\s+/g, " ").trim();
-    if (/^(Pro|Max|Free|Go)$/i.test(s)) s = shortVendor(v) + " " + s;
+    const vendor = shortVendor(v);
+    const tokens = vendor.split(/[\s（(]/).filter((w) => w.length >= 2);
+    const named = tokens.some((w) => s.toLowerCase().includes(w.toLowerCase()));
+    if (!named) s = vendor + " " + s;
     return s;
   };
 
-  const official = PLAN_TOKENS.map((t) => {
+  const official = PLAN_TOKENS.flatMap((t) => {
     const p = PLAN_INDEX.get(t.ref[0] + "|" + t.ref[1]);
-    if (!p) throw new Error("[data] PLAN_TOKENS ref 无法解析: " + t.ref.join(" | "));
-    return {
+    if (!p) {
+      console.warn("[data] PLAN_TOKENS ref 未解析，已跳过:", t.ref.join(" | "));
+      return [];
+    }
+    return [{
       label: t.plan + "·" + modelShort(t.model),
       model: t.model,
       lowM: t.lowM, highM: t.highM,
       priceCNY: toCNY(p.priceM, p.cur),
       isOfficial: true, url: t.url,
-    };
+    }];
   });
   /* 社区推算来源：ESTIMATES（≈估行）全部 + METRICS_RAW 中非智谱的有每周 token 估算者（如 MiniMax 第三方估算）
    * （智谱 GLM 各档已由 PLAN_TOKENS 官方数据代表，避免重复；
@@ -365,12 +401,13 @@ function renderTokensChart() {
           if (!r) return "";
           const prov = r.isOfficial
             ? '<span class="conf conf-hi">官方公布</span>'
-            : `<span class="conf conf-lo">社区推算·${r.conf || "低"}</span>`;
-          return `<b>${r.label}</b> ${prov}<br/>
-            每周可用：${r.lowM}–${r.highM}M tokens（${r.model}）<br/>
-            月费：${fmtCNY(r.priceCNY)} ｜ 每 ¥100/月 ≈ <b>${(r.midM / r.priceCNY * 100).toFixed(1)}M</b> tokens/周<br/>
-            ${r.note ? `<span style="color:${PAL.dim}">${trunc(r.note, 120)}</span><br/>` : ""}
-            <span style="color:#8b98b8;font-size:11.5px">来源：${r.url}</span>`;
+            : `<span class="conf conf-lo">社区推算·${esc(r.conf || "低")}</span>`;
+          const per100 = r.priceCNY > 0 ? (r.midM / r.priceCNY * 100).toFixed(1) : "—";
+          return `<b>${esc(r.label)}</b> ${prov}<br/>
+            每周可用：${r.lowM}–${r.highM}M tokens（${esc(r.model)}）<br/>
+            月费：${fmtCNY(r.priceCNY)} ｜ 每 ¥100/月 ≈ <b>${per100}${per100 === "—" ? "" : "M"}</b> tokens/周<br/>
+            ${r.note ? `<span style="color:${PAL.dim}">${esc(trunc(r.note, 120))}</span><br/>` : ""}
+            ${safeHref(r.url) ? `<span style="color:#8b98b8;font-size:11.5px">来源：${safeHref(r.url)}</span>` : ""}`;
         },
       },
       grid: { left: 16, right: 95, top: 40, bottom: 10, containLabel: true },
@@ -386,18 +423,22 @@ function renderTokensChart() {
   chart.resize();
 
   /* 洞察卡：全厂商性价比排行（厂商中立） */
-  const byValue = rows.slice().sort((a, b) => b.midM / b.priceCNY - a.midM / a.priceCNY);
+  const valueOf = (r) => (r.priceCNY > 0 ? r.midM / r.priceCNY : -1);
+  const byValue = rows.slice().sort((a, b) => valueOf(b) - valueOf(a));
   document.getElementById("tokenInsight").innerHTML = `
     <div style="max-height:600px;overflow:auto">
     <h3>💡 性价比：每 ¥100/月 能买到多少每周 tokens（全部厂商）</h3>
     <table class="mini-table">
-      ${byValue.map((r) => `
+      ${byValue.map((r) => {
+        const per100 = r.priceCNY > 0 ? (r.midM / r.priceCNY * 100).toFixed(1) : "—";
+        return `
         <tr>
-          <td>${r.label}<br><span style="color:#8b98b8;font-size:11px">${fmtCNY(r.priceCNY)}/月 · ${r.isOfficial
+          <td>${esc(r.label)}<br><span style="color:#8b98b8;font-size:11px">${fmtCNY(r.priceCNY)}/月 · ${r.isOfficial
             ? '<span class="conf conf-hi">官方公布</span>'
-            : `<span class="conf conf-lo">估算·${r.conf || "低"}</span>`}</span></td>
-          <td><b>${(r.midM / r.priceCNY * 100).toFixed(1)}M</b> tokens/周</td>
-        </tr>`).join("")}
+            : `<span class="conf conf-lo">估算·${esc(r.conf || "低")}</span>`}</span></td>
+          <td><b>${per100}${per100 === "—" ? "" : "M"}</b> tokens/周</td>
+        </tr>`;
+      }).join("")}
     </table>
     </div>
     <p style="margin-top:12px;font-size:12.5px;color:#8b98b8">⚠️ 公平比较提示：不同模型产出质量不同——Flash/Haiku 类轻量模型 token 数高但质量低于旗舰；<span style="color:#34d399">绿色柱</span>为智谱官方公布的估算（目前唯一官方公布每周 tokens 的厂商），<span style="color:#fbbf24">黄色柱</span>为社区推算（受缓存率与动态限流影响，仅供量级参考；方法与置信度见「额度深度对比」表的「依据」列与「方法论」折叠块）。智谱国内 V3 各档积分额度与 Z.ai 相同（¥118/538/1,078 每月）。</p>`;
@@ -427,10 +468,11 @@ function renderApiChart() {
         trigger: "axis", ...tipStyle(), axisPointer: { type: "shadow" },
         formatter: (ps) => {
           const a = rows[ps[0].dataIndex];
-          return `<b>${a.vendor} · ${a.model}</b><br/>
+          const href = safeHref(a.url);
+          return `<b>${esc(a.vendor)} · ${esc(a.model)}</b><br/>
             ${fmtPrice(a, a.inUSD, a.outUSD)}<br/>
-            ${a.note ? `<span style="color:${PAL.dim}">${trunc(a.note, 120)}</span><br/>` : ""}
-            <span style="color:#6b7893;font-size:11.5px">来源：${a.url}</span>`;
+            ${a.note ? `<span style="color:${PAL.dim}">${esc(trunc(a.note, 120))}</span><br/>` : ""}
+            ${href ? `<span style="color:#6b7893;font-size:11.5px">来源：${href}</span>` : ""}`;
         },
       },
       grid: { left: 56, right: 20, top: 46, bottom: 6, containLabel: true },
@@ -449,7 +491,7 @@ function renderApiChart() {
   const chart2 = makeChart("chartPower");
   const el2 = document.getElementById("chartPower");
   el2.style.height = Math.max(420, rows.length * 26 + 120) + "px";
-  const power = rows.map((a) => ({ name: a.label + (a.cur === "CNY" ? "·国内" : ""), m: 10 / a.outUSD, a }));
+  const power = rows.filter((a) => a.outUSD > 0).map((a) => ({ name: a.label + (a.cur === "CNY" ? "·国内" : ""), m: 10 / a.outUSD, a }));
   power.sort((x, y) => y.m - x.m);
   chart2.setOption(
     {
@@ -457,7 +499,7 @@ function renderApiChart() {
       title: { text: "$10 预算的输出 token 购买力（M tokens）", left: "center", top: 6, textStyle: { color: PAL.dim, fontSize: 13, fontWeight: 500 } },
       tooltip: {
         trigger: "item", ...tipStyle(),
-        formatter: (d) => `<b>${d.data.a.vendor} · ${d.data.a.model}</b><br/>$10 ≈ <b>${d.data.m.toFixed(1)}M</b> 输出 tokens<br/>（${d.data.a.cur === "CNY" ? "¥" + d.data.a.outCNY : "$" + d.data.a.outUSD}/1M 输出）`,
+        formatter: (d) => `<b>${esc(d.data.a.vendor)} · ${esc(d.data.a.model)}</b><br/>$10 ≈ <b>${d.data.m.toFixed(1)}M</b> 输出 tokens<br/>（${d.data.a.cur === "CNY" ? "¥" + d.data.a.outCNY : "$" + d.data.a.outUSD}/1M 输出）`,
       },
       grid: { left: 16, right: 56, top: 42, bottom: 6, containLabel: true },
       xAxis: { type: "value", ...axisStyle() },
@@ -477,17 +519,20 @@ function renderApiChart() {
 function renderFree() {
   const rows = PLANS.filter((p) => p.priceM === 0);
   document.getElementById("freeGrid").innerHTML = rows
-    .map((p) => `
+    .map((p) => {
+      const href = safeHref(p.url);
+      return `
       <div class="free-card">
         <div class="fc-head">
-          <span class="fc-vendor">${p.vendor}</span>
-          <span class="fc-region">${REGION_LABEL[p.region]}</span>
+          <span class="fc-vendor">${esc(p.vendor)}</span>
+          <span class="fc-region">${esc(REGION_LABEL[p.region] || "")}</span>
         </div>
-        <div class="fc-plan">${p.plan}</div>
-        <div class="fc-quota"><b>✓</b> ${p.quota}</div>
-        <div class="fc-tools">支持：${trunc(p.tools, 60)}</div>
-        <a class="fc-link" href="${p.url}" target="_blank" rel="noopener">来源 ↗</a>
-      </div>`)
+        <div class="fc-plan">${esc(p.plan)}</div>
+        <div class="fc-quota"><b>✓</b> ${esc(p.quota)}</div>
+        <div class="fc-tools">支持：${esc(trunc(p.tools, 60))}</div>
+        ${href ? `<a class="fc-link" href="${href}" target="_blank" rel="noopener">来源 ↗</a>` : ""}
+      </div>`;
+    })
     .join("");
 }
 
@@ -499,7 +544,7 @@ function renderTable() {
   let rows = PLANS.filter((p) =>
     (tableState.cat === "all" || p.cat === tableState.cat) &&
     (tableState.region === "all" || p.region === tableState.region) &&
-    (!q || (p.vendor + p.plan + p.models + p.tools + p.quota).toLowerCase().includes(q))
+    (!q || (p.vendor + p.plan + (p.models || "") + (p.tools || "") + (p.quota || "")).toLowerCase().includes(q))
   );
   const k = tableState.sortKey;
   const sortVal = (p) => (p[k] == null ? NaN : p.cur === "USD" ? p[k] * RATE : p[k]);
@@ -521,18 +566,19 @@ function renderTable() {
       const pm = priceText(p, "priceM");
       const pmSub = p.priceM > 0 ? `<br/><span class="sub">≈${fmtCNY(cnyOf(p, "M"))}</span>` : "";
       const py = p.priceY == null ? (p.priceM != null && p.priceM > 0 ? '<span class="sub">仅月付</span>' : "—") : priceText(p, "priceY") + `<br/><span class="sub">≈${fmtCNY(cnyOf(p, "Y"))}</span>`;
+      const href = safeHref(p.url);
       return `<tr>
-        <td class="td-vendor">${p.vendor}</td>
-        <td class="td-plan">${p.plan}</td>
-        <td><span class="tag tag-${p.cat}">${CAT_LABEL[p.cat]}</span></td>
-        <td class="region-${p.region}">${REGION_LABEL[p.region]}</td>
+        <td class="td-vendor">${esc(p.vendor)}</td>
+        <td class="td-plan">${esc(p.plan)}</td>
+        <td><span class="tag tag-${esc(p.cat)}">${esc(CAT_LABEL[p.cat] || p.cat)}</span></td>
+        <td class="region-${esc(p.region)}">${esc(REGION_LABEL[p.region] || "")}</td>
         <td class="td-price">${pm}${pmSub}</td>
         <td class="td-price">${py}</td>
-        <td class="td-quota">${p.quota}</td>
-        <td class="td-models">${p.models}</td>
-        <td>${p.tools}</td>
-        <td class="td-note">${p.note || "—"}</td>
-        <td><a href="${p.url}" target="_blank" rel="noopener">↗</a></td>
+        <td class="td-quota">${esc(p.quota)}</td>
+        <td class="td-models">${esc(p.models)}</td>
+        <td>${esc(p.tools)}</td>
+        <td class="td-note">${esc(p.note || "—")}</td>
+        <td>${href ? `<a href="${href}" target="_blank" rel="noopener">↗</a>` : "—"}</td>
       </tr>`;
     })
     .join("");
@@ -542,17 +588,26 @@ function renderTable() {
 function renderMisc() {
   document.getElementById("dynamicsList").innerHTML = DYNAMICS.slice()
     .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
-    .map((d) => `<li><span class="dyn-date">${d.date}</span><div class="dyn-body">${d.text}${d.url ? ` <a class="dyn-src" href="${d.url}" target="_blank" rel="noopener" title="打开来源：${d.url}">${d.source || "来源"} ↗</a>` : ""}</div></li>`)
+    .map((d) => {
+      const href = safeHref(d.url);
+      const link = href ? ` <a class="dyn-src" href="${href}" target="_blank" rel="noopener" title="打开来源：${esc(d.url)}">${esc(d.source || "来源")} ↗</a>` : "";
+      return `<li><span class="dyn-date">${esc(d.date)}</span><div class="dyn-body">${esc(d.text)}${link}</div></li>`;
+    })
     .join("");
   document.getElementById("sourceList").innerHTML =
     `<h3>📖 全部来源（官方定价页 / 权威报道）</h3>` +
     SOURCES.map(
-      (g) => `<div class="source-group"><b>${g.group}</b><ul>${g.urls.map((u) => `<li><a href="${u}" target="_blank" rel="noopener">${u}</a></li>`).join("")}</ul></div>`
+      (g) => `<div class="source-group"><b>${esc(g.group)}</b><ul>${g.urls.map((u) => {
+        const href = safeHref(u);
+        return href ? `<li><a href="${href}" target="_blank" rel="noopener">${esc(u)}</a></li>` : "";
+      }).join("")}</ul></div>`
     ).join("");
-  document.getElementById("uncertainList").innerHTML = UNCERTAIN.map((u) => `<li>${u}</li>`).join("");
+  document.getElementById("uncertainList").innerHTML = UNCERTAIN.map((u) => `<li>${esc(u)}</li>`).join("");
   document.getElementById("rateText").textContent = RATE;
   document.getElementById("rateText2").textContent = RATE;
   document.getElementById("footDate").textContent = META.updated;
+  const heroDate = document.getElementById("heroDate");
+  if (heroDate) heroDate.textContent = META.updated;
 }
 
 /* ---------- 事件绑定 ---------- */
@@ -623,57 +678,78 @@ function rateClass(r) { return r >= 5 ? "rate-hi" : r >= 1.5 ? "rate-mid" : "rat
 function fmtCpm(v) { return v == null ? "—" : "¥" + (v < 1 ? v.toFixed(3) : v < 10 ? v.toFixed(2) : v.toFixed(1)); }
 function cpmColor(v) { return v == null ? "var(--text-faint)" : v <= 0.3 ? "var(--green)" : v <= 1 ? "var(--gold)" : "var(--red)"; }
 
+function periodRates(val5hCNY, valWkCNY, valMoCNY, priceCNY) {
+  /* 分母是该时段分摊到的月费：5h = 月费/(4.33×5)，周 = 月费/4.33，月 = 月费 */
+  const slots = WEEKS_PER_MONTH * SLOTS_PER_WEEK;
+  if (!(priceCNY > 0)) return null;
+  return {
+    r5h: val5hCNY / (priceCNY / slots),
+    rwk: valWkCNY / (priceCNY / WEEKS_PER_MONTH),
+    rmo: valMoCNY / priceCNY,
+  };
+}
+
+function windowTokens(m) {
+  if (m.wkLowM != null) {
+    const wkLowM = m.wkLowM;
+    const wkHighM = m.wkHighM ?? m.wkLowM;
+    return {
+      fLow: wkLowM / SLOTS_PER_WEEK, fHigh: wkHighM / SLOTS_PER_WEEK,
+      wkLowM, wkHighM,
+      moLow: wkLowM * WEEKS_PER_MONTH, moHigh: wkHighM * WEEKS_PER_MONTH,
+    };
+  }
+  if (m.reqPerWk == null && m.reqPerMo == null && m.reqPer5h == null) return null;
+  const toM = (n) => (n * TOKENS_PER_REQ) / 1e6;
+  const wk = m.reqPerWk != null ? toM(m.reqPerWk) : null;
+  const moCap = m.reqPerMo != null ? toM(m.reqPerMo) : null;
+  const hCap = m.reqPer5h != null ? toM(m.reqPer5h) : null;
+  const wkM = wk != null ? wk : moCap != null ? moCap / WEEKS_PER_MONTH : hCap * SLOTS_PER_WEEK;
+  const f = hCap != null ? hCap : wkM / SLOTS_PER_WEEK;
+  const mo = moCap != null ? moCap : wkM * WEEKS_PER_MONTH;
+  return { fLow: f, fHigh: f, wkLowM: wkM, wkHighM: wkM, moLow: mo, moHigh: mo };
+}
+
 function computeMetrics(m) {
-  /* Credits 月池制（Command Code 美元 credits / 阶跃 Step 人民币 Credit）：
-     额度价值直接按官方锚点计（$X credits 或 1M Credit=¥1），倍率 = 额度价值 ÷ 月费（同币种） */
+  /* Credits 月池制：额度价值按官方锚点（美元 credits 或 1M Credit=¥1）。
+     倍率 = 该时段额度价值 ÷ 该时段分摊月费。人民币 Credit 无公开模型系数，不折每 M 成本。 */
   if (m.creditUSD != null || m.creditCNY != null) {
+    if (!(m.priceM > 0)) return null;
     const isUSD = m.creditUSD != null;
+    const creditCur = isUSD ? "USD" : "CNY";
     const priceCNY = toCNY(m.priceM, m.cur);
-    const valMo = isUSD ? m.creditUSD : m.creditCNY;   // 计划币种
+    const valMo = isUSD ? m.creditUSD : m.creditCNY;
     const valWk = valMo / WEEKS_PER_MONTH;
     const val5h = valWk / SLOTS_PER_WEEK;
-    // 每 M tokens 实际成本：美元 credits 按假设混合模型均价 ¥10/M 折算；人民币 Credit 因模型系数未公布，不折算
-    const costPerM = isUSD ? (priceCNY * 10) / (m.creditUSD * RATE) : null;
+    const rates = periodRates(toCNY(val5h, creditCur), toCNY(valWk, creditCur), toCNY(valMo, creditCur), priceCNY);
+    if (!rates) return null;
+    const costPerM = isUSD && m.creditUSD > 0 ? (priceCNY * 10) / (m.creditUSD * RATE) : null;
     return {
       fLow: null, fHigh: null, wkLowM: null, wkHighM: null,
       moLow: null, moHigh: null, moMidM: null, blend: null, priceCNY, costPerM,
       val5h, val5hHi: val5h, valWk, valWkHi: valWk, valMo, valMoHi: valMo,
-      r5h: val5h / m.priceM,
-      rwk: valWk / m.priceM,
-      rmo: valMo / m.priceM,
+      r5h: rates.r5h, r5hHi: rates.r5h, rwk: rates.rwk, rwkHi: rates.rwk, rmo: rates.rmo, rmoHi: rates.rmo,
     };
   }
 
-  let wkLowM, wkHighM;
-  if (m.wkLowM != null) { wkLowM = m.wkLowM; wkHighM = m.wkHighM ?? m.wkLowM; }
-  else if (m.reqPerWk != null) {
-    wkLowM = wkHighM = (m.reqPerWk * TOKENS_PER_REQ) / 1e6;
-  } else return null;
-
-  const fLow = wkLowM / SLOTS_PER_WEEK, fHigh = wkHighM / SLOTS_PER_WEEK;
-  const moLow = wkLowM * WEEKS_PER_MONTH, moHigh = wkHighM * WEEKS_PER_MONTH;
+  const w = windowTokens(m);
+  if (!w) return null;
   const blend = blendPrice(m);
+  if (!(blend > 0) || !(m.priceM > 0)) return null;
   const priceCNY = toCNY(m.priceM, m.cur);
-
-  // 额度价值（按计划币种展示）
-  const val5h = fLow * blend; const val5hHi = fHigh * blend;
-  const valWk = wkLowM * blend; const valWkHi = wkHighM * blend;
-  const valMo = moLow * blend; const valMoHi = moHigh * blend;
-  // 倍率统一折 CNY 再除以月费（修复：USD 计划此前 USD价值/CNY月费 混算，被低估 6.71 倍）
-  const val5hCNY = toCNY(val5h, m.cur), valWkCNY = toCNY(valWk, m.cur), valMoCNY = toCNY(valMo, m.cur);
-
-  // 每M tokens 实际成本 = 月费(CNY) ÷ 月tokens中值(M)
-  let costPerM = null;
-  const moMidM = (moLow + moHigh) / 2;
-  if (moMidM > 0) costPerM = priceCNY / moMidM;
-
-  // 额度倍率：统一以月费为分母
+  const val5h = w.fLow * blend, val5hHi = w.fHigh * blend;
+  const valWk = w.wkLowM * blend, valWkHi = w.wkHighM * blend;
+  const valMo = w.moLow * blend, valMoHi = w.moHigh * blend;
+  const rates = periodRates(toCNY(val5h, m.cur), toCNY(valWk, m.cur), toCNY(valMo, m.cur), priceCNY);
+  if (!rates) return null;
+  const moMidM = (w.moLow + w.moHigh) / 2;
+  const costPerM = moMidM > 0 ? priceCNY / moMidM : null;
+  const hi = periodRates(toCNY(val5hHi, m.cur), toCNY(valWkHi, m.cur), toCNY(valMoHi, m.cur), priceCNY);
   return {
-    fLow, fHigh, wkLowM, wkHighM, moLow, moHigh, moMidM, blend, priceCNY, costPerM,
+    ...w, moMidM, blend, priceCNY, costPerM,
     val5h, val5hHi, valWk, valWkHi, valMo, valMoHi,
-    r5h: val5hCNY / priceCNY, r5hHi: toCNY(val5hHi, m.cur) / priceCNY,
-    rwk: valWkCNY / priceCNY, rwkHi: toCNY(valWkHi, m.cur) / priceCNY,
-    rmo: valMoCNY / priceCNY, rmoHi: toCNY(valMoHi, m.cur) / priceCNY,
+    r5h: rates.r5h, rwk: rates.rwk, rmo: rates.rmo,
+    r5hHi: hi.r5h, rwkHi: hi.rwk, rmoHi: hi.rmo,
   };
 }
 
@@ -682,8 +758,12 @@ function provenance(m) {
   if (m.isEst) return { text: m.method, conf: m.confidence };
   if (m.creditCNY != null || m.creditUSD != null) return { text: "官方credits", conf: "高" };
   if ((m.note && m.note.includes("第三方")) || (m.source && m.source.includes("第三方"))) return { text: "第三方估算", conf: "低" };
-  if (m.reqPerWk != null) return { text: "请求折算", conf: "低" };
+  if (m.reqPerWk != null || m.reqPerMo != null || m.reqPer5h != null) return { text: "请求折算", conf: "低" };
   return { text: "官方估算", conf: "高" };
+}
+
+function isRankMetric(m) {
+  return !m.isEst && m.wkLowM != null && metricOfferOk(m) && provenance(m).conf === "高";
 }
 
 function renderMetricsTable() {
@@ -718,10 +798,10 @@ function renderMetricsTable() {
     const prov = provenance(m);
     const confCls = prov.conf === "高" ? "conf-hi" : prov.conf === "中" ? "conf-mid" : "conf-lo";
     return `<tr class="${m.isEst ? "est-row" : ""}">
-      <td>${m.isEst ? '<span class="est-badge" title="社区/推算估算值，非官方数字">≈估</span> ' : ""}${m.vendor}<br><span style="color:var(--text-dim);font-size:11px">${m.plan}</span></td>
-      <td><span class="ver-tag ${verCls}">${m.ver}</span></td>
-      <td style="color:var(--accent-2);font-size:11.5px">${m.model}</td>
-      <td class="tps-cell">${m.tps || "—"}</td>
+      <td>${m.isEst ? '<span class="est-badge" title="社区/推算估算值，非官方数字">≈估</span> ' : ""}${esc(m.vendor)}<br><span style="color:var(--text-dim);font-size:11px">${esc(m.plan)}</span></td>
+      <td><span class="ver-tag ${verCls}">${esc(m.ver)}</span></td>
+      <td style="color:var(--accent-2);font-size:11.5px">${esc(m.model)}</td>
+      <td class="tps-cell">${esc(m.tps || "—")}</td>
       <td style="font-weight:800;color:${cpmColor(c.costPerM)}" title="每百万 tokens 实际成本（统一折算人民币）">${fmtCpm(c.costPerM)}</td>
       <td class="tok-cell">${fTok(c.fLow, c.fHigh)}</td>
       <td class="val-cell">${fmtVal(c.val5h, cur)}</td>
@@ -732,7 +812,7 @@ function renderMetricsTable() {
       <td class="tok-cell">${fTok(c.moLow, c.moHigh)}</td>
       <td class="val-cell">${fmtVal(c.valMo, cur)}</td>
       <td class="rate-cell ${rateClass(c.rmo)}">${c.rmo.toFixed(1)}×</td>
-      <td class="prov-cell" title="${m.isEst ? (m.note || "") : ""}"><span class="conf ${confCls}">${prov.conf}</span>${prov.text}</td>
+      <td class="prov-cell" title="${m.isEst ? esc(m.note || "") : ""}"><span class="conf ${confCls}">${esc(prov.conf)}</span>${esc(prov.text)}</td>
     </tr>`;
   }).join("");
 
@@ -746,15 +826,15 @@ function renderMetricsTable() {
   });
 
   document.getElementById("metricsNote").innerHTML =
-    `<b>💵每M tokens</b> = 月费÷月tokens中值（统一折算¥，越低越便宜；绿色≤¥0.30、黄色≤¥1、红色>¥1）。Credits 制计划按假设模型均价 ¥10/M（≈$1.5/M）折算，实际取决于所用模型。<br>` +
-    `计算假设：输入/输出=80/20、缓存命中率95%、每周5个5h窗口、每月4.33周。Tokens/5h=周÷5，Tokens/月=周×4.33。💰额度价值=tokens(M)×API均价(含缓存折算)。⏫额度倍率=该时段额度价值÷月费。<b>「依据」列</b>标注每行数据出处与置信度（<span class="conf conf-hi">高</span>官方/credits · <span class="conf conf-mid">中</span>实测/区间折算 · <span class="conf conf-lo">低</span>毛利/第三方估算）。当前 ${rows.length} 行（含 <b>${rows.filter((r) => r.m.isEst).length}</b> 行「≈估」社区推算），默认按月倍率降序。`;
+    `<b>💵每M tokens</b> = 月费÷月 tokens 中值（统一折算¥，越低越便宜；绿色≤¥0.30、黄色≤¥1、红色&gt;¥1）。请求数制的月 tokens 使用数据中的月请求上限，不再用周请求×4.33 放大。美元 credits 的每 M 成本按假设均价 ¥10/M 折算，且不进入「真实单价」排行；人民币 Credit 因模型系数未公布，不折每 M 成本。<br>` +
+    `计算假设：输入/输出=80/20、缓存命中率 95%、每周 5 个 5h 窗口、每月 4.33 周。官方周 tokens：Tokens/5h=周÷5，Tokens/月=周×4.33。⏫额度倍率 = 该时段额度价值 ÷ 该时段分摊月费（5h=月费/21.65，周=月费/4.33，月=月费）。<b>「依据」列</b>标注出处与置信度（<span class="conf conf-hi">高</span>官方/credits · <span class="conf conf-mid">中</span>实测/区间折算 · <span class="conf conf-lo">低</span>毛利/第三方/请求折算）。当前 ${rows.length} 行（含 <b>${rows.filter((r) => r.m.isEst).length}</b> 行「≈估」），默认按月倍率降序。`;
 }
 
 /* 模型筛选下拉：从全部数据源动态填充 */
 function populateModelFilter() {
   const sel = document.getElementById("metricsModel");
   const models = [...new Set(METRICS_ALL.map((m) => m.model))];
-  sel.innerHTML = '<option value="all">全部模型</option>' + models.map((x) => `<option value="${x}">${x}</option>`).join("");
+  sel.innerHTML = '<option value="all">全部模型</option>' + models.map((x) => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
 }
 
 function bindMetricsEvents() {
@@ -771,15 +851,13 @@ function bindMetricsEvents() {
 
 /* ---------- 快速决策卡 ---------- */
 function renderQuickCards() {
-  // 1. 性价比首选：GLM-5.3 模型下最低每M成本（token估算计划）
-  const tokenPlans = METRICS_ALL.filter((m) => !m.isEst && m.wkLowM != null && m.model === "GLM-5.3")
+  const tokenPlans = METRICS_ALL.filter(isRankMetric)
     .map((m) => ({ m, c: computeMetrics(m) }))
     .filter((r) => r.c && r.c.costPerM != null)
     .sort((a, b) => a.c.costPerM - b.c.costPerM);
   const best = tokenPlans[0];
 
-  // 2. 国内最便宜付费档（排除已停售）
-  const cnPaid = PLANS.filter((p) => p.region === "cn" && p.priceM > 0 && !p.seat && !p.plan.includes("已停售"))
+  const cnPaid = PLANS.filter((p) => p.region === "cn" && isPersonalMonthly(p))
     .sort((a, b) => cnyOf(a, "M") - cnyOf(b, "M"))[0];
 
   // 3. 最佳免费（取 Gemini CLI）
@@ -793,7 +871,7 @@ function renderQuickCards() {
     cards.push({
       icon: "🏆", accent: "#34d399", title: "性价比首选（每 M tokens 成本最低）",
       value: `<em>${fmtCpm(best.c.costPerM)}</em> / M tokens`,
-      sub: `<b>${best.m.vendor} ${best.m.plan}</b>（${best.m.model}）<br>月费 ${fmtCNY(best.c.priceCNY)} · 月倍率 <b>${best.c.rmo.toFixed(1)}×</b> · 每月约 ${fmtTok(best.c.moLow)}–${fmtTok(best.c.moHigh)} tokens`,
+      sub: `<b>${esc(best.m.vendor)} ${esc(best.m.plan)}</b>（${esc(best.m.model)}）${/flash/i.test(best.m.model) ? "，轻量模型，质量与旗舰不同" : ""}<br>月费 ${fmtCNY(best.c.priceCNY)} · 月倍率 <b>${best.c.rmo.toFixed(1)}×</b> · 每月约 ${fmtTok(best.c.moLow)}–${fmtTok(best.c.moHigh)} tokens`,
       tag: `额度价值是月费的 ${best.c.rmo.toFixed(0)} 倍`,
     });
   }
@@ -801,7 +879,7 @@ function renderQuickCards() {
     cards.push({
       icon: "💵", accent: "#f59e0b", title: "国内付费最便宜",
       value: `<em>${priceText(cnPaid, "priceM")}</em>/月`,
-      sub: `<b>${cnPaid.vendor} ${cnPaid.plan}</b><br>${trunc(cnPaid.quota, 80)}`,
+      sub: `<b>${esc(cnPaid.vendor)} ${esc(cnPaid.plan)}</b><br>${esc(trunc(cnPaid.quota, 80))}`,
       tag: "国内最低付费档",
     });
   }
@@ -809,7 +887,7 @@ function renderQuickCards() {
     cards.push({
       icon: "🆓", accent: "#22d3ee", title: "零成本上手（推荐）",
       value: "<em>免费</em>",
-      sub: `<b>${gemini.vendor} ${gemini.plan}</b><br>${trunc(gemini.quota, 90)}`,
+      sub: `<b>${esc(gemini.vendor)} ${esc(gemini.plan)}</b><br>${esc(trunc(gemini.quota, 90))}`,
       tag: "免费入口共 " + PLANS.filter((p) => p.priceM === 0).length + " 个，见下方",
     });
   }
@@ -817,7 +895,7 @@ function renderQuickCards() {
     cards.push({
       icon: "🌟", accent: "#6366f1", title: "国际旗舰体验",
       value: `<em>$${flagship.priceM}</em>/月`,
-      sub: `<b>${flagship.vendor} ${flagship.plan}</b><br>${trunc(flagship.quota, 80)}`,
+      sub: `<b>${esc(flagship.vendor)} ${esc(flagship.plan)}</b><br>${esc(trunc(flagship.quota, 80))}`,
       tag: "Claude Code + 全模型",
     });
   }
@@ -826,17 +904,17 @@ function renderQuickCards() {
     .map((c) => `
       <div class="quick-card" style="--qc-accent:${c.accent}">
         <div class="qc-icon">${c.icon}</div>
-        <div class="qc-title">${c.title}</div>
+        <div class="qc-title">${esc(c.title)}</div>
         <div class="qc-value">${c.value}</div>
         <div class="qc-sub">${c.sub}</div>
-        <div class="qc-tag">${c.tag}</div>
+        <div class="qc-tag">${esc(c.tag)}</div>
       </div>`)
     .join("");
 }
 
 /* ---------- 性价比排行图（每 M tokens 成本） ---------- */
 function renderRankChart() {
-  const rows = METRICS_ALL.filter((m) => !m.isEst).map((m) => ({ m, c: computeMetrics(m) }))
+  const rows = METRICS_ALL.filter(isRankMetric).map((m) => ({ m, c: computeMetrics(m) }))
     .filter((r) => r.c && r.c.costPerM != null)
     .sort((a, b) => a.c.costPerM - b.c.costPerM)
     .slice(0, 20);
@@ -859,7 +937,7 @@ function renderRankChart() {
         trigger: "item", ...tipStyle(),
         formatter: (d) => {
           const r = d.data._r;
-          return `<b>${r.m.vendor} · ${r.m.plan}</b>（${r.m.model}）<br/>
+          return `<b>${esc(r.m.vendor)} · ${esc(r.m.plan)}</b>（${esc(r.m.model)}）<br/>
             💵每 M tokens：<b style="color:#34d399">¥${r.c.costPerM.toFixed(3)}</b><br/>
             月费：${fmtCNY(r.c.priceCNY)} ｜ 月倍率：<b>${r.c.rmo.toFixed(1)}×</b><br/>
             月 tokens：约 ${fmtTok(r.c.moLow)}${r.c.moHigh > r.c.moLow ? "–" + fmtTok(r.c.moHigh) : ""}`;
@@ -882,23 +960,27 @@ function renderRankChart() {
   chart.resize();
 
   document.getElementById("rankNote").textContent =
-    `Top ${rows.length} 最低每 M tokens 成本（统一折算人民币）。绿色 ≤¥0.30 · 黄色 ≤¥1 · 红色 >¥1。GLM-5.3-Flash 虽然每 M 更便宜但为轻量模型，产出质量与旗舰不同。`;
+    `共 ${rows.length} 档：只统计官方公布每周 tokens、且新用户当前可购买的计划。请求折算、第三方估算、已停售、已下架、一次性预付和仅老用户续费不在此列。绿色 ≤¥0.30 · 黄色 ≤¥1 · 红色 >¥1。名称含 Flash 的是轻量模型。`;
 }
 
-/* ---------- 初始化 ---------- */
-initTheme();
-renderStats();
-renderQuickCards();
-renderRankChart();
-renderPersonalChart();
-renderTeamChart();
-renderTokensChart();
-renderApiChart();
-renderFree();
-renderTable();
-populateModelFilter();
-renderMetricsTable();
-renderMisc();
+/* ---------- 初始化：单块失败不阻断其余区块 ---------- */
+function boot(name, fn) {
+  try { fn(); }
+  catch (err) { console.error("[render] " + name, err); }
+}
+boot("theme", initTheme);
+boot("stats", renderStats);
+boot("quick", renderQuickCards);
+boot("rank", renderRankChart);
+boot("personal", renderPersonalChart);
+boot("team", renderTeamChart);
+boot("tokens", renderTokensChart);
+boot("api", renderApiChart);
+boot("free", renderFree);
+boot("table", renderTable);
+boot("modelFilter", populateModelFilter);
+boot("metrics", renderMetricsTable);
+boot("misc", renderMisc);
 
 /* ---------- 滚动进度条 ---------- */
 (function () {

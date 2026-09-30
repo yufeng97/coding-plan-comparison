@@ -6,6 +6,7 @@
  * 每日巡检任务在修改 data.js 后必须运行本脚本，
  * 失败时应从 js/data.js.bak 恢复。
  * ============================================================ */
+const vm = require("vm");
 const fs = require("fs");
 const path = require("path");
 const root = path.join(__dirname, "..");
@@ -14,11 +15,19 @@ const errors = [];
 const warns = [];
 const check = (cond, msg) => { if (!cond) errors.push(msg); };
 const warn = (cond, msg) => { if (!cond) warns.push(msg); };
+const note = (msg) => warns.push(msg);
 
 /* 载入数据（data.js 为纯常量声明，无 DOM 依赖） */
-eval(fs.readFileSync(path.join(root, "js/data.js"), "utf8")
-  + ";globalThis.__D={RATE_USD_CNY,PLANS,METRICS_RAW,ESTIMATES,PLAN_TOKENS,DYNAMICS,API_PRICES,SOURCES};");
-const { RATE_USD_CNY, PLANS, METRICS_RAW, ESTIMATES, PLAN_TOKENS, DYNAMICS, API_PRICES, SOURCES } = globalThis.__D;
+const sandbox = { console };
+sandbox.globalThis = sandbox;
+vm.createContext(sandbox);
+vm.runInContext(
+  fs.readFileSync(path.join(root, "js/data.js"), "utf8") +
+    "\n;globalThis.__D={RATE_USD_CNY,PLANS,METRICS_RAW,ESTIMATES,PLAN_TOKENS,DYNAMICS,API_PRICES,SOURCES};",
+  sandbox,
+  { filename: "js/data.js" }
+);
+const { RATE_USD_CNY, PLANS, METRICS_RAW, ESTIMATES, PLAN_TOKENS, DYNAMICS, API_PRICES, SOURCES } = sandbox.__D;
 
 const CATS = ["official", "tool", "cloud", "team"];
 const REGIONS = ["cn", "intl"];
@@ -40,7 +49,7 @@ for (const p of PLANS) {
   check(typeof p.quota === "string" && p.quota.length > 4, `PLANS quota 缺失/过短: ${key}`);
   check(typeof p.url === "string" && p.url.startsWith("http"), `PLANS url 非法: ${key}`);
   if (p.priceM != null && p.priceM > 0 && p.priceY != null) warn(p.priceY <= p.priceM, `PLANS 年付折月高于月付: ${key}`);
-  if (p.priceM == null) warn(true, `PLANS 无标价（按量/定制）: ${key}`);
+  if (p.priceM == null) note(`PLANS 无标价（按量/定制）: ${key}`);
 }
 
 /* ---- 指标条目（METRICS_RAW + ESTIMATES）---- */
@@ -78,7 +87,7 @@ for (const m of allMetrics) {
 }
 /* ref 覆盖率（提醒：指标条目应尽量通过 ref 指向 PLANS 单一价格源） */
 const noRef = allMetrics.filter((m) => !Array.isArray(m.ref)).length;
-if (noRef > 0) warn(true, `${noRef} 个指标条目未设 ref（价格未与 PLANS 单一数据源对齐）`);
+if (noRef > 0) note(`${noRef} 个指标条目未设 ref（价格未与 PLANS 单一数据源对齐）`);
 
 /* ---- API_PRICES ---- */
 for (const a of API_PRICES) {
@@ -114,7 +123,8 @@ for (const d of DYNAMICS) {
   check(typeof d.url === "string" && d.url.startsWith("http"), `动态缺 url`);
   if (d.date) dates.push(d.date);
 }
-warn(dates.length === 0 || dates.some((x) => x.startsWith("2026-09")), "动态中缺少本月(2026-09)条目");
+const ym = new Date().getFullYear() + "-" + String(new Date().getMonth() + 1).padStart(2, "0");
+warn(dates.length === 0 || dates.some((x) => x.startsWith(ym)), `动态中缺少本月(${ym})条目`);
 function trunc(s) { return (s || "").slice(0, 30); }
 
 /* ---- SOURCES ---- */

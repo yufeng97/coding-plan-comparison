@@ -1,6 +1,7 @@
 // 一次性脚本：app.js 适配新设计（领域色 / PAL 暖纸暖墨 / stats 裸排 / RemixIcon）
 const fs = require("fs");
-const FILE = "D:/workbuddy/coding-plan-comparison/js/app.js";
+const path = require("path");
+const FILE = path.join(__dirname, "..", "js", "app.js");
 let s = fs.readFileSync(FILE, "utf8");
 const rep = (a, b) => {
   if (!s.includes(a)) throw new Error("not found: " + String(a).slice(0, 70));

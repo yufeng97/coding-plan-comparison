@@ -1,6 +1,7 @@
 // 一次性修复脚本：重建 free（免费入口）与 s1（个人订阅价格全景）两个区块
 const fs = require("fs");
-const FILE = "D:/workbuddy/coding-plan-comparison/index.html";
+const path = require("path");
+const FILE = path.join(__dirname, "..", "index.html");
 let s = fs.readFileSync(FILE, "utf8");
 
 // 1) 定位被串位的区块：从 "Section 5: 免费入口" 注释到 id="free" 的 </section>

@@ -1,0 +1,65 @@
+#!/usr/bin/env node
+/* 本地静态服务器：只监听 127.0.0.1，且只读项目根目录内的文件。 */
+const http = require("http");
+const fs = require("fs");
+const path = require("path");
+
+const root = path.resolve(__dirname, "..");
+const host = "127.0.0.1";
+const port = Number(process.env.PORT) || 8123;
+const types = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".woff2": "font/woff2",
+  ".svg": "image/svg+xml",
+  ".json": "application/json; charset=utf-8",
+  ".png": "image/png",
+  ".webp": "image/webp",
+  ".ico": "image/x-icon",
+};
+
+function fileFromUrl(urlPath) {
+  let rel;
+  try { rel = decodeURIComponent(String(urlPath || "/").split("?")[0]); }
+  catch (e) { return null; }
+  if (rel.includes("\0")) return null;
+  if (rel === "/") rel = "/index.html";
+  const stripped = rel.replace(/^[/\\]+/, "");
+  if (!stripped || path.isAbsolute(stripped) || /^[a-zA-Z]:/.test(stripped)) return null;
+  const resolved = path.resolve(root, stripped);
+  const relToRoot = path.relative(root, resolved);
+  if (!relToRoot || relToRoot.startsWith("..") || path.isAbsolute(relToRoot)) return null;
+  return resolved;
+}
+
+const server = http.createServer((q, r) => {
+  const file = fileFromUrl(q.url);
+  if (!file) {
+    r.writeHead(403, { "Content-Type": "text/plain; charset=utf-8" });
+    r.end("403");
+    return;
+  }
+  fs.readFile(file, (err, data) => {
+    if (err) {
+      r.writeHead(err.code === "ENOENT" ? 404 : 403, { "Content-Type": "text/plain; charset=utf-8" });
+      r.end(err.code === "ENOENT" ? "404" : "403");
+      return;
+    }
+    const ext = path.extname(file).toLowerCase();
+    r.writeHead(200, {
+      "Content-Type": types[ext] || "application/octet-stream",
+      "Cache-Control": "no-cache",
+      "X-Content-Type-Options": "nosniff",
+    });
+    r.end(data);
+  });
+});
+
+if (require.main === module) {
+  server.listen(port, host, () => {
+    console.log("http://" + host + ":" + port);
+  });
+}
+
+module.exports = { fileFromUrl, root };

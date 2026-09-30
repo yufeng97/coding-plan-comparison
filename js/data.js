@@ -9,7 +9,7 @@
 const RATE_USD_CNY = 6.71;
 
 const META = {
-  updated: "2026-09-29",
+  updated: "2026-09-30",
   rate: RATE_USD_CNY,
 };
 
@@ -1364,13 +1364,15 @@ const PLAN_TOKENS = [
  * 计算方法（app.js 中实现）：
  *   有效输入价 = 0.95 × cacheHit + 0.05 × apiIn   （95% 缓存命中）
  *   均价/M    = 0.8 × 有效输入价 + 0.2 × apiOut    （80%输入/20%输出）
- *   5h tokens = 周tokens / 5
- *   月 tokens = 周tokens × 4.33
+ *   5h tokens / 周 tokens / 月 tokens：
+ *     官方周 tokens：5h = 周 / 5，月 = 周 × 4.33
+ *     请求数制：分别采用 reqPer5h、reqPerWk、reqPerMo；有月上限时不再用周 × 4.33
  *   额度价值  = tokens(M) × 均价
- *   额度倍率  = 额度价值 / (月费 × 该时段占比)
+ *   额度倍率  = 该时段额度价值 / (月费 × 该时段占月比例)
+ *     5h 占比 = 1 / (4.33 × 5)，周占比 = 1 / 4.33，月占比 = 1
  *
  * 价格与币种（priceM/cur）经 ref 字段引用 PLANS 中对应计划（单一数据源）：
- * 改价只改 PLANS；app.js 加载时解析 ref，ref 无法解析会直接报错暴露问题。
+ * 改价只改 PLANS；ref 无法解析时页面告警并跳过该行，不中断其余区块。
  * ============================================================ */
 const METRICS_RAW = [
   /* ---- 智谱 GLM Coding Plan V3 国内版（2026-07-30 新版积分制） ---- */

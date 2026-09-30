@@ -1,6 +1,7 @@
 // 一次性脚本：validate-data.js 的 PLAN_TOKENS 价格改为 ref 解析
 const fs = require("fs");
-const FILE = "D:/workbuddy/coding-plan-comparison/scripts/validate-data.js";
+const path = require("path");
+const FILE = path.join(__dirname, "validate-data.js");
 let s = fs.readFileSync(FILE, "utf8");
 const anchor = "  check(t.priceCNY != null || t.priceUSD != null, `缺价格: ${key}`);";
 if (!s.includes(anchor)) throw new Error("anchor not found");

@@ -1,6 +1,7 @@
 // 一次性脚本：index.html 改造（字体/图标/滚动进度/hero 重构/h2 编号/图例色）
 const fs = require("fs");
-const FILE = "D:/workbuddy/coding-plan-comparison/index.html";
+const path = require("path");
+const FILE = path.join(__dirname, "..", "index.html");
 let s = fs.readFileSync(FILE, "utf8");
 const rep = (a, b, opt) => {
   if (a instanceof RegExp) {
@@ -14,11 +15,9 @@ const rep = (a, b, opt) => {
 
 // 1) 字体 + RemixIcon
 rep(/<link rel="stylesheet" href="css\/style\.css\?v=\d+">/,
-`  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.css" />
-  <link rel="stylesheet" href="css/style.css?v=41">`);
+`  <link rel="stylesheet" href="libs/fonts/fonts.css?v=43">
+  <link rel="stylesheet" href="libs/fonts/remixicon.css?v=43">
+  <link rel="stylesheet" href="css/style.css?v=43">`);
 
 // 2) 滚动进度条
 rep("<body>", '<body>\n    <div class="scroll-progress" aria-hidden="true"><span id="scrollBar"></span></div>', false);

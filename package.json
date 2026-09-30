@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "国内外 AI Coding Plan（编程订阅计划）价格与 token 额度可视化对比",
   "scripts": {
-    "serve": "node -e \"const http=require('http'),fs=require('fs'),path=require('path');const root=__dirname;const t={'.html':'text/html; charset=utf-8','.js':'text/javascript','.css':'text/css'};http.createServer((q,r)=>{let p=decodeURIComponent(q.url.split('?')[0]);if(p==='/')p='/index.html';fs.readFile(path.join(root,p),(e,d)=>{if(e){r.writeHead(404);r.end('404');return;}r.writeHead(200,{'Content-Type':t[path.extname(p)]||'application/octet-stream','Cache-Control':'no-cache'});r.end(d);});}).listen(8123,()=>console.log('http://127.0.0.1:8123'))\"",
+    "serve": "node scripts/serve.js",
     "validate": "node scripts/validate-data.js"
   }
 }
