@@ -15,7 +15,7 @@
 <script>try{var __m=localStorage.getItem("cp-theme")||"system";var __d=matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.dataset.theme=__m==="system"?(__d?"dark":"light"):__m;}catch(e){}</script>
   <link rel="stylesheet" href="libs/fonts/fonts.css?v=43">
   <link rel="stylesheet" href="libs/fonts/remixicon.css?v=43">
-  <link rel="stylesheet" href="css/style.css?v=45">
+  <link rel="stylesheet" href="css/style.css?v=46">
 </head>
 <body>
     <div class="scroll-progress" aria-hidden="true"><span id="scrollBar"></span></div>
@@ -24,7 +24,7 @@
   <div class="topbar-inner">
     <a class="brand" href="#top"><span class="brand-mark">&lt;/&gt;</span> Coding Plan <em>比价中心</em></a>
     <nav class="topnav">
-      <a href="#quick">快速决策</a>
+      <a href="#quick">帮我选</a>
       <a href="#rank">性价比排行</a>
       <a href="#s3b">额度对比</a>
       <a href="#free">免费入口</a>
@@ -32,7 +32,7 @@
       <a href="#s2">团队档</a>
       <a href="#s3">每周 tokens</a>
       <a href="#s4">API 按量</a>
-      <a href="#table">完整数据</a>
+      <a href="#table">数据表</a>
     </nav>
     <button id="themeBtn" class="theme-btn" title="切换主题：暗色 → 亮色 → 跟随系统"><i class="ri-moon-line" aria-hidden="true"></i></button>
   </div>
@@ -45,26 +45,62 @@
     <div class="hero-inner">
       <span class="prompt-mark" aria-hidden="true">&gt;_</span>
       <h1><span>全球 Coding Plan</span><span>价格与额度对比。</span></h1>
-      <p class="hero-lede">一次看全市面上在售的 AI 编程订阅计划 —— 模型官方 / 云厂商 / 第三方工具与中转站，<strong>每月价格</strong>与<strong>可用 token 额度</strong>逐项对比，并换算每百万 tokens 的实际成本与免费上手路径。</p>
+      <p class="hero-lede">先按预算、地区和要用的工具选出三档能下单的计划，再往下对照价格、额度和 API 单价。中转站单独标出，不和官方订阅比谁更便宜。</p>
       <p class="hero-meta">数据更新至 <strong id="heroDate">2026-09-30</strong> · 每日 09:30 巡检 · 汇率 1 USD ≈ <span id="rateText">6.71</span> CNY · 来源见页脚</p>
       <dl class="stats-row" id="statsRow"></dl>
     </div>
   </section>
 
-  <!-- ======== 快速决策卡 ======== -->
+  <!-- ======== 01 帮我选 ======== -->
   <section class="section" id="quick" style="padding-top:36px">
     <div class="section-head">
-      <h2><span class="sec-no">01</span>30 秒决策卡</h2>
-      <p>不想翻 170 行数据？这四张卡片告诉你答案。</p>
+      <h2><span class="sec-no">01</span>帮我选</h2>
+      <p>按预算、地区、要接的工具和模型档次，给出最多三个能下单的个人档。每条写明为什么是它，以及它不适合谁。中转站不进这三档。</p>
+    </div>
+    <div class="picker" id="picker">
+      <div class="picker-row" data-pick="budget">
+        <span class="picker-label">预算</span>
+        <button type="button" class="chip" data-value="0">免费</button>
+        <button type="button" class="chip" data-value="100">≤ ¥100</button>
+        <button type="button" class="chip active" data-value="200">≤ ¥200</button>
+        <button type="button" class="chip" data-value="500">≤ ¥500</button>
+        <button type="button" class="chip" data-value="any">不限</button>
+      </div>
+      <div class="picker-row" data-pick="region">
+        <span class="picker-label">地区</span>
+        <button type="button" class="chip active" data-value="cn">国内</button>
+        <button type="button" class="chip" data-value="intl">国际</button>
+        <button type="button" class="chip" data-value="all">不限</button>
+      </div>
+      <div class="picker-row" data-pick="tool">
+        <span class="picker-label">工具</span>
+        <button type="button" class="chip active" data-value="any">不限</button>
+        <button type="button" class="chip" data-value="claude">Claude Code</button>
+        <button type="button" class="chip" data-value="codex">Codex</button>
+        <button type="button" class="chip" data-value="cursor">Cursor</button>
+        <button type="button" class="chip" data-value="own">自家客户端</button>
+      </div>
+      <div class="picker-row" data-pick="tier">
+        <span class="picker-label">模型</span>
+        <button type="button" class="chip active" data-value="flagship">只要旗舰</button>
+        <button type="button" class="chip" data-value="any">含轻量</button>
+      </div>
     </div>
     <div class="quick-grid" id="quickGrid"></div>
+    <p class="chart-note" id="pickerNote"></p>
   </section>
 
-  <!-- ======== 性价比排行 ======== -->
+  <!-- ======== 02 每百万 tokens 成本排行 ======== -->
   <section class="section" id="rank">
     <div class="section-head">
       <h2><span class="sec-no">02</span>每百万 tokens 实际成本排行</h2>
-      <p>月费 ÷ 月可用 tokens，越低越划算。这里只列入<strong>官方公布每周 tokens、且新用户当前可购买</strong>的计划。请求次数折算、第三方估算、已停售、已下架、一次性预付和仅老用户续费留在额度表里，不参与这张排行。</p>
+      <p>月费 ÷ 月可用 tokens，越低越划算。默认只看旗舰模型，轻量模型不会因为 token 便宜排到第一。这里只列入<strong>官方公布每周 tokens、且新用户当前可购买</strong>的计划。请求次数折算、第三方估算、已停售、已下架、一次性预付和仅老用户续费留在额度表里，不参与这张排行。</p>
+    </div>
+    <div class="controls">
+      <div class="chip-group" id="chipRank">
+        <button type="button" class="chip active" data-rank="flagship">只看旗舰</button>
+        <button type="button" class="chip" data-rank="all">含轻量模型</button>
+      </div>
     </div>
     <div class="chart-card"><div id="chartRank" class="chart"></div></div>
     <p class="chart-note" id="rankNote"></p>
@@ -72,11 +108,11 @@
 
   
 
-<!-- ======== Section 3.5: 额度深度对比 ======== -->
+<!-- ======== 03 额度深度对比 ======== -->
   <section class="section" id="s3b">
     <div class="section-head">
-      <h2><span class="sec-no">03</span>额度深度对比（TPS · Tokens · 额度价值 · 额度倍率）</h2>
-      <p>按 <strong>5 小时 / 周 / 月</strong> 三个时间窗口，计算可用 tokens、折算 API 市值（额度价值）与性价比倍率（该时段额度价值 ÷ 该时段分摊的月费）。模型列同时给出该模型的输入、输出和缓存挂牌，而不只是套餐的每百万 tokens 成本。官方周 tokens 按每周 5 个 5 小时窗口、每月 4.33 周折算；请求数制计划使用数据里写明的 5 小时、周、月请求上限。小米 Token Plan、腾讯云通用 Token Plan 按官方积分系数折成 tokens（依据列标「官方系数」），不进入每周 tokens 对比图。点击表头可排序，月倍率越高表示性价比越高。</p>
+      <h2><span class="sec-no">03</span>额度深度对比</h2>
+      <p>默认只看月费、主要模型、每月大约能用多少、每百万 tokens 成本和置信度。5 小时窗口、每周明细和推算方法可以展开。官方数字和「≈估」分开标。</p>
     </div>
     <div class="controls controls-table">
       <select id="metricsModel" class="select">
@@ -88,25 +124,27 @@
         <option value="V2">V2（老用户续费）</option>
       </select>
       <span class="table-count" id="metricsCount"></span>
+      <button type="button" class="chip" id="metricsToggle">展开 5 小时 / 每周明细</button>
     </div>
     <div class="table-wrap metrics-wrap">
-      <table id="metricsTable">
+      <table id="metricsTable" class="is-compact">
         <thead>
           <tr>
             <th class="sticky-col">厂商·计划</th>
-            <th>版本</th>
+            <th class="col-more">版本</th>
             <th>模型</th>
-            <th>TPS</th>
-            <th class="sortable" data-sort="cpm">💵每M tokens</th>
-            <th class="sortable" data-sort="t5h">Tokens/5h ↓</th>
-            <th>💰价值/5h</th>
-            <th class="sortable" data-sort="r5h">⏫倍率/5h</th>
-            <th class="sortable" data-sort="twk">Tokens/周</th>
-            <th>💰价值/周</th>
-            <th class="sortable" data-sort="rwk">⏫倍率/周</th>
-            <th class="sortable" data-sort="tmo">Tokens/月</th>
-            <th>💰价值/月</th>
-            <th class="sortable" data-sort="rmo">⏫倍率/月</th>
+            <th class="sortable" data-sort="price"><span>月费</span></th>
+            <th class="col-more">TPS</th>
+            <th class="sortable" data-sort="cpm"><span>💵每M tokens</span></th>
+            <th class="sortable col-more" data-sort="t5h"><span>Tokens/5h</span></th>
+            <th class="col-more">💰价值/5h</th>
+            <th class="sortable col-more" data-sort="r5h"><span>⏫倍率/5h</span></th>
+            <th class="sortable col-more" data-sort="twk"><span>Tokens/周</span></th>
+            <th class="col-more">💰价值/周</th>
+            <th class="sortable col-more" data-sort="rwk"><span>⏫倍率/周</span></th>
+            <th class="sortable" data-sort="tmo"><span>每月 tokens</span></th>
+            <th class="col-more">💰价值/月</th>
+            <th class="sortable col-more" data-sort="rmo"><span>⏫倍率/月</span></th>
             <th>依据</th>
           </tr>
         </thead>
@@ -128,7 +166,7 @@
     </details>
   </section>
 
-<!-- ======== Section 5: 免费入口 ======== -->
+<!-- ======== 04 免费 Coding 入口 ======== -->
   <section class="section" id="free">
     <div class="section-head">
       <h2><span class="sec-no">04</span>免费 Coding 入口</h2>
@@ -137,11 +175,11 @@
     <div class="free-grid" id="freeGrid"></div>
   </section>
 
-<!-- ======== Section 1: 个人订阅价格全景 ======== -->
+<!-- ======== 05 个人订阅价格全景 ======== -->
   <section class="section" id="s1">
     <div class="section-head">
       <h2><span class="sec-no">05</span>个人订阅价格全景</h2>
-      <p>在售的个人月付档（免费档见「免费入口」；已停售、已下架和一次性预付见完整数据表），按统一折算人民币从低到高排列。悬停查看原币价格、额度口径与模型。</p>
+      <p>在售的个人月付档（免费档见「免费入口」；已停售、已下架和一次性预付见「数据表」），按统一折算人民币从低到高排列。中转站用单独的颜色标出，不和官方订阅、工具订阅混在一类。悬停查看原币价格、额度口径与模型。</p>
     </div>
     <div class="controls" id="ctrl1">
       <input type="search" id="chartSearch" class="search-input" placeholder="🔍 搜索厂商 / 计划 / 模型…" style="min-width:220px">
@@ -164,13 +202,14 @@
         <span><i style="background:#5575f6"></i>模型官方订阅</span>
         <span><i style="background:#16b8a6"></i>第三方工具订阅</span>
         <span><i style="background:#ff973d"></i>云厂商/API 套餐</span>
+        <span><i style="background:#d4534a"></i>中转站</span>
       </div>
     </div>
     <div class="chart-card"><div id="chartPersonal" class="chart"></div></div>
     <p class="chart-note" id="notePersonal"></p>
   </section>
 
-  <!-- ======== Section 2: 团队 / 企业 / 云厂商 ======== -->
+  <!-- ======== 06 团队 / 企业 / 云厂商 ======== -->
   <section class="section" id="s2">
     <div class="section-head">
       <h2><span class="sec-no">06</span>团队 / 企业档（席位 / 整包价格）</h2>
@@ -179,7 +218,7 @@
     <div class="chart-card"><div id="chartTeam" class="chart"></div></div>
   </section>
 
-  <!-- ======== Section 3: 官方每周 token 估算 ======== -->
+  <!-- ======== 07 每周可用 tokens 对比 ======== -->
   <section class="section" id="s3">
     <div class="section-head">
       <h2><span class="sec-no">07</span>每周可用 tokens 对比（官方公布 + 社区推算）</h2>
@@ -193,7 +232,7 @@
 
   
 
-  <!-- ======== Section 4: API 按量 ======== -->
+  <!-- ======== 08 API 按量计费 ======== -->
   <section class="section" id="s4">
     <div class="section-head">
       <h2><span class="sec-no">08</span>API 按量计费：token 的单价</h2>
@@ -207,11 +246,11 @@
 
   
 
-  <!-- ======== Section 6: 完整数据表 ======== -->
+  <!-- ======== 09 数据表 ======== -->
   <section class="section" id="table">
     <div class="section-head">
-      <h2><span class="sec-no">09</span>全部在售计划（完整数据）</h2>
-      <p>只列仍在售、且有标价的档。免费档在「免费 Coding 入口」；已下架、聊天免费档和不能当编程工具的免费档不放进这张表。支持搜索、筛选与按价格排序。</p>
+      <h2><span class="sec-no">09</span>在售计划（有标价）</h2>
+      <p>只列仍在售、且有标价的档（含一次性预付与仅老用户续费）。免费档在「免费 Coding 入口」；已下架、聊天免费档和不能当编程工具的免费档不放进这张表。支持搜索、筛选与按价格排序。</p>
     </div>
     <div class="controls controls-table">
       <input type="search" id="searchInput" class="search-input" placeholder="🔍 搜索厂商 / 计划 / 模型…">
@@ -234,8 +273,8 @@
         <thead>
           <tr>
             <th>厂商</th><th>计划</th><th>类别</th><th>地区</th>
-            <th class="sortable" data-sort="priceM">月付 ↓</th>
-            <th class="sortable" data-sort="priceY">年付折月</th>
+            <th class="sortable" data-sort="priceM"><span>月付</span></th>
+            <th class="sortable" data-sort="priceY"><span>年付折月</span></th>
             <th>额度（官方口径）</th><th>模型</th><th>支持工具</th><th>备注</th><th>来源</th>
           </tr>
         </thead>
@@ -244,23 +283,30 @@
     </div>
   </section>
 
-  <!-- ======== Section 7: 行业动态 ======== -->
+  <!-- ======== 10 重要动态 ======== -->
   <section class="section" id="dynamics">
     <div class="section-head">
       <h2><span class="sec-no">10</span>重要动态</h2>
-      <p>日期是来源写明的发生日。标成「核实」的，只是本站核对到该状态的日子，不是厂商发公告的日子。</p>
+      <p>这里只放来源写明了发生日、而且会影响购买的变化。只有核对日、没有公告日的记录收在下面，不当成厂商公告。</p>
     </div>
     <ul class="dynamics-list" id="dynamicsList"></ul>
+    <details class="method-box">
+      <summary>本站核对记录（日期是核对日，不是厂商公告日）</summary>
+      <ul class="dynamics-list" id="checkList"></ul>
+    </details>
   </section>
 
-  <!-- ======== Section 8: 来源与说明 ======== -->
+  <!-- ======== 11 数据来源与说明 ======== -->
   <section class="section" id="sources">
     <div class="section-head"><h2><span class="sec-no">11</span>数据来源与说明</h2></div>
     <div class="grid-2">
       <div class="source-card" id="sourceList"></div>
       <div class="source-card">
         <h3>⚠️ 不确定性与口径说明</h3>
-        <ul class="uncertain-list" id="uncertainList"></ul>
+        <details class="method-box" id="uncertainWrap">
+          <summary>展开全部不确定性说明（点击查看）</summary>
+          <ul class="uncertain-list" id="uncertainList"></ul>
+        </details>
         <h3>📌 阅读提示</h3>
         <ul class="uncertain-list">
           <li>各家「额度」口径不同（每 5 小时 prompts / 每周 tokens / 每日请求 / credits），<strong>不能直接互比</strong>，表内保留官方原文。</li>
@@ -281,7 +327,7 @@
 </footer>
 
 <script src="libs/echarts.min.js?v=43"></script>
-<script src="js/data.js?v=51"></script>
-<script src="js/app.js?v=51"></script>
+<script src="js/data.js?v=52"></script>
+<script src="js/app.js?v=57"></script>
 </body>
 </html>

@@ -306,6 +306,29 @@ html[data-theme="dark"] .quick-card .qc-value em { color: var(--brand); }
   border: 1px solid var(--line-strong); color: var(--muted);
   font: 600 10.5px var(--mono);
 }
+.quick-card .qc-why, .quick-card .qc-avoid { margin-top: 8px; }
+.quick-card .qc-avoid { color: var(--faint); }
+.picker { display: flex; flex-direction: column; gap: 10px; margin: 0 0 16px; }
+.picker-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.picker-label { flex: 0 0 3.2em; font-size: 12px; font-weight: 700; color: var(--muted); }
+.picker-empty {
+  background: var(--panel); border: 1px dashed var(--line-strong); border-radius: var(--radius-l);
+  padding: 22px; color: var(--muted); font-size: 14px;
+}
+.badge-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; max-width: 280px; }
+.badge {
+  display: inline-block; padding: 1px 6px; border-radius: 999px;
+  border: 1px solid var(--line-strong); font: 600 10.5px var(--mono); color: var(--muted); white-space: nowrap;
+}
+.badge-agent { color: var(--ink); }
+.badge-risk { color: var(--gold); border-color: rgba(212, 148, 58, .45); }
+.plan-name { white-space: nowrap; }
+.td-trust { white-space: nowrap; font-size: 12px; }
+.td-trust .sub { display: block; margin-top: 4px; color: var(--faint); font-weight: 400; font-size: 11px; }
+@media (max-width: 640px) {
+  .quick-grid { grid-template-columns: 1fr; }
+  .picker-label { flex-basis: 100%; }
+}
 
 /* ---------- 免费入口 ---------- */
 .free-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; margin-bottom: 20px; }
@@ -348,7 +371,7 @@ tbody td {
 }
 tbody tr:hover td { background: var(--row-hover); }
 td.td-vendor { color: var(--ink); font-weight: 700; white-space: nowrap; }
-td.td-plan { color: var(--ink); white-space: nowrap; }
+td.td-plan { color: var(--ink); white-space: normal; }
 td.td-price { color: var(--gold); font-weight: 700; white-space: nowrap; font-family: var(--mono); font-size: 12.5px; }
 td.td-price .sub { color: var(--faint); font-weight: 400; }
 .td-quota { min-width: 260px; max-width: 380px; }
@@ -363,6 +386,8 @@ td.td-price .sub { color: var(--faint); font-weight: 400; }
 
 /* 额度深度对比表 */
 #metricsTable { min-width: 1100px; font-size: 12.5px; }
+#metricsTable.is-compact { min-width: 760px; }
+#metricsTable.is-compact .col-more { display: none; }
 #metricsTable th, #metricsTable td { padding: 8px 10px; white-space: nowrap; }
 #metricsTable .sticky-col {
   position: sticky; left: 0; z-index: 5;

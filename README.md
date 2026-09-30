@@ -7,9 +7,9 @@
 - **模型官方订阅**：Anthropic Claude、OpenAI Codex（ChatGPT）、Google Gemini/Antigravity、xAI Grok、Mistral、智谱 BigModel 与 Z.ai 的 GLM Coding Plan（V1/V2/V3）、月之暗面 Kimi、MiniMax、小米 MiMo、阶跃 Step Plan 等
 - **第三方工具与中转站**：GitHub Copilot、Cursor、Windsurf/Devin、Zed、Cline、Roo Code、Kilo Code、Amp、JetBrains AI、Augment、OpenRouter、Lovable、Bolt.new、Replit、AWS Kiro、Factory Droid、Canopy Wave、OpenCode、Command Code、腾讯 CodeBuddy、字节 Trae、百度文心快码，以及 R4 Coder、ZenMux、PackyCode、AICodeMirror、88code、DuckCoding、AIGoCode、DevPass、Chutes 等 API 中转站
 - **云厂商/企业档**：AWS Q Developer、Google Gemini Code Assist、阿里云通义灵码（Qoder CN）、腾讯云、华为云 CodeArts、讯飞星辰 Astron Coding Plan 等
-- **API 按量计费**：29 款主流编程模型的输入/输出单价（USD 与 CNY 原币，统一折算对比）
+- **API 按量计费**：34 款主流编程模型的输入/输出单价（USD 与 CNY 原币，统一折算对比）
 
-数据调研与核实日期：**2026-09-23～30**；全部来自官方定价页或权威报道（页脚附来源链接）；覆盖 56 家厂商、194 档订阅计划、26 个免费入口、46 行额度深度对比（官方数据 + 标注置信度的社区估算）。
+数据调研与核实日期：**2026-09-23～30**；全部来自官方定价页或权威报道（页脚附来源链接）；覆盖 59 家厂商、210 档订阅计划、27 个免费档（其中 20 个可作免费 Coding 入口）、84 行额度深度对比（官方数据 + 标注置信度的社区估算）。
 
 ## 使用方式
 
@@ -23,15 +23,15 @@ npm run serve
 
 ## 页面结构
 
-1. **快速决策卡**：四张卡片直接给结论（性价比首选 / 国内最便宜 / 免费上手 / 国际旗舰）
+1. **帮我选**：按预算 / 地区 / 工具 / 模型档次，给出最多三档能下单的个人档及推荐理由
 2. **性价比排行**：有官方每周 token 数据、且新用户可购买的计划，按每百万 tokens 实际成本排序（不含请求折算、第三方估算、已停售/已下架、一次性预付、仅老用户续费）
 3. **个人订阅价格全景**：全部个人档月费横向条形图（可按类别/地区筛选，月付/年付切换，统一折算人民币，悬停查看原币与额度）
 4. **团队/企业/云厂商**：席位价与整包价对比
 5. **GLM 官方每周 token 估算**：唯一官方公布可折算 token 总量的厂商，含性价比换算
 6. **额度深度对比**：TPS + 5h/周/月的 Tokens·额度价值·额度倍率（含 Command Code / 阶跃 credits 制与智谱 V1/V2/V3 各版本，附推算方法论）
-7. **API 按量计费**：29 款模型每百万 tokens 输入/输出单价 + $10 购买力对比
-8. **免费 Coding 入口**：26 个零成本方案卡片
-9. **完整数据表**：全部计划，支持搜索/筛选/排序
+7. **API 按量计费**：34 款模型每百万 tokens 输入/输出单价 + $10 购买力对比
+8. **免费 Coding 入口**：20 个可作编程 Agent / 编程工具的零成本方案卡片
+9. **数据表**：在售且有标价的计划（约 177 档），支持搜索/筛选/排序
 10. **行业动态 + 数据来源 + 不确定性说明**
 
 ## 文件说明
@@ -39,11 +39,11 @@ npm run serve
 | 文件 | 说明 |
 |---|---|
 | `index.html` | 页面结构 |
-| `css/style.css` | 样式（深色主题） |
+| `css/style.css` | 样式（亮色默认；支持暗色与跟随系统） |
 | `js/data.js` | 全部数据（订阅计划、API 单价、动态、来源；额度对比数据经 `ref` 引用 `PLANS` 的价格，改价只改 `PLANS` 一处） |
 | `js/app.js` | 图表与表格渲染逻辑 |
 | `libs/echarts.min.js` | ECharts 5.5.1（本地化） |
-| `libs/fonts/` | Manrope、IBM Plex Mono 与 Remix Icon（本地化，可用 `node scripts/vendor-fonts.js` 重新下载） |
+| `libs/fonts/` | Manrope、IBM Plex Mono 与 Remix Icon（本地化，可用 `node scripts/archive/vendor-fonts.js` 重新下载） |
 
 ## 免责声明
 

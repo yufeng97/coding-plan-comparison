@@ -13,6 +13,32 @@ const META = {
   rate: RATE_USD_CNY,
 };
 
+/* ============================================================
+ * 计划分类判定函数（供 js/app.js 渲染与 scripts/validate-data.js 校验共用）。
+ * 有意用全局函数而非模块：浏览器端 data.js 先于 app.js 加载，零构建直接引用；
+ * 校验器在 VM 沙箱中运行同一份 data.js，天然复用，避免两边逻辑漂移。
+ * ============================================================ */
+function isRetiredPlan(p) { return /已停售|已下架/.test((p && p.plan) || ""); }
+function isOneTimePlan(p) { return /一次性|预付/.test((p && p.plan) || ""); }
+function isRenewalOnly(p) { return /老用户/.test((p && p.plan) || ""); }
+/* 在售个人月付：不含团队整包、已停售/已下架、一次性预付、仅老用户可续的档 */
+function isPersonalMonthly(p) {
+  return !!(p && p.priceM > 0 && !p.seat && p.cat !== "team" && !isRetiredPlan(p) && !isOneTimePlan(p) && !isRenewalOnly(p));
+}
+/* 免费 Coding 入口：在售，且能当编程 Agent 或编程工具用。
+   已下架不算。聊天免费档、无 API 的网页档、自家应用构建器不算。 */
+function isFreeCodingEntry(p) {
+  if (!p || p.priceM !== 0 || isRetiredPlan(p)) return false;
+  if (p.vendor === "Lovable" || p.vendor === "Bolt.new") return false;
+  if (p.plan === "Claude Free" || p.plan === "Grok Free") return false;
+  if (p.vendor === "ZenMux" && p.plan === "Free") return false;
+  return true;
+}
+/* 在售且明码标价（用于完整数据表与「在售订阅计划」统计卡；免费档、按量/定制、已停售不计） */
+function isOnSalePlan(p) {
+  return !!(p && p.priceM !== 0 && !isRetiredPlan(p));
+}
+
 /* 类别: official=模型官方订阅  tool=第三方工具订阅  team=团队/企业/云厂商 */
 /* region: intl=国际  cn=国内 */
 /* priceM=月付价格(月)  priceY=年付折算每月  seat=true 表示每席位/每用户价 */

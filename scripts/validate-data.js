@@ -23,11 +23,11 @@ sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(
   fs.readFileSync(path.join(root, "js/data.js"), "utf8") +
-    "\n;globalThis.__D={RATE_USD_CNY,PLANS,METRICS_RAW,ESTIMATES,PLAN_TOKENS,DYNAMICS,API_PRICES,SOURCES};",
+    "\n;globalThis.__D={RATE_USD_CNY,PLANS,METRICS_RAW,ESTIMATES,PLAN_TOKENS,DYNAMICS,API_PRICES,SOURCES,isRetiredPlan,isFreeCodingEntry};",
   sandbox,
   { filename: "js/data.js" }
 );
-const { RATE_USD_CNY, PLANS, METRICS_RAW, ESTIMATES, PLAN_TOKENS, DYNAMICS, API_PRICES, SOURCES } = sandbox.__D;
+const { RATE_USD_CNY, PLANS, METRICS_RAW, ESTIMATES, PLAN_TOKENS, DYNAMICS, API_PRICES, SOURCES, isRetiredPlan, isFreeCodingEntry } = sandbox.__D;
 
 const CATS = ["official", "tool", "cloud", "team"];
 const REGIONS = ["cn", "intl"];
@@ -55,15 +55,8 @@ for (const p of PLANS) {
   }
 }
 
-/* 与 js/app.js 的 isFreeCodingEntry 保持一致。每日巡检改完 data.js 后必须跑本脚本。 */
-function isRetiredPlan(p) { return /已停售|已下架/.test((p && p.plan) || ""); }
-function isFreeCodingEntry(p) {
-  if (!p || p.priceM !== 0 || isRetiredPlan(p)) return false;
-  if (p.vendor === "Lovable" || p.vendor === "Bolt.new") return false;
-  if (p.plan === "Claude Free" || p.plan === "Grok Free") return false;
-  if (p.vendor === "ZenMux" && p.plan === "Free") return false;
-  return true;
-}
+/* isRetiredPlan / isFreeCodingEntry 定义在 js/data.js 中（同一份代码，VM 沙箱直接复用）。
+   每日巡检改完 data.js 后必须跑本脚本。 */
 const NOT_CODING_FREE = [
   ["Lovable", "Free"],
   ["Bolt.new", "Free"],

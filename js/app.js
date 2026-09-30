@@ -52,21 +52,66 @@ function safeHref(u) {
   const s = String(u ?? "").trim();
   return /^https?:\/\//i.test(s) ? esc(s) : "";
 }
-function isRetiredPlan(p) { return /已停售|已下架/.test((p && p.plan) || ""); }
-function isOneTimePlan(p) { return /一次性|预付/.test((p && p.plan) || ""); }
-function isRenewalOnly(p) { return /老用户/.test((p && p.plan) || ""); }
-/* 在售个人月付：不含团队整包、已停售/已下架、一次性预付、仅老用户可续的档 */
-function isPersonalMonthly(p) {
-  return !!(p && p.priceM > 0 && !p.seat && p.cat !== "team" && !isRetiredPlan(p) && !isOneTimePlan(p) && !isRenewalOnly(p));
+/* 计划分类判定（isRetiredPlan / isOneTimePlan / isRenewalOnly / isPersonalMonthly /
+   isFreeCodingEntry / isOnSalePlan）已下沉到 js/data.js，页面与校验器共用同一份，避免逻辑漂移。 */
+/* 号池 / API 转售。和官方订阅、Cursor 这类工具订阅分开上色，不进「帮我选」。 */
+const RELAY_VENDORS = new Set([
+  "R4 Coder（r4.codes）",
+  "PackyCode/PackyAPI",
+  "PackyCode (Codex 站)",
+  "AICodeMirror",
+  "88code",
+  "DuckCoding",
+  "AIGoCode",
+  "DevPass",
+  "Chutes (chutes.ai)",
+]);
+const RELAY_COLOR = "#d4534a";
+function isRelay(p) {
+  if (!p) return false;
+  if (RELAY_VENDORS.has(p.vendor)) return true;
+  return /仅提供中转|号池|中转站/.test((p.note || "") + (p.plan || ""));
 }
-/* 免费 Coding 入口：在售，且能当编程 Agent 或编程工具用。
-   已下架不算。聊天免费档、无 API 的网页档、自家应用构建器不算。 */
-function isFreeCodingEntry(p) {
-  if (!p || p.priceM !== 0 || isRetiredPlan(p)) return false;
-  if (p.vendor === "Lovable" || p.vendor === "Bolt.new") return false;
-  if (p.plan === "Claude Free" || p.plan === "Grok Free") return false;
-  if (p.vendor === "ZenMux" && p.plan === "Free") return false;
-  return true;
+/* 「同 Lite 档」沿同一厂商往前找到原文 */
+function resolvedField(p, key) {
+  const raw = String((p && p[key]) || "");
+  if (!p || !/^同/.test(raw)) return raw;
+  const idx = PLANS.indexOf(p);
+  for (let i = idx - 1; i >= 0; i--) {
+    if (PLANS[i].vendor !== p.vendor) break;
+    const v = PLANS[i][key];
+    if (v && !/^同/.test(v)) return v;
+  }
+  return raw;
+}
+function isFlagshipModelName(name) {
+  return String(name || "").split(/[、,，/|；;]+/).some((part) => {
+    const t = part.trim();
+    if (!t || /flash|haiku|luna|nano/i.test(t)) return false;
+    return /opus|fable|sonnet|gpt-6 sol|gpt-5|kimi\s*k[23]|\bk3\b|deepseek[\w.\s-]*pro|minimax-m3|mimo[\w.-]*pro|qwen3(?:\.\d+)?-max|qwen3-coder-(?:plus|next)|doubao-seed-[\d.]+-(?:pro|code)|glm-?\s*5|step-5|hy[34]/i.test(t);
+  });
+}
+function planBlob(p) {
+  return [p.tools, p.note, p.plan, p.quota].filter(Boolean).join(" ");
+}
+function planBadges(p) {
+  const badges = [];
+  const blob = planBlob(p);
+  const tools = resolvedField(p, "tools");
+  if (isRelay(p)) badges.push({ t: "中转", k: "risk" });
+  if (/BYOK|自备\s*API|自带\s*API|自备 Key/i.test(blob)) badges.push({ t: "要自备 Key", k: "risk" });
+  if (isRenewalOnly(p)) badges.push({ t: "仅老用户", k: "risk" });
+  if (isOneTimePlan(p)) badges.push({ t: "一次性", k: "risk" });
+  if (/不稳定|403|连接失败|无法访问/.test(blob)) badges.push({ t: "访问不稳", k: "risk" });
+  if (/Claude Code/i.test(tools)) badges.push({ t: "Claude Code", k: "agent" });
+  if (/Codex/i.test(tools)) badges.push({ t: "Codex", k: "agent" });
+  if (p.vendor === "Cursor" || /\bCursor\b/i.test(tools)) badges.push({ t: "Cursor", k: "agent" });
+  const ownClient = /IDE|客户端|桌面|网页|VS Code|插件|编辑器/.test(tools) && !/协议|框架|端点|兼容/.test(tools);
+  if (!badges.some((b) => b.k === "agent") && !isRelay(p) && ownClient) badges.push({ t: "自家客户端", k: "agent" });
+  return badges;
+}
+function badgeHtml(p) {
+  return planBadges(p).map((b) => `<span class="badge badge-${b.k}">${esc(b.t)}</span>`).join("");
 }
 function metricOfferOk(m) {
   if (/已停售|已下架|老用户|一次性|预付/.test(m.plan || "")) return false;
@@ -172,9 +217,13 @@ function initTheme() {
     applyTheme(order[(order.indexOf(localStorage.getItem(THEME_KEY) || "system") + 1) % 3]);
     rerenderCharts();
   });
-  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  const mq = window.matchMedia("(prefers-color-scheme: dark)");
+  const onSchemeChange = () => {
     if ((localStorage.getItem(THEME_KEY) || "system") === "system") { applyTheme("system"); rerenderCharts(); }
-  });
+  };
+  /* 旧版 Safari（<14）只支持 addListener，此处做回退 */
+  if (mq.addEventListener) mq.addEventListener("change", onSchemeChange);
+  else if (mq.addListener) mq.addListener(onSchemeChange);
 }
 
 /* ---------- 统计卡 ---------- */
@@ -201,7 +250,7 @@ function renderStats() {
   const maxP = maxCny == null ? null : paid.find((p) => cnyOf(p, "M") === maxCny);
   const items = [
     { icon: "ri-global-line", num: vendors.size, lbl: "覆盖厂商", sub: "官方 / 云厂商 / 第三方" },
-    { icon: "ri-stack-line", num: PLANS.length, lbl: "在售订阅计划", sub: "官方 / 工具 / 中转站" },
+    { icon: "ri-stack-line", num: PLANS.filter(isOnSalePlan).length, lbl: "在售订阅计划", sub: "有标价且未下架" },
     { icon: "ri-gift-line", num: freeCnt, lbl: "免费可用入口", sub: "见「免费 Coding 入口」" },
     { icon: "ri-price-tag-3-line", num: API_PRICES.length, lbl: "API 模型单价", sub: "输入 / 输出对比" },
     minP && { icon: "ri-arrow-down-circle-line", lbl: "最低月费", num: fmtCNY(minCny), sub: "/月 · " + planLabel(minP) },
@@ -225,6 +274,7 @@ function personalTooltip(p) {
     月付：${p.priceM != null ? esc(p.cur === "USD" ? "$" + p.priceM : "¥" + p.priceM) : "—"} ｜ ${esc(y)}<br/>
     <span style="color:#fcd34d">额度：</span>${esc(trunc(p.quota, 90))}<br/>
     <span style="color:#a5b4fc">模型：</span>${esc(trunc(p.models, 80))}<br/>
+    ${isRelay(p) ? `<span style="color:#d4534a">中转站，不和官方订阅比单价</span><br/>` : ""}
     ${p.note ? `<span style="color:${PAL.dim}">备注：${esc(trunc(p.note, 60))}</span><br/>` : ""}
     ${href ? `<span style="color:#6b7893;font-size:11.5px">来源：${href}</span>` : ""}`;
 }
@@ -248,10 +298,10 @@ function renderPersonalChart() {
   el.style.height = Math.max(420, shown.length * 30 + 130) + "px";
   const chart = makeChart("chartPersonal");
 
-  const labels = shown.map((p) => shortVendor(p.vendor) + " · " + p.plan + (p.region === "cn" ? "·国内" : ""));
-  const data = shown.map((p, i) => ({
+  const labels = shown.map((p) => (isRelay(p) ? "中转 · " : "") + shortVendor(p.vendor) + " · " + p.plan + (p.region === "cn" ? "·国内" : ""));
+  const data = shown.map((p) => ({
     value: Math.round(cnyOf(p, state1.billing) * 10) / 10,
-    itemStyle: { color: CAT_COLOR[p.cat], borderRadius: [0, 4, 4, 0] },
+    itemStyle: { color: isRelay(p) ? RELAY_COLOR : CAT_COLOR[p.cat], borderRadius: [0, 4, 4, 0] },
     _p: p,
   }));
 
@@ -279,7 +329,7 @@ function renderPersonalChart() {
 
   const hidden = rows.length - shown.length;
   document.getElementById("notePersonal").innerHTML =
-    `当前筛选：${rows.length} 个档位（显示 ${shown.length}） ｜ 汇率 1 USD ≈ ${RATE} CNY（2026-09-23 实测） ｜ 无年付价的计划在「年付」视图下仍按月付价显示 ｜ 已停售、已下架与一次性预付不在本图，见完整数据表` +
+    `当前筛选：${rows.length} 个档位（显示 ${shown.length}） ｜ 汇率 1 USD ≈ ${RATE} CNY（2026-09-23 实测） ｜ 红色是中转站，不和官方订阅、工具订阅放在同一类颜色里 ｜ 已停售、已下架与一次性预付不在本图，见完整数据表` +
     (hidden > 0 ? ` ｜ <button type="button" id="showAllPersonal" class="linkish">显示全部 ${rows.length} 档</button>` : "");
 }
 
@@ -561,10 +611,6 @@ function renderFree() {
 /* ---------- 数据表 ---------- */
 const tableState = { search: "", cat: "all", region: "all", sortKey: "priceM", sortDir: 1 };
 
-function isOnSalePlan(p) {
-  return !!(p && p.priceM !== 0 && !isRetiredPlan(p));
-}
-
 function renderTable() {
   const q = tableState.search.trim().toLowerCase();
   const onSale = PLANS.filter(isOnSalePlan);
@@ -585,7 +631,8 @@ function renderTable() {
   document.querySelectorAll("#planTable thead th.sortable").forEach((th) => {
     th.classList.toggle("sort-active", th.dataset.sort === k);
     const arrow = th.dataset.sort === k ? (tableState.sortDir === 1 ? " ↑" : " ↓") : "";
-    th.childNodes[0].nodeValue = (th.dataset.sort === "priceM" ? "月付" : "年付折月") + arrow;
+    const span = th.querySelector("span");
+    if (span) span.textContent = (th.dataset.sort === "priceM" ? "月付" : "年付折月") + arrow;
     th.setAttribute("aria-sort", th.dataset.sort === k ? (tableState.sortDir === 1 ? "ascending" : "descending") : "none");
   });
   document.getElementById("tableBody").innerHTML = rows
@@ -596,7 +643,7 @@ function renderTable() {
       const href = safeHref(p.url);
       return `<tr>
         <td class="td-vendor">${esc(p.vendor)}</td>
-        <td class="td-plan">${esc(p.plan)}</td>
+        <td class="td-plan"><span class="plan-name">${esc(p.plan)}</span><div class="badge-row">${badgeHtml(p)}</div></td>
         <td><span class="tag tag-${esc(p.cat)}">${esc(CAT_LABEL[p.cat] || p.cat)}</span></td>
         <td class="region-${esc(p.region)}">${esc(REGION_LABEL[p.region] || "")}</td>
         <td class="td-price">${pm}${pmSub}</td>
@@ -605,24 +652,25 @@ function renderTable() {
         <td class="td-models">${esc(p.models)}</td>
         <td>${esc(p.tools)}</td>
         <td class="td-note">${esc(p.note || "—")}</td>
-        <td>${href ? `<a href="${href}" target="_blank" rel="noopener">↗</a>` : "—"}</td>
+        <td class="td-trust">${href ? `<a href="${href}" target="_blank" rel="noopener">官网</a>` : "—"}<span class="sub">在售 · 核对 ${esc(META.updated)}</span></td>
       </tr>`;
     })
     .join("");
 }
 
 /* ---------- 动态 / 来源 / 说明 ---------- */
+function dynItem(d) {
+  const href = safeHref(d.url);
+  const link = href ? ` <a class="dyn-src" href="${href}" target="_blank" rel="noopener" title="打开来源：${esc(d.url)}">${esc(d.source || "来源")} ↗</a>` : "";
+  const when = d.checked ? "核实 " + d.date : d.date;
+  const tip = d.checked ? "本站这一天核对到该状态，不是厂商公告日" : "来源写明的发生日期";
+  return `<li><span class="dyn-date${d.checked ? " is-checked" : ""}" title="${tip}">${esc(when)}</span><div class="dyn-body">${esc(d.text)}${link}</div></li>`;
+}
 function renderMisc() {
-  document.getElementById("dynamicsList").innerHTML = DYNAMICS.slice()
-    .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
-    .map((d) => {
-      const href = safeHref(d.url);
-      const link = href ? ` <a class="dyn-src" href="${href}" target="_blank" rel="noopener" title="打开来源：${esc(d.url)}">${esc(d.source || "来源")} ↗</a>` : "";
-      const when = d.checked ? "核实 " + d.date : d.date;
-      const tip = d.checked ? "本站这一天核对到该状态，不是厂商公告日" : "来源写明的发生日期";
-      return `<li><span class="dyn-date${d.checked ? " is-checked" : ""}" title="${tip}">${esc(when)}</span><div class="dyn-body">${esc(d.text)}${link}</div></li>`;
-    })
-    .join("");
+  const sorted = DYNAMICS.slice().sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  document.getElementById("dynamicsList").innerHTML = sorted.filter((d) => !d.checked).map(dynItem).join("");
+  const checkList = document.getElementById("checkList");
+  if (checkList) checkList.innerHTML = sorted.filter((d) => d.checked).map(dynItem).join("");
   document.getElementById("sourceList").innerHTML =
     `<h3>📖 全部来源（官方定价页 / 权威报道）</h3>` +
     SOURCES.map(
@@ -632,6 +680,8 @@ function renderMisc() {
       }).join("")}</ul></div>`
     ).join("");
   document.getElementById("uncertainList").innerHTML = UNCERTAIN.map((u) => `<li>${esc(u)}</li>`).join("");
+  const uncertainSummary = document.querySelector("#uncertainWrap summary");
+  if (uncertainSummary) uncertainSummary.textContent = `展开全部不确定性说明（共 ${UNCERTAIN.length} 条，点击查看）`;
   document.getElementById("rateText").textContent = RATE;
   document.getElementById("rateText2").textContent = RATE;
   document.getElementById("footDate").textContent = META.updated;
@@ -669,7 +719,13 @@ function bindEvents() {
       renderPersonalChart();
     })
   );
-  document.getElementById("chartSearch").addEventListener("input", (e) => { state1.q = e.target.value; renderPersonalChart(); });
+  let searchTimer;
+  document.getElementById("chartSearch").addEventListener("input", (e) => {
+    state1.q = e.target.value;
+    state1.limit = 40; /* 搜索后清空关键词仍回到默认前 40 档，避免停留在「显示全部」状态 */
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(renderPersonalChart, 150);
+  });
   document.addEventListener("click", (e) => {
     if (e.target && e.target.id === "showAllPersonal") { state1.limit = null; renderPersonalChart(); }
   });
@@ -683,10 +739,28 @@ function bindEvents() {
       renderTable();
     })
   );
+  document.querySelectorAll("#picker .picker-row").forEach((row) => {
+    row.querySelectorAll(".chip").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        row.querySelectorAll(".chip").forEach((x) => x.classList.remove("active"));
+        chip.classList.add("active");
+        pickerState[row.dataset.pick] = chip.dataset.value;
+        renderPicker();
+      });
+    });
+  });
+  document.querySelectorAll("#chipRank .chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      document.querySelectorAll("#chipRank .chip").forEach((x) => x.classList.remove("active"));
+      chip.classList.add("active");
+      rankState.tier = chip.dataset.rank;
+      renderRankChart();
+    });
+  });
 }
 
 /* ---------- 额度深度对比表 ---------- */
-const metricsState = { model: "all", ver: "all", sortKey: "rmo", sortDir: -1 };
+const metricsState = { model: "all", ver: "all", sortKey: "cpm", sortDir: 1 };
 const WEEKS_PER_MONTH = 4.33;
 const SLOTS_PER_WEEK = 5; // 5 个 5h 窗口/周
 const API_MIX_IN = 0.8, API_MIX_OUT = 0.2;
@@ -836,6 +910,7 @@ function renderMetricsTable() {
 
   const k = metricsState.sortKey;
   const sv = (r) => {
+    if (k === "price") return r.c.priceCNY;
     if (k === "cpm") return r.c.costPerM ?? NaN;
     if (k === "t5h") return r.c.fLow;
     if (k === "r5h") return r.c.r5h;
@@ -862,19 +937,20 @@ function renderMetricsTable() {
     const confCls = prov.conf === "高" ? "conf-hi" : prov.conf === "中" ? "conf-mid" : "conf-lo";
     return `<tr class="${m.isEst ? "est-row" : ""}">
       <td>${m.isEst ? '<span class="est-badge" title="社区/推算估算值，非官方数字">≈估</span> ' : ""}${esc(m.vendor)}<br><span style="color:var(--text-dim);font-size:11px">${esc(m.plan)}</span></td>
-      <td><span class="ver-tag ${verCls}">${esc(m.ver)}</span></td>
+      <td class="col-more"><span class="ver-tag ${verCls}">${esc(m.ver)}</span></td>
       <td style="color:var(--accent-2);font-size:11.5px">${esc(m.model)}${(m.note || "").startsWith("对照") ? '<br><span style="color:var(--text-faint);font-size:10px">套餐列表未列 · 牌价对照</span>' : ""}${listPriceHint(m)}</td>
-      <td class="tps-cell">${esc(m.tps || "—")}</td>
+      <td class="td-price">${fmtCNY(c.priceCNY)}</td>
+      <td class="col-more tps-cell">${esc(m.tps || "—")}</td>
       <td style="font-weight:800;color:${cpmColor(c.costPerM)}" title="每百万 tokens 实际成本（统一折算人民币）">${fmtCpm(c.costPerM)}</td>
-      <td class="tok-cell">${fTok(c.fLow, c.fHigh)}</td>
-      <td class="val-cell">${fmtVal(c.val5h, cur)}</td>
-      <td class="rate-cell ${rateClass(c.r5h)}">${c.r5h.toFixed(1)}×</td>
-      <td class="tok-cell">${fTok(c.wkLowM, c.wkHighM)}</td>
-      <td class="val-cell">${fmtVal(c.valWk, cur)}</td>
-      <td class="rate-cell ${rateClass(c.rwk)}">${c.rwk.toFixed(1)}×</td>
+      <td class="col-more tok-cell">${fTok(c.fLow, c.fHigh)}</td>
+      <td class="col-more val-cell">${fmtVal(c.val5h, cur)}</td>
+      <td class="col-more rate-cell ${rateClass(c.r5h)}">${c.r5h.toFixed(1)}×</td>
+      <td class="col-more tok-cell">${fTok(c.wkLowM, c.wkHighM)}</td>
+      <td class="col-more val-cell">${fmtVal(c.valWk, cur)}</td>
+      <td class="col-more rate-cell ${rateClass(c.rwk)}">${c.rwk.toFixed(1)}×</td>
       <td class="tok-cell">${fTok(c.moLow, c.moHigh)}</td>
-      <td class="val-cell">${fmtVal(c.valMo, cur)}</td>
-      <td class="rate-cell ${rateClass(c.rmo)}">${c.rmo.toFixed(1)}×</td>
+      <td class="col-more val-cell">${fmtVal(c.valMo, cur)}</td>
+      <td class="col-more rate-cell ${rateClass(c.rmo)}">${c.rmo.toFixed(1)}×</td>
       <td class="prov-cell" title="${esc([m.note, m.source].filter(Boolean).join(" · "))}"><span class="conf ${confCls}">${esc(prov.conf)}</span>${esc(prov.text)}</td>
     </tr>`;
   }).join("");
@@ -883,8 +959,8 @@ function renderMetricsTable() {
     const isActive = th.dataset.sort === metricsState.sortKey;
     th.classList.toggle("sort-active", isActive);
     const arrow = isActive ? (metricsState.sortDir === 1 ? " ↑" : " ↓") : "";
-    const base = th.textContent.replace(/[ ↑↓]+$/, "");
-    th.childNodes[th.childNodes.length - 1].nodeValue = base + arrow;
+    const span = th.querySelector("span");
+    if (span) span.textContent = span.textContent.replace(/[ ↑↓]+$/, "") + arrow;
     th.setAttribute("aria-sort", isActive ? (metricsState.sortDir === 1 ? "ascending" : "descending") : "none");
   });
 
@@ -906,81 +982,152 @@ function bindMetricsEvents() {
   document.querySelectorAll("#metricsTable th.sortable").forEach((th) =>
     th.addEventListener("click", () => {
       if (metricsState.sortKey === th.dataset.sort) metricsState.sortDir *= -1;
-      else { metricsState.sortKey = th.dataset.sort; metricsState.sortDir = -1; }
+      else { metricsState.sortKey = th.dataset.sort; metricsState.sortDir = th.dataset.sort === "cpm" || th.dataset.sort === "price" ? 1 : -1; }
       renderMetricsTable();
     })
   );
+  const metricsToggle = document.getElementById("metricsToggle");
+  if (metricsToggle) {
+    metricsToggle.addEventListener("click", () => {
+      const table = document.getElementById("metricsTable");
+      const compact = table.classList.toggle("is-compact");
+      metricsToggle.textContent = compact ? "展开 5 小时 / 每周明细" : "收起明细";
+      metricsToggle.classList.toggle("active", !compact);
+    });
+  }
 }
 
-/* ---------- 快速决策卡 ---------- */
-function renderQuickCards() {
-  const tokenPlans = METRICS_ALL.filter(isRankMetric)
+/* ---------- 帮我选 ---------- */
+const pickerState = { budget: "200", region: "cn", tool: "any", tier: "flagship" };
+const PICK_ACCENT = ["#34d399", "#f59e0b", "#6366f1"];
+
+function metricMatchesPlan(m, p) {
+  if (Array.isArray(m.ref)) return m.ref[0] === p.vendor && m.ref[1] === p.plan;
+  return m.vendor === p.vendor && m.plan === p.plan;
+}
+function bestMetric(p) {
+  const usable = METRICS_ALL
+    .filter((m) => metricMatchesPlan(m, p))
     .map((m) => ({ m, c: computeMetrics(m) }))
-    .filter((r) => r.c && r.c.costPerM != null)
-    .sort((a, b) => a.c.costPerM - b.c.costPerM);
-  const best = tokenPlans[0];
-
-  const cnPaid = PLANS.filter((p) => p.region === "cn" && isPersonalMonthly(p))
-    .sort((a, b) => cnyOf(a, "M") - cnyOf(b, "M"))[0];
-
-  // 3. 最佳免费（取 Gemini CLI）
-  const gemini = PLANS.find((p) => p.vendor === "Google" && p.plan.includes("个人免费"));
-
-  // 4. 国际旗舰（Claude Pro）
-  const flagship = PLANS.find((p) => p.vendor === "Anthropic" && p.plan === "Claude Pro");
-
-  const cards = [];
-  if (best) {
-    cards.push({
-      icon: "🏆", accent: "#34d399", title: "性价比首选（每 M tokens 成本最低）",
-      value: `<em>${fmtCpm(best.c.costPerM)}</em> / M tokens`,
-      sub: `<b>${esc(best.m.vendor)} ${esc(best.m.plan)}</b>（${esc(best.m.model)}）${/flash/i.test(best.m.model) ? "，轻量模型，质量与旗舰不同" : ""}<br>月费 ${fmtCNY(best.c.priceCNY)} · 月倍率 <b>${best.c.rmo.toFixed(1)}×</b> · 每月约 ${fmtTok(best.c.moLow)}–${fmtTok(best.c.moHigh)} tokens`,
-      tag: `额度价值是月费的 ${best.c.rmo.toFixed(0)} 倍`,
-    });
+    .filter((r) => r.c && r.c.costPerM != null && r.c.moLow != null && !r.m.isEst && provenance(r.m).conf !== "低");
+  let pool = usable.filter((r) => isFlagshipModelName(r.m.model));
+  if (pickerState.tier !== "flagship" && !pool.length) pool = usable;
+  const high = pool.filter((r) => provenance(r.m).conf === "高");
+  const use = high.length ? high : pool;
+  use.sort((a, b) => a.c.costPerM - b.c.costPerM);
+  return use[0] || null;
+}
+function hasCodingSurface(p) {
+  const tools = resolvedField(p, "tools");
+  if (/Claude Code/i.test(tools) || /\bCodex\b/i.test(tools) || p.vendor === "Cursor" || /\bCursor\b/i.test(tools)) return true;
+  return /IDE|客户端|桌面|VS Code|插件|编辑器/.test(tools) && !/协议|框架|端点|兼容/.test(tools);
+}
+function matchesTool(p, tool) {
+  if (tool === "any") return true;
+  const tools = resolvedField(p, "tools");
+  if (tool === "claude") return /Claude Code/i.test(tools);
+  if (tool === "codex") return /Codex/i.test(tools);
+  if (tool === "cursor") return p.vendor === "Cursor" || /\bCursor\b/i.test(tools);
+  if (tool === "own") return !/Claude Code/i.test(tools) && !/Codex/i.test(tools) && p.vendor !== "Cursor" && !/\bCursor\b/i.test(tools);
+  return true;
+}
+function priceLine(p) {
+  if (p.priceM === 0) return "免费";
+  if (p.cur === "CNY") return priceText(p, "priceM") + "/月";
+  return priceText(p, "priceM") + "/月，约 " + fmtCNY(cnyOf(p, "M"));
+}
+function whyText(p, met) {
+  const model = trunc(resolvedField(p, "models"), 56);
+  if (p.priceM === 0) return `不花钱就能上手。模型：${model}。额度：${trunc(p.quota, 72)}`;
+  if (met && met.c.moLow != null && provenance(met.m).conf === "高") {
+    const span = met.c.moHigh > met.c.moLow ? fmtTok(met.c.moLow) + "–" + fmtTok(met.c.moHigh) : fmtTok(met.c.moLow);
+    return `月费 ${priceLine(p)}，按 ${met.m.model} 计算每月大约 ${span} tokens，每百万约 ${fmtCpm(met.c.costPerM)}（官方口径）。`;
   }
-  if (cnPaid) {
-    cards.push({
-      icon: "💵", accent: "#f59e0b", title: "国内付费最便宜",
-      value: `<em>${priceText(cnPaid, "priceM")}</em>/月`,
-      sub: `<b>${esc(cnPaid.vendor)} ${esc(cnPaid.plan)}</b><br>${esc(trunc(cnPaid.quota, 80))}`,
-      tag: "国内最低付费档",
-    });
+  if (met && met.c.moLow != null) {
+    const span = met.c.moHigh > met.c.moLow ? fmtTok(met.c.moLow) + "–" + fmtTok(met.c.moHigh) : fmtTok(met.c.moLow);
+    return `月费 ${priceLine(p)}，模型 ${met.m.model}。官方没有公布每周 tokens；按${provenance(met.m).text}大约 ${span} tokens/月，这个数不能和官方周额度直接比。`;
   }
-  if (gemini) {
-    cards.push({
-      icon: "🆓", accent: "#22d3ee", title: "零成本上手（推荐）",
-      value: "<em>免费</em>",
-      sub: `<b>${esc(gemini.vendor)} ${esc(gemini.plan)}</b><br>${esc(trunc(gemini.quota, 90))}`,
-      tag: "免费入口共 " + PLANS.filter(isFreeCodingEntry).length + " 个，见下方",
-    });
+  return `月费 ${priceLine(p)}。模型：${model}。额度按官方原文：${trunc(p.quota, 72)}`;
+}
+function avoidText(p, met) {
+  const bits = [];
+  const models = resolvedField(p, "models");
+  const blob = planBlob(p);
+  if (/flash|haiku|luna/i.test(models) && isFlagshipModelName(models)) bits.push("套餐里同时有轻量模型，复杂任务要手动选旗舰");
+  else if (!isFlagshipModelName(models)) bits.push("这档主要是轻量模型，不适合拿来做复杂重构");
+  if (/5\s*小时|\/5h/i.test(p.quota || "")) bits.push("长时间连续跑 agent 时，5 小时窗口用完会停");
+  if (p.region === "intl") bits.push("需要外币或国际账号支付");
+  if (/BYOK|自备\s*API|自带\s*API/i.test(blob)) bits.push("要自备 API Key，订阅本身不含模型额度");
+  if (!met) bits.push("官方没有公布可折算的每月 tokens，买之前要自己看额度够不够");
+  else if (met.m.isEst) bits.push("每月 tokens 是社区估算，不是官方数字");
+  if (!bits.length) bits.push("额度口径和别家不同，不能只看月费");
+  return bits.slice(0, 2).join("。") + "。";
+}
+function pickCandidates() {
+  const budget = pickerState.budget;
+  return PLANS.filter((p) => {
+    if (isRelay(p) || isRetiredPlan(p)) return false;
+    if (budget === "0") {
+      if (!isFreeCodingEntry(p)) return false;
+    } else if (!isPersonalMonthly(p)) return false;
+    else if (budget !== "any" && cnyOf(p, "M") > Number(budget)) return false;
+    if (pickerState.region !== "all" && p.region !== pickerState.region) return false;
+    if (!matchesTool(p, pickerState.tool)) return false;
+    if (pickerState.tier === "flagship" && !isFlagshipModelName(resolvedField(p, "models"))) return false;
+    return true;
+  });
+}
+function renderPicker() {
+  const matched = pickCandidates();
+  const scored = matched.map((p) => {
+    const met = bestMetric(p);
+    const price = cnyOf(p, "M") || 0;
+    const coding = hasCodingSurface(p);
+    const conf = met ? provenance(met.m).conf : "";
+    let score = 300 + price / 100000;
+    if (coding && conf === "高") score = met.c.costPerM;
+    else if (coding && conf === "中") score = 20 + price / 100000;
+    else if (coding) score = 40 + price / 100000;
+    return { p, met, score };
+  });
+  const bestByVendor = new Map();
+  scored.forEach((row) => {
+    const prev = bestByVendor.get(row.p.vendor);
+    if (!prev || row.score < prev.score) bestByVendor.set(row.p.vendor, row);
+  });
+  const top = [...bestByVendor.values()].sort((a, b) => a.score - b.score).slice(0, 3);
+  const grid = document.getElementById("quickGrid");
+  const note = document.getElementById("pickerNote");
+  if (!top.length) {
+    grid.innerHTML = `<div class="picker-empty">这组条件没有能下单的个人档。可以把预算放开，或把模型改成「含轻量」。</div>`;
+    note.textContent = "中转站不参与推荐。价格全景里中转站是单独的红色。";
+    return;
   }
-  if (flagship) {
-    cards.push({
-      icon: "🌟", accent: "#6366f1", title: "国际旗舰体验",
-      value: `<em>$${flagship.priceM}</em>/月`,
-      sub: `<b>${esc(flagship.vendor)} ${esc(flagship.plan)}</b><br>${esc(trunc(flagship.quota, 80))}`,
-      tag: "Claude Code + 全模型",
-    });
-  }
-
-  document.getElementById("quickGrid").innerHTML = cards
-    .map((c) => `
-      <div class="quick-card" style="--qc-accent:${c.accent}">
-        <div class="qc-icon">${c.icon}</div>
-        <div class="qc-title">${esc(c.title)}</div>
-        <div class="qc-value">${c.value}</div>
-        <div class="qc-sub">${c.sub}</div>
-        <div class="qc-tag">${esc(c.tag)}</div>
-      </div>`)
-    .join("");
+  grid.innerHTML = top.map((row, i) => {
+    const p = row.p;
+    const href = safeHref(p.url);
+    const value = p.priceM === 0 ? "<em>免费</em>" : `<em>${esc(p.cur === "USD" ? "$" + p.priceM : "¥" + p.priceM)}</em>/月`;
+    return `<div class="quick-card" style="--qc-accent:${PICK_ACCENT[i] || PICK_ACCENT[0]}">
+      <div class="qc-title">推荐 ${i + 1} · ${esc(REGION_LABEL[p.region] || "")}</div>
+      <div class="qc-value">${value}</div>
+      <div class="qc-sub"><b>${esc(p.vendor)} ${esc(p.plan)}</b><div class="badge-row">${badgeHtml(p)}</div>
+        <div class="qc-why">${esc(whyText(p, row.met))}</div>
+        <div class="qc-avoid">不适合：${esc(avoidText(p, row.met))}</div>
+      </div>
+      ${href ? `<a class="qc-tag" href="${href}" target="_blank" rel="noopener">官网 ↗</a>` : ""}
+    </div>`;
+  }).join("");
+  note.textContent = `符合条件 ${matched.length} 档，按厂商各留一档，取出前 ${top.length} 个。能接到 Claude Code、Codex、Cursor 或自家编程客户端的优先。只有官方每周 tokens 才按每百万成本排序，其余不拿折算 token 数比谁更便宜。中转站不参与。`;
 }
 
 /* ---------- 性价比排行图（每 M tokens 成本） ---------- */
+const rankState = { tier: "flagship" };
 function renderRankChart() {
-  const rows = METRICS_ALL.filter(isRankMetric).map((m) => ({ m, c: computeMetrics(m) }))
+  const all = METRICS_ALL.filter(isRankMetric).map((m) => ({ m, c: computeMetrics(m) }))
     .filter((r) => r.c && r.c.costPerM != null)
-    .sort((a, b) => a.c.costPerM - b.c.costPerM)
-    .slice(0, 20);
+    .filter((r) => rankState.tier !== "flagship" || isFlagshipModelName(r.m.model))
+    .sort((a, b) => a.c.costPerM - b.c.costPerM);
+  const rows = all.slice(0, 20); /* 图高有限，最多展示前 20 档 */
 
   const el = document.getElementById("chartRank");
   el.style.height = Math.max(420, rows.length * 30 + 130) + "px";
@@ -1022,8 +1169,9 @@ function renderRankChart() {
   );
   chart.resize();
 
+  const tierText = rankState.tier === "flagship" ? "当前只看旗舰模型。" : "当前含轻量模型，Flash、Haiku 会因为 token 便宜靠前。";
   document.getElementById("rankNote").textContent =
-    `共 ${rows.length} 档：只统计官方公布每周 tokens、且新用户当前可购买的计划。请求折算、第三方估算、已停售、已下架、一次性预付和仅老用户续费不在此列。绿色 ≤¥0.30 · 黄色 ≤¥1 · 红色 >¥1。名称含 Flash 的是轻量模型。`;
+    `共 ${all.length} 档${all.length > rows.length ? `，此处显示前 ${rows.length} 档` : ""}。${tierText}只统计官方公布每周 tokens、且新用户当前可购买的计划。请求折算、第三方估算、已停售、已下架、一次性预付和仅老用户续费不在此列。绿色 ≤¥0.30 · 黄色 ≤¥1 · 红色 >¥1。`;
 }
 
 /* ---------- 初始化：单块失败不阻断其余区块 ---------- */
@@ -1033,7 +1181,7 @@ function boot(name, fn) {
 }
 boot("theme", initTheme);
 boot("stats", renderStats);
-boot("quick", renderQuickCards);
+boot("quick", renderPicker);
 boot("rank", renderRankChart);
 boot("personal", renderPersonalChart);
 boot("team", renderTeamChart);
