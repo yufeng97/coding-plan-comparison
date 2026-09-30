@@ -13,6 +13,66 @@ const META = {
   rate: RATE_USD_CNY,
 };
 
+/* 模型在「帮我选」里的用法，不是跑分。
+   task: hard=复杂任务  daily=日常
+   burn: fast=窗口打得快  slow=慢烧  same=比旗舰耐用，但通常仍是同一个窗口
+   band: 只用来在预算内选主计划（A 高于 B），页面不展示字母或分数
+   ceiling: 同套餐里更吃额度的上限模型，不拿来当默认复杂任务模型 */
+const MODEL_ROLES = [
+  { id: "claude-fable", name: "Claude Fable", re: /fable/i, task: "hard", burn: "fast", band: "A", ceiling: true,
+    reason: "能做更难的任务，但会占掉每周限额的一大块", asOf: "2026-09-30" },
+  { id: "claude-opus", name: "Claude Opus", re: /opus/i, task: "hard", burn: "fast", band: "A",
+    reason: "复杂任务首选，按 5 小时窗口计，连续跑很容易打满", asOf: "2026-09-30" },
+  { id: "gpt-astra", name: "GPT-6 Astra", re: /astra/i, task: "hard", burn: "fast", band: "B", ceiling: true,
+    reason: "能做复杂任务，官方 5 小时条数比 Sol 和 Luna 少很多", asOf: "2026-09-30" },
+  { id: "gpt-sol", name: "GPT-6 Sol", re: /gpt-(?:6|5\.6)\s*sol|(?:^|[^a-z])sol(?:[^a-z]|$)/i, task: "hard", burn: "fast", band: "B",
+    reason: "复杂编码可用，5 小时条数明显紧于 Luna", asOf: "2026-09-30" },
+  { id: "gemini-pro", name: "Gemini Pro", re: /gemini\s*3(?:\.\d+)?\s*pro|deep\s*think/i, task: "hard", burn: "fast", band: "B",
+    reason: "复杂任务可用，官方没有单列可折算的 5 小时 tokens", asOf: "2026-09-30" },
+  { id: "kimi-k3", name: "Kimi K3", re: /kimi\s*[- ]?k3|(?:^|[^a-z0-9])k3(?:[^a-z0-9]|$)/i, task: "hard", burn: "fast", band: "B",
+    reason: "国内复杂任务的主力之一，和同套餐里的小模型共用窗口", asOf: "2026-09-30" },
+  { id: "glm-5", name: "GLM-5.3", re: /glm-?\s*5(?:\.\d+)?(?![\w.-]*flash)/i, task: "hard", burn: "fast", band: "B",
+    reason: "复杂任务用这一档，Flash 只是同一窗口里更省额度", asOf: "2026-09-30" },
+  { id: "deepseek-pro", name: "DeepSeek Pro", re: /deepseek[\w.\s/-]*pro/i, task: "hard", burn: "fast", band: "B",
+    reason: "复杂任务可用，Flash 是同套餐里的慢烧档", asOf: "2026-09-30" },
+  { id: "qwen-max", name: "Qwen Max", re: /qwen[\w.\s-]*max|qwen3(?:\.\d+)?-coder-(?:plus|next)/i, task: "hard", burn: "fast", band: "B",
+    reason: "复杂任务可用的国产旗舰", asOf: "2026-09-30" },
+  { id: "minimax-m3", name: "MiniMax M3", re: /minimax[\s-]*m3/i, task: "hard", burn: "fast", band: "B",
+    reason: "复杂任务能用，官方按 5 小时窗口计，没有公布 token 总量", asOf: "2026-09-30" },
+  { id: "mimo-pro", name: "MiMo Pro", re: /mimo[\w.-]*pro/i, task: "hard", burn: "fast", band: "B",
+    reason: "复杂任务用 Pro，Flash 是同一额度里更省的档", asOf: "2026-09-30" },
+  { id: "doubao-pro", name: "Doubao Seed", re: /doubao-seed-[\d.]+-(?:pro|code)|seed-[\d.]+-(?:pro|code)/i, task: "hard", burn: "fast", band: "B",
+    reason: "复杂任务可用的豆包编程模型", asOf: "2026-09-30" },
+  { id: "step-5", name: "Step 5", re: /step-5/i, task: "hard", burn: "fast", band: "B",
+    reason: "复杂任务用 Step 5，Flash 是同一月池里的慢烧档", asOf: "2026-09-30" },
+  { id: "hy", name: "混元 Hy3/Hy4", re: /hy[34](?:\b|[.-])/i, task: "hard", burn: "fast", band: "B",
+    reason: "腾讯云里可以拿来做复杂任务的混元档", asOf: "2026-09-30" },
+  { id: "grok", name: "Grok 4", re: /grok\s*4(?:\.\d+)?/i, task: "daily", burn: "slow", band: "C",
+    reason: "日常任务够用，放在大额池里适合当补充", asOf: "2026-09-30" },
+  { id: "composer", name: "Composer", re: /composer/i, task: "daily", burn: "slow", band: "C",
+    reason: "轻量补全和日常 Agent", asOf: "2026-09-30" },
+  { id: "luna", name: "GPT-6 Luna", re: /luna/i, task: "daily", burn: "slow", band: "C",
+    reason: "日常编码的慢烧档，官方 5 小时条数比 Sol、Astra 宽", asOf: "2026-09-30" },
+  { id: "haiku", name: "Claude Haiku", re: /haiku/i, task: "daily", burn: "slow", band: "C",
+    reason: "轻量档；和 Opus 写在同一套餐里时，窗口还是那一个", asOf: "2026-09-30" },
+  { id: "sonnet", name: "Claude Sonnet", re: /sonnet/i, task: "daily", burn: "same", band: "C",
+    reason: "比 Opus 耐用一些，通常仍共用同一个 5 小时窗口", asOf: "2026-09-30" },
+  { id: "flash", name: "Flash", re: /flash/i, task: "daily", burn: "slow", band: "C",
+    reason: "同一套餐里的慢烧档，复杂重构不要靠它", asOf: "2026-09-30" },
+];
+
+function matchModelRoles(text) {
+  const raw = String(text || "");
+  const blockedA = /不含旗舰/.test(raw);
+  return MODEL_ROLES.filter((role) => {
+    if (!role.re.test(raw)) return false;
+    if (blockedA && role.band === "A") return false;
+    if (role.id === "claude-opus" && /不含[^。；;]{0,16}opus/i.test(raw)) return false;
+    if (role.id === "claude-fable" && /fable[^。；;]{0,48}需\s*usage\s*credits/i.test(raw)) return false;
+    return true;
+  });
+}
+
 /* ============================================================
  * 计划分类判定函数（供 js/app.js 渲染与 scripts/validate-data.js 校验共用）。
  * 有意用全局函数而非模块：浏览器端 data.js 先于 app.js 加载，零构建直接引用；

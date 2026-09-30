@@ -23,11 +23,11 @@ sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(
   fs.readFileSync(path.join(root, "js/data.js"), "utf8") +
-    "\n;globalThis.__D={RATE_USD_CNY,PLANS,METRICS_RAW,ESTIMATES,PLAN_TOKENS,DYNAMICS,API_PRICES,PAYG_REFERENCES,SOURCES,isRetiredPlan,isFreeCodingEntry};",
+    "\n;globalThis.__D={RATE_USD_CNY,PLANS,METRICS_RAW,ESTIMATES,PLAN_TOKENS,DYNAMICS,API_PRICES,PAYG_REFERENCES,SOURCES,MODEL_ROLES,matchModelRoles,isRetiredPlan,isFreeCodingEntry};",
   sandbox,
   { filename: "js/data.js" }
 );
-const { RATE_USD_CNY, PLANS, METRICS_RAW, ESTIMATES, PLAN_TOKENS, DYNAMICS, API_PRICES, PAYG_REFERENCES, SOURCES, isRetiredPlan, isFreeCodingEntry } = sandbox.__D;
+const { RATE_USD_CNY, PLANS, METRICS_RAW, ESTIMATES, PLAN_TOKENS, DYNAMICS, API_PRICES, PAYG_REFERENCES, SOURCES, MODEL_ROLES, matchModelRoles, isRetiredPlan, isFreeCodingEntry } = sandbox.__D;
 
 const CATS = ["official", "tool", "cloud", "team"];
 const REGIONS = ["cn", "intl"];
@@ -71,6 +71,35 @@ for (const [vendor, plan] of NOT_CODING_FREE) {
   check(p.priceM === 0 && (isRetiredPlan(p) || noted), `不能当 Coding Agent 的免费档须标明不列入或已下架: ${vendor}|${plan}`);
 }
 const freeCoding = PLANS.filter(isFreeCodingEntry);
+
+/* ---- 模型用法（帮我选，不是跑分）---- */
+check(Array.isArray(MODEL_ROLES) && MODEL_ROLES.length >= 8, "缺少 MODEL_ROLES");
+const roleIds = new Set();
+for (const r of MODEL_ROLES || []) {
+  check(!roleIds.has(r.id), `MODEL_ROLES 重复 id: ${r.id}`);
+  roleIds.add(r.id);
+  check(r.re && typeof r.re.test === "function" && typeof r.re.source === "string", `MODEL_ROLES re 不是正则: ${r.id}`);
+  check(r.task === "hard" || r.task === "daily", `MODEL_ROLES task 非法: ${r.id}`);
+  check(r.burn === "fast" || r.burn === "slow" || r.burn === "same", `MODEL_ROLES burn 非法: ${r.id}`);
+  check(r.band === "A" || r.band === "B" || r.band === "C", `MODEL_ROLES band 非法: ${r.id}`);
+  check(typeof r.name === "string" && r.name.length > 1, `MODEL_ROLES 缺 name: ${r.id}`);
+  check(typeof r.reason === "string" && r.reason.length > 8, `MODEL_ROLES reason 过短: ${r.id}`);
+  check(/^\d{4}-\d{2}-\d{2}$/.test(r.asOf || ""), `MODEL_ROLES asOf 非法: ${r.id}`);
+}
+const idsOf = (text) => matchModelRoles(text).map((r) => r.id);
+const flashOnly = idsOf("GLM-5.3-Flash");
+check(flashOnly.includes("flash") && !flashOnly.includes("glm-5"), "仅 Flash 的写法不应匹配 GLM-5.3 复杂任务角色");
+const glmBoth = idsOf("GLM-5.3、GLM-5.3-Flash");
+check(glmBoth.includes("glm-5") && glmBoth.includes("flash"), "GLM-5.3 与 Flash 应能同时匹配");
+const claudeFree = idsOf("Claude Sonnet 5 / Haiku 4.5（不含 Opus）");
+check(!claudeFree.includes("claude-opus") && claudeFree.includes("sonnet"), "不含 Opus 的套餐不应匹配 Opus");
+const claudePro = idsOf("Claude Opus 5.5 / Sonnet 5 / Haiku 4.5（Fable 5.1 需 usage credits）");
+check(claudePro.includes("claude-opus") && !claudePro.includes("claude-fable"), "需另购 credits 的 Fable 不应算进套餐");
+check(idsOf("Grok 4.5–4.7、Composer 2.5").includes("grok"), "Cursor 的 Grok 4.5–4.7 应匹配日常角色");
+const opusRole = MODEL_ROLES.find((r) => r.id === "claude-opus");
+const grokRole = MODEL_ROLES.find((r) => r.id === "grok");
+check(opusRole && opusRole.task === "hard" && opusRole.burn === "fast", "Claude Opus 应为复杂任务、消耗快");
+check(grokRole && grokRole.task === "daily" && grokRole.burn === "slow", "Grok 应为日常、消耗慢");
 
 /* ---- 指标条目（METRICS_RAW + ESTIMATES）---- */
 const idx = new Map(PLANS.map((p) => [p.vendor + "|" + p.plan, p]));

@@ -1121,29 +1121,17 @@ function bindMetricsEvents() {
 }
 
 /* ---------- 帮我选 ---------- */
-const pickerState = { budget: "200", region: "cn", tool: "any", tier: "flagship" };
+const pickerState = { budget: "200", region: "cn", tool: "any", task: "both" };
 const PICK_ACCENT = ["#34d399", "#f59e0b", "#6366f1"];
 
 function metricMatchesPlan(m, p) {
   if (Array.isArray(m.ref)) return m.ref[0] === p.vendor && m.ref[1] === p.plan;
   return m.vendor === p.vendor && m.plan === p.plan;
 }
-function bestMetric(p) {
-  const usable = METRICS_ALL
-    .filter((m) => metricMatchesPlan(m, p))
-    .map((m) => ({ m, c: computeMetrics(m) }))
-    .filter((r) => r.c && r.c.costPerM != null && r.c.moLow != null && !r.m.isEst && provenance(r.m).conf !== "低");
-  let pool = usable.filter((r) => isFlagshipModelName(r.m.model));
-  if (pickerState.tier !== "flagship" && !pool.length) pool = usable;
-  const high = pool.filter((r) => provenance(r.m).conf === "高");
-  const use = high.length ? high : pool;
-  use.sort((a, b) => a.c.costPerM - b.c.costPerM);
-  return use[0] || null;
-}
 function hasCodingSurface(p) {
   const tools = resolvedField(p, "tools");
   if (/Claude Code/i.test(tools) || /\bCodex\b/i.test(tools) || p.vendor === "Cursor" || /\bCursor\b/i.test(tools)) return true;
-  return /IDE|客户端|桌面|VS Code|插件|编辑器/.test(tools) && !/协议|框架|端点|兼容/.test(tools);
+  return /IDE|客户端|桌面|网页|VS Code|插件|编辑器/.test(tools) && !/协议|框架|端点|兼容/.test(tools);
 }
 function matchesTool(p, tool) {
   if (tool === "any") return true;
@@ -1154,93 +1142,396 @@ function matchesTool(p, tool) {
   if (tool === "own") return !/Claude Code/i.test(tools) && !/Codex/i.test(tools) && p.vendor !== "Cursor" && !/\bCursor\b/i.test(tools);
   return true;
 }
+function planTitle(p) {
+  const parts = String(p.vendor || "").split(/\s+/).filter(Boolean);
+  const last = parts[parts.length - 1];
+  if (last && String(p.plan || "").startsWith(last)) return parts.slice(0, -1).concat(p.plan).join(" ");
+  return `${p.vendor} ${p.plan}`;
+}
 function priceLine(p) {
   if (p.priceM === 0) return "免费";
   if (p.cur === "CNY") return priceText(p, "priceM") + "/月";
   return priceText(p, "priceM") + "/月，约 " + fmtCNY(cnyOf(p, "M"));
 }
-function whyText(p, met) {
-  const model = trunc(resolvedField(p, "models"), 56);
-  if (p.priceM === 0) return `不花钱就能上手。模型：${model}。额度：${trunc(p.quota, 72)}`;
-  if (met && met.c.moLow != null && provenance(met.m).conf === "高") {
-    const span = met.c.moHigh > met.c.moLow ? fmtTok(met.c.moLow) + "–" + fmtTok(met.c.moHigh) : fmtTok(met.c.moLow);
-    return `月费 ${priceLine(p)}，按 ${met.m.model} 计算每月大约 ${span} tokens，每百万约 ${fmtCpm(met.c.costPerM)}（官方口径）。`;
-  }
-  if (met && met.c.moLow != null) {
-    const span = met.c.moHigh > met.c.moLow ? fmtTok(met.c.moLow) + "–" + fmtTok(met.c.moHigh) : fmtTok(met.c.moLow);
-    return `月费 ${priceLine(p)}，模型 ${met.m.model}。官方没有公布每周 tokens；按${provenance(met.m).text}大约 ${span} tokens/月，这个数不能和官方周额度直接比。`;
-  }
-  return `月费 ${priceLine(p)}。模型：${model}。额度按官方原文：${trunc(p.quota, 72)}`;
+function moneyHtml(p) {
+  if (!p) return "<em>—</em>";
+  if (p.priceM === 0) return "<em>免费</em>";
+  const raw = p.cur === "USD" ? "$" + p.priceM : "¥" + p.priceM;
+  return `<em>${esc(raw)}</em>/月`;
 }
-function avoidText(p, met) {
-  const bits = [];
-  const models = resolvedField(p, "models");
-  const blob = planBlob(p);
-  if (/flash|haiku|luna/i.test(models) && isFlagshipModelName(models)) bits.push("套餐里同时有轻量模型，复杂任务要手动选旗舰");
-  else if (!isFlagshipModelName(models)) bits.push("这档主要是轻量模型，不适合拿来做复杂重构");
-  if (/5\s*小时|\/5h/i.test(p.quota || "")) bits.push("长时间连续跑 agent 时，5 小时窗口用完会停");
-  if (p.region === "intl") bits.push("需要外币或国际账号支付");
-  if (/BYOK|自备\s*API|自带\s*API/i.test(blob)) bits.push("要自备 API Key，订阅本身不含模型额度");
-  if (!met) bits.push("官方没有公布可折算的每月 tokens，买之前要自己看额度够不够");
-  else if (met.m.isEst) bits.push("每月 tokens 是社区估算，不是官方数字");
-  if (!bits.length) bits.push("额度口径和别家不同，不能只看月费");
-  return bits.slice(0, 2).join("。") + "。";
+function lineHtml(k, text) {
+  return `<div class="qc-line"><span class="k">${esc(k)}</span>${esc(text)}</div>`;
 }
-function pickCandidates() {
-  const budget = pickerState.budget;
-  return PLANS.filter((p) => {
-    if (isRelay(p) || isRetiredPlan(p)) return false;
-    if (budget === "0") {
-      if (!isFreeCodingEntry(p)) return false;
-    } else if (!isPersonalMonthly(p)) return false;
-    else if (budget !== "any" && cnyOf(p, "M") > Number(budget)) return false;
-    if (pickerState.region !== "all" && p.region !== pickerState.region) return false;
-    if (!matchesTool(p, pickerState.tool)) return false;
-    if (pickerState.tier === "flagship" && !isFlagshipModelName(resolvedField(p, "models"))) return false;
-    return true;
+function bandRank(band) { return band === "A" ? 3 : band === "B" ? 2 : 1; }
+function catRank(p) { return p.cat === "official" ? 3 : p.cat === "tool" ? 2 : p.cat === "cloud" ? 1 : 0; }
+/* 计划名里的 5x / 20x 优先。额度原文里的「5× Pro」也算加窗；「5× Free」只是入门档基线。 */
+function multiplier(p) {
+  const fromPlan = String(p.plan || "").match(/(\d+)\s*x/i);
+  if (fromPlan) return Number(fromPlan[1]);
+  const q = p.quota || "";
+  const named = q.match(/(\d+(?:\.\d+)?)\s*×\s*(Pro|Plus|Lite|Standard)/i);
+  if (named) return Number(named[1]);
+  if (/(\d+)\s*×\s*Free/i.test(q)) return 1;
+  return 0;
+}
+function splitModelAccess(text) {
+  const parts = String(text || "").split(/[；;]/);
+  if (parts.length >= 2 && /按(?:\s*M\s*token|牌价|量)/.test(parts[parts.length - 1])) {
+    return { included: parts.slice(0, -1).join("；"), metered: parts[parts.length - 1] };
+  }
+  return { included: String(text || ""), metered: "" };
+}
+function modelTextForRoles(p) {
+  const own = resolvedField(p, "models");
+  if (matchModelRoles(own).length) return own;
+  if (!/旗舰|同级|全模型|全系/.test(own)) return own;
+  const idx = PLANS.indexOf(p);
+  for (let i = idx - 1; i >= 0; i--) {
+    if (PLANS[i].vendor !== p.vendor) break;
+    const prev = resolvedField(PLANS[i], "models");
+    if (matchModelRoles(prev).some((r) => r.task === "hard")) return prev;
+  }
+  return own;
+}
+/* 同一 5 小时窗口。双池、或官方按模型分开写条数的，日常模型才算另一池。 */
+function oneSharedWindow(p) {
+  const q = `${p.quota || ""} ${p.note || ""}`;
+  if (/双池|按模型\s*5\s*h|按模型 5h/i.test(q)) return false;
+  if (/共享/.test(q)) return true;
+  const named = q.match(/(?:Sol|Luna|Astra|Opus|Haiku|Sonnet)\s*[^。；]{0,24}\d/gi);
+  if (named && named.length >= 2) return false;
+  return true;
+}
+function metricForRole(p, role) {
+  if (!role) return null;
+  const rows = METRICS_ALL
+    .filter((m) => metricMatchesPlan(m, p) && role.re.test(m.model || ""))
+    .map((m) => ({ m, c: computeMetrics(m), conf: provenance(m).conf }))
+    .filter((r) => r.c);
+  const rank = { "高": 3, "中": 2, "低": 1 };
+  rows.sort((a, b) => (rank[b.conf] || 0) - (rank[a.conf] || 0) || ((a.m.isEst ? 1 : 0) - (b.m.isEst ? 1 : 0)));
+  return rows[0] || null;
+}
+function knownTokens(p, role) {
+  const met = metricForRole(p, role);
+  if (!met || met.conf !== "高" || met.c.moLow == null) return 0;
+  return met.c.moLow;
+}
+function planProfile(p) {
+  const access = splitModelAccess(modelTextForRoles(p));
+  const included = matchModelRoles(access.included);
+  const metered = matchModelRoles(access.metered);
+  const hard = included.filter((r) => r.task === "hard" && !r.ceiling);
+  const ceilings = included.filter((r) => r.task === "hard" && r.ceiling);
+  hard.sort((a, b) => bandRank(b.band) - bandRank(a.band));
+  ceilings.sort((a, b) => bandRank(b.band) - bandRank(a.band));
+  const headline = hard[0] || ceilings[0] || null;
+  const loose = included.filter((r) => r.task === "daily" && r.burn === "slow");
+  const shared = oneSharedWindow(p);
+  return { p, included, metered, headline, ceilings, loose, shared, internalDaily: shared ? [] : loose };
+}
+function windowStats(x) {
+  const role = x.headline || x.loose[0];
+  return { tokens: knownTokens(x.p, role), mult: multiplier(x.p), price: cnyOf(x.p, "M") || 0 };
+}
+function betterWindow(a, b) {
+  const A = windowStats(a);
+  const B = windowStats(b);
+  if (A.tokens !== B.tokens) return A.tokens > B.tokens;
+  if (A.mult !== B.mult) return A.mult > B.mult;
+  return A.price > B.price;
+}
+function tokSpan(c, keyLow, keyHigh) {
+  const lo = c[keyLow];
+  const hi = c[keyHigh];
+  if (hi > lo * 1.05) return fmtTok(lo) + "–" + fmtTok(hi);
+  return fmtTok(lo);
+}
+function windowSentence(p, role) {
+  const met = metricForRole(p, role);
+  if (met && met.conf === "高" && met.c.fLow != null) {
+    return `5 小时窗口按官方每周额度折算大约 ${tokSpan(met.c, "fLow", "fHigh")} tokens。`;
+  }
+  const q = String(p.quota || "").replace(/\s+/g, " ");
+  const bit = role.name.split(" ").pop();
+  if (new RegExp(bit, "i").test(q) && /5\s*小时|\/5h/i.test(q)) {
+    return `5 小时窗口按官方原文：${trunc(q, 96)}`;
+  }
+  if (met && met.conf === "中" && met.c.fLow != null) {
+    return `5 小时窗口按${met.m.method || provenance(met.m).text}大约 ${tokSpan(met.c, "fLow", "fHigh")} tokens，置信度中。`;
+  }
+  if (/5\s*小时|\/5h/i.test(q)) return `官方没有公布这个模型的 5 小时 token 数。原文：${trunc(q, 80)}`;
+  return `官方没有公布 5 小时窗口。额度原文：${trunc(q, 72)}`;
+}
+function offerable(p) {
+  return !/限量|抢购/.test((p.plan || "") + (p.note || ""));
+}
+function withinBudget(p) {
+  if (isRelay(p) || isRetiredPlan(p) || !offerable(p)) return false;
+  if (pickerState.region !== "all" && p.region !== pickerState.region) return false;
+  if (!matchesTool(p, pickerState.tool)) return false;
+  if (pickerState.budget === "0") return isFreeCodingEntry(p);
+  if (!isPersonalMonthly(p)) return false;
+  if (pickerState.budget === "any") return true;
+  return (cnyOf(p, "M") || 0) <= Number(pickerState.budget) + 0.05;
+}
+function eligibleProfiles() {
+  return PLANS.filter(withinBudget).map(planProfile);
+}
+function representatives(list, keyOf, better) {
+  const pick = better || betterWindow;
+  const best = new Map();
+  list.forEach((x) => {
+    const key = keyOf(x);
+    const prev = best.get(key);
+    if (!prev || pick(x, prev)) best.set(key, x);
   });
+  return [...best.values()];
+}
+function betterDailyTier(a, b) {
+  const ta = knownTokens(a.p, a.loose[0]);
+  const tb = knownTokens(b.p, b.loose[0]);
+  if (ta !== tb) return ta > tb;
+  const ma = multiplier(a.p);
+  const mb = multiplier(b.p);
+  if (ma !== mb) return ma > mb;
+  return (cnyOf(a.p, "M") || 0) < (cnyOf(b.p, "M") || 0);
+}
+function chooseHardMain(pool) {
+  const reps = representatives(pool.filter((x) => x.headline), (x) => x.p.vendor + "|" + x.headline.id);
+  reps.sort((a, b) => {
+    const band = bandRank(b.headline.band) - bandRank(a.headline.band);
+    if (band) return band;
+    const tok = knownTokens(b.p, b.headline) - knownTokens(a.p, a.headline);
+    if (tok) return tok;
+    const mult = multiplier(b.p) - multiplier(a.p);
+    if (mult) return mult;
+    const cat = catRank(b.p) - catRank(a.p);
+    if (cat) return cat;
+    const coding = (hasCodingSurface(b.p) ? 1 : 0) - (hasCodingSurface(a.p) ? 1 : 0);
+    if (coding) return coding;
+    return (cnyOf(a.p, "M") || 0) - (cnyOf(b.p, "M") || 0);
+  });
+  return reps[0] || null;
+}
+function chooseDailyMain(pool) {
+  const reps = representatives(pool.filter((x) => x.loose.length), (x) => x.p.vendor + "|" + x.loose[0].id, betterDailyTier);
+  reps.sort((a, b) => {
+    const dual = (/双池/.test(b.p.quota || "") ? 1 : 0) - (/双池/.test(a.p.quota || "") ? 1 : 0);
+    if (dual) return dual;
+    const pure = (b.headline ? 0 : 1) - (a.headline ? 0 : 1);
+    if (pure) return pure;
+    const tok = knownTokens(b.p, b.loose[0]) - knownTokens(a.p, a.loose[0]);
+    if (tok) return tok;
+    return (cnyOf(a.p, "M") || 0) - (cnyOf(b.p, "M") || 0);
+  });
+  return reps[0] || null;
+}
+function chooseMain(pool) {
+  if (pickerState.task === "daily") return chooseDailyMain(pool);
+  return chooseHardMain(pool) || (pickerState.task === "both" ? chooseDailyMain(pool) : null);
+}
+function peerNote(main, pool) {
+  if (!main.headline || knownTokens(main.p, main.headline) <= 0) return "";
+  const peers = representatives(
+    pool.filter((x) => x.headline && x.p.vendor !== main.p.vendor && x.headline.band === main.headline.band),
+    (x) => x.p.vendor
+  );
+  const quiet = peers.filter((x) => knownTokens(x.p, x.headline) <= 0);
+  quiet.sort((a, b) => {
+    const code = (/code/i.test(b.p.plan) ? 1 : 0) - (/code/i.test(a.p.plan) ? 1 : 0);
+    if (code) return code;
+    const cat = catRank(b.p) - catRank(a.p);
+    if (cat) return cat;
+    return (cnyOf(b.p, "M") || 0) - (cnyOf(a.p, "M") || 0) || a.p.vendor.localeCompare(b.p.vendor, "zh");
+  });
+  const top = quiet[0];
+  if (!top) return "";
+  return `同预算还能买 ${planTitle(top.p)}（${top.headline.name}）。官方没有给出高置信的 5 小时 token 数，所以主计划用了能看清窗口的这一档。`;
+}
+function nextTier(current) {
+  const roleId = current.headline && current.headline.id;
+  let best = null;
+  PLANS.forEach((p) => {
+    if (p.vendor !== current.p.vendor || isRelay(p) || !isPersonalMonthly(p) || !offerable(p)) return;
+    if (pickerState.region !== "all" && p.region !== pickerState.region) return;
+    if (!matchesTool(p, pickerState.tool)) return;
+    const price = cnyOf(p, "M") || 0;
+    if (price <= (cnyOf(current.p, "M") || 0) + 0.05) return;
+    const prof = planProfile(p);
+    if (roleId) {
+      if (!prof.headline || prof.headline.id !== roleId) return;
+    } else if (!prof.loose.length) return;
+    if (!best || price < (cnyOf(best.p, "M") || 0)) best = prof;
+  });
+  return best;
+}
+function unlockText(cur, next) {
+  const sameHard = cur.headline && next.headline && cur.headline.id === next.headline.id;
+  const sameDaily = !cur.headline && !next.headline && cur.loose[0] && next.loose[0] && cur.loose[0].id === next.loose[0].id;
+  if (sameHard || sameDaily) {
+    const role = cur.headline || cur.loose[0];
+    const nextRole = next.headline || next.loose[0];
+    const a = metricForRole(cur.p, role);
+    const b = metricForRole(next.p, nextRole);
+    if (a && b && a.conf === "高" && b.conf === "高" && a.c.fLow != null && b.c.fLow != null) {
+      return `模型仍是 ${role.name}。5 小时窗口从大约 ${tokSpan(a.c, "fLow", "fHigh")} tokens 提到 ${tokSpan(b.c, "fLow", "fHigh")} tokens，加的钱换来更大的窗口。`;
+    }
+    const mult = (next.p.quota || "").match(/(\d+(?:\.\d+)?)\s*×\s*(Pro|Plus|Lite|Standard)/i);
+    if (mult) return `模型仍是 ${role.name}。官方额度是 ${mult[1]}× ${mult[2]}，加的钱换来更大的窗口。`;
+    return `模型仍是 ${role.name}。额度原文：${trunc(next.p.quota, 72)}`;
+  }
+  if (next.headline && (!cur.headline || bandRank(next.headline.band) > bandRank(cur.headline.band))) {
+    return `这档才能把复杂任务模型换成 ${next.headline.name}。${next.headline.reason}。`;
+  }
+  if (next.loose.length) return `这档带慢烧模型 ${next.loose.map((r) => r.name).join("、")}。${next.loose[0].reason}。`;
+  return `额度原文：${trunc(next.p.quota, 80)}`;
+}
+function dailyEntries(pool, main) {
+  return pool.filter((x) => x.p !== main.p && x.p.vendor !== main.p.vendor && (x.internalDaily.length || (!x.headline && x.loose.length)));
+}
+function pickSupplement(main, pool) {
+  const list = dailyEntries(pool, main).slice().sort((a, b) => {
+    const dual = (/双池/.test(b.p.quota || "") ? 1 : 0) - (/双池/.test(a.p.quota || "") ? 1 : 0);
+    if (dual) return dual;
+    const pure = (b.headline ? 0 : 1) - (a.headline ? 0 : 1);
+    if (pure) return pure;
+    const coding = (hasCodingSurface(b.p) ? 1 : 0) - (hasCodingSurface(a.p) ? 1 : 0);
+    if (coding) return coding;
+    return (cnyOf(a.p, "M") || 0) - (cnyOf(b.p, "M") || 0);
+  });
+  const cap = pickerState.budget === "any" ? Infinity : pickerState.budget === "0" ? 0 : Number(pickerState.budget);
+  const remain = cap - (cnyOf(main.p, "M") || 0);
+  const fit = list.filter((x) => (cnyOf(x.p, "M") || 0) <= remain + 0.05);
+  const dreamed = list.find((x) => /双池/.test(x.p.quota || ""));
+  return { chosen: fit[0] || null, dreamed: dreamed && fit[0] !== dreamed ? dreamed : null, remain };
+}
+function sameWindowText(profile) {
+  const names = profile.included.filter((r) => r.task === "daily").map((r) => r.name);
+  if (!profile.headline) return "";
+  if (!names.length) return `${profile.headline.name} 这档没有另外的慢烧模型。`;
+  return `${names.join("、")} 和 ${profile.headline.name} 共用同一个 5 小时窗口。拿它们做日常，用的还是这一格额度。`;
+}
+function meteredText(profile) {
+  if (!profile.metered.some((r) => r.id === "claude-opus")) return "";
+  return "Claude Opus 在另一池，按百万 tokens 计价，不在这档送的慢烧额度里。";
+}
+function quickCard(accent, title, value, body, plan) {
+  const href = plan ? safeHref(plan.url) : "";
+  return `<div class="quick-card" style="--qc-accent:${accent}">
+    <div class="qc-title">${esc(title)}</div>
+    <div class="qc-value">${value}</div>
+    <div class="qc-sub">${body}</div>
+    ${href ? `<a class="qc-tag" href="${href}" target="_blank" rel="noopener">官网 ↗</a>` : ""}
+  </div>`;
+}
+function mainCard(main, pool) {
+  const p = main.p;
+  const dailyLead = pickerState.task === "daily" && main.loose.length;
+  const bits = [`<b>${esc(planTitle(p))}</b><div class="badge-row">${badgeHtml(p)}</div>`];
+  if (dailyLead) {
+    const names = main.loose.map((r) => r.name).join("、");
+    bits.push(lineHtml("日常", `${names}。${main.loose[0].reason}。`));
+    bits.push(lineHtml("5 小时窗口", windowSentence(p, main.loose[0])));
+    if (main.headline) bits.push(lineHtml("同档还有", `${main.headline.name}。${main.shared ? "和慢烧模型共用同一个窗口。" : main.headline.reason + "。"}`));
+  } else if (main.headline) {
+    const ceiling = main.ceilings.find((r) => r.id !== main.headline.id);
+    let hard = `${main.headline.name}。${main.headline.reason}。`;
+    if (ceiling) hard += `${ceiling.name} 也能开，${ceiling.reason}。`;
+    bits.push(lineHtml("复杂任务", hard));
+    bits.push(lineHtml("5 小时窗口", windowSentence(p, main.headline)));
+  } else {
+    bits.push(lineHtml("日常", `${main.loose.map((r) => r.name).join("、")}。${main.loose[0].reason}。`));
+    bits.push(lineHtml("5 小时窗口", windowSentence(p, main.loose[0])));
+  }
+  const meter = meteredText(main);
+  if (meter) bits.push(lineHtml("另一池", meter));
+  else if (!dailyLead && !main.headline) bits.push(lineHtml("复杂任务", "这组条件里没有能单独拿来做复杂任务的模型，这档先覆盖日常。"));
+  const peer = !dailyLead && main.headline ? peerNote(main, pool) : "";
+  if (peer) bits.push(lineHtml("同预算", peer));
+  if (p.region === "intl" && pickerState.region !== "cn") bits.push(`<div class="qc-avoid">需要外币或国际账号支付。</div>`);
+  const title = dailyLead || !main.headline ? "主计划 · 日常" : "主计划 · 复杂任务";
+  return quickCard(PICK_ACCENT[0], title, moneyHtml(p), bits.join(""), p);
+}
+function dailyCard(main, pool) {
+  if (pickerState.task === "hard") {
+    const extra = main.headline ? sameWindowText(main) : "这次只看复杂任务。";
+    return quickCard(PICK_ACCENT[1], "日常", "<em>—</em>", lineHtml("这次不配", `筛选是以复杂任务为主。${extra}`), null);
+  }
+  if (pickerState.task === "daily") {
+    const meter = meteredText(main);
+    const text = meter || (main.headline
+      ? `${main.headline.name} 也在这档里，和慢烧模型共用额度。这次按日常来配。`
+      : "这档没有单独的复杂任务模型。复杂任务要另买带 Claude Opus 一类模型的订阅。");
+    return quickCard(PICK_ACCENT[1], "复杂任务", "<em>—</em>", lineHtml("这次按日常", text), null);
+  }
+  if (!main.headline && main.loose.length) {
+    const text = meteredText(main) || "这档本身就是日常计划。复杂任务要另买带 Claude Opus 一类模型的订阅。";
+    return quickCard(PICK_ACCENT[1], "复杂任务", "<em>—</em>", lineHtml("这档不包含", text), null);
+  }
+  if (main.internalDaily.length) {
+    const names = main.internalDaily.map((r) => r.name).join("、");
+    const text = `用 ${names}。${main.internalDaily[0].reason}。和复杂任务模型分开计算额度，不用再买第二档。`;
+    return quickCard(PICK_ACCENT[1], "日常覆盖", moneyHtml(main.p), `<b>${esc(planTitle(main.p))}</b>${lineHtml("就在这档里", text)}`, main.p);
+  }
+  const shared = main.headline ? sameWindowText(main) : "";
+  const sup = pickSupplement(main, pool);
+  if (sup.chosen) {
+    const roles = sup.chosen.internalDaily.length ? sup.chosen.internalDaily : sup.chosen.loose;
+    let text = `${planTitle(sup.chosen.p)}，${priceLine(sup.chosen.p)}。日常用 ${roles.map((r) => r.name).join("、")}。${roles[0].reason}。`;
+    if (sup.dreamed) {
+      const both = (cnyOf(main.p, "M") || 0) + (cnyOf(sup.dreamed.p, "M") || 0);
+      text += `若要 ${planTitle(sup.dreamed.p)} 里分开的大额池，两档合计约 ${fmtCNY(both)}，高于当前预算。`;
+    }
+    return quickCard(PICK_ACCENT[1], "日常覆盖", moneyHtml(sup.chosen.p), `${shared ? lineHtml("同一窗口", shared) : ""}${lineHtml("另开一档", text)}`, sup.chosen.p);
+  }
+  const dream = sup.dreamed || dailyEntries(pool, main)[0];
+  if (dream) {
+    const names = dream.loose.map((r) => r.name).join("、");
+    const both = (cnyOf(main.p, "M") || 0) + (cnyOf(dream.p, "M") || 0);
+    const text = `${shared}当前预算还剩 ${fmtCNY(Math.max(0, sup.remain))}。${planTitle(dream.p)} 的 ${names} 是分开的慢烧额度，月费 ${priceLine(dream.p)}，两档合计约 ${fmtCNY(both)}，高于当前预算。`;
+    return quickCard(PICK_ACCENT[1], "日常覆盖", moneyHtml(dream.p), `<div class="qc-miss">当前预算放不下第二档。</div>${lineHtml("差多少", text)}`, dream.p);
+  }
+  return quickCard(PICK_ACCENT[1], "日常覆盖", "<em>—</em>", lineHtml("没有第二档", shared || "没有找到符合地区和工具、且带慢烧模型的另一档。"), null);
+}
+function upgradeCard(main) {
+  const next = nextTier(main);
+  if (!next) {
+    return quickCard(PICK_ACCENT[2], "预算再往上", "<em>已最高</em>", lineHtml("这档到顶", "这已经是该厂商在售个人档里，这个模型窗口最大的一档。"), main.p);
+  }
+  const over = pickerState.budget !== "any" && pickerState.budget !== "0" && (cnyOf(next.p, "M") || 0) > Number(pickerState.budget) + 0.05;
+  const flag = over ? `<div class="qc-miss">高于当前预算。</div>` : "";
+  return quickCard(PICK_ACCENT[2], "预算再往上", moneyHtml(next.p), `${flag}<b>${esc(planTitle(next.p))}</b>${lineHtml("多出来的是", unlockText(main, next))}`, next.p);
 }
 function renderPicker() {
-  const matched = pickCandidates();
-  const scored = matched.map((p) => {
-    const met = bestMetric(p);
-    const price = cnyOf(p, "M") || 0;
-    const coding = hasCodingSurface(p);
-    const conf = met ? provenance(met.m).conf : "";
-    let score = 300 + price / 100000;
-    if (coding && conf === "高") score = met.c.costPerM;
-    else if (coding && conf === "中") score = 20 + price / 100000;
-    else if (coding) score = 40 + price / 100000;
-    return { p, met, score };
-  });
-  const bestByVendor = new Map();
-  scored.forEach((row) => {
-    const prev = bestByVendor.get(row.p.vendor);
-    if (!prev || row.score < prev.score) bestByVendor.set(row.p.vendor, row);
-  });
-  const top = [...bestByVendor.values()].sort((a, b) => a.score - b.score).slice(0, 3);
+  const pool = eligibleProfiles();
   const grid = document.getElementById("quickGrid");
   const note = document.getElementById("pickerNote");
-  if (!top.length) {
-    grid.innerHTML = `<div class="picker-empty">这组条件没有能下单的个人档。可以把预算放开，或把模型改成「含轻量」。</div>`;
-    note.textContent = "中转站不参与推荐。价格全景里中转站是单独的红色。";
+  const main = chooseMain(pool);
+  if (!main) {
+    grid.innerHTML = `<div class="picker-empty">这组条件没有能下单的个人档。可以把预算放开，或把地区改成不限。</div>`;
+    note.textContent = "中转站不参与。模型只分成复杂任务和日常，不使用跑分。";
     return;
   }
-  grid.innerHTML = top.map((row, i) => {
-    const p = row.p;
-    const href = safeHref(p.url);
-    const value = p.priceM === 0 ? "<em>免费</em>" : `<em>${esc(p.cur === "USD" ? "$" + p.priceM : "¥" + p.priceM)}</em>/月`;
-    return `<div class="quick-card" style="--qc-accent:${PICK_ACCENT[i] || PICK_ACCENT[0]}">
-      <div class="qc-title">推荐 ${i + 1} · ${esc(REGION_LABEL[p.region] || "")}</div>
-      <div class="qc-value">${value}</div>
-      <div class="qc-sub"><b>${esc(p.vendor)} ${esc(p.plan)}</b><div class="badge-row">${badgeHtml(p)}</div>
-        <div class="qc-why">${esc(whyText(p, row.met))}</div>
-        <div class="qc-avoid">不适合：${esc(avoidText(p, row.met))}</div>
-      </div>
-      ${href ? `<a class="qc-tag" href="${href}" target="_blank" rel="noopener">官网 ↗</a>` : ""}
-    </div>`;
-  }).join("");
-  note.textContent = `符合条件 ${matched.length} 档，按厂商各留一档，取出前 ${top.length} 个。能接到 Claude Code、Codex、Cursor 或自家编程客户端的优先。只有官方每周 tokens 才按每百万成本排序，其余不拿折算 token 数比谁更便宜。中转站不参与。`;
+  grid.innerHTML = [mainCard(main, pool), dailyCard(main, pool), upgradeCard(main)].join("");
+  note.textContent = `符合条件 ${pool.length} 档。三张卡是一套用法：复杂任务看最强模型和它的 5 小时窗口，日常只把分开的慢烧额度算作覆盖。预算再往上可以高于当前筛选。模型角色按 2026-09-30 的用法归类，不是跑分。中转站不参与。每百万 tokens 排行仍然只比价格。`;
+}
+function auditProfiles() {
+  const by = (vendor, plan) => PLANS.find((p) => p.vendor === vendor && p.plan === plan);
+  const idOf = (p) => { const h = planProfile(p).headline; return h ? h.id : ""; };
+  const expect = (vendor, plan, id) => {
+    const got = idOf(by(vendor, plan));
+    if (got !== id) console.error("[picker]", vendor, plan, "headline", got || "(none)", "expected", id || "(none)");
+  };
+  expect("Anthropic", "Claude Pro", "claude-opus");
+  expect("Anthropic", "Claude Free", "");
+  expect("Anthropic", "Claude Max 5x", "claude-opus");
+  expect("Cursor", "Pro", "");
+  expect("OpenAI", "ChatGPT Plus", "gpt-sol");
+  expect("智谱 BigModel", "GLM Coding V3 Lite", "glm-5");
+  const cursor = planProfile(by("Cursor", "Pro"));
+  if (!cursor.internalDaily.some((r) => r.id === "grok")) console.error("[picker] Cursor Pro 应把 Grok 当成分开的日常额度");
+  if (cursor.metered.every((r) => r.id !== "claude-opus")) console.error("[picker] Cursor Pro 的 Opus 应在按量池");
 }
 
 /* ---------- 性价比排行图（每 M tokens 成本） ---------- */
@@ -1308,7 +1599,7 @@ function boot(name, fn) {
 }
 boot("theme", initTheme);
 boot("stats", renderStats);
-boot("quick", renderPicker);
+boot("quick", () => { auditProfiles(); renderPicker(); });
 boot("rank", renderRankChart);
 boot("personal", renderPersonalChart);
 boot("team", renderTeamChart);

@@ -15,7 +15,7 @@
 <script>try{var __m=localStorage.getItem("cp-theme")||"system";var __d=matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.dataset.theme=__m==="system"?(__d?"dark":"light"):__m;}catch(e){}</script>
   <link rel="stylesheet" href="libs/fonts/fonts.css?v=43">
   <link rel="stylesheet" href="libs/fonts/remixicon.css?v=43">
-  <link rel="stylesheet" href="css/style.css?v=48">
+  <link rel="stylesheet" href="css/style.css?v=50">
 </head>
 <body>
     <div class="scroll-progress" aria-hidden="true"><span id="scrollBar"></span></div>
@@ -45,7 +45,7 @@
     <div class="hero-inner">
       <span class="prompt-mark" aria-hidden="true">&gt;_</span>
       <h1><span>全球 Coding Plan</span><span>价格与额度对比。</span></h1>
-      <p class="hero-lede">先按预算、地区和要用的工具选出三档能下单的计划，再往下对照价格、额度和 API 单价。中转站单独标出，不和官方订阅比谁更便宜。</p>
+      <p class="hero-lede">先按预算和任务结构配一套计划：复杂任务留给最强模型，日常任务交给烧得慢的模型。再往下对照价格、额度和 API 单价。中转站单独标出。</p>
       <p class="hero-meta">数据更新至 <strong id="heroDate">2026-09-30</strong> · 每日 09:30 巡检 · 汇率 1 USD ≈ <span id="rateText">6.71</span> CNY · 来源见页脚</p>
       <dl class="stats-row" id="statsRow"></dl>
     </div>
@@ -55,7 +55,7 @@
   <section class="section" id="quick" style="padding-top:36px">
     <div class="section-head">
       <h2><span class="sec-no">01</span>帮我选</h2>
-      <p>按预算、地区、要接的工具和模型档次，给出最多三个能下单的个人档。每条写明为什么是它，以及它不适合谁。中转站不进这三档。</p>
+      <p>按预算、地区和工具配一套用法。第一张是预算内的复杂任务计划，第二张看日常有没有分开的慢烧额度，第三张写预算再往上会多出什么。中转站不进这套推荐。</p>
     </div>
     <div class="picker" id="picker">
       <div class="picker-row" data-pick="budget">
@@ -80,10 +80,11 @@
         <button type="button" class="chip" data-value="cursor">Cursor</button>
         <button type="button" class="chip" data-value="own">自家客户端</button>
       </div>
-      <div class="picker-row" data-pick="tier">
-        <span class="picker-label">模型</span>
-        <button type="button" class="chip active" data-value="flagship">只要旗舰</button>
-        <button type="button" class="chip" data-value="any">含轻量</button>
+      <div class="picker-row" data-pick="task">
+        <span class="picker-label">任务</span>
+        <button type="button" class="chip" data-value="hard">以复杂任务为主</button>
+        <button type="button" class="chip active" data-value="both">复杂和日常都有</button>
+        <button type="button" class="chip" data-value="daily">以日常为主</button>
       </div>
     </div>
     <div class="quick-grid" id="quickGrid"></div>
@@ -327,7 +328,7 @@
 </footer>
 
 <script src="libs/echarts.min.js?v=43"></script>
-<script src="js/data.js?v=53"></script>
-<script src="js/app.js?v=60"></script>
+<script src="js/data.js?v=54"></script>
+<script src="js/app.js?v=62"></script>
 </body>
 </html>
