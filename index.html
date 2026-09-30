@@ -4,8 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Coding Plan 全球比价中心 · 2026年9月</title>
-<meta name="description" content="国内外模型官方、云厂商、第三方工具的 AI Coding Plan 订阅价格与 token 额度可视化对比（2026年9月）">
-<link rel="stylesheet" href="css/style.css?v=27">
+<meta name="description" content="国内外模型官方、云厂商、第三方工具与中转站的 AI Coding Plan 订阅价格与 token 额度可视化对比：订阅价格全景、每 M tokens 成本排行、额度深度对比、免费入口与 API 按量单价。">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0e1a">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f3f5fa">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Coding Plan 全球比价中心">
+<meta property="og:title" content="Coding Plan 全球比价中心 · 每日更新">
+<meta property="og:description" content="一次看全市面上在售的 AI 编程订阅计划：模型官方 / 云厂商 / 第三方工具与中转站的每月价格、可用 token 额度、每百万 tokens 实际成本与免费入口对比。">
+<meta name="twitter:card" content="summary">
+<script>try{var __m=localStorage.getItem("cp-theme")||"system";var __d=matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.dataset.theme=__m==="system"?(__d?"dark":"light"):__m;}catch(e){}</script>
+<link rel="stylesheet" href="css/style.css?v=40">
 </head>
 <body>
 
@@ -15,12 +23,13 @@
     <nav class="topnav">
       <a href="#quick">⚡ 快速决策</a>
       <a href="#rank">💵 性价比排行</a>
-      <a href="#s1">订阅价格</a>
       <a href="#s3b">额度对比</a>
       <a href="#free">免费入口</a>
+      <a href="#s1">订阅价格</a>
       <a href="#s4">API 按量</a>
       <a href="#table">完整数据</a>
     </nav>
+    <button id="themeBtn" class="theme-btn" title="切换主题：暗色 → 亮色 → 跟随系统"></button>
   </div>
 </header>
 
@@ -65,60 +74,9 @@
     <p class="chart-note" id="rankNote"></p>
   </section>
 
-  <!-- ======== Section 1: 个人订阅价格全景 ======== -->
-  <section class="section" id="s1">
-    <div class="section-head">
-      <h2>📊 个人订阅价格全景</h2>
-      <p>所有面向个人的 Coding 订阅档位（免费档见下方「免费入口」），按统一折算人民币从低到高排列。悬停查看原币价格、额度口径与模型。</p>
-    </div>
-    <div class="controls" id="ctrl1">
-      <div class="chip-group" id="chipCat">
-        <button class="chip active" data-cat="all">全部类别</button>
-        <button class="chip" data-cat="official">模型官方订阅</button>
-        <button class="chip" data-cat="tool">第三方工具订阅</button>
-        <button class="chip" data-cat="cloud">云厂商/API 套餐</button>
-      </div>
-      <div class="chip-group" id="chipRegion">
-        <button class="chip active" data-region="all">全部地区</button>
-        <button class="chip" data-region="cn">🇨🇳 国内</button>
-        <button class="chip" data-region="intl">🌍 国际</button>
-      </div>
-      <div class="chip-group" id="chipBilling">
-        <button class="chip active" data-billing="M">月付</button>
-        <button class="chip" data-billing="Y">年付（折月）</button>
-      </div>
-      <div class="legend-inline">
-        <span><i style="background:#6366f1"></i>模型官方订阅</span>
-        <span><i style="background:#22d3ee"></i>第三方工具订阅</span>
-        <span><i style="background:#34d399"></i>云厂商/API 套餐</span>
-      </div>
-    </div>
-    <div class="chart-card"><div id="chartPersonal" class="chart"></div></div>
-    <p class="chart-note" id="notePersonal"></p>
-  </section>
+  
 
-  <!-- ======== Section 2: 团队 / 企业 / 云厂商 ======== -->
-  <section class="section" id="s2">
-    <div class="section-head">
-      <h2>🏢 团队 / 企业档（席位 / 整包价格）</h2>
-      <p>按席位计费的团队与企业档（Claude Team、Copilot Business、Cursor Teams 等），以及云厂商企业级服务（AWS Q、Gemini Code Assist、阿里云灵码企业版、智谱 GLM 团队版、百炼 Token Plan 团队版等）。标注「整包」的为按团队/账户整体计费（如 Roo Roomote 按团队规模、Augment Business 按账户），悬停可查看各自计价口径。云厂商面向个人的 API 套餐（腾讯云/百炼/方舟 Coding Plan 等）已归入上方「个人订阅价格全景」。</p>
-    </div>
-    <div class="chart-card"><div id="chartTeam" class="chart"></div></div>
-  </section>
-
-  <!-- ======== Section 3: 官方每周 token 估算 ======== -->
-  <section class="section" id="s3">
-    <div class="section-head">
-      <h2>🪙 每周可用 tokens 对比（官方公布 + 社区推算）</h2>
-      <p>跨厂商比较「一周能用多少 token」：<strong style="color:#34d399">绿色柱</strong>为智谱官方公布的估算区间（目前唯一官方公布每周 tokens 的厂商，标注所用模型 GLM-5.3 / Flash）；<strong style="color:#fbbf24">黄色柱</strong>为 MiniMax、Claude、ChatGPT、Cursor、Kimi、Copilot、Devin、Google 等官方未公布者的<strong>社区推算</strong>（推算方法与置信度见「额度深度对比」表的「依据」列与「方法论」折叠块）。悬停查看月费与推算依据。</p>
-    </div>
-    <div class="grid-2">
-      <div class="chart-card"><div id="chartTokens" class="chart chart-fixed"></div></div>
-      <div class="chart-card card-text" id="tokenInsight"></div>
-    </div>
-  </section>
-
-  <!-- ======== Section 3.5: 额度深度对比 ======== -->
+<!-- ======== Section 3.5: 额度深度对比 ======== -->
   <section class="section" id="s3b">
     <div class="section-head">
       <h2>📊 额度深度对比（TPS · Tokens · 额度价值 · 额度倍率）</h2>
@@ -174,6 +132,71 @@
     </details>
   </section>
 
+<!-- ======== Section 5: 免费入口 ======== -->
+  <section class="section" id="free">
+    <div class="section-head">
+      <h2>🎁 免费 Coding 入口</h2>
+      <p>零成本起步方案：官方免费 CLI 额度与工具免费档（部分需自备 API Key，即 BYOK）。</p>
+    </div>
+    <div class="free-grid" id="freeGrid"></div>
+  </section>
+
+<!-- ======== Section 1: 个人订阅价格全景 ======== -->
+  <section class="section" id="s1">
+    <div class="section-head">
+      <h2>📊 个人订阅价格全景</h2>
+      <p>所有面向个人的 Coding 订阅档位（免费档见下方「免费入口」），按统一折算人民币从低到高排列。悬停查看原币价格、额度口径与模型。</p>
+    </div>
+    <div class="controls" id="ctrl1">
+      <input type="search" id="chartSearch" class="search-input" placeholder="🔍 搜索厂商 / 计划 / 模型…" style="min-width:220px">
+      <div class="chip-group" id="chipCat">
+        <button class="chip active" data-cat="all">全部类别</button>
+        <button class="chip" data-cat="official">模型官方订阅</button>
+        <button class="chip" data-cat="tool">第三方工具订阅</button>
+        <button class="chip" data-cat="cloud">云厂商/API 套餐</button>
+      </div>
+      <div class="chip-group" id="chipRegion">
+        <button class="chip active" data-region="all">全部地区</button>
+        <button class="chip" data-region="cn">🇨🇳 国内</button>
+        <button class="chip" data-region="intl">🌍 国际</button>
+      </div>
+      <div class="chip-group" id="chipBilling">
+        <button class="chip active" data-billing="M">月付</button>
+        <button class="chip" data-billing="Y">年付（折月）</button>
+      </div>
+      <div class="legend-inline">
+        <span><i style="background:#6366f1"></i>模型官方订阅</span>
+        <span><i style="background:#22d3ee"></i>第三方工具订阅</span>
+        <span><i style="background:#34d399"></i>云厂商/API 套餐</span>
+      </div>
+    </div>
+    <div class="chart-card"><div id="chartPersonal" class="chart"></div></div>
+    <p class="chart-note" id="notePersonal"></p>
+  </section>
+
+  <!-- ======== Section 2: 团队 / 企业 / 云厂商 ======== -->
+  <section class="section" id="s2">
+    <div class="section-head">
+      <h2>🏢 团队 / 企业档（席位 / 整包价格）</h2>
+      <p>按席位计费的团队与企业档（Claude Team、Copilot Business、Cursor Teams 等），以及云厂商企业级服务（AWS Q、Gemini Code Assist、阿里云灵码企业版、智谱 GLM 团队版、百炼 Token Plan 团队版等）。标注「整包」的为按团队/账户整体计费（如 Roo Roomote 按团队规模、Augment Business 按账户），悬停可查看各自计价口径。云厂商面向个人的 API 套餐（腾讯云/百炼/方舟 Coding Plan 等）已归入上方「个人订阅价格全景」。</p>
+    </div>
+    <div class="chart-card"><div id="chartTeam" class="chart"></div></div>
+  </section>
+
+  <!-- ======== Section 3: 官方每周 token 估算 ======== -->
+  <section class="section" id="s3">
+    <div class="section-head">
+      <h2>🪙 每周可用 tokens 对比（官方公布 + 社区推算）</h2>
+      <p>跨厂商比较「一周能用多少 token」：<strong style="color:#34d399">绿色柱</strong>为智谱官方公布的估算区间（目前唯一官方公布每周 tokens 的厂商，标注所用模型 GLM-5.3 / Flash）；<strong style="color:#fbbf24">黄色柱</strong>为 MiniMax、Claude、ChatGPT、Cursor、Kimi、Copilot、Devin、Google 等官方未公布者的<strong>社区推算</strong>（推算方法与置信度见「额度深度对比」表的「依据」列与「方法论」折叠块）。悬停查看月费与推算依据。</p>
+    </div>
+    <div class="grid-2">
+      <div class="chart-card"><div id="chartTokens" class="chart chart-fixed"></div></div>
+      <div class="chart-card card-text" id="tokenInsight"></div>
+    </div>
+  </section>
+
+  
+
   <!-- ======== Section 4: API 按量 ======== -->
   <section class="section" id="s4">
     <div class="section-head">
@@ -186,14 +209,7 @@
     </div>
   </section>
 
-  <!-- ======== Section 5: 免费入口 ======== -->
-  <section class="section" id="free">
-    <div class="section-head">
-      <h2>🎁 免费 Coding 入口</h2>
-      <p>零成本起步方案：官方免费 CLI 额度与工具免费档（部分需自备 API Key，即 BYOK）。</p>
-    </div>
-    <div class="free-grid" id="freeGrid"></div>
-  </section>
+  
 
   <!-- ======== Section 6: 完整数据表 ======== -->
   <section class="section" id="table">
@@ -263,8 +279,8 @@
   <p>Coding Plan 全球比价中心 · 数据调研与核实日期 <span id="footDate">2026-09-29</span> · 仅供参考，以各厂商官方页面为准</p>
 </footer>
 
-<script src="libs/echarts.min.js?v=27"></script>
-<script src="js/data.js?v=27"></script>
-<script src="js/app.js?v=27"></script>
+<script src="libs/echarts.min.js?v=37"></script>
+<script src="js/data.js?v=40"></script>
+<script src="js/app.js?v=40"></script>
 </body>
 </html>

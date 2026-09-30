@@ -4,12 +4,12 @@
 
 ## 数据覆盖
 
-- **模型官方订阅**：Anthropic Claude、OpenAI Codex（ChatGPT）、Google Gemini/Antigravity、xAI Grok、Mistral、智谱 GLM Coding Plan（国内+国际版）、月之暗面 Kimi、MiniMax、小米 MiMo、阶跃 Step Plan 等
-- **第三方工具订阅**：GitHub Copilot、Cursor、Windsurf/Devin、Zed、Cline、Roo Code、Kilo Code、Amp、JetBrains AI、Augment、OpenRouter、Lovable、Bolt.new、Replit、AWS Kiro、Factory Droid、Canopy Wave、腾讯 CodeBuddy、字节 Trae、百度文心快码、心流 iFlow 等
+- **模型官方订阅**：Anthropic Claude、OpenAI Codex（ChatGPT）、Google Gemini/Antigravity、xAI Grok、Mistral、智谱 GLM Coding Plan（国内+国际版 V1/V2/V3）、月之暗面 Kimi、MiniMax、小米 MiMo、阶跃 Step Plan 等
+- **第三方工具与中转站**：GitHub Copilot、Cursor、Windsurf/Devin、Zed、Cline、Roo Code、Kilo Code、Amp、JetBrains AI、Augment、OpenRouter、Lovable、Bolt.new、Replit、AWS Kiro、Factory Droid、Canopy Wave、OpenCode、Command Code、腾讯 CodeBuddy、字节 Trae、百度文心快码，以及 R4 Coder、ZenMux、PackyCode、AICodeMirror、88code、DuckCoding、AIGoCode、DevPass、Chutes 等 API 中转站
 - **云厂商/企业档**：AWS Q Developer、Google Gemini Code Assist、阿里云通义灵码（Qoder CN）、腾讯云、华为云 CodeArts、讯飞星辰 Astron Coding Plan 等
 - **API 按量计费**：29 款主流编程模型的输入/输出单价（USD 与 CNY 原币，统一折算对比）
 
-数据调研与核实日期：**2026-09-23**（2026-09-29 增补 Kiro / Droid / 讯飞 Astron / 阶跃 Step Plan / Canopy Wave 等新计划）；全部来自官方定价页或权威报道（页脚附来源链接）；覆盖 47 家厂商、170 档订阅计划、24 个免费入口。
+数据调研与核实日期：**2026-09-23～29**；全部来自官方定价页或权威报道（页脚附来源链接）；覆盖 56 家厂商、194 档订阅计划、26 个免费入口、46 行额度深度对比（官方数据 + 标注置信度的社区估算）。
 
 ## 使用方式
 

@@ -31,9 +31,13 @@ const RATE = RATE_USD_CNY;
 /* ---------- 计划主索引：METRICS_RAW / ESTIMATES / PLAN_TOKENS 经 ref 引用 PLANS 的价格（单一数据源） ---------- */
 const PLAN_INDEX = new Map(PLANS.map((p) => [p.vendor + "|" + p.plan, p]));
 function resolvePlan(m) {
-  const p = PLAN_INDEX.get(m.ref[0] + "|" + m.ref[1]);
-  if (!p) throw new Error("[data] ref 无法解析: " + m.ref.join(" | ") + "（请核对 PLANS 中的厂商/计划名）");
-  return { ...m, priceM: p.priceM, cur: p.cur };
+  /* ref 可解析时以 PLANS 价格为准（单一数据源）；解析失败时优雅回退到条目自身价格，避免整页崩溃 */
+  if (Array.isArray(m.ref)) {
+    const p = PLAN_INDEX.get(m.ref[0] + "|" + m.ref[1]);
+    if (p) return { ...m, priceM: p.priceM, cur: p.cur };
+    console.warn("[data] ref 未解析，使用条目自身价格:", m.ref.join(" | "));
+  }
+  return m;
 }
 const METRICS_ALL = [
   ...METRICS_RAW.map((m) => ({ ...resolvePlan(m), isEst: false })),
@@ -56,7 +60,7 @@ function cnyOf(p, billing) {
 }
 function priceText(p, key) {
   const v = p[key];
-  if (v == null) return "定制";
+  if (v == null) return "按量/定制";
   if (v === 0) return "免费";
   return (p.cur === "USD" ? "$" + v : "¥" + v);
 }
@@ -74,18 +78,63 @@ window.addEventListener("resize", () => {
   resizeTimer = setTimeout(() => Object.values(chartCache).forEach((c) => c.resize()), 150);
 });
 
-const AXIS_STYLE = {
-  axisLine: { lineStyle: { color: "rgba(154,167,194,.35)" } },
-  axisLabel: { color: "#9aa7c2", fontSize: 12 },
-  splitLine: { lineStyle: { color: "rgba(154,167,194,.12)" } },
-};
-const TOOLTIP_BG = {
-  backgroundColor: "rgba(14,20,36,.96)",
-  borderColor: "rgba(255,255,255,.14)",
-  borderWidth: 1,
-  textStyle: { color: "#e7ecf7", fontSize: 12.5 },
-  extraCssText: "max-width: 520px; white-space: normal;",
-};
+/* ---------- 主题（暗/亮/跟随系统）与图表调色板 ---------- */
+let PAL = {};
+function refreshPalette() {
+  const L = document.documentElement.dataset.theme === "light";
+  PAL = L ? {
+    text: "#1a2438", dim: "#46536e", catLabel: "#2e3a55", faint: "#71809c",
+    axisLine: "rgba(15,23,42,.32)", splitLine: "rgba(15,23,42,.1)",
+    tipBg: "rgba(255,255,255,.98)", tipBorder: "rgba(15,23,42,.16)", tipText: "#1a2438",
+  } : {
+    text: "#e7ecf7", dim: "#9aa7c2", catLabel: "#c3cde4", faint: "#8b98b8",
+    axisLine: "rgba(154,167,194,.35)", splitLine: "rgba(154,167,194,.12)",
+    tipBg: "rgba(14,20,36,.96)", tipBorder: "rgba(255,255,255,.14)", tipText: "#e7ecf7",
+  };
+}
+function axisStyle() {
+  return {
+    axisLine: { lineStyle: { color: PAL.axisLine } },
+    axisLabel: { color: PAL.dim, fontSize: 12 },
+    splitLine: { lineStyle: { color: PAL.splitLine } },
+  };
+}
+function tipStyle() {
+  return {
+    backgroundColor: PAL.tipBg,
+    borderColor: PAL.tipBorder,
+    borderWidth: 1,
+    textStyle: { color: PAL.tipText, fontSize: 12.5 },
+    extraCssText: "max-width: 520px; white-space: normal;",
+  };
+}
+
+/* ---------- 明暗主题切换（暗 → 亮 → 跟随系统 循环） ---------- */
+const THEME_KEY = "cp-theme";
+function applyTheme(mode) {
+  const sysDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const eff = mode === "system" ? (sysDark ? "dark" : "light") : mode;
+  document.documentElement.dataset.theme = eff;
+  document.documentElement.dataset.themeMode = mode;
+  localStorage.setItem(THEME_KEY, mode);
+  refreshPalette();
+  const btn = document.getElementById("themeBtn");
+  if (btn) btn.textContent = mode === "dark" ? "🌙 暗色" : mode === "light" ? "☀️ 亮色" : "💻 跟随系统";
+}
+function rerenderCharts() {
+  renderPersonalChart(); renderTeamChart(); renderTokensChart(); renderApiChart(); renderRankChart();
+}
+function initTheme() {
+  applyTheme(localStorage.getItem(THEME_KEY) || "system");
+  document.getElementById("themeBtn").addEventListener("click", () => {
+    const order = ["dark", "light", "system"];
+    applyTheme(order[(order.indexOf(localStorage.getItem(THEME_KEY) || "system") + 1) % 3]);
+    rerenderCharts();
+  });
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    if ((localStorage.getItem(THEME_KEY) || "system") === "system") { applyTheme("system"); rerenderCharts(); }
+  });
+}
 
 /* ---------- 统计卡 ---------- */
 function planLabel(p) {
@@ -123,7 +172,7 @@ function renderStats() {
 }
 
 /* ---------- 个人订阅价格全景 ---------- */
-const state1 = { cat: "all", region: "all", billing: "M" };
+const state1 = { cat: "all", region: "all", billing: "M", q: "", limit: 40 };
 
 function personalTooltip(p) {
   const y = p.priceY != null ? `年付：${p.cur === "USD" ? "$" + p.priceY : "¥" + p.priceY}/月（年付折算）` : "年付：—（仅月付）";
@@ -134,7 +183,7 @@ function personalTooltip(p) {
     月付：${p.priceM != null ? (p.cur === "USD" ? "$" + p.priceM : "¥" + p.priceM) : "—"} ｜ ${y}<br/>
     <span style="color:#fcd34d">额度：</span>${trunc(p.quota, 90)}<br/>
     <span style="color:#a5b4fc">模型：</span>${trunc(p.models, 80)}<br/>
-    ${p.note ? `<span style="color:#9aa7c2">备注：${trunc(p.note, 60)}</span><br/>` : ""}
+    ${p.note ? `<span style="color:${PAL.dim}">备注：${trunc(p.note, 60)}</span><br/>` : ""}
     <span style="color:#6b7893;font-size:11.5px">来源：${p.url}</span>`;
 }
 
@@ -142,15 +191,21 @@ function renderPersonalChart() {
   const rows = PLANS.filter(
     (p) => p.cat !== "team" && !p.seat && p.priceM != null && p.priceM > 0 &&
       (state1.cat === "all" || p.cat === state1.cat) &&
-      (state1.region === "all" || p.region === state1.region)
+      (state1.region === "all" || p.region === state1.region) &&
+      (!state1.q || (p.vendor + " " + p.plan + " " + p.models).toLowerCase().includes(state1.q))
   ).sort((a, b) => cnyOf(a, state1.billing) - cnyOf(b, state1.billing));
 
+  // 无筛选时默认只展示最便宜的前 N 档，避免图表过长；可点「显示全部」展开
+  const noFilter = state1.cat === "all" && state1.region === "all" && !state1.q;
+  const limit = noFilter ? state1.limit : null;
+  const shown = limit ? rows.slice(0, limit) : rows;
+
   const el = document.getElementById("chartPersonal");
-  el.style.height = Math.max(420, rows.length * 30 + 130) + "px";
+  el.style.height = Math.max(420, shown.length * 30 + 130) + "px";
   const chart = makeChart("chartPersonal");
 
-  const labels = rows.map((p) => shortVendor(p.vendor) + " · " + p.plan + (p.region === "cn" ? "·国内" : ""));
-  const data = rows.map((p, i) => ({
+  const labels = shown.map((p) => shortVendor(p.vendor) + " · " + p.plan + (p.region === "cn" ? "·国内" : ""));
+  const data = shown.map((p, i) => ({
     value: Math.round(cnyOf(p, state1.billing) * 10) / 10,
     itemStyle: { color: CAT_COLOR[p.cat], borderRadius: [0, 4, 4, 0] },
     _p: p,
@@ -159,28 +214,30 @@ function renderPersonalChart() {
   chart.setOption(
     {
       backgroundColor: "transparent",
-      tooltip: { trigger: "item", ...TOOLTIP_BG, formatter: (d) => personalTooltip(d.data._p) },
+      tooltip: { trigger: "item", ...tipStyle(), formatter: (d) => personalTooltip(d.data._p) },
       grid: { left: 16, right: 70, top: 30, bottom: 20, containLabel: true },
-      xAxis: { type: "value", name: "统一折算人民币（元/月）", nameTextStyle: { color: "#6b7893" }, ...AXIS_STYLE },
+      xAxis: { type: "value", name: "统一折算人民币（元/月）", nameTextStyle: { color: PAL.faint }, ...axisStyle() },
       yAxis: {
-        type: "category", data: labels, inverse: true, ...AXIS_STYLE,
-        axisLabel: { color: "#c3cde4", fontSize: 12.5 },
-        axisLine: { lineStyle: { color: "rgba(154,167,194,.25)" } },
+        type: "category", data: labels, inverse: true, ...axisStyle(),
+        axisLabel: { color: PAL.catLabel, fontSize: 12.5 },
+        axisLine: { lineStyle: { color: PAL.axisLine } },
       },
       series: [
         {
           type: "bar", data, barWidth: 16,
-          label: { show: true, position: "right", color: "#e7ecf7", fontSize: 12, formatter: (d) => "¥" + d.value.toLocaleString("zh-CN") },
+          label: { show: true, position: "right", color: PAL.text, fontSize: 12, formatter: (d) => "¥" + d.value.toLocaleString("zh-CN") },
         },
       ],
-      dataZoom: [{ type: "slider", yAxisIndex: 0, startValue: 0, endValue: rows.length, width: 14, right: 8, borderColor: "rgba(154,167,194,.25)", fillerColor: "rgba(99,102,241,.18)", handleStyle: { color: "#6366f1" }, textStyle: { color: "#8b98b8" } }],
+      dataZoom: [{ type: "slider", yAxisIndex: 0, startValue: 0, endValue: shown.length, width: 14, right: 8, borderColor: "rgba(154,167,194,.25)", fillerColor: "rgba(99,102,241,.18)", handleStyle: { color: "#6366f1" }, textStyle: { color: PAL.faint } }],
     },
     true
   );
   chart.resize();
 
-  document.getElementById("notePersonal").textContent =
-    `当前筛选：${rows.length} 个档位 ｜ 汇率 1 USD ≈ ${RATE} CNY（2026-09-23 实测） ｜ 无年付价的计划在「年付」视图下仍按月付价显示 ｜ 免费档见「免费入口」区`;
+  const hidden = rows.length - shown.length;
+  document.getElementById("notePersonal").innerHTML =
+    `当前筛选：${rows.length} 个档位（显示 ${shown.length}） ｜ 汇率 1 USD ≈ ${RATE} CNY（2026-09-23 实测） ｜ 无年付价的计划在「年付」视图下仍按月付价显示 ｜ 免费档见「免费入口」区` +
+    (hidden > 0 ? ` ｜ <a href="javascript:void(0)" id="showAllPersonal" style="color:var(--accent-2)">📋 显示全部 ${rows.length} 档</a>` : "");
 }
 
 /* ---------- 团队 / 企业 / 云厂商（席位价 + 整包价） ---------- */
@@ -201,7 +258,7 @@ function renderTeamChart() {
     {
       backgroundColor: "transparent",
       tooltip: {
-        trigger: "item", ...TOOLTIP_BG,
+        trigger: "item", ...tipStyle(),
         formatter: (d) => {
           const p = d.data._p;
           return `<b style="font-size:13.5px">${p.vendor} · ${p.plan}</b><br/>
@@ -211,14 +268,14 @@ function renderTeamChart() {
         },
       },
       grid: { left: 16, right: 70, top: 20, bottom: 20, containLabel: true },
-      xAxis: { type: "value", name: "折算人民币（元/月）", nameTextStyle: { color: "#6b7893" }, ...AXIS_STYLE },
+      xAxis: { type: "value", name: "折算人民币（元/月）", nameTextStyle: { color: PAL.faint }, ...axisStyle() },
       yAxis: {
         type: "category", inverse: true,
         data: rows.map((p) => shortVendor(p.vendor) + " · " + p.plan + (p.region === "cn" ? "·国内" : "") + (!p.seat ? "·整包" : "")),
-        ...AXIS_STYLE, axisLabel: { color: "#c3cde4", fontSize: 12.5 },
-        axisLine: { lineStyle: { color: "rgba(154,167,194,.25)" } },
+        ...axisStyle(), axisLabel: { color: PAL.catLabel, fontSize: 12.5 },
+        axisLine: { lineStyle: { color: PAL.axisLine } },
       },
-      series: [{ type: "bar", data, barWidth: 16, label: { show: true, position: "right", color: "#e7ecf7", fontSize: 12, formatter: (d) => "¥" + d.value.toLocaleString("zh-CN") } }],
+      series: [{ type: "bar", data, barWidth: 16, label: { show: true, position: "right", color: PAL.text, fontSize: 12, formatter: (d) => "¥" + d.value.toLocaleString("zh-CN") } }],
     },
     true
   );
@@ -282,7 +339,7 @@ function renderTokensChart() {
     { name: "官方区间", type: "bar", stack: "o", barWidth: 14,
       data: rows.map((r) => r.isOfficial ? { value: r.highM - r.lowM, _r: r } : null),
       itemStyle: { color: "rgba(52,211,153,.32)", borderRadius: [0, 4, 4, 0] },
-      label: { show: true, position: "right", color: "#c3cde4", fontSize: 11,
+      label: { show: true, position: "right", color: PAL.catLabel, fontSize: 11,
         formatter: (d) => (d.data && d.data._r ? d.data._r.lowM + "–" + d.data._r.highM + "M" : "") } },
     { name: "社区推算", type: "bar", stack: "c", barWidth: 14,
       data: rows.map((r) => !r.isOfficial ? { value: r.lowM, _r: r } : null),
@@ -290,7 +347,7 @@ function renderTokensChart() {
     { name: "社区区间", type: "bar", stack: "c", barWidth: 14,
       data: rows.map((r) => !r.isOfficial ? { value: r.highM - r.lowM, _r: r } : null),
       itemStyle: { color: "rgba(251,191,36,.30)", borderRadius: [0, 4, 4, 0] },
-      label: { show: true, position: "right", color: "#c3cde4", fontSize: 11,
+      label: { show: true, position: "right", color: PAL.catLabel, fontSize: 11,
         formatter: (d) => (d.data && d.data._r ? d.data._r.lowM + "–" + d.data._r.highM + "M" : "") } },
   ];
 
@@ -298,7 +355,7 @@ function renderTokensChart() {
     {
       backgroundColor: "transparent",
       tooltip: {
-        trigger: "item", ...TOOLTIP_BG,
+        trigger: "item", ...tipStyle(),
         formatter: (d) => {
           const r = d.data && d.data._r;
           if (!r) return "";
@@ -308,16 +365,16 @@ function renderTokensChart() {
           return `<b>${r.label}</b> ${prov}<br/>
             每周可用：${r.lowM}–${r.highM}M tokens（${r.model}）<br/>
             月费：${fmtCNY(r.priceCNY)} ｜ 每 ¥100/月 ≈ <b>${(r.midM / r.priceCNY * 100).toFixed(1)}M</b> tokens/周<br/>
-            ${r.note ? `<span style="color:#9aa7c2">${trunc(r.note, 120)}</span><br/>` : ""}
+            ${r.note ? `<span style="color:${PAL.dim}">${trunc(r.note, 120)}</span><br/>` : ""}
             <span style="color:#8b98b8;font-size:11.5px">来源：${r.url}</span>`;
         },
       },
       grid: { left: 16, right: 95, top: 40, bottom: 10, containLabel: true },
-      legend: { data: ["官方公布", "社区推算"], textStyle: { color: "#9aa7c2", fontSize: 12.5 }, top: 4 },
-      xAxis: { type: "value", name: "tokens / 周（百万）", nameTextStyle: { color: "#8b98b8" }, ...AXIS_STYLE },
-      yAxis: { type: "category", data: cats, inverse: true, ...AXIS_STYLE,
-        axisLabel: { color: "#c3cde4", fontSize: 11.5 },
-        axisLine: { lineStyle: { color: "rgba(154,167,194,.25)" } } },
+      legend: { data: ["官方公布", "社区推算"], textStyle: { color: PAL.dim, fontSize: 12.5 }, top: 4 },
+      xAxis: { type: "value", name: "tokens / 周（百万）", nameTextStyle: { color: PAL.faint }, ...axisStyle() },
+      yAxis: { type: "category", data: cats, inverse: true, ...axisStyle(),
+        axisLabel: { color: PAL.catLabel, fontSize: 11.5 },
+        axisLine: { lineStyle: { color: PAL.axisLine } } },
       series,
     },
     true
@@ -363,19 +420,19 @@ function renderApiChart() {
     {
       backgroundColor: "transparent",
       tooltip: {
-        trigger: "axis", ...TOOLTIP_BG, axisPointer: { type: "shadow" },
+        trigger: "axis", ...tipStyle(), axisPointer: { type: "shadow" },
         formatter: (ps) => {
           const a = rows[ps[0].dataIndex];
           return `<b>${a.vendor} · ${a.model}</b><br/>
             ${fmtPrice(a, a.inUSD, a.outUSD)}<br/>
-            ${a.note ? `<span style="color:#9aa7c2">${trunc(a.note, 120)}</span><br/>` : ""}
+            ${a.note ? `<span style="color:${PAL.dim}">${trunc(a.note, 120)}</span><br/>` : ""}
             <span style="color:#6b7893;font-size:11.5px">来源：${a.url}</span>`;
         },
       },
       grid: { left: 56, right: 20, top: 46, bottom: 6, containLabel: true },
-      legend: { data: ["输入 / 1M tokens", "输出 / 1M tokens"], textStyle: { color: "#9aa7c2", fontSize: 12.5 }, top: 4 },
-      xAxis: { type: "category", data: cats, ...AXIS_STYLE, axisLabel: { color: "#c3cde4", fontSize: 10.5, interval: 0, rotate: 42 } },
-      yAxis: { type: "value", name: "USD / 1M tokens", nameTextStyle: { color: "#8b98b8" }, ...AXIS_STYLE },
+      legend: { data: ["输入 / 1M tokens", "输出 / 1M tokens"], textStyle: { color: PAL.dim, fontSize: 12.5 }, top: 4 },
+      xAxis: { type: "category", data: cats, ...axisStyle(), axisLabel: { color: PAL.catLabel, fontSize: 10.5, interval: 0, rotate: 42 } },
+      yAxis: { type: "value", name: "USD / 1M tokens", nameTextStyle: { color: PAL.faint }, ...axisStyle() },
       series: [
         { name: "输入 / 1M tokens", type: "bar", data: rows.map((a) => a.inUSD), itemStyle: { color: "#6366f1", borderRadius: [3, 3, 0, 0] } },
         { name: "输出 / 1M tokens", type: "bar", data: rows.map((a) => a.outUSD), itemStyle: { color: "#f472b6", borderRadius: [3, 3, 0, 0] } },
@@ -393,18 +450,18 @@ function renderApiChart() {
   chart2.setOption(
     {
       backgroundColor: "transparent",
-      title: { text: "$10 预算的输出 token 购买力（M tokens）", left: "center", top: 6, textStyle: { color: "#9aa7c2", fontSize: 13, fontWeight: 500 } },
+      title: { text: "$10 预算的输出 token 购买力（M tokens）", left: "center", top: 6, textStyle: { color: PAL.dim, fontSize: 13, fontWeight: 500 } },
       tooltip: {
-        trigger: "item", ...TOOLTIP_BG,
+        trigger: "item", ...tipStyle(),
         formatter: (d) => `<b>${d.data.a.vendor} · ${d.data.a.model}</b><br/>$10 ≈ <b>${d.data.m.toFixed(1)}M</b> 输出 tokens<br/>（${d.data.a.cur === "CNY" ? "¥" + d.data.a.outCNY : "$" + d.data.a.outUSD}/1M 输出）`,
       },
       grid: { left: 16, right: 56, top: 42, bottom: 6, containLabel: true },
-      xAxis: { type: "value", ...AXIS_STYLE },
-      yAxis: { type: "category", inverse: true, data: power.map((p) => p.name), ...AXIS_STYLE, axisLabel: { color: "#c3cde4", fontSize: 11 } },
+      xAxis: { type: "value", ...axisStyle() },
+      yAxis: { type: "category", inverse: true, data: power.map((p) => p.name), ...axisStyle(), axisLabel: { color: PAL.catLabel, fontSize: 11 } },
       series: [{
         type: "bar", barWidth: 12,
         data: power.map((p) => ({ value: Math.round(p.m * 10) / 10, a: p.a, itemStyle: { color: p.a.cur === "CNY" ? "#34d399" : "#22d3ee", borderRadius: [0, 4, 4, 0] } })),
-        label: { show: true, position: "right", color: "#e7ecf7", fontSize: 11, formatter: (d) => d.value + "M" },
+        label: { show: true, position: "right", color: PAL.text, fontSize: 11, formatter: (d) => d.value + "M" },
       }],
     },
     true
@@ -479,7 +536,10 @@ function renderTable() {
 
 /* ---------- 动态 / 来源 / 说明 ---------- */
 function renderMisc() {
-  document.getElementById("dynamicsList").innerHTML = DYNAMICS.map((d) => `<li>${d}</li>`).join("");
+  document.getElementById("dynamicsList").innerHTML = DYNAMICS.slice()
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+    .map((d) => `<li><span class="dyn-date">${d.date}</span><div class="dyn-body">${d.text}${d.url ? ` <a class="dyn-src" href="${d.url}" target="_blank" rel="noopener" title="打开来源：${d.url}">${d.source || "来源"} ↗</a>` : ""}</div></li>`)
+    .join("");
   document.getElementById("sourceList").innerHTML =
     `<h3>📖 全部来源（官方定价页 / 权威报道）</h3>` +
     SOURCES.map(
@@ -499,6 +559,7 @@ function bindEvents() {
       document.querySelectorAll("#chipCat .chip").forEach((x) => x.classList.remove("active"));
       c.classList.add("active");
       state1.cat = c.dataset.cat;
+      state1.limit = 40;
       renderPersonalChart();
     })
   );
@@ -507,6 +568,7 @@ function bindEvents() {
       document.querySelectorAll("#chipRegion .chip").forEach((x) => x.classList.remove("active"));
       c.classList.add("active");
       state1.region = c.dataset.region;
+      state1.limit = 40;
       renderPersonalChart();
     })
   );
@@ -515,9 +577,14 @@ function bindEvents() {
       document.querySelectorAll("#chipBilling .chip").forEach((x) => x.classList.remove("active"));
       c.classList.add("active");
       state1.billing = c.dataset.billing;
+      state1.limit = 40;
       renderPersonalChart();
     })
   );
+  document.getElementById("chartSearch").addEventListener("input", (e) => { state1.q = e.target.value; renderPersonalChart(); });
+  document.addEventListener("click", (e) => {
+    if (e.target && e.target.id === "showAllPersonal") { state1.limit = null; renderPersonalChart(); }
+  });
   document.getElementById("searchInput").addEventListener("input", (e) => { tableState.search = e.target.value; renderTable(); });
   document.getElementById("selectCat").addEventListener("change", (e) => { tableState.cat = e.target.value; renderTable(); });
   document.getElementById("selectRegion").addEventListener("change", (e) => { tableState.region = e.target.value; renderTable(); });
@@ -785,7 +852,7 @@ function renderRankChart() {
     {
       backgroundColor: "transparent",
       tooltip: {
-        trigger: "item", ...TOOLTIP_BG,
+        trigger: "item", ...tipStyle(),
         formatter: (d) => {
           const r = d.data._r;
           return `<b>${r.m.vendor} · ${r.m.plan}</b>（${r.m.model}）<br/>
@@ -795,15 +862,15 @@ function renderRankChart() {
         },
       },
       grid: { left: 16, right: 80, top: 20, bottom: 20, containLabel: true },
-      xAxis: { type: "value", name: "¥ / 百万 tokens（越低越便宜）", nameTextStyle: { color: "#8b98b8" }, ...AXIS_STYLE },
+      xAxis: { type: "value", name: "¥ / 百万 tokens（越低越便宜）", nameTextStyle: { color: PAL.faint }, ...axisStyle() },
       yAxis: {
-        type: "category", data: labels, inverse: true, ...AXIS_STYLE,
-        axisLabel: { color: "#c3cde4", fontSize: 11.5 },
-        axisLine: { lineStyle: { color: "rgba(154,167,194,.25)" } },
+        type: "category", data: labels, inverse: true, ...axisStyle(),
+        axisLabel: { color: PAL.catLabel, fontSize: 11.5 },
+        axisLine: { lineStyle: { color: PAL.axisLine } },
       },
       series: [{
         type: "bar", data, barWidth: 18,
-        label: { show: true, position: "right", color: "#e7ecf7", fontSize: 12, formatter: (d) => "¥" + d.value.toFixed(3) },
+        label: { show: true, position: "right", color: PAL.text, fontSize: 12, formatter: (d) => "¥" + d.value.toFixed(3) },
       }],
     },
     true
@@ -815,6 +882,7 @@ function renderRankChart() {
 }
 
 /* ---------- 初始化 ---------- */
+initTheme();
 renderStats();
 renderQuickCards();
 renderRankChart();
