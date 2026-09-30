@@ -1489,6 +1489,41 @@ const API_PRICES = [
     url: "https://mimo.mi.com/docs/zh-CN/price/pay-as-you-go" },
 ];
 
+/* 额度表里的官方 API 按量对照。apiIn/apiOut/apiCache 为每百万 tokens 的低峰牌价（无峰谷则用刊例价）。
+ * 与 API_PRICES 是同一批官方价：改价时两处一起改。Flash 等未单列进行情图的型号只写在这里。 */
+const PAYG_REFERENCES = [
+  { vendor: "DeepSeek", model: "deepseek-v4.1-flash", cur: "USD", apiIn: 0.15, apiOut: 0.6, apiCache: 0.003,
+    note: "官方低峰价。高峰（UTC 工作日 01:00–04:00、06:00–10:00）输入 $0.30 / 输出 $1.20 / 缓存 $0.006。无订阅计划。",
+    source: "api-docs.deepseek.com", url: "https://api-docs.deepseek.com/quick_start/pricing" },
+  { vendor: "DeepSeek", model: "deepseek-v4-pro", cur: "USD", apiIn: 0.66, apiOut: 1.98, apiCache: 0.022,
+    note: "官方低峰价。高峰输入 $1.32 / 输出 $3.96 / 缓存 $0.044。无订阅计划。",
+    source: "api-docs.deepseek.com", url: "https://api-docs.deepseek.com/quick_start/pricing" },
+  { vendor: "Z.ai", model: "GLM-5.3", cur: "USD", apiIn: 1.4, apiOut: 4.4, apiCache: 0.26,
+    note: "Z.ai 国际站 API 刊例。同一模型另有 GLM Coding Plan 订阅。",
+    source: "docs.z.ai", url: "https://docs.z.ai/guides/overview/pricing.md" },
+  { vendor: "Z.ai", model: "GLM-5.3-Flash", cur: "USD", apiIn: 0.15, apiOut: 0.5, apiCache: 0.03,
+    note: "Z.ai 国际站 API 刊例。缓存输入 $0.03。",
+    source: "docs.z.ai", url: "https://docs.z.ai/guides/overview/pricing.md" },
+  { vendor: "智谱 BigModel", model: "GLM-5.3", cur: "CNY", apiIn: 8, apiOut: 28, apiCache: 2,
+    note: "智谱开放平台 API 刊例。同一模型另有 GLM Coding Plan。",
+    source: "docs.bigmodel.cn", url: "https://docs.bigmodel.cn/cn/guide/start/pricing.md" },
+  { vendor: "智谱 BigModel", model: "GLM-5.3-Flash", cur: "CNY", apiIn: 0.8, apiOut: 2.8, apiCache: 0.23,
+    note: "智谱开放平台 API 刊例。缓存命中 ¥0.23。",
+    source: "docs.bigmodel.cn", url: "https://docs.bigmodel.cn/cn/guide/start/pricing.md" },
+  { vendor: "月之暗面 Kimi", model: "Kimi K3", cur: "CNY", apiIn: 20, apiOut: 100, apiCache: 2,
+    note: "开放平台按量。缓存写入另计 ¥20（5 分钟）。另有 Kimi Code Plan，额度未公布。",
+    source: "platform.kimi.com", url: "https://platform.kimi.com/docs/pricing/chat.md" },
+  { vendor: "月之暗面 Kimi", model: "Kimi K2.7-Code", cur: "CNY", apiIn: 6.5, apiOut: 27, apiCache: 1.3,
+    note: "开放平台编程模型按量。高速版约为两倍：输入 ¥13 / 输出 ¥54 / 缓存 ¥2.6。",
+    source: "platform.kimi.com", url: "https://platform.kimi.com/" },
+  { vendor: "MiniMax", model: "MiniMax-M3", cur: "CNY", apiIn: 2.1, apiOut: 8.4, apiCache: 0.42,
+    note: "≤512K 输入档、永久五折后的价（划线 ¥4.20 / ¥16.80 / 缓存 ¥0.84）。超过 512K 为 ¥4.20 / ¥16.80。另有 Token Plan。",
+    source: "platform.minimax.cn", url: "https://platform.minimax.cn/docs/guides/pricing-paygo.md" },
+  { vendor: "阿里云百炼", model: "qwen3-coder-plus", cur: "CNY", apiIn: 4, apiOut: 16, apiCache: 0.8,
+    note: "≤32K 档、隐式缓存。32K–128K 为 ¥6 / ¥24 / 缓存 ¥1.2；256K–1M 输出 ¥200。另有百炼 Coding Plan。",
+    source: "help.aliyun.com", url: "https://help.aliyun.com/zh/model-studio/qwen3-coder-plus" },
+];
+
 /* 官方公布「每周可用 tokens 估算」的计划（GLM 系列，按使用的模型拆分以便公平对比）
  * model: 估算所用模型（Flash 为轻量高速模型，同积分下 token 更多但产出质量不同）
  * ref:   价格来源 = PLANS 中对应计划（单一数据源；改价只改 PLANS，勿在此重复维护 priceUSD） */

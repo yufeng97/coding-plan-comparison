@@ -23,11 +23,11 @@ sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(
   fs.readFileSync(path.join(root, "js/data.js"), "utf8") +
-    "\n;globalThis.__D={RATE_USD_CNY,PLANS,METRICS_RAW,ESTIMATES,PLAN_TOKENS,DYNAMICS,API_PRICES,SOURCES,isRetiredPlan,isFreeCodingEntry};",
+    "\n;globalThis.__D={RATE_USD_CNY,PLANS,METRICS_RAW,ESTIMATES,PLAN_TOKENS,DYNAMICS,API_PRICES,PAYG_REFERENCES,SOURCES,isRetiredPlan,isFreeCodingEntry};",
   sandbox,
   { filename: "js/data.js" }
 );
-const { RATE_USD_CNY, PLANS, METRICS_RAW, ESTIMATES, PLAN_TOKENS, DYNAMICS, API_PRICES, SOURCES, isRetiredPlan, isFreeCodingEntry } = sandbox.__D;
+const { RATE_USD_CNY, PLANS, METRICS_RAW, ESTIMATES, PLAN_TOKENS, DYNAMICS, API_PRICES, PAYG_REFERENCES, SOURCES, isRetiredPlan, isFreeCodingEntry } = sandbox.__D;
 
 const CATS = ["official", "tool", "cloud", "team"];
 const REGIONS = ["cn", "intl"];
@@ -120,6 +120,39 @@ for (const a of API_PRICES) {
   check(typeof a.url === "string" && a.url.startsWith("http"), `url 非法: ${key}`);
 }
 
+/* ---- 额度表官方按量对照 ---- */
+check(Array.isArray(PAYG_REFERENCES) && PAYG_REFERENCES.length > 0, "缺少 PAYG_REFERENCES");
+const paygKeys = new Set();
+for (const s of PAYG_REFERENCES || []) {
+  const key = (s.vendor || "?") + "|" + (s.model || "?");
+  check(!paygKeys.has(key), `PAYG_REFERENCES 重复: ${key}`);
+  paygKeys.add(key);
+  check(s.cur === "USD" || s.cur === "CNY", `PAYG cur 非法: ${key}`);
+  check(typeof s.apiIn === "number" && s.apiIn >= 0, `PAYG apiIn 非法: ${key}`);
+  check(typeof s.apiOut === "number" && s.apiOut > 0, `PAYG apiOut 非法: ${key}`);
+  check(typeof s.apiCache === "number" && s.apiCache >= 0 && s.apiCache <= s.apiIn, `PAYG 缓存价应介于 0 与输入价之间: ${key}`);
+  check(typeof s.note === "string" && s.note.length > 8, `PAYG note 过短: ${key}`);
+  check(typeof s.source === "string" && s.source, `PAYG 缺 source: ${key}`);
+  check(typeof s.url === "string" && s.url.startsWith("http"), `PAYG url 非法: ${key}`);
+  const fold = (x) => String(x || "").toLowerCase().replace(/[^a-z0-9.]+/g, "");
+  const want = fold(s.model);
+  const priceOf = (a) => a.cur === "USD" ? [a.inUSD, a.outUSD] : [a.inCNY, a.outCNY];
+  const candidates = API_PRICES.filter((a) => fold(a.model) === want || fold(a.label) === want);
+  let named = candidates.find((a) => a.vendor === s.vendor) || null;
+  if (!named) {
+    const official = candidates.filter((a) => !/\[|硅基/.test((a.label || "") + (a.vendor || "")));
+    if (official.length === 1) named = official[0];
+  }
+  if (!named) {
+    const priced = API_PRICES.filter((a) => a.vendor === s.vendor && a.cur === s.cur && priceOf(a)[0] === s.apiIn && priceOf(a)[1] === s.apiOut);
+    if (priced.length === 1) named = priced[0];
+  }
+  if (named) {
+    const [namedIn, namedOut] = priceOf(named);
+    check(named.cur === s.cur && namedIn === s.apiIn && namedOut === s.apiOut, `PAYG 与 API_PRICES 同型号价格不一致: ${key}`);
+  } else note(`PAYG 未在 API_PRICES 单列同价行（Flash 等可只写在按量对照）: ${key}`);
+}
+
 /* ---- PLAN_TOKENS ---- */
 for (const t of PLAN_TOKENS) {
   const key = t.plan + "·" + (t.model || "?");
@@ -164,7 +197,7 @@ check(html.includes("chartPersonal") && html.includes("metricsBody") && html.inc
   "index.html 缺少关键 DOM 容器");
 
 /* ---- 报告 ---- */
-console.log(`规模：PLANS ${PLANS.length} · 指标 ${allMetrics.length} · API ${API_PRICES.length} · 免费档 ${PLANS.filter((p) => p.priceM === 0).length} · 可用 Coding 入口 ${freeCoding.length} · 动态 ${DYNAMICS.length} · 来源组 ${SOURCES.length}`);
+console.log(`规模：PLANS ${PLANS.length} · 指标 ${allMetrics.length} · API ${API_PRICES.length} · 按量对照 ${PAYG_REFERENCES.length} · 免费档 ${PLANS.filter((p) => p.priceM === 0).length} · 可用 Coding 入口 ${freeCoding.length} · 动态 ${DYNAMICS.length} · 来源组 ${SOURCES.length}`);
 if (errors.length) {
   console.error(`\n❌ 校验失败（${errors.length} 项错误）:`);
   errors.forEach((e) => console.error("  ✗ " + e));
