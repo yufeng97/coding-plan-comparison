@@ -13,9 +13,14 @@
 <meta property="og:description" content="一次看全市面上在售的 AI 编程订阅计划：模型官方 / 云厂商 / 第三方工具与中转站的每月价格、可用 token 额度、每百万 tokens 实际成本与免费入口对比。">
 <meta name="twitter:card" content="summary">
 <script>try{var __m=localStorage.getItem("cp-theme")||"system";var __d=matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.dataset.theme=__m==="system"?(__d?"dark":"light"):__m;}catch(e){}</script>
-<link rel="stylesheet" href="css/style.css?v=40">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.css" />
+  <link rel="stylesheet" href="css/style.css?v=42">
 </head>
 <body>
+    <div class="scroll-progress" aria-hidden="true"><span id="scrollBar"></span></div>
 
 <header class="topbar">
   <div class="topbar-inner">
@@ -29,7 +34,7 @@
       <a href="#s4">API 按量</a>
       <a href="#table">完整数据</a>
     </nav>
-    <button id="themeBtn" class="theme-btn" title="切换主题：暗色 → 亮色 → 跟随系统"></button>
+    <button id="themeBtn" class="theme-btn" title="切换主题：暗色 → 亮色 → 跟随系统"><i class="ri-moon-line" aria-hidden="true"></i></button>
   </div>
 </header>
 
@@ -38,27 +43,18 @@
   <!-- ======== Hero ======== -->
   <section class="hero">
     <div class="hero-inner">
-      <div class="hero-badges">
-        <span class="badge badge-accent">数据更新 2026-09-29</span>
-        <span class="badge">模型官方 · 云厂商 · 第三方工具</span>
-        <span class="badge">国内 + 国际</span>
-      </div>
-      <h1>全球 <em>Coding Plan</em> 价格与额度对比</h1>
-      <p class="hero-sub">
-        一次看全市面上在售的 AI 编程订阅计划 —— 国际：Anthropic / OpenAI / Google / xAI / Mistral / GitHub Copilot / Cursor 等；国内：智谱 GLM、月之暗面 Kimi、MiniMax、小米 MiMo、阿里 Qoder / 百炼、腾讯 CodeBuddy / LKEAP、字节 Trae、火山方舟、百度 DuMate 等。对比各家的
-        <strong>每月价格</strong>与<strong>可用 token / 积分额度</strong>，以及 API 按量计费下"每块钱能买多少 token"。
-      </p>
-      <p class="hero-note">
-        所有数据均来自官方定价页或权威报道（来源见页脚）；图表中美元价格按 1 USD ≈ <span id="rateText">6.71</span> CNY 统一折算展示，实际支付以官方计价货币为准。
-      </p>
-      <div class="stats-row" id="statsRow"></div>
+      <span class="prompt-mark" aria-hidden="true">&gt;_</span>
+      <h1><span>全球 Coding Plan</span><span>价格与额度对比。</span></h1>
+      <p class="hero-lede">一次看全市面上在售的 AI 编程订阅计划 —— 模型官方 / 云厂商 / 第三方工具与中转站，<strong>每月价格</strong>与<strong>可用 token 额度</strong>逐项对比，并换算每百万 tokens 的实际成本与免费上手路径。</p>
+      <p class="hero-meta">数据更新 <strong>2026-09-23～29</strong> · 每日 09:30 巡检 · 汇率 1 USD ≈ <span id="rateText">6.71</span> CNY · 来源见页脚</p>
+      <dl class="stats-row" id="statsRow"></dl>
     </div>
   </section>
 
   <!-- ======== 快速决策卡 ======== -->
   <section class="section" id="quick" style="padding-top:36px">
     <div class="section-head">
-      <h2>⚡ 30 秒决策卡</h2>
+      <h2><span class="sec-no">01</span>30 秒决策卡</h2>
       <p>不想翻 170 行数据？这四张卡片告诉你答案。</p>
     </div>
     <div class="quick-grid" id="quickGrid"></div>
@@ -67,7 +63,7 @@
   <!-- ======== 性价比排行 ======== -->
   <section class="section" id="rank">
     <div class="section-head">
-      <h2>💵 每百万 tokens 实际成本排行</h2>
+      <h2><span class="sec-no">02</span>每百万 tokens 实际成本排行</h2>
       <p>订阅制的<strong>"真实单价"</strong> = 月费 ÷ 月可用 tokens，越低越划算 —— 这是跨厂商最公平的比较维度（比名义月费更真实，因为各家额度差异巨大）。</p>
     </div>
     <div class="chart-card"><div id="chartRank" class="chart"></div></div>
@@ -79,7 +75,7 @@
 <!-- ======== Section 3.5: 额度深度对比 ======== -->
   <section class="section" id="s3b">
     <div class="section-head">
-      <h2>📊 额度深度对比（TPS · Tokens · 额度价值 · 额度倍率）</h2>
+      <h2><span class="sec-no">03</span>额度深度对比（TPS · Tokens · 额度价值 · 额度倍率）</h2>
       <p>按 <strong>5 小时 / 周 / 月</strong> 三个时间窗口，计算各计划的可用 tokens、折算 API 市值（额度价值）与性价比倍率（额度价值 ÷ 对应时段月费）。计算假设：输入/输出 = 80/20、缓存命中率 95%、每周约 5 个 5h 窗口、每月约 4.33 周。点击表头可排序，⏫月倍率越高 = 性价比越高。</p>
     </div>
     <div class="controls controls-table">
@@ -135,8 +131,8 @@
 <!-- ======== Section 5: 免费入口 ======== -->
   <section class="section" id="free">
     <div class="section-head">
-      <h2>🎁 免费 Coding 入口</h2>
-      <p>零成本起步方案：官方免费 CLI 额度与工具免费档（部分需自备 API Key，即 BYOK）。</p>
+      <h2><span class="sec-no">04</span>免费 Coding 入口</h2>
+      <p>零成本上手方案：官方免费 CLI 额度与工具免费档（部分需自备 API Key，即 BYOK）。</p>
     </div>
     <div class="free-grid" id="freeGrid"></div>
   </section>
@@ -144,7 +140,7 @@
 <!-- ======== Section 1: 个人订阅价格全景 ======== -->
   <section class="section" id="s1">
     <div class="section-head">
-      <h2>📊 个人订阅价格全景</h2>
+      <h2><span class="sec-no">05</span>个人订阅价格全景</h2>
       <p>所有面向个人的 Coding 订阅档位（免费档见下方「免费入口」），按统一折算人民币从低到高排列。悬停查看原币价格、额度口径与模型。</p>
     </div>
     <div class="controls" id="ctrl1">
@@ -165,9 +161,9 @@
         <button class="chip" data-billing="Y">年付（折月）</button>
       </div>
       <div class="legend-inline">
-        <span><i style="background:#6366f1"></i>模型官方订阅</span>
-        <span><i style="background:#22d3ee"></i>第三方工具订阅</span>
-        <span><i style="background:#34d399"></i>云厂商/API 套餐</span>
+        <span><i style="background:#5575f6"></i>模型官方订阅</span>
+        <span><i style="background:#16b8a6"></i>第三方工具订阅</span>
+        <span><i style="background:#ff973d"></i>云厂商/API 套餐</span>
       </div>
     </div>
     <div class="chart-card"><div id="chartPersonal" class="chart"></div></div>
@@ -177,7 +173,7 @@
   <!-- ======== Section 2: 团队 / 企业 / 云厂商 ======== -->
   <section class="section" id="s2">
     <div class="section-head">
-      <h2>🏢 团队 / 企业档（席位 / 整包价格）</h2>
+      <h2><span class="sec-no">08</span>团队 / 企业档（席位 / 整包价格）</h2>
       <p>按席位计费的团队与企业档（Claude Team、Copilot Business、Cursor Teams 等），以及云厂商企业级服务（AWS Q、Gemini Code Assist、阿里云灵码企业版、智谱 GLM 团队版、百炼 Token Plan 团队版等）。标注「整包」的为按团队/账户整体计费（如 Roo Roomote 按团队规模、Augment Business 按账户），悬停可查看各自计价口径。云厂商面向个人的 API 套餐（腾讯云/百炼/方舟 Coding Plan 等）已归入上方「个人订阅价格全景」。</p>
     </div>
     <div class="chart-card"><div id="chartTeam" class="chart"></div></div>
@@ -186,7 +182,7 @@
   <!-- ======== Section 3: 官方每周 token 估算 ======== -->
   <section class="section" id="s3">
     <div class="section-head">
-      <h2>🪙 每周可用 tokens 对比（官方公布 + 社区推算）</h2>
+      <h2><span class="sec-no">07</span>每周可用 tokens 对比（官方公布 + 社区推算）</h2>
       <p>跨厂商比较「一周能用多少 token」：<strong style="color:#34d399">绿色柱</strong>为智谱官方公布的估算区间（目前唯一官方公布每周 tokens 的厂商，标注所用模型 GLM-5.3 / Flash）；<strong style="color:#fbbf24">黄色柱</strong>为 MiniMax、Claude、ChatGPT、Cursor、Kimi、Copilot、Devin、Google 等官方未公布者的<strong>社区推算</strong>（推算方法与置信度见「额度深度对比」表的「依据」列与「方法论」折叠块）。悬停查看月费与推算依据。</p>
     </div>
     <div class="grid-2">
@@ -200,7 +196,7 @@
   <!-- ======== Section 4: API 按量 ======== -->
   <section class="section" id="s4">
     <div class="section-head">
-      <h2>💧 API 按量计费：token 的单价</h2>
+      <h2><span class="sec-no">06</span>API 按量计费：token 的单价</h2>
       <p>订阅之外另一条路线：直接按 token 付费。左图为各厂商主流编程模型每百万 tokens 的输入/输出单价（含国际与国内厂商，统一折算美元，标注「国内」的为国内厂商，悬停查看人民币原价）；右图为同等 $10 预算按<strong>输出价</strong>能买到的 token 量（青色为国际模型、绿色为国内模型）。</p>
     </div>
     <div class="grid-2">
@@ -214,7 +210,7 @@
   <!-- ======== Section 6: 完整数据表 ======== -->
   <section class="section" id="table">
     <div class="section-head">
-      <h2>📋 全部在售计划（完整数据）</h2>
+      <h2><span class="sec-no">09</span>全部在售计划（完整数据）</h2>
       <p>支持搜索、筛选与按价格排序；「额度」列保留厂商官方口径原文。信息列较多，表格支持横向滚动查看完整列。</p>
     </div>
     <div class="controls controls-table">
@@ -250,13 +246,13 @@
 
   <!-- ======== Section 7: 行业动态 ======== -->
   <section class="section" id="dynamics">
-    <div class="section-head"><h2>⚡ 2026 年 9 月重要动态</h2></div>
+    <div class="section-head"><h2><span class="sec-no">10</span>2026 年 9 月重要动态</h2></div>
     <ul class="dynamics-list" id="dynamicsList"></ul>
   </section>
 
   <!-- ======== Section 8: 来源与说明 ======== -->
   <section class="section" id="sources">
-    <div class="section-head"><h2>🔗 数据来源与说明</h2></div>
+    <div class="section-head"><h2><span class="sec-no">11</span>数据来源与说明</h2></div>
     <div class="grid-2">
       <div class="source-card" id="sourceList"></div>
       <div class="source-card">
@@ -280,7 +276,7 @@
 </footer>
 
 <script src="libs/echarts.min.js?v=37"></script>
-<script src="js/data.js?v=40"></script>
-<script src="js/app.js?v=40"></script>
+<script src="js/data.js?v=42"></script>
+<script src="js/app.js?v=42"></script>
 </body>
 </html>

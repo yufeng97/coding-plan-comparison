@@ -3,7 +3,7 @@
 
 const CAT_LABEL = { official: "模型官方订阅", tool: "第三方工具订阅", cloud: "云厂商/API 套餐", team: "团队 / 企业档" };
 const REGION_LABEL = { cn: "国内", intl: "国际" };
-const CAT_COLOR = { official: "#6366f1", tool: "#22d3ee", cloud: "#34d399", team: "#f59e0b" };
+const CAT_COLOR = { official: "#5575f6", tool: "#16b8a6", cloud: "#ff973d", team: "#8d6bea" };
 
 const VENDOR_SHORT = {
   "Cognition Devin Desktop（原 Windsurf）": "Devin Desktop",
@@ -83,13 +83,13 @@ let PAL = {};
 function refreshPalette() {
   const L = document.documentElement.dataset.theme === "light";
   PAL = L ? {
-    text: "#1a2438", dim: "#46536e", catLabel: "#2e3a55", faint: "#71809c",
-    axisLine: "rgba(15,23,42,.32)", splitLine: "rgba(15,23,42,.1)",
-    tipBg: "rgba(255,255,255,.98)", tipBorder: "rgba(15,23,42,.16)", tipText: "#1a2438",
+    text: "#10110f", dim: "#6f726b", catLabel: "#3a3d38", faint: "#8a8d85",
+    axisLine: "rgba(16,17,15,.22)", splitLine: "rgba(16,17,15,.07)",
+    tipBg: "rgba(255,255,255,.98)", tipBorder: "rgba(16,17,15,.18)", tipText: "#10110f",
   } : {
-    text: "#e7ecf7", dim: "#9aa7c2", catLabel: "#c3cde4", faint: "#8b98b8",
-    axisLine: "rgba(154,167,194,.35)", splitLine: "rgba(154,167,194,.12)",
-    tipBg: "rgba(14,20,36,.96)", tipBorder: "rgba(255,255,255,.14)", tipText: "#e7ecf7",
+    text: "#eceee8", dim: "#9fa39a", catLabel: "#c8ccc2", faint: "#74786f",
+    axisLine: "rgba(236,238,232,.2)", splitLine: "rgba(236,238,232,.08)",
+    tipBg: "rgba(22,24,21,.97)", tipBorder: "rgba(236,238,232,.16)", tipText: "#eceee8",
   };
 }
 function axisStyle() {
@@ -119,7 +119,11 @@ function applyTheme(mode) {
   localStorage.setItem(THEME_KEY, mode);
   refreshPalette();
   const btn = document.getElementById("themeBtn");
-  if (btn) btn.textContent = mode === "dark" ? "🌙 暗色" : mode === "light" ? "☀️ 亮色" : "💻 跟随系统";
+  if (btn) {
+    btn.innerHTML = mode === "dark" ? '<i class="ri-moon-line"></i>' : mode === "light" ? '<i class="ri-sun-line"></i>' : '<i class="ri-computer-line"></i>';
+    const name = mode === "dark" ? "暗色" : mode === "light" ? "亮色" : "跟随系统";
+    btn.title = "主题：" + name + "（点击切换 暗色 → 亮色 → 跟随系统）";
+  }
 }
 function rerenderCharts() {
   renderPersonalChart(); renderTeamChart(); renderTokensChart(); renderApiChart(); renderRankChart();
@@ -159,15 +163,15 @@ function renderStats() {
   const minP = paid.find((p) => cnyOf(p, "M") === minCny);
   const maxP = paid.find((p) => cnyOf(p, "M") === maxCny);
   const items = [
-    { num: vendors.size, lbl: "覆盖厂商（官方+云厂商+第三方）" },
-    { num: PLANS.length + " 档", lbl: "在售订阅计划" },
-    { num: freeCnt, lbl: "免费可用入口" },
-    { num: API_PRICES.length, lbl: "主流模型 API 单价（输入/输出）" },
-    { num: fmtCNY(minCny) + "<small>/月起</small>", lbl: "最低付费档：" + planLabel(minP) },
-    { num: fmtCNY(maxCny) + "<small>/月</small>", lbl: "最高档：" + planLabel(maxP) },
+    { icon: "ri-global-line", num: vendors.size, lbl: "覆盖厂商", sub: "官方 / 云厂商 / 第三方" },
+    { icon: "ri-stack-line", num: PLANS.length, lbl: "在售订阅计划", sub: "官方 / 工具 / 中转站" },
+    { icon: "ri-gift-line", num: freeCnt, lbl: "免费可用入口", sub: "见「免费 Coding 入口」" },
+    { icon: "ri-price-tag-3-line", num: API_PRICES.length, lbl: "API 模型单价", sub: "输入 / 输出对比" },
+    { icon: "ri-arrow-down-circle-line", num: fmtCNY(minCny), sub: "/月起 · " + planLabel(minP) },
+    { icon: "ri-arrow-up-circle-line", num: fmtCNY(maxCny), sub: "/月 · " + planLabel(maxP) },
   ];
   document.getElementById("statsRow").innerHTML = items
-    .map((i) => `<div class="stat"><div class="num">${i.num}</div><div class="lbl">${i.lbl}</div></div>`)
+    .map((i) => `<div><dt><i class="${i.icon}"></i>${i.lbl}</dt><dd>${i.num}${i.sub ? `<small>${i.sub}</small>` : ""}</dd></div>`)
     .join("");
 }
 
@@ -895,5 +899,18 @@ renderTable();
 populateModelFilter();
 renderMetricsTable();
 renderMisc();
+
+/* ---------- 滚动进度条 ---------- */
+(function () {
+  const bar = document.getElementById("scrollBar");
+  if (!bar) return;
+  const update = () => {
+    const h = document.documentElement;
+    const max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + "%";
+  };
+  window.addEventListener("scroll", update, { passive: true });
+  update();
+})();
 bindEvents();
 bindMetricsEvents();
