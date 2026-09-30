@@ -15,7 +15,7 @@
 <script>try{var __m=localStorage.getItem("cp-theme")||"system";var __d=matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.dataset.theme=__m==="system"?(__d?"dark":"light"):__m;}catch(e){}</script>
   <link rel="stylesheet" href="libs/fonts/fonts.css?v=43">
   <link rel="stylesheet" href="libs/fonts/remixicon.css?v=43">
-  <link rel="stylesheet" href="css/style.css?v=44">
+  <link rel="stylesheet" href="css/style.css?v=45">
 </head>
 <body>
     <div class="scroll-progress" aria-hidden="true"><span id="scrollBar"></span></div>
@@ -197,7 +197,7 @@
   <section class="section" id="s4">
     <div class="section-head">
       <h2><span class="sec-no">08</span>API 按量计费：token 的单价</h2>
-      <p>订阅之外另一条路线：直接按 token 付费。左图为各厂商主流编程模型每百万 tokens 的输入/输出单价（含国际与国内厂商，统一折算美元，标注「国内」的为国内厂商，悬停查看人民币原价）；右图为同等 $10 预算按<strong>输出价</strong>能买到的 token 量（青色为国际模型、绿色为国内模型）。</p>
+      <p>订阅之外另一条路线：直接按 token 付费。左图为各厂商主流编程模型每百万 tokens 的输入/输出单价（统一折算美元，悬停可看原币，国内模型会标明）；右图为同等 $10 预算按<strong>输出价</strong>能买到的 token 量（青色为国际模型、绿色为国内模型）。</p>
     </div>
     <div class="grid-2">
       <div class="chart-card"><div id="chartApi" class="chart chart-fixed"></div></div>
@@ -211,7 +211,7 @@
   <section class="section" id="table">
     <div class="section-head">
       <h2><span class="sec-no">09</span>全部在售计划（完整数据）</h2>
-      <p>支持搜索、筛选与按价格排序；「额度」列保留厂商官方口径原文。信息列较多，表格支持横向滚动查看完整列。</p>
+      <p>只列仍在售、且有标价的档。免费档在「免费 Coding 入口」；已下架、聊天免费档和不能当编程工具的免费档不放进这张表。支持搜索、筛选与按价格排序。</p>
     </div>
     <div class="controls controls-table">
       <input type="search" id="searchInput" class="search-input" placeholder="🔍 搜索厂商 / 计划 / 模型…">
@@ -246,7 +246,10 @@
 
   <!-- ======== Section 7: 行业动态 ======== -->
   <section class="section" id="dynamics">
-    <div class="section-head"><h2><span class="sec-no">10</span>2026 年 9 月重要动态</h2></div>
+    <div class="section-head">
+      <h2><span class="sec-no">10</span>重要动态</h2>
+      <p>日期是来源写明的发生日。标成「核实」的，只是本站核对到该状态的日子，不是厂商发公告的日子。</p>
+    </div>
     <ul class="dynamics-list" id="dynamicsList"></ul>
   </section>
 
@@ -271,12 +274,14 @@
 
 </main>
 
+<button type="button" id="toTop" class="to-top" aria-label="回到顶部"><i class="ri-arrow-up-line" aria-hidden="true"></i></button>
+
 <footer class="footer">
   <p>Coding Plan 全球比价中心 · 数据调研与核实日期 <span id="footDate">2026-09-30</span> · 仅供参考，以各厂商官方页面为准</p>
 </footer>
 
 <script src="libs/echarts.min.js?v=43"></script>
-<script src="js/data.js?v=48"></script>
-<script src="js/app.js?v=47"></script>
+<script src="js/data.js?v=51"></script>
+<script src="js/app.js?v=51"></script>
 </body>
 </html>

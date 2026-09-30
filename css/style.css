@@ -119,6 +119,25 @@ a:hover { text-decoration: underline; }
 }
 html[data-theme="dark"] .scroll-progress span { background: var(--brand); }
 
+/* 贴在窗口右侧滚动条左边 */
+.to-top {
+  position: fixed; z-index: 160;
+  right: 28px; bottom: 24px;
+  width: 40px; height: 40px; padding: 0;
+  display: grid; place-items: center;
+  border: 1px solid var(--line-strong); border-radius: 10px;
+  background: var(--panel); color: var(--ink);
+  box-shadow: 0 6px 18px rgba(16, 17, 15, .12);
+  cursor: pointer;
+  opacity: 0; pointer-events: none;
+  transform: translateY(6px);
+  transition: opacity .18s ease, transform .18s ease, background .15s ease, color .15s ease;
+}
+.to-top i { font-size: 20px; line-height: 1; }
+.to-top.is-on { opacity: 1; pointer-events: auto; transform: none; }
+.to-top:hover { background: var(--brand-button); color: #fff; border-color: var(--brand-button); }
+html[data-theme="dark"] .to-top:hover { color: var(--brand-ink); }
+
 /* ---------- 顶栏 ---------- */
 .topbar {
   position: sticky; top: 0; z-index: 100;
@@ -394,6 +413,7 @@ td.td-price .sub { color: var(--faint); font-weight: 400; }
   font: 600 11px var(--mono); color: var(--muted);
   border: 1px solid var(--line-strong); padding: 2px 7px; border-radius: 5px; margin-top: 1px;
 }
+.dyn-date.is-checked { color: var(--faint); border-style: dashed; }
 .dyn-body { flex: 1; }
 .dyn-src { display: inline-block; margin-left: 8px; font: 600 11.5px var(--mono); color: var(--muted); white-space: nowrap; }
 .dyn-src:hover { color: var(--accent); }

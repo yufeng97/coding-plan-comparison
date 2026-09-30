@@ -50,7 +50,34 @@ for (const p of PLANS) {
   check(typeof p.url === "string" && p.url.startsWith("http"), `PLANS url 非法: ${key}`);
   if (p.priceM != null && p.priceM > 0 && p.priceY != null) warn(p.priceY <= p.priceM, `PLANS 年付折月高于月付: ${key}`);
   if (p.priceM == null) note(`PLANS 无标价（按量/定制）: ${key}`);
+  if (!isRetiredPlan(p) && typeof p.url === "string" && /web\.archive\.org/i.test(p.url)) {
+    errors.push(`在售计划来源不能用网页存档: ${key}`);
+  }
 }
+
+/* 与 js/app.js 的 isFreeCodingEntry 保持一致。每日巡检改完 data.js 后必须跑本脚本。 */
+function isRetiredPlan(p) { return /已停售|已下架/.test((p && p.plan) || ""); }
+function isFreeCodingEntry(p) {
+  if (!p || p.priceM !== 0 || isRetiredPlan(p)) return false;
+  if (p.vendor === "Lovable" || p.vendor === "Bolt.new") return false;
+  if (p.plan === "Claude Free" || p.plan === "Grok Free") return false;
+  if (p.vendor === "ZenMux" && p.plan === "Free") return false;
+  return true;
+}
+const NOT_CODING_FREE = [
+  ["Lovable", "Free"],
+  ["Bolt.new", "Free"],
+  ["Anthropic", "Claude Free"],
+  ["xAI", "Grok Free"],
+  ["ZenMux", "Free"],
+];
+for (const [vendor, plan] of NOT_CODING_FREE) {
+  const p = PLANS.find((x) => x.vendor === vendor && x.plan === plan);
+  if (!p) continue;
+  const noted = (p.note || "").includes("不列入");
+  check(p.priceM === 0 && (isRetiredPlan(p) || noted), `不能当 Coding Agent 的免费档须标明不列入或已下架: ${vendor}|${plan}`);
+}
+const freeCoding = PLANS.filter(isFreeCodingEntry);
 
 /* ---- 指标条目（METRICS_RAW + ESTIMATES）---- */
 const idx = new Map(PLANS.map((p) => [p.vendor + "|" + p.plan, p]));
@@ -144,7 +171,7 @@ check(html.includes("chartPersonal") && html.includes("metricsBody") && html.inc
   "index.html 缺少关键 DOM 容器");
 
 /* ---- 报告 ---- */
-console.log(`规模：PLANS ${PLANS.length} · 指标 ${allMetrics.length} · API ${API_PRICES.length} · 免费入口 ${PLANS.filter((p) => p.priceM === 0).length} · 动态 ${DYNAMICS.length} · 来源组 ${SOURCES.length}`);
+console.log(`规模：PLANS ${PLANS.length} · 指标 ${allMetrics.length} · API ${API_PRICES.length} · 免费档 ${PLANS.filter((p) => p.priceM === 0).length} · 可用 Coding 入口 ${freeCoding.length} · 动态 ${DYNAMICS.length} · 来源组 ${SOURCES.length}`);
 if (errors.length) {
   console.error(`\n❌ 校验失败（${errors.length} 项错误）:`);
   errors.forEach((e) => console.error("  ✗ " + e));

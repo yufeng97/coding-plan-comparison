@@ -59,9 +59,14 @@ function isRenewalOnly(p) { return /老用户/.test((p && p.plan) || ""); }
 function isPersonalMonthly(p) {
   return !!(p && p.priceM > 0 && !p.seat && p.cat !== "team" && !isRetiredPlan(p) && !isOneTimePlan(p) && !isRenewalOnly(p));
 }
-/* 免费 Coding 入口：在售且能当编程工具用。已下架不算；Lovable 额度只跑自家应用构建 */
+/* 免费 Coding 入口：在售，且能当编程 Agent 或编程工具用。
+   已下架不算。聊天免费档、无 API 的网页档、自家应用构建器不算。 */
 function isFreeCodingEntry(p) {
-  return !!(p && p.priceM === 0 && !isRetiredPlan(p) && p.vendor !== "Lovable");
+  if (!p || p.priceM !== 0 || isRetiredPlan(p)) return false;
+  if (p.vendor === "Lovable" || p.vendor === "Bolt.new") return false;
+  if (p.plan === "Claude Free" || p.plan === "Grok Free") return false;
+  if (p.vendor === "ZenMux" && p.plan === "Free") return false;
+  return true;
 }
 function metricOfferOk(m) {
   if (/已停售|已下架|老用户|一次性|预付/.test(m.plan || "")) return false;
@@ -267,7 +272,6 @@ function renderPersonalChart() {
           label: { show: true, position: "right", color: PAL.text, fontSize: 12, formatter: (d) => "¥" + d.value.toLocaleString("zh-CN") },
         },
       ],
-      dataZoom: [{ type: "slider", yAxisIndex: 0, startValue: 0, endValue: shown.length, width: 14, right: 8, borderColor: "rgba(154,167,194,.25)", fillerColor: "rgba(99,102,241,.18)", handleStyle: { color: "#6366f1" }, textStyle: { color: PAL.faint } }],
     },
     true
   );
@@ -457,6 +461,8 @@ function renderTokensChart() {
 
 /* ---------- API 按量价格 ---------- */
 function renderApiChart() {
+  const apiEl = document.getElementById("chartApi");
+  apiEl.style.height = "640px";
   const chart = makeChart("chartApi");
   const rows = API_PRICES.map((a) => {
     const inU = a.cur === "CNY" ? a.inCNY / RATE : a.inUSD;
@@ -465,7 +471,8 @@ function renderApiChart() {
   })
     .filter((a) => a.inUSD != null && a.outUSD != null)
     .sort((x, y) => x.outUSD - y.outUSD);
-  const cats = rows.map((a) => a.label + (a.cur === "CNY" ? "·国内" : ""));
+  const cats = rows.map((a) => a.label);
+  apiEl.style.height = Math.max(640, rows.length * 28 + 72) + "px";
 
   const fmtPrice = (a, inU, outU) =>
     a.cur === "CNY"
@@ -480,23 +487,27 @@ function renderApiChart() {
         formatter: (ps) => {
           const a = rows[ps[0].dataIndex];
           const href = safeHref(a.url);
-          return `<b>${esc(a.vendor)} · ${esc(a.model)}</b><br/>
+          return `<b>${esc(a.vendor)} · ${esc(a.model)}</b>${a.region === "cn" ? " · 国内" : ""}<br/>
             ${fmtPrice(a, a.inUSD, a.outUSD)}<br/>
             ${a.note ? `<span style="color:${PAL.dim}">${esc(trunc(a.note, 120))}</span><br/>` : ""}
             ${href ? `<span style="color:#6b7893;font-size:11.5px">来源：${href}</span>` : ""}`;
         },
       },
-      grid: { left: 56, right: 20, top: 46, bottom: 6, containLabel: true },
+      grid: { left: 8, right: 28, top: 40, bottom: 28, containLabel: true },
       legend: { data: ["输入 / 1M tokens", "输出 / 1M tokens"], textStyle: { color: PAL.dim, fontSize: 12.5 }, top: 4 },
-      xAxis: { type: "category", data: cats, ...axisStyle(), axisLabel: { color: PAL.catLabel, fontSize: 10.5, interval: 0, rotate: 42 } },
-      yAxis: { type: "value", name: "USD / 1M tokens", nameTextStyle: { color: PAL.faint }, ...axisStyle() },
+      xAxis: { type: "value", name: "USD / 1M", nameTextStyle: { color: PAL.faint }, ...axisStyle() },
+      yAxis: {
+        type: "category", data: cats, inverse: true, ...axisStyle(),
+        axisLabel: { color: PAL.catLabel, fontSize: 11, width: 148, overflow: "truncate" },
+      },
       series: [
-        { name: "输入 / 1M tokens", type: "bar", data: rows.map((a) => a.inUSD), itemStyle: { color: "#6366f1", borderRadius: [3, 3, 0, 0] } },
-        { name: "输出 / 1M tokens", type: "bar", data: rows.map((a) => a.outUSD), itemStyle: { color: "#f472b6", borderRadius: [3, 3, 0, 0] } },
+        { name: "输入 / 1M tokens", type: "bar", data: rows.map((a) => a.inUSD), barWidth: 7, itemStyle: { color: "#6366f1", borderRadius: [0, 3, 3, 0] } },
+        { name: "输出 / 1M tokens", type: "bar", data: rows.map((a) => a.outUSD), barWidth: 7, itemStyle: { color: "#f472b6", borderRadius: [0, 3, 3, 0] } },
       ],
     },
     true
   );
+  chart.resize();
 
   /* 购买力：$10 按输出价可购 token 量 */
   const chart2 = makeChart("chartPower");
@@ -550,9 +561,14 @@ function renderFree() {
 /* ---------- 数据表 ---------- */
 const tableState = { search: "", cat: "all", region: "all", sortKey: "priceM", sortDir: 1 };
 
+function isOnSalePlan(p) {
+  return !!(p && p.priceM !== 0 && !isRetiredPlan(p));
+}
+
 function renderTable() {
   const q = tableState.search.trim().toLowerCase();
-  let rows = PLANS.filter((p) =>
+  const onSale = PLANS.filter(isOnSalePlan);
+  let rows = onSale.filter((p) =>
     (tableState.cat === "all" || p.cat === tableState.cat) &&
     (tableState.region === "all" || p.region === tableState.region) &&
     (!q || (p.vendor + p.plan + (p.models || "") + (p.tools || "") + (p.quota || "")).toLowerCase().includes(q))
@@ -565,7 +581,7 @@ function renderTable() {
     if (aN || bN) { if (aN && bN) return 0; return aN ? 1 : -1; } /* 「定制」（无公开价）恒排末尾 */
     return (va - vb) * tableState.sortDir;
   });
-  document.getElementById("tableCount").textContent = `${rows.length} / ${PLANS.length} 档`;
+  document.getElementById("tableCount").textContent = `${rows.length} / ${onSale.length} 档`;
   document.querySelectorAll("#planTable thead th.sortable").forEach((th) => {
     th.classList.toggle("sort-active", th.dataset.sort === k);
     const arrow = th.dataset.sort === k ? (tableState.sortDir === 1 ? " ↑" : " ↓") : "";
@@ -602,7 +618,9 @@ function renderMisc() {
     .map((d) => {
       const href = safeHref(d.url);
       const link = href ? ` <a class="dyn-src" href="${href}" target="_blank" rel="noopener" title="打开来源：${esc(d.url)}">${esc(d.source || "来源")} ↗</a>` : "";
-      return `<li><span class="dyn-date">${esc(d.date)}</span><div class="dyn-body">${esc(d.text)}${link}</div></li>`;
+      const when = d.checked ? "核实 " + d.date : d.date;
+      const tip = d.checked ? "本站这一天核对到该状态，不是厂商公告日" : "来源写明的发生日期";
+      return `<li><span class="dyn-date${d.checked ? " is-checked" : ""}" title="${tip}">${esc(when)}</span><div class="dyn-body">${esc(d.text)}${link}</div></li>`;
     })
     .join("");
   document.getElementById("sourceList").innerHTML =
@@ -1038,6 +1056,19 @@ boot("misc", renderMisc);
   };
   window.addEventListener("scroll", update, { passive: true });
   update();
+})();
+
+/* ---------- 回到顶部（贴在右侧滚动条旁） ---------- */
+(function () {
+  const btn = document.getElementById("toTop");
+  if (!btn) return;
+  const toggle = () => btn.classList.toggle("is-on", window.scrollY > 480);
+  btn.addEventListener("click", () => {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+  });
+  window.addEventListener("scroll", toggle, { passive: true });
+  toggle();
 })();
 bindEvents();
 bindMetricsEvents();
