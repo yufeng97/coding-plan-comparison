@@ -167,8 +167,8 @@ function renderStats() {
     { icon: "ri-stack-line", num: PLANS.length, lbl: "在售订阅计划", sub: "官方 / 工具 / 中转站" },
     { icon: "ri-gift-line", num: freeCnt, lbl: "免费可用入口", sub: "见「免费 Coding 入口」" },
     { icon: "ri-price-tag-3-line", num: API_PRICES.length, lbl: "API 模型单价", sub: "输入 / 输出对比" },
-    { icon: "ri-arrow-down-circle-line", num: fmtCNY(minCny), sub: "/月起 · " + planLabel(minP) },
-    { icon: "ri-arrow-up-circle-line", num: fmtCNY(maxCny), sub: "/月 · " + planLabel(maxP) },
+    { icon: "ri-arrow-down-circle-line", lbl: "最低付费档", num: fmtCNY(minCny), sub: "/月起 · " + planLabel(minP) },
+    { icon: "ri-arrow-up-circle-line", lbl: "最高付费档", num: fmtCNY(maxCny), sub: "/月 · " + planLabel(maxP) },
   ];
   document.getElementById("statsRow").innerHTML = items
     .map((i) => `<div><dt><i class="${i.icon}"></i>${i.lbl}</dt><dd>${i.num}${i.sub ? `<small>${i.sub}</small>` : ""}</dd></div>`)
