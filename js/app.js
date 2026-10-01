@@ -1216,13 +1216,15 @@ function modelTextForRoles(p) {
   }
   return own;
 }
-/* 同一 5 小时窗口。双池、或官方按模型分开写条数的，日常模型才算另一池。 */
+/* 同一 5 小时窗口。双池、或官方按模型分开写条数的，日常模型才算另一池。
+   官方逐模型条数（如 Sol 15–160、Luna 350–3,000）是最具体的窗口信号，优先于泛泛的「共享」措辞
+   （例：ChatGPT 的「Work 与 Codex 用量共享」说的是跨端共享，不是模型共用窗口）。 */
 function oneSharedWindow(p) {
   const q = `${p.quota || ""} ${p.note || ""}`;
   if (/双池|按模型\s*5\s*h|按模型 5h/i.test(q)) return false;
-  if (/共享/.test(q)) return true;
   const named = q.match(/(?:Sol|Luna|Astra|Opus|Haiku|Sonnet)\s*[^。；]{0,24}\d/gi);
   if (named && named.length >= 2) return false;
+  if (/共享/.test(q)) return true;
   return true;
 }
 function metricForRole(p, role) {
