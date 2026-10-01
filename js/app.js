@@ -1276,8 +1276,8 @@ function windowSentence(p, role) {
     return `5 小时窗口按官方每周额度折算大约 ${tokSpan(met.c, "fLow", "fHigh")} tokens。`;
   }
   const q = String(p.quota || "").replace(/\s+/g, " ");
-  const bit = role.name.split(" ").pop();
-  if (new RegExp(bit, "i").test(q) && /5\s*小时|\/5h/i.test(q)) {
+  const bit = dailyRoleBit(role);
+  if (new RegExp(escRe(bit), "i").test(q) && /5\s*小时|\/5h/i.test(q)) {
     return `5 小时窗口按官方原文：${trunc(q, 96)}`;
   }
   if (met && met.conf === "中" && met.c.fLow != null) {
@@ -1315,6 +1315,9 @@ function representatives(list, keyOf, better) {
   return [...best.values()];
 }
 function betterDailyTier(a, b) {
+  const sa = hasSeparateDaily(a) ? 1 : 0;
+  const sb = hasSeparateDaily(b) ? 1 : 0;
+  if (sa !== sb) return sa > sb;
   const ta = knownTokens(a.p, a.loose[0]);
   const tb = knownTokens(b.p, b.loose[0]);
   if (ta !== tb) return ta > tb;
@@ -1343,8 +1346,8 @@ function chooseHardMain(pool) {
 function chooseDailyMain(pool) {
   const reps = representatives(pool.filter((x) => x.loose.length), (x) => x.p.vendor + "|" + x.loose[0].id, betterDailyTier);
   reps.sort((a, b) => {
-    const dual = (/双池/.test(b.p.quota || "") ? 1 : 0) - (/双池/.test(a.p.quota || "") ? 1 : 0);
-    if (dual) return dual;
+    const sep = (hasSeparateDaily(b) ? 1 : 0) - (hasSeparateDaily(a) ? 1 : 0);
+    if (sep) return sep;
     const pure = (b.headline ? 0 : 1) - (a.headline ? 0 : 1);
     if (pure) return pure;
     const tok = knownTokens(b.p, b.loose[0]) - knownTokens(a.p, a.loose[0]);
@@ -1434,20 +1437,49 @@ function unlockText(cur, next) {
 function dailyEntries(pool, main) {
   return pool.filter((x) => x.p !== main.p && x.p.vendor !== main.p.vendor && (x.internalDaily.length || (!x.headline && x.loose.length)));
 }
+/* 官方在额度原文里给日常模型点名条数的（如 Luna 350–3,000 条/5h），折成每 5h 的 M tokens 作排序信号 */
+function dailyRoleBit(role) {
+  const words = String(role.name).split(/\s+/);
+  const last = words[words.length - 1];
+  return /^[A-Za-z][A-Za-z0-9.-]{2,}$/.test(last) ? last : role.name;
+}
+function escRe(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+function dailyQuotaSignal(p, role) {
+  if (!role) return 0;
+  const q = String(p.quota || "").replace(/\s+/g, " ");
+  const bit = escRe(dailyRoleBit(role));
+  const range = q.match(new RegExp(bit + "\\s*[^。；]{0,24}?(\\d[\\d,]*)\\s*[–—-]\\s*(\\d[\\d,]*)\\s*条", "i"));
+  if (range) return (Number(range[2].replace(/,/g, "")) * TOKENS_PER_REQ) / 1e6;
+  const single = q.match(new RegExp(bit + "\\s*[^。；]{0,24}?(\\d[\\d,]*)\\s*条", "i"));
+  if (single) return (Number(single[1].replace(/,/g, "")) * TOKENS_PER_REQ) / 1e6;
+  return 0;
+}
+/* 有「独立日常池」的才算硬覆盖：双池计划，或档内慢烧模型单独计额度（如 ChatGPT Plus 的 Luna 独立条数） */
+function hasSeparateDaily(x) {
+  return x.internalDaily.length > 0 || /双池/.test(x.p.quota || "");
+}
 function pickSupplement(main, pool) {
   const list = dailyEntries(pool, main).slice().sort((a, b) => {
-    const dual = (/双池/.test(b.p.quota || "") ? 1 : 0) - (/双池/.test(a.p.quota || "") ? 1 : 0);
-    if (dual) return dual;
+    const sep = (hasSeparateDaily(b) ? 1 : 0) - (hasSeparateDaily(a) ? 1 : 0);
+    if (sep) return sep;
+    const sig = dailyQuotaSignal(b.p, b.loose[0]) - dailyQuotaSignal(a.p, a.loose[0]);
+    if (sig) return sig;
     const pure = (b.headline ? 0 : 1) - (a.headline ? 0 : 1);
     if (pure) return pure;
     const coding = (hasCodingSurface(b.p) ? 1 : 0) - (hasCodingSurface(a.p) ? 1 : 0);
     if (coding) return coding;
+    const ta = knownTokens(a.p, a.loose[0]), tb = knownTokens(b.p, b.loose[0]);
+    if (ta !== tb) return tb - ta;
+    const ma = multiplier(a.p), mb = multiplier(b.p);
+    if (ma !== mb) return mb - ma;
     return (cnyOf(a.p, "M") || 0) - (cnyOf(b.p, "M") || 0);
   });
   const cap = pickerState.budget === "any" ? Infinity : pickerState.budget === "0" ? 0 : Number(pickerState.budget);
   const remain = cap - (cnyOf(main.p, "M") || 0);
   const fit = list.filter((x) => (cnyOf(x.p, "M") || 0) <= remain + 0.05);
-  const dreamed = list.find((x) => /双池/.test(x.p.quota || ""));
+  const dreamed = list.find((x) => hasSeparateDaily(x));
   return { chosen: fit[0] || null, dreamed: dreamed && fit[0] !== dreamed ? dreamed : null, remain };
 }
 function sameWindowText(profile) {
@@ -1537,12 +1569,14 @@ function dailyCard(main, pool) {
   const sup = pickSupplement(main, pool);
   if (sup.chosen) {
     const roles = sup.chosen.internalDaily.length ? sup.chosen.internalDaily : sup.chosen.loose;
-    let text = `${planTitle(sup.chosen.p)}，${priceLine(sup.chosen.p)}。日常用 ${roles.map((r) => r.name).join("、")}。${roles[0].reason}。`;
+    const sepNote = hasSeparateDaily(sup.chosen) ? "这一档的日常额度是独立池，不占主计划窗口。" : "";
+    let text = `日常用 ${roles.map((r) => r.name).join("、")}，${priceLine(sup.chosen.p)}。${roles[0].reason}。${sepNote}`;
     if (sup.dreamed) {
       const both = (cnyOf(main.p, "M") || 0) + (cnyOf(sup.dreamed.p, "M") || 0);
-      text += `若要 ${planTitle(sup.dreamed.p)} 里分开的大额池，两档合计约 ${fmtCNY(both)}，高于当前预算。`;
+      text += `若要 ${planTitle(sup.dreamed.p)} 里更大的独立池，两档合计约 ${fmtCNY(both)}，高于当前预算。`;
     }
-    return quickCard(PICK_ACCENT[1], "日常覆盖", moneyHtml(sup.chosen.p), `${shared ? lineHtml("同一窗口", shared) : ""}${lineHtml("另开一档", text)}`, sup.chosen.p);
+    return quickCard(PICK_ACCENT[1], "日常覆盖", moneyHtml(sup.chosen.p),
+      `<b>${esc(planTitle(sup.chosen.p))}</b><div class="badge-row">${badgeHtml(sup.chosen.p)}</div>${shared ? lineHtml("同一窗口", shared) : ""}${lineHtml("另开一档", text)}`, sup.chosen.p);
   }
   if (main.loose.length) {
     /* 主计划里的慢烧模型和复杂任务共用窗口，预算内没有更合适的独立慢烧档：日常就在本档覆盖 */
@@ -1561,8 +1595,9 @@ function dailyCard(main, pool) {
   if (dream) {
     const names = dream.loose.map((r) => r.name).join("、");
     const both = (cnyOf(main.p, "M") || 0) + (cnyOf(dream.p, "M") || 0);
-    const text = `当前预算还剩 ${fmtCNY(Math.max(0, sup.remain))}。${planTitle(dream.p)} 的 ${names} 是分开的慢烧额度，月费 ${priceLine(dream.p)}，两档合计约 ${fmtCNY(both)}，高于当前预算。`;
-    return quickCard(PICK_ACCENT[1], "日常覆盖", moneyHtml(dream.p), `<div class="qc-miss">当前预算放不下第二档。</div>${lineHtml("差多少", text)}`, dream.p);
+    const text = `当前预算还剩 ${fmtCNY(Math.max(0, sup.remain))}。它的 ${names} 是独立的慢烧额度，月费 ${priceLine(dream.p)}，两档合计约 ${fmtCNY(both)}，高于当前预算。`;
+    return quickCard(PICK_ACCENT[1], "日常覆盖", moneyHtml(dream.p),
+      `<b>${esc(planTitle(dream.p))}</b><div class="badge-row">${badgeHtml(dream.p)}</div><div class="qc-miss">当前预算放不下第二档。</div>${lineHtml("差多少", text)}`, dream.p);
   }
   return quickCard(PICK_ACCENT[1], "日常覆盖", "<em>—</em>", lineHtml("没有第二档", "没有找到符合地区和工具、且带慢烧模型的另一档。"), null);
 }
