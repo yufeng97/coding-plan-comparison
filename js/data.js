@@ -9,7 +9,7 @@
 const RATE_USD_CNY = 6.71;
 
 const META = {
-  updated: "2026-09-30",
+  updated: "2026-10-01",
   rate: RATE_USD_CNY,
 };
 
@@ -288,19 +288,19 @@ const PLANS = [
     quota: "2,000 credits/5h + 10,000 credits/周；官方估算 48–104M tokens/周（GLM-5.3）",
     models: "GLM-5.3、GLM-5.3-Flash",
     tools: "Claude Code、Cline、OpenCode、Goose（Anthropic 兼容端点）",
-    note: "非高峰 5 折（高峰=周一至五 14:00–18:00 新加坡时间）；季付 $48.60、年付 $172.80",
+    note: "非高峰 5 折（高峰=周一至五 14:00–18:00 新加坡时间）；双节活动（09-25~10-07）全天按非高峰计；夜间畅用（09-03~10-07 每日 23:00–09:00）ZCode/AutoClaw 端 Flash 不限量、其他 Agent 额度翻倍；季付 $48.60、年付 $172.80",
     url: "https://docs.z.ai/devpack/overview.md" },
   { vendor: "Z.ai", plan: "GLM Coding V3 Pro", cat: "official", region: "intl", priceM: 72, priceY: 57.6, cur: "USD", seat: false,
     quota: "12,000 credits/5h + 60,000 credits/周；官方估算 290–627M tokens/周（Flash 约 877–1,901M/周）",
     models: "GLM-5.3、GLM-5.3-Flash",
     tools: "Claude Code、Cline、OpenCode、Goose",
-    note: "官方称较按量 API 最高省 92%；季付 $194.40、年付 $691.20",
+    note: "官方称较按量 API 最高省 92%；双节（09-25~10-07）全天非高峰计、夜间畅用同 Lite；季付 $194.40、年付 $691.20",
     url: "https://docs.z.ai/devpack/overview.md" },
   { vendor: "Z.ai", plan: "GLM Coding V3 Max", cat: "official", region: "intl", priceM: 160, priceY: 128, cur: "USD", seat: false,
     quota: "28,000 credits/5h + 140,000 credits/周；官方估算 676–1,463M tokens/周（Flash 约 2,047–4,433M/周）",
     models: "GLM-5.3、GLM-5.3-Flash",
     tools: "Claude Code、Cline、OpenCode、Goose",
-    note: "季付 $432、年付 $1,536；旧版套餐 2026-04-30 起取消自动续订",
+    note: "双节（09-25~10-07）全天非高峰计、夜间畅用同 Lite；季付 $432、年付 $1,536；旧版套餐 2026-04-30 起取消自动续订",
     url: "https://docs.z.ai/devpack/transition.md" },
 
   /* ---- Z.ai V1/V2（历史版本） ---- */
@@ -1074,23 +1074,23 @@ const PLANS = [
     url: "https://docs.bigmodel.cn/cn/coding-plan/notice/usage-revision" },
 
   /* ---- 智谱 BigModel（新版积分制，2026-07-30 起新用户适用） ---- */
-  { vendor: "智谱 BigModel", plan: "GLM Coding V3 Lite", cat: "official", region: "cn", priceM: 118, priceY: null, cur: "CNY", seat: false,
+  { vendor: "智谱 BigModel", plan: "GLM Coding V3 Lite", cat: "official", region: "cn", priceM: 118, priceY: 82.6, cur: "CNY", seat: false,
     quota: "每 5 小时 2,000 积分 + 每周 10,000 积分（积分=(输入×6.9+缓存×1.7+输出×24)/10000）",
     models: "GLM-5.3、GLM-5.3-Flash（旧版 5.2/5.1 自动路由至 5.3）",
     tools: "Claude Code、Codex、ZCode、Kilo Code、OpenCode、Roo Code、Cline、TRAE、Cursor 等 20+ 工具",
-    note: "连续包月 8 折约 ¥94.4/月；工作日 14:00–18:00 为高峰，非高峰积分 5 折；双节活动（09-25~10-07）全天按非高峰消耗；老用户可按旧价 ¥49/月续费",
+    note: "连续包月/包季 8 折约 ¥94.4/月；连续包年 7 折 ¥82.6/月（2026-10-01 购买页在售）；工作日 14:00–18:00 高峰，非高峰积分 5 折；双节活动（09-25~10-07）全天按非高峰消耗；夜间畅用（09-03~10-07 每日 23:00–09:00）ZCode/AutoClaw 端 Flash 不限量、其他 Agent 额度翻倍；老用户可按旧价 ¥49/月续费",
     url: "https://docs.bigmodel.cn/cn/coding-plan/overview.md" },
-  { vendor: "智谱 BigModel", plan: "GLM Coding V3 Pro", cat: "official", region: "cn", priceM: 538, priceY: null, cur: "CNY", seat: false,
+  { vendor: "智谱 BigModel", plan: "GLM Coding V3 Pro", cat: "official", region: "cn", priceM: 538, priceY: 376.6, cur: "CNY", seat: false,
     quota: "每 5 小时 12,000 积分 + 每周 60,000 积分",
     models: "GLM-5.3、GLM-5.3-Flash（抵扣系数：GLM-5.3 输入 6.9/缓存 1.7/输出 24；Flash 2.3/0.56/8）",
     tools: "同 Lite 档",
-    note: "连续包月 8 折约 ¥430.4/月；老用户可按 V2 价 ¥149/月续费",
+    note: "连续包月/包季 8 折约 ¥430.4/月；连续包年 7 折 ¥376.6/月（2026-10-01 购买页在售）；双节活动（09-25~10-07）全天按非高峰消耗、夜间畅用同 Lite；老用户可按 V2 价 ¥149/月续费",
     url: "https://docs.bigmodel.cn/cn/coding-plan/overview.md" },
-  { vendor: "智谱 BigModel", plan: "GLM Coding V3 Max", cat: "official", region: "cn", priceM: 1078, priceY: null, cur: "CNY", seat: false,
+  { vendor: "智谱 BigModel", plan: "GLM Coding V3 Max", cat: "official", region: "cn", priceM: 1078, priceY: 754.6, cur: "CNY", seat: false,
     quota: "每 5 小时 28,000 积分 + 每周 140,000 积分",
     models: "GLM-5.3、GLM-5.3-Flash",
     tools: "同 Lite 档",
-    note: "连续包月 8 折约 ¥862.4/月；老用户可按 ¥469/月续费；官方称较按量 API 最高省 92%",
+    note: "连续包月/包季 8 折约 ¥862.4/月；连续包年 7 折 ¥754.6/月（2026-10-01 购买页在售）；双节活动（09-25~10-07）全天按非高峰消耗、夜间畅用同 Lite；老用户可按 ¥469/月续费；官方称较按量 API 最高省 92%",
     url: "https://docs.bigmodel.cn/cn/coding-plan/overview.md" },
   { vendor: "智谱 BigModel", plan: "GLM Coding Plan 团队标准版", cat: "team", region: "cn", priceM: 598, priceY: null, cur: "CNY", seat: true,
     quota: "每席位每 5 小时 15,000 积分 + 每周 66,000 积分；2 席位起购，无上限",
@@ -2216,6 +2216,8 @@ const DYNAMICS = [
   { date: "2026-09-30", checked: true, text: "R4 Coder 官网当时可见档位：$5 Starter 已不在，有 $50 Code Max（含 $300 额度、8 并发），$10/$20 档仍在（6 倍面值）；模型池有 Step 5 Preview 与 U2 Flash（-90% 促销）。调整日未见公告。", source: "r4.codes（官网直抓）", url: "https://r4.codes/" },
   { date: "2026-09-30", checked: true, text: "腾讯云 TokenHub 通用 Token Plan 个人版在售：¥39/99/299/599 对应 780/1980/5980/11980 积分/月。百度千帆个人 Token Plan 与七牛云企业 Token Plan 也在售。上线日未见公告。", source: "腾讯云 / 百度智能云 / 七牛云", url: "https://cloud.tencent.com/document/product/1823/130060" },
   { date: "2026-05-15", text: "Roo Code 的 VS Code 扩展于 2026-05-15 停更，团队转向自托管云 agent Roomote。自托管 10 个用户以内免费，Cloud 从 $49/月起。", source: "Roo Code / Roomote", url: "https://github.com/RooCodeInc/Roo-Code" },
+  { date: "2026-09-25", text: "智谱/Z.ai GLM Coding Plan 双节活动（09-25~10-07）全天按非高峰 5 折消耗积分；叠加夜间畅用（09-03~10-07 每日 23:00–09:00）：ZCode/AutoClaw 端调 GLM-5.3-Flash 不限量，其他 Agent 额度翻倍。", source: "BigModel / Z.ai 官方文档", url: "https://docs.bigmodel.cn/cn/coding-plan/overview.md" },
+  { date: "2026-10-01", checked: true, text: "智谱官网购买页在售连续包季 8 折、连续包年 7 折：Lite ¥82.6、Pro ¥376.6、Max ¥754.6/月（年付折算，划线价 ¥118/538/1078）。此前记录的「年付 7 折活动 08-15 截止」已不成立。", source: "bigmodel.cn/glm-coding（官网直抓）", url: "https://bigmodel.cn/glm-coding" },
 ];
 
 /* 数据来源（按厂商分组） */
@@ -2397,7 +2399,7 @@ const UNCERTAIN = [
   "华为云 CodeArts 套餐价（基础 ¥60 / 专业 ¥200 / 企业 ¥600/人/月）为 DevOps 全套研发平台价，非编程助手单独售价。",
   "硅基流动模型广场分页展示（20 个/页），仅核实部分代表性编程模型价格。",
   "汇率取 2026-09-23 frankfurter 实测 6.7074（页面按 6.71 折算），实际支付汇率以渠道为准。",
-  "智谱 BigModel GLM Coding Plan 新版价格（¥118/538/1078）：官方订阅页 JS 渲染无法直抓，由官方文档额度 + IT之家（2026-07-31）+ coding-plan.org 三源交叉验证；连续包月 8 折为当前在售口径；限时年付 7 折/季付 8 折活动已于 2026-08-15 截止。",
+  "智谱 BigModel GLM Coding Plan 新版价格（¥118/538/1078）：官方订阅页由官方文档额度 + IT之家（2026-07-31）+ coding-plan.org 三源交叉验证；2026-10-01 官网购页（bigmodel.cn/glm-coding）直抓确认连续包月/包季 8 折、连续包年 7 折在售。",
   "「每周 tokens 对比」图中 18 根黄色柱与额度深度对比表中 15 行「≈估」为社区/第三方推算（毛利反推/倍率推算/官方区间折算，已标注置信度），非官方数字，仅供量级参考；绿色柱（Z.ai）为目前唯一官方公布的每周 token 估算。",
   "GLM Coding Plan 团队标准版 ¥598/席/月来自第三方新闻（官方文档仅列额度）；团队高级版价格未公开。",
   "Kimi Code Plan 各档（¥99/199/699）为连续包月价，单月原价是否更高未确认；各档具体编程积分数值未公开（官方仅说明'5 小时滚动窗口 + 月总额度'机制）。",
