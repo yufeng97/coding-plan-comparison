@@ -348,9 +348,16 @@ function bindEvents() {
   });
   qsa("#chipRank .chip").forEach((chip) => {
     chip.addEventListener("click", () => {
-      qsa("#chipRank .chip").forEach((x) => x.classList.remove("active"));
-      chip.classList.add("active");
       rankState.tier = chip.dataset.rank;
+      syncRankChips();
+      renderRankChart();
+    });
+  });
+  /* 排行图口径：官方每周 tokens / 含官方折算 / 含全部估算 */
+  qsa("#chipRScope .chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      rankState.scope = chip.dataset.rscope;
+      syncRankChips();
       renderRankChart();
     });
   });
@@ -466,10 +473,6 @@ function provenance(m) {
   if ((m.note && m.note.includes("第三方")) || (m.source && m.source.includes("第三方"))) return { text: "第三方估算", conf: "低" };
   if (m.reqPerWk != null || m.reqPerMo != null || m.reqPer5h != null) return { text: "请求折算", conf: "低" };
   return { text: "官方估算", conf: "高" };
-}
-
-function isRankMetric(m) {
-  return !m.isEst && m.wkLowM != null && metricOfferOk(m) && provenance(m).conf === "高";
 }
 
 function paygReferenceRows() {

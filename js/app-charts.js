@@ -393,9 +393,34 @@ function renderFree() {
 
 
 /* ---------- 性价比排行图（每 M tokens 成本） ---------- */
-const rankState = { tier: "flagship" };
+/* scope: official=官方公布每周 tokens（高置信）；credits=再加官方口径折算（credits 面值/系数/官方区间，中置信）；all=含全部估算（低置信） */
+const rankState = { tier: "flagship", scope: "official" };
+function rankScopeOk(m) {
+  if (rankState.scope === "all") return true;
+  const conf = provenance(m).conf;
+  /* credits：高置信官方每周 tokens，再加中置信的官方折算（credits 面值/系数/官方区间，含 ESTIMATES 中置信行）；低置信只在 all */
+  if (rankState.scope === "credits") return conf !== "低";
+  /* official：非估算、有官方每周 tokens、高置信。无牌价的「官方 credits」置信度也是高，但不能进默认排行 */
+  return !m.isEst && m.wkLowM != null && conf === "高";
+}
+/* 排行两组 chip 的高亮与 aria-pressed 以 rankState 为准（URL 恢复与点击共用） */
+function syncRankChips() {
+  qsa("#chipRank .chip").forEach((chip) => {
+    const on = chip.dataset.rank === rankState.tier;
+    chip.classList.toggle("active", on);
+    chip.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  qsa("#chipRScope .chip").forEach((chip) => {
+    const on = chip.dataset.rscope === rankState.scope;
+    chip.classList.toggle("active", on);
+    chip.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+}
 function renderRankChart() {
-  const all = METRICS_ALL.filter(isRankMetric).map((m) => ({ m, c: computeMetrics(m) }))
+  const all = METRICS_ALL
+    .filter(rankScopeOk)
+    .filter(metricOfferOk)
+    .map((m) => ({ m, c: computeMetrics(m) }))
     .filter((r) => r.c && r.c.costPerM != null)
     .filter((r) => rankState.tier !== "flagship" || isFlagshipModelName(r.m.model))
     .sort((a, b) => a.c.costPerM - b.c.costPerM);
@@ -410,7 +435,9 @@ function renderRankChart() {
   const labels = rows.map((r) => {
     const plan = r.m.plan.replace(/GLM Coding V\d+ /, "Coding ");
     const model = r.m.model.includes("Flash") ? "Flash" : displayModelName(r.m.model);
-    return shortVendor(r.m.vendor) + " · " + plan + " · " + model;
+    /* 非「官方每周 tokens」口径的行加 ≈ 前缀，提示 tokens 为折算/估算值 */
+    const approx = provenance(r.m).conf !== "高" || r.m.isEst;
+    return (approx ? "≈" : "") + shortVendor(r.m.vendor) + " · " + plan + " · " + model;
   });
   const data = rows.map((r) => {
     const cp = r.c.costPerM;
@@ -425,10 +452,12 @@ function renderRankChart() {
         trigger: "item", ...tipStyle(el),
         formatter: (d) => {
           const r = d.data._r;
+          const prov = provenance(r.m);
           return `<b>${esc(r.m.vendor)} · ${esc(r.m.plan)}</b>（${esc(displayModelName(r.m.model))}）<br/>
             💵每 M tokens：<b style="color:#34d399">¥${r.c.costPerM.toFixed(3)}</b><br/>
             月费：${fmtCNY(r.c.priceCNY)} ｜ 月倍率：<b>${r.c.rmo.toFixed(1)}×</b><br/>
-            月 tokens：约 ${fmtTok(r.c.moLow)}${r.c.moHigh > r.c.moLow ? "–" + fmtTok(r.c.moHigh) : ""}`;
+            月 tokens：约 ${fmtTok(r.c.moLow)}${r.c.moHigh > r.c.moLow ? "–" + fmtTok(r.c.moHigh) : ""}<br/>
+            <span style="color:${PAL.dim}">依据：${esc(prov.text)} · 置信${esc(prov.conf)}${prov.conf !== "高" ? "（tokens 为折算/估算值）" : ""}</span>`;
         },
       },
       grid: { left: 16, right: 80, top: 20, bottom: 20, containLabel: true },
@@ -448,8 +477,14 @@ function renderRankChart() {
   chart.resize();
 
   const tierText = rankState.tier === "flagship" ? "当前只看旗舰模型。" : "当前含轻量模型，Flash、Haiku 会因为 token 便宜靠前。";
+  const excluded = "已停售、已下架、一次性预付和仅老用户续费不在此列。";
+  const scopeText = {
+    official: "口径：只统计官方公布每周 tokens、且新用户当前可购买的计划（高置信，非估算）。请求折算与第三方估算不在此列。" + excluded,
+    credits: "口径：在官方每周 tokens 之外，纳入按官方 credits 面值/系数/官方区间折算的档位（≈标记，置信中：tokens = 面值 ÷ 牌价混合价，按 80/20 与 95% 缓存假设）。" + excluded,
+    all: "口径：含全部估算档位（≈标记，置信低：第三方毛利反推、请求次数按 20K tokens/次折算等），仅供量级参考。" + excluded,
+  }[rankState.scope];
   byId("rankNote").textContent =
-    `共 ${all.length} 档${all.length > rows.length ? `，此处显示前 ${rows.length} 档` : ""}。${tierText}只统计官方公布每周 tokens、且新用户当前可购买的计划。请求折算、第三方估算、已停售、已下架、一次性预付和仅老用户续费不在此列。绿色 ≤¥0.30 · 黄色 ≤¥1 · 红色 >¥1。`;
+    `共 ${all.length} 档${all.length > rows.length ? `，此处显示前 ${rows.length} 档` : ""}。${tierText}${scopeText}绿色 ≤¥0.30 · 黄色 ≤¥1 · 红色 >¥1。`;
   syncUrl();
 }
 

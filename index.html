@@ -95,12 +95,17 @@
   <section class="section" id="rank">
     <div class="section-head">
       <h2><span class="sec-no">02</span>每百万 tokens 实际成本排行</h2>
-      <p>月费 ÷ 月可用 tokens，越低越划算。默认只看旗舰模型，轻量模型不会因为 token 便宜排到第一。这里只列入<strong>官方公布每周 tokens、且新用户当前可购买</strong>的计划。请求次数折算、第三方估算、已停售、已下架、一次性预付和仅老用户续费留在额度表里，不参与这张排行。</p>
+      <p>月费 ÷ 月可用 tokens，越低越划算。默认只看旗舰模型，轻量模型不会因为 token 便宜排到第一。默认口径只列<strong>官方公布每周 tokens、且新用户当前可购买</strong>的计划；可切换「含官方折算」（credits 面值/系数/官方区间折算，≈标记）与「含全部估算」（第三方/请求折算）看到更多家的 Coding Plan，置信度在悬停里标注。</p>
     </div>
     <div class="controls">
-      <div class="chip-group" id="chipRank">
-        <button type="button" class="chip active" data-rank="flagship">只看旗舰</button>
-        <button type="button" class="chip" data-rank="all">含轻量模型</button>
+      <div class="chip-group" id="chipRank" role="group" aria-label="模型档">
+        <button type="button" class="chip active" data-rank="flagship" aria-pressed="true">只看旗舰</button>
+        <button type="button" class="chip" data-rank="all" aria-pressed="false">含轻量模型</button>
+      </div>
+      <div class="chip-group" id="chipRScope" role="group" aria-label="排行口径">
+        <button type="button" class="chip active" data-rscope="official" aria-pressed="true">官方每周 tokens</button>
+        <button type="button" class="chip" data-rscope="credits" aria-pressed="false">含官方折算</button>
+        <button type="button" class="chip" data-rscope="all" aria-pressed="false">含全部估算</button>
       </div>
     </div>
     <div class="chart-card"><div id="chartRank" class="chart"></div></div>
@@ -334,9 +339,9 @@
 <script src="js/data.js?v=35a72c2"></script>
 <script src="js/metrics.js?v=cd98041"></script>
 <script src="js/app-core.js?v=c6d8afb"></script>
-<script src="js/app-charts.js?v=9b4d4f3"></script>
+<script src="js/app-charts.js?v=24c62ac"></script>
 <script src="js/app-picker.js?v=0bc29b4"></script>
-<script src="js/app-tables.js?v=5c3e096"></script>
-<script src="js/app-init.js?v=5c542dd"></script>
+<script src="js/app-tables.js?v=09dff34"></script>
+<script src="js/app-init.js?v=16624d3"></script>
 </body>
 </html>

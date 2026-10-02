@@ -24,6 +24,7 @@ const URL_KEYS = {
   pq: () => state1.q,
   /* 性价比排行 */
   rank: () => rankState.tier,
+  rscope: () => rankState.scope,
   /* 数据表 */
   q: () => tableState.search,
   tcat: () => tableState.cat,
@@ -46,6 +47,7 @@ const URL_VALID = {
   pregion: new Set(["all", "cn", "intl"]),
   pbilling: new Set(["M", "Y"]),
   rank: new Set(["flagship", "all"]),
+  rscope: new Set(["official", "credits", "all"]),
   tcat: new Set(["all", "official", "tool", "cloud", "team"]),
   tregion: new Set(["all", "cn", "intl"]),
   tsortKeys: new Set(["priceM", "priceY"]),
@@ -74,6 +76,7 @@ function applyUrlState() {
   pick("pbilling", URL_VALID.pbilling, state1, "billing");
   if (p.get("pq") != null) state1.q = p.get("pq");
   pick("rank", URL_VALID.rank, rankState, "tier");
+  pick("rscope", URL_VALID.rscope, rankState, "scope");
   if (p.get("q") != null) tableState.search = p.get("q");
   pick("tcat", URL_VALID.tcat, tableState, "cat");
   pick("tregion", URL_VALID.tregion, tableState, "region");
@@ -121,6 +124,7 @@ function syncControlsFromState() {
   setVal("selectCat", tableState.cat);
   setVal("selectRegion", tableState.region);
   setVal("metricsVer", metricsState.ver); /* 模型下拉在 populateModelFilter 填充后再设值 */
+  syncRankChips();
 }
 
 applyUrlState();
