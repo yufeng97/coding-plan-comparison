@@ -4,22 +4,29 @@
 /* ---------- 数据表 ---------- */
 const tableState = { search: "", cat: "all", region: "all", sortKey: "priceM", sortDir: 1 };
 
-function renderTable() {
+/* 筛选 + 排序集中在这里：渲染与 CSV/Markdown 导出共用同一份结果 */
+function computeTableRows() {
   const q = tableState.search.trim().toLowerCase();
   const onSale = PLANS.filter(isOnSalePlan);
-  let rows = onSale.filter((p) =>
+  const rows = onSale.filter((p) =>
     (tableState.cat === "all" || p.cat === tableState.cat) &&
     (tableState.region === "all" || p.region === tableState.region) &&
     (!q || queryHit(planSearchBlob(p), q))
   );
   const k = tableState.sortKey;
   const sortVal = (p) => (p[k] == null ? NaN : p.cur === "USD" ? p[k] * RATE : p[k]);
-  rows = rows.slice().sort((a, b) => {
+  return rows.slice().sort((a, b) => {
     const va = sortVal(a), vb = sortVal(b);
     const aN = Number.isNaN(va), bN = Number.isNaN(vb);
     if (aN || bN) { if (aN && bN) return 0; return aN ? 1 : -1; } /* 「定制」（无公开价）恒排末尾 */
     return (va - vb) * tableState.sortDir;
   });
+}
+
+function renderTable() {
+  const rows = computeTableRows();
+  const onSale = PLANS.filter(isOnSalePlan);
+  const k = tableState.sortKey;
   document.getElementById("tableCount").textContent = `${rows.length} / ${onSale.length} 档`;
   document.querySelectorAll("#planTable thead th.sortable").forEach((th) => {
     th.classList.toggle("sort-active", th.dataset.sort === k);
@@ -42,13 +49,77 @@ function renderTable() {
         <td class="td-price">${pm}${pmSub}</td>
         <td class="td-price">${py}</td>
         <td class="td-quota">${esc(p.quota)}</td>
-        <td class="td-models">${esc(p.models)}</td>
-        <td>${esc(p.tools)}</td>
-        <td class="td-note">${esc(p.note || "—")}</td>
+        <td class="td-models col-opt">${esc(p.models)}</td>
+        <td class="col-opt">${esc(p.tools)}</td>
+        <td class="td-note col-opt">${esc(p.note || "—")}</td>
         <td class="td-trust">${href ? `<a href="${href}" target="_blank" rel="noopener">官网</a>` : "—"}<span class="sub">在售 · 核对 ${esc(META.updated)}</span></td>
       </tr>`;
     })
     .join("");
+  syncUrl();
+}
+
+/* ---------- 导出：当前筛选 + 排序结果 ---------- */
+function tableExportName(ext) {
+  const desc = [tableState.search.trim(), tableState.cat, tableState.region].filter((x) => x && x !== "all").join("-");
+  const safe = (desc || "all").replace(/[\\/:*?"<>|]+/g, "");
+  const d = new Date();
+  const day = d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0");
+  return `coding-plans-${safe}-${day}.${ext}`;
+}
+function exportTableCsv() {
+  const rows = computeTableRows();
+  const head = ["厂商", "计划", "类别", "地区", "月付", "年付折月", "额度（官方口径）", "模型", "支持工具", "备注", "来源"];
+  const cell = (v) => '"' + String(v ?? "").replace(/"/g, '""') + '"';
+  const lines = [head.map(cell).join(",")].concat(rows.map((p) => [
+    p.vendor, p.plan, CAT_LABEL[p.cat] || p.cat, REGION_LABEL[p.region] || "",
+    priceText(p, "priceM"), p.priceY == null ? "" : priceText(p, "priceY"),
+    p.quota, p.models, p.tools, p.note || "", p.url || "",
+  ].map(cell).join(",")));
+  /* \uFEFF 让 Excel 正确识别 UTF-8 */
+  const blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = tableExportName("csv");
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+  flashBtn("exportCsvBtn", `✓ 已导出 ${rows.length} 档`);
+}
+function tableRowsMarkdown(rows) {
+  const escMd = (v) => String(v ?? "").replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
+  const head = "| 厂商 | 计划 | 类别 | 地区 | 月付 | 年付折月 | 额度（官方口径） | 来源 |";
+  const sep = "|---|---|---|---|---|---|---|---|";
+  const body = rows.map((p) =>
+    `| ${escMd(p.vendor)} | ${escMd(p.plan)} | ${escMd(CAT_LABEL[p.cat] || p.cat)} | ${escMd(REGION_LABEL[p.region] || "")} | ${escMd(priceText(p, "priceM"))} | ${escMd(p.priceY == null ? "—" : priceText(p, "priceY"))} | ${escMd(p.quota)} | ${p.url || ""} |`);
+  return [head, sep].concat(body).join("\n");
+}
+async function copyTableMarkdown() {
+  const rows = computeTableRows();
+  const md = tableRowsMarkdown(rows);
+  let ok = false;
+  try { await navigator.clipboard.writeText(md); ok = true; }
+  catch (e) {
+    /* file:// 或旧浏览器降级：隐藏 textarea + execCommand */
+    const ta = document.createElement("textarea");
+    ta.value = md;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { ok = document.execCommand("copy"); } catch (e2) { ok = false; }
+    ta.remove();
+  }
+  flashBtn("copyMdBtn", ok ? `✓ 已复制 ${rows.length} 档` : "复制受限，请改用 ⬇ CSV");
+}
+function flashBtn(id, text) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  if (!btn.dataset.orig) btn.dataset.orig = btn.textContent;
+  btn.textContent = text;
+  clearTimeout(btn._flashTimer);
+  btn._flashTimer = setTimeout(() => { btn.textContent = btn.dataset.orig; }, 1800);
 }
 
 /* ---------- 动态 / 来源 / 说明 ---------- */
@@ -144,13 +215,28 @@ function bindEvents() {
   });
   document.getElementById("selectCat").addEventListener("change", (e) => { tableState.cat = e.target.value; renderTable(); });
   document.getElementById("selectRegion").addEventListener("change", (e) => { tableState.region = e.target.value; renderTable(); });
-  document.querySelectorAll("#planTable thead th.sortable").forEach((th) =>
-    th.addEventListener("click", () => {
+  /* 数据表导出与列开关 */
+  const csvBtn = document.getElementById("exportCsvBtn");
+  if (csvBtn) csvBtn.addEventListener("click", exportTableCsv);
+  const mdBtn = document.getElementById("copyMdBtn");
+  if (mdBtn) mdBtn.addEventListener("click", copyTableMarkdown);
+  const colsBtn = document.getElementById("tableColsToggle");
+  if (colsBtn) colsBtn.addEventListener("click", () => {
+    const showAll = document.getElementById("planTable").classList.toggle("show-all-cols");
+    colsBtn.textContent = showAll ? "精简列" : "全部列";
+    colsBtn.classList.toggle("active", showAll);
+  });
+  /* 排序表头：键盘可达（Tab 聚焦后 Enter/Space 触发，与点击同一处理器） */
+  document.querySelectorAll("#planTable thead th.sortable").forEach((th) => {
+    th.tabIndex = 0;
+    const sort = () => {
       if (tableState.sortKey === th.dataset.sort) tableState.sortDir *= -1;
       else { tableState.sortKey = th.dataset.sort; tableState.sortDir = 1; }
       renderTable();
-    })
-  );
+    };
+    th.addEventListener("click", sort);
+    th.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); sort(); } });
+  });
   document.querySelectorAll("#picker .picker-row").forEach((row) => {
     row.querySelectorAll(".chip").forEach((chip) => {
       chip.addEventListener("click", () => {
@@ -347,6 +433,7 @@ function renderMetricsTable() {
   document.getElementById("metricsNote").innerHTML =
     `<b>💵每M tokens</b> = 月费÷月 tokens 中值（统一折算¥，越低越便宜；绿色≤¥0.30、黄色≤¥1、红色&gt;¥1）。标「官方 API 按量」的行没有月费，这一列用同一套 80/20、95% 缓存假设把低峰牌价折成人民币，所以能和套餐排在一起；模型名下方仍是原始输入 / 输出 / 缓存命中。套餐行模型名下方的牌价也不是套餐的每 M 成本。同一请求额度下，牌价更高的模型「额度价值 / 倍率」更高，每 M 成本不变。带牌价的 credits 按这套单价把面值折成 tokens；没有逐模型牌价的美元 credits 仍按假设均价 ¥10/M，且不进入「真实单价」排行。标「官方系数」的行用厂商公布的积分系数、按同一套假设摊成 tokens，置信度为中，不进入每周 tokens 图。<br>` +
     `计算假设：输入/输出=80/20、缓存命中率 95%、每周 5 个 5h 窗口、每月 4.33 周。官方周 tokens：Tokens/5h=周÷5，Tokens/月=周×4.33。⏫额度倍率 = 该时段额度价值 ÷ 该时段分摊月费（5h=月费/21.65，周=月费/4.33，月=月费）。<b>「依据」列</b>标注出处与置信度（<span class="conf conf-hi">高</span>官方/credits · <span class="conf conf-mid">中</span>实测/区间/牌价折算 · <span class="conf conf-lo">低</span>毛利/第三方/请求折算）。当前 ${shownRows.length} 行（含 <b>${payg.length}</b> 行官方按量、<b>${rows.filter((r) => r.m.isEst).length}</b> 行「≈估」），默认按每百万成本从低到高。`;
+  syncUrl();
 }
 
 /* 模型筛选下拉：从全部数据源动态填充 */
@@ -354,13 +441,19 @@ function populateModelFilter() {
   const sel = document.getElementById("metricsModel");
   const models = [...new Set([...METRICS_ALL.map((m) => m.model), ...paygReferenceRows().map((r) => r.m.model)])].sort((a, b) => displayModelName(a).localeCompare(displayModelName(b), "zh"));
   sel.innerHTML = '<option value="all">全部模型</option>' + models.map((x) => `<option value="${esc(x)}">${esc(displayModelName(x))}</option>`).join("");
+  /* URL 恢复的模型选择在选项就绪后回设；选项里没有则重置，避免静默空表 */
+  if (metricsState.model !== "all") {
+    if ([...sel.options].some((o) => o.value === metricsState.model)) sel.value = metricsState.model;
+    else metricsState.model = "all";
+  }
 }
 
 function bindMetricsEvents() {
   document.getElementById("metricsModel").addEventListener("change", (e) => { metricsState.model = e.target.value; renderMetricsTable(); });
   document.getElementById("metricsVer").addEventListener("change", (e) => { metricsState.ver = e.target.value; renderMetricsTable(); });
-  document.querySelectorAll("#metricsTable th.sortable").forEach((th) =>
-    th.addEventListener("click", () => {
+  document.querySelectorAll("#metricsTable th.sortable").forEach((th) => {
+    th.tabIndex = 0;
+    const sort = () => {
       if (metricsState.sortKey === th.dataset.sort) metricsState.sortDir *= -1;
       else {
         metricsState.sortKey = th.dataset.sort;
@@ -368,8 +461,10 @@ function bindMetricsEvents() {
         metricsState.sortDir = col && col.asc ? 1 : -1;
       }
       renderMetricsTable();
-    })
-  );
+    };
+    th.addEventListener("click", sort);
+    th.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); sort(); } });
+  });
   const metricsToggle = document.getElementById("metricsToggle");
   if (metricsToggle) {
     metricsToggle.addEventListener("click", () => {

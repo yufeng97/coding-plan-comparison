@@ -77,6 +77,7 @@ function renderPersonalChart() {
   );
   chart.resize();
 
+  describeChart("chartPersonal", "个人订阅价格全景 " + shown.length + " 档，最低三档：" + shown.slice(0, 3).map((p) => shortVendor(p.vendor) + " " + p.plan + " " + priceText(p, "priceM")).join("、"));
   const hidden = rows.length - shown.length;
   const excluded = q1 ? PLANS.filter((p) => {
     if (!queryHit(planSearchBlob(p), q1)) return false;
@@ -100,6 +101,7 @@ function renderPersonalChart() {
     `当前筛选：${rows.length} 个档位（显示 ${shown.length}） ｜ 汇率 1 USD ≈ ${RATE} CNY（2026-09-23 实测） ｜ 红色是中转站，不和官方订阅、工具订阅放在同一类颜色里 ｜ 搜索会忽略大小写、空格和连字符，并展开「同某档」` +
     (hidden > 0 ? ` ｜ <button type="button" id="showAllPersonal" class="linkish">显示全部 ${rows.length} 档</button>` : "") +
     excludedHtml;
+  syncUrl();
 }
 
 /* ---------- 团队 / 企业 / 云厂商（席位价 + 整包价） ---------- */
@@ -143,6 +145,7 @@ function renderTeamChart() {
     true
   );
   chart.resize();
+  describeChart("chartTeam", "团队/企业档席位价与整包价 " + rows.length + " 项，按折算人民币月费从低到高。");
 }
 
 /* ---------- 每周可用 tokens 对比（官方公布 + 社区推算，厂商中立） ---------- */
@@ -256,6 +259,7 @@ function renderTokensChart() {
     true
   );
   chart.resize();
+  describeChart("chartTokens", "每周可用 tokens 对比 " + rows.length + " 行：官方公布 " + official.length + " 行、社区推算 " + community.length + " 行。");
 
   /* 洞察卡：全厂商性价比排行（厂商中立） */
   const valueOf = (r) => (r.priceCNY > 0 ? r.midM / r.priceCNY : -1);
@@ -362,6 +366,7 @@ function renderApiChart() {
     true
   );
   chart2.resize();
+  describeChart("chartApi", "API 按量单价对比 " + rows.length + " 款模型（左图）；$10 预算输出 token 购买力 " + power.length + " 行（右图）。");
 }
 
 /* ---------- 免费入口 ---------- */
@@ -394,6 +399,8 @@ function renderRankChart() {
     .filter((r) => rankState.tier !== "flagship" || isFlagshipModelName(r.m.model))
     .sort((a, b) => a.c.costPerM - b.c.costPerM);
   const rows = all.slice(0, 20); /* 图高有限，最多展示前 20 档 */
+  describeChart("chartRank", "每百万 tokens 成本排行（¥，越低越划算）前三：" +
+    rows.slice(0, 3).map((r) => shortVendor(r.m.vendor) + " " + r.m.plan + " ¥" + r.c.costPerM.toFixed(3)).join("、"));
 
   const el = document.getElementById("chartRank");
   el.style.height = Math.max(420, rows.length * 30 + 130) + "px";
@@ -442,5 +449,6 @@ function renderRankChart() {
   const tierText = rankState.tier === "flagship" ? "当前只看旗舰模型。" : "当前含轻量模型，Flash、Haiku 会因为 token 便宜靠前。";
   document.getElementById("rankNote").textContent =
     `共 ${all.length} 档${all.length > rows.length ? `，此处显示前 ${rows.length} 档` : ""}。${tierText}只统计官方公布每周 tokens、且新用户当前可购买的计划。请求折算、第三方估算、已停售、已下架、一次性预付和仅老用户续费不在此列。绿色 ≤¥0.30 · 黄色 ≤¥1 · 红色 >¥1。`;
+  syncUrl();
 }
 

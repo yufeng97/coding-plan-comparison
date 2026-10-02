@@ -379,6 +379,7 @@ thead th {
 }
 thead th.sortable { cursor: pointer; user-select: none; }
 thead th.sortable:hover { color: var(--ink); }
+thead th.sortable:focus-visible { outline: 2px solid var(--accent-2); outline-offset: -2px; border-radius: 4px; }
 thead th.sort-active { color: var(--brand-button); }
 html[data-theme="dark"] thead th.sort-active { color: var(--brand); }
 tbody td {
@@ -492,3 +493,22 @@ html[data-theme="dark"] .method-box summary:hover { color: var(--brand); }
 
 /* ---------- 页脚 ---------- */
 .footer { border-top: 1px solid var(--line); margin-top: 60px; padding: 26px 24px 40px; text-align: center; color: var(--faint); font-size: 12.5px; }
+
+/* ---------- 移动端适配（≤700px） ---------- */
+/* 列开关按钮只在移动端出现：默认隐藏「模型/支持工具/备注」三列 */
+#tableColsToggle { display: none; }
+@media (max-width: 700px) {
+  html { scroll-padding-top: 96px; }
+  /* 顶栏收纳：品牌 + 主题按钮一行，导航收成单行水平滑动（约 223px → 约 80px） */
+  .topbar-inner { gap: 8px; padding: 8px 14px; }
+  .theme-btn { order: 2; margin-left: auto; }
+  .topnav { order: 3; flex-basis: 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-right: 0; }
+  .topnav::-webkit-scrollbar { display: none; }
+  .topnav a { flex: 0 0 auto; white-space: nowrap; padding: 5px 9px; }
+  /* 数据表精简列 */
+  #planTable { min-width: 0; }
+  #planTable .td-quota { min-width: 140px; }
+  #planTable .col-opt { display: none; }
+  #planTable.show-all-cols .col-opt { display: table-cell; }
+  #tableColsToggle { display: inline-block; }
+}

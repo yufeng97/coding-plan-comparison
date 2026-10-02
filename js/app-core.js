@@ -159,6 +159,13 @@ const ICON_SVG = {
 function icon(name) {
   return `<i class="ric" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON_SVG[name] || ""}</svg></i>`;
 }
+/* 图表是 canvas，读屏不可见：渲染后写一句文字摘要进容器 */
+function describeChart(id, text) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.setAttribute("role", "img");
+  el.setAttribute("aria-label", String(text).slice(0, 240));
+}
 
 function priceOf(p, billing) {
   if (billing === "Y" && p.priceY != null) return p.priceY;

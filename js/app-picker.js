@@ -534,6 +534,7 @@ function renderPicker() {
   }
   grid.innerHTML = [mainCard(main, pool), dailyCard(main, pool), upgradeCard(main), own].filter(Boolean).join("");
   note.textContent = `符合条件 ${pool.length} 档。${own ? "最后一张是所选工具的自家订阅，供对照，不参与主计划排序。" : "三张卡是一套用法："}复杂任务看最强模型和它的 5 小时窗口，日常只把分开的慢烧额度算作覆盖。预算再往上可以高于当前筛选。模型角色按 ${MODEL_ROLES_ASOF} 的用法归类，不是跑分。中转站不参与。每百万 tokens 排行仍然只比价格。`;
+  syncUrl();
 }
 function auditProfiles() {
   const by = (vendor, plan) => PLANS.find((p) => p.vendor === vendor && p.plan === plan);
