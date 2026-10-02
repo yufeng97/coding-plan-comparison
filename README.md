@@ -68,6 +68,7 @@ npm run serve
   #   echarts.use([...]); globalThis.echarts = echarts;
   # 构建：npx esbuild scripts/echarts-entry.mjs --bundle --minify --format=iife --outfile=libs/echarts.min.js
   ```
+- **第三方产物出处**：`libs/` 内有 README 自证版本与来源；字体子集可用 `node scripts/vendor-fonts.js` 重新拉取。
 - **调试**：给 URL 加 `?debug=1` 会在控制台跑「帮我选」的 headline 断言（`auditProfiles`），正常访问不执行。
 
 ## 免责声明

@@ -1,4 +1,9 @@
-/* 一次性：把 Remix Icon 与 Google Fonts 下载到 libs/fonts，供页面离线使用。 */
+#!/usr/bin/env node
+/* 更新 libs/fonts 下的 Google Fonts 子集（Manrope + IBM Plex Mono）：
+ *   node scripts/vendor-fonts.js
+ * 按 fonts.googleapis.com 当前切片重新下载 gf-*.woff2 并回写 fonts.css 的本地映射。
+ * 图标已改为内联 SVG（js/app-core.js 的 ICON_SVG），不再需要图标字体。
+ */
 const https = require("https");
 const fs = require("fs");
 const path = require("path");
@@ -25,12 +30,7 @@ function get(url, headers) {
 }
 
 (async () => {
-  const css = (await get("https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.css")).toString("utf8");
-  const woff = await get("https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.woff2");
-  fs.writeFileSync(path.join(dir, "remixicon.woff2"), woff);
-  const localCss = css.replace(/src:[^;]+;/, 'src: url("remixicon.woff2") format("woff2");');
-  fs.writeFileSync(path.join(dir, "remixicon.css"), localCss);
-
+  /* Google Fonts 要求浏览器 UA 才下发 woff2 切片 */
   const ua = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
   };
@@ -47,7 +47,7 @@ function get(url, headers) {
     gcss = gcss.replace(u, name);
   }
   fs.writeFileSync(path.join(dir, "fonts.css"), gcss);
-  console.log("remix woff2", woff.length, "icon css", localCss.length, "webfonts", urls.length);
+  console.log("webfonts", urls.length, "->", dir);
 })().catch((e) => {
   console.error(e);
   process.exit(1);
