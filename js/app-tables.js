@@ -149,8 +149,7 @@ function cmpClear() {
   renderCmpBar();
   syncTableCmpButtons();
   syncUrl();
-  const dlg = document.getElementById("cmpModal");
-  if (dlg && dlg.open) dlg.close();
+  closeCmpModal();
 }
 function renderCmpBar() {
   const bar = document.getElementById("cmpBar");
@@ -195,6 +194,12 @@ function openCmpModal() {
   const dlg = document.getElementById("cmpModal");
   if (typeof dlg.showModal === "function") dlg.showModal();
   else dlg.setAttribute("open", ""); /* 老浏览器无 dialog：退化为置顶块 */
+}
+function closeCmpModal() {
+  const dlg = document.getElementById("cmpModal");
+  if (!dlg || !dlg.open) return;
+  if (typeof dlg.close === "function") dlg.close();
+  else dlg.removeAttribute("open");
 }
 
 /* ---------- 动态 / 来源 / 说明 ---------- */
@@ -316,9 +321,9 @@ function bindEvents() {
   const cmpClearInModal = document.getElementById("cmpClearInModal");
   if (cmpClearInModal) cmpClearInModal.addEventListener("click", cmpClear);
   const cmpCloseBtn = document.getElementById("cmpCloseBtn");
-  if (cmpCloseBtn) cmpCloseBtn.addEventListener("click", () => document.getElementById("cmpModal").close());
+  if (cmpCloseBtn) cmpCloseBtn.addEventListener("click", closeCmpModal);
   const cmpModal = document.getElementById("cmpModal");
-  if (cmpModal) cmpModal.addEventListener("click", (e) => { if (e.target === cmpModal) cmpModal.close(); }); /* 点击遮罩关闭 */
+  if (cmpModal) cmpModal.addEventListener("click", (e) => { if (e.target === cmpModal) closeCmpModal(); }); /* 点击遮罩关闭 */
   /* 排序表头：键盘可达（Tab 聚焦后 Enter/Space 触发，与点击同一处理器） */
   document.querySelectorAll("#planTable thead th.sortable").forEach((th) => {
     th.tabIndex = 0;
@@ -493,7 +498,7 @@ function renderMetricsTable() {
     ? paygReferenceRows().filter((r) => metricsState.model === "all" || r.m.model === metricsState.model)
     : [];
 
-  const shownRows = payg.concat(rows);
+  const shownRows = [...payg, ...rows];
   const sv = METRICS_SORT_GET[metricsState.sortKey];
   shownRows.sort((a, b) => {
     const va = sv ? sv(a) : 0, vb = sv ? sv(b) : 0;

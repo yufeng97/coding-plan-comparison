@@ -95,7 +95,7 @@ function applyUrlState() {
     cmpState.items = cmp.split(";").map((s) => {
       const [vendor, plan] = s.split("|");
       return PLANS.find((x) => x.vendor === vendor && x.plan === plan);
-    }).filter(Boolean).slice(0, 4);
+    }).filter(Boolean).slice(0, CMP_MAX);
   }
 }
 

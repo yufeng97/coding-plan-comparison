@@ -3,6 +3,7 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 
 const root = path.resolve(__dirname, "..");
 const host = "127.0.0.1";
@@ -47,9 +48,17 @@ const server = http.createServer((q, r) => {
       return;
     }
     const ext = path.extname(file).toLowerCase();
+    /* no-cache 需要校验器才能完成条件请求：按内容发 ETag，命中则 304 */
+    const etag = '"' + crypto.createHash("md5").update(data).digest("hex").slice(0, 16) + '"';
+    if (q.headers["if-none-match"] === etag) {
+      r.writeHead(304, { ETag: etag });
+      r.end();
+      return;
+    }
     r.writeHead(200, {
       "Content-Type": types[ext] || "application/octet-stream",
       "Cache-Control": "no-cache",
+      ETag: etag,
       "X-Content-Type-Options": "nosniff",
     });
     r.end(data);

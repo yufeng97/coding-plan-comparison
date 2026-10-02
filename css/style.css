@@ -550,4 +550,6 @@ html[data-theme="dark"] .method-box summary:hover { color: var(--brand); }
   #planTable .col-opt { display: none; }
   #planTable.show-all-cols .col-opt { display: table-cell; }
   #tableColsToggle { display: inline-block; }
+  /* 对比浮动条居中占宽，回到顶部按钮上移避让 */
+  .to-top { bottom: 78px; }
 }

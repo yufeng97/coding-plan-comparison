@@ -224,6 +224,8 @@ for (const f of ["js/data.js", "js/metrics.js", "js/app-core.js", "js/app-charts
 }
 check(html.includes("chartPersonal") && html.includes("metricsBody") && html.includes("dynamicsList"),
   "index.html 缺少关键 DOM 容器");
+check(html.includes("cmpBar") && html.includes("cmpModal") && html.includes("cmpTable"),
+  "index.html 缺少并排对比容器");
 
 /* ---- 报告 ---- */
 console.log(`规模：PLANS ${PLANS.length} · 指标 ${allMetrics.length} · API ${API_PRICES.length} · 按量对照 ${PAYG_REFERENCES.length} · 免费档 ${PLANS.filter((p) => p.priceM === 0).length} · 可用 Coding 入口 ${freeCoding.length} · 动态 ${DYNAMICS.length} · 来源组 ${SOURCES.length}`);
