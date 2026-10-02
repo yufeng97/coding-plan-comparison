@@ -514,15 +514,15 @@ function windowNoteShort(prof) {
 }
 /* 供卡片里的按钮一键放宽筛选（data-set-picker="region=all"） */
 function setPicker(rowKey, value) {
-  const row = document.querySelector(`#picker .picker-row[data-pick="${rowKey}"]`);
+  const row = qs(`#picker .picker-row[data-pick="${rowKey}"]`);
   if (row) row.querySelectorAll(".chip").forEach((x) => x.classList.toggle("active", x.dataset.value === value));
   pickerState[rowKey] = value;
   renderPicker();
 }
 function renderPicker() {
   const pool = eligibleProfiles();
-  const grid = document.getElementById("quickGrid");
-  const note = document.getElementById("pickerNote");
+  const grid = byId("quickGrid");
+  const note = byId("pickerNote");
   const main = chooseMain(pool);
   const own = ownVendorCard(main);
   if (!main) {

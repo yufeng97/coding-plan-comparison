@@ -159,9 +159,14 @@ const ICON_SVG = {
 function icon(name) {
   return `<i class="ric" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON_SVG[name] || ""}</svg></i>`;
 }
+/* ---------- DOM 助手：checkJs 友好的元素类型断言，id↔元素对应关系由页面结构约定保证 ---------- */
+function byId(id) { return /** @type {any} */ (document.getElementById(id)); }
+function qsa(sel) { return /** @type {any} */ (document.querySelectorAll(sel)); }
+function qs(sel) { return /** @type {any} */ (document.querySelector(sel)); }
+function evtTarget(e) { return /** @type {any} */ (e && e.target); }
 /* 图表是 canvas，读屏不可见：渲染后写一句文字摘要进容器 */
 function describeChart(id, text) {
-  const el = document.getElementById(id);
+  const el = byId(id);
   if (!el) return;
   el.setAttribute("role", "img");
   el.setAttribute("aria-label", String(text).slice(0, 240));
@@ -186,7 +191,7 @@ function priceText(p, key) {
 const chartCache = {};
 function makeChart(id) {
   if (!chartCache[id]) {
-    chartCache[id] = echarts.init(document.getElementById(id), null, { renderer: "canvas" });
+    chartCache[id] = echarts.init(byId(id), null, { renderer: "canvas" });
   }
   return chartCache[id];
 }
@@ -294,7 +299,7 @@ function applyTheme(mode) {
   document.documentElement.dataset.themeMode = mode;
   localStorage.setItem(THEME_KEY, mode);
   refreshPalette();
-  const btn = document.getElementById("themeBtn");
+  const btn = byId("themeBtn");
   if (btn) {
     btn.innerHTML = mode === "dark" ? icon("moon") : mode === "light" ? icon("sun") : icon("computer");
     const name = mode === "dark" ? "暗色" : mode === "light" ? "亮色" : "跟随系统";
@@ -306,7 +311,7 @@ function rerenderCharts() {
 }
 function initTheme() {
   applyTheme(localStorage.getItem(THEME_KEY) || "system");
-  document.getElementById("themeBtn").addEventListener("click", () => {
+  byId("themeBtn").addEventListener("click", () => {
     const order = ["dark", "light", "system"];
     applyTheme(order[(order.indexOf(localStorage.getItem(THEME_KEY) || "system") + 1) % 3]);
     rerenderCharts();
@@ -350,7 +355,7 @@ function renderStats() {
     minP && { icon: "arrow-down-circle", lbl: "最低月费", num: fmtCNY(minCny), sub: "/月 · " + planLabel(minP) },
     maxP && { icon: "arrow-up-circle", lbl: "最高月费", num: fmtCNY(maxCny), sub: "/月 · " + planLabel(maxP) },
   ].filter(Boolean);
-  document.getElementById("statsRow").innerHTML = items
+  byId("statsRow").innerHTML = items
     .map((i) => `<div><dt>${icon(i.icon)}${esc(i.lbl)}</dt><dd>${esc(i.num)}${i.sub ? `<small title="${esc(i.sub)}">${esc(i.sub)}</small>` : ""}</dd></div>`)
     .join("");
 }

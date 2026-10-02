@@ -112,10 +112,10 @@ function syncUrl() {
 
 /* 恢复 URL 状态后，把输入框/下拉/chip 的显示值同步到状态 */
 function syncControlsFromState() {
-  document.querySelectorAll("#picker .picker-row").forEach((row) => {
+  qsa("#picker .picker-row").forEach((row) => {
     row.querySelectorAll(".chip").forEach((chip) => chip.classList.toggle("active", chip.dataset.value === pickerState[row.dataset.pick]));
   });
-  const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+  const setVal = (id, v) => { const el = byId(id); if (el) el.value = v; };
   setVal("chartSearch", state1.q);
   setVal("searchInput", tableState.search);
   setVal("selectCat", tableState.cat);
@@ -161,14 +161,14 @@ if (typeof IntersectionObserver === "function") {
       entries.forEach((e) => {
         if (!e.isIntersecting) return;
         lazyIo.unobserve(e.target);
-        const item = LAZY_CHARTS.find((x) => document.getElementById(x.el) === e.target);
+        const item = LAZY_CHARTS.find((x) => byId(x.el) === e.target);
         if (item) bootLazy(item);
       });
     },
     { rootMargin: "200px 0px" }
   );
   LAZY_CHARTS.forEach((x) => {
-    const el = document.getElementById(x.el);
+    const el = byId(x.el);
     if (el) lazyIo.observe(el);
   });
 }
@@ -176,7 +176,7 @@ if (typeof IntersectionObserver === "function") {
 function renderLazyIfNeeded() {
   LAZY_CHARTS.forEach((item) => {
     if (LAZY_DONE.has(item.el)) return;
-    const el = document.getElementById(item.el);
+    const el = byId(item.el);
     if (!el) return;
     const r = el.getBoundingClientRect();
     if (r.top < window.innerHeight + 200 && r.bottom > -200) bootLazy(item);
@@ -199,7 +199,7 @@ if (new URLSearchParams(location.search).has("debug")) {
 
 /* ---------- 滚动进度条 ---------- */
 (function () {
-  const bar = document.getElementById("scrollBar");
+  const bar = byId("scrollBar");
   if (!bar) return;
   const update = () => {
     const h = document.documentElement;
@@ -212,7 +212,7 @@ if (new URLSearchParams(location.search).has("debug")) {
 
 /* ---------- 回到顶部（贴在右侧滚动条旁） ---------- */
 (function () {
-  const btn = document.getElementById("toTop");
+  const btn = byId("toTop");
   if (!btn) return;
   const toggle = () => btn.classList.toggle("is-on", window.scrollY > 480);
   btn.addEventListener("click", () => {

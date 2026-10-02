@@ -13,9 +13,12 @@ const root = path.join(__dirname, "..");
 
 const errors = [];
 const warns = [];
+const notes = [];
 const check = (cond, msg) => { if (!cond) errors.push(msg); };
 const warn = (cond, msg) => { if (!cond) warns.push(msg); };
-const note = (msg) => warns.push(msg);
+/* note 用于"设计内状态"的说明（如按量/定制无标价、Flash 只写在按量对照），
+   不计入警告——警告留给巡检真正需要人工确认的问题。 */
+const note = (msg) => notes.push(msg);
 
 /* 载入数据（data.js 为纯常量声明，无 DOM 依赖） */
 const sandbox = { console };
@@ -233,7 +236,9 @@ if (errors.length) {
   console.error(`\n❌ 校验失败（${errors.length} 项错误）:`);
   errors.forEach((e) => console.error("  ✗ " + e));
   if (warns.length) { console.warn(`\n⚠️ 另有 ${warns.length} 项警告:`); warns.forEach((w) => console.warn("  ⚠ " + w)); }
+  if (notes.length) { console.log(`\nℹ️ ${notes.length} 条说明（设计内状态）:`); notes.forEach((n) => console.log("  ℹ " + n)); }
   process.exit(1);
 }
 if (warns.length) { console.warn(`⚠️ ${warns.length} 项警告:`); warns.forEach((w) => console.warn("  ⚠ " + w)); }
+if (notes.length) console.log(`ℹ️ ${notes.length} 条说明（设计内状态，无需处理）`);
 console.log("✅ 数据校验通过");

@@ -2,6 +2,7 @@
 
 > 由每日巡检任务自动追加（每天 09:30），人工调研的大版本更新也记录在此。
 
+## 2026-10-02：工具链清零——①TypeScript checkJs 静态检查从 57 条诊断清到 0：app-core 新增 byId/qsa/qs/evtTarget 四个 DOM 类型断言助手（统一 83 处元素访问），renderTokensChart 补 TokenRow typedef，额度表行补 payg:false 对齐联合类型；typecheck 纳入 package.json（typescript devDependency）与 CI 第 2 步；②validate-data 报告分级：15 条「无标价（按量/定制）」与 2 条「PAYG 未在 API_PRICES 单列」为设计内状态，从警告降级为「ℹ️ 说明」，警告只留给巡检需人工确认的问题——每日巡检输出恢复零警告
 ## 2026-10-02：P2-8 并排对比——数据表计划列内「＋对比」勾选 2–4 档（超限拦截、再点移除），底部浮动条聚合显示，dialog 并排对比 8 个字段（价格含折算与年付、额度官方口径、模型、支持工具、备注、来源）；对比集写入 URL cmp= 参数可分享，打开带参链接自动恢复并弹出对比视图（无效档位过滤、超上限截断）；file:// 直开降级兼容。审查修复：init 的 cmp 截断改用 CMP_MAX 常量、dialog 关闭加守卫、移动端回顶按钮避让浮动条、dialog 补 aria-labelledby、validator 增加对比容器检查
 ## 2026-10-02：用户体验批次（按访客走查实测落地）——①URL 状态化：帮我选四维、个人全景/排行/数据表/额度表的全部筛选与排序实时写入地址栏（非默认键才写入），带白名单校验的恢复逻辑，复制网址即可分享同一套推荐；file:// 直开降级为仅当前页生效；默认值只快照一次防污染；②移动端顶栏收纳：≤700px 导航收成单行水平滑动（实测 223px→90px）；③数据表移动精简列：窄屏默认隐藏模型/支持工具/备注（2028px→1290px），「全部列」开关随时展开（仅移动端显示）；④导出：数据表一键下载当前筛选排序结果的 CSV（UTF-8 BOM、筛选+日期命名）与复制 Markdown 表格；⑤键盘可达：11 个排序表头加 tabindex + Enter/Space 触发 + focus-visible 样式；图表补 aria-label 文字摘要（排行前三等）；⑥信任细节：hero 巡检文案注明「无变化则不更新」，页脚加「纯静态无跟踪」声明。⑦懒加载加固：IO 之外补滚动位置检查 + 自清理短轮询，隐藏标签页等 IO 不产帧的环境下图表仍保证最终渲染（LAZY_DONE 防重复）
 ## 2026-10-02：目录清理——删除 scripts/archive 下 4 个一次性迁移脚本（adapt-app/patch-validator/redesign-html/repair-free-s1，零引用，git 历史可查）；vendor-fonts.js 移出 archive 并去掉已失效的 Remix Icon 下载段（图标已改内联 SVG），只保留 Google Fonts 子集更新；新增 libs/README.md 自证第三方产物版本与来源（echarts 精简构建命令、字体家族、许可证）

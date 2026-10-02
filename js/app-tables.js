@@ -27,15 +27,15 @@ function renderTable() {
   const rows = computeTableRows();
   const onSale = PLANS.filter(isOnSalePlan);
   const k = tableState.sortKey;
-  document.getElementById("tableCount").textContent = `${rows.length} / ${onSale.length} 档`;
-  document.querySelectorAll("#planTable thead th.sortable").forEach((th) => {
+  byId("tableCount").textContent = `${rows.length} / ${onSale.length} 档`;
+  qsa("#planTable thead th.sortable").forEach((th) => {
     th.classList.toggle("sort-active", th.dataset.sort === k);
     const arrow = th.dataset.sort === k ? (tableState.sortDir === 1 ? " ↑" : " ↓") : "";
     const span = th.querySelector("span");
     if (span) span.textContent = (th.dataset.sort === "priceM" ? "月付" : "年付折月") + arrow;
     th.setAttribute("aria-sort", th.dataset.sort === k ? (tableState.sortDir === 1 ? "ascending" : "descending") : "none");
   });
-  document.getElementById("tableBody").innerHTML = rows
+  byId("tableBody").innerHTML = rows
     .map((p) => {
       const pm = priceText(p, "priceM");
       const pmSub = p.priceM > 0 ? `<br/><span class="sub">≈${fmtCNY(cnyOf(p, "M"))}</span>` : "";
@@ -115,7 +115,7 @@ async function copyTableMarkdown() {
   flashBtn("copyMdBtn", ok ? `✓ 已复制 ${rows.length} 档` : "复制受限，请改用 ⬇ CSV");
 }
 function flashBtn(id, text) {
-  const btn = document.getElementById(id);
+  const btn = byId(id);
   if (!btn) return;
   if (!btn.dataset.orig) btn.dataset.orig = btn.textContent;
   btn.textContent = text;
@@ -152,16 +152,16 @@ function cmpClear() {
   closeCmpModal();
 }
 function renderCmpBar() {
-  const bar = document.getElementById("cmpBar");
+  const bar = byId("cmpBar");
   if (!bar) return;
   bar.hidden = cmpState.items.length === 0;
-  document.getElementById("cmpBarText").textContent =
+  byId("cmpBarText").textContent =
     `已选 ${cmpState.items.length}/${CMP_MAX} 档` +
     (cmpState.items.length ? "：" + cmpState.items.map((p) => shortVendor(p.vendor) + " " + p.plan).join("、") : "");
-  document.getElementById("cmpOpenBtn").disabled = cmpState.items.length < 2;
+  byId("cmpOpenBtn").disabled = cmpState.items.length < 2;
 }
 function syncTableCmpButtons() {
-  document.querySelectorAll("#tableBody .cmp-add").forEach((btn) => {
+  qsa("#tableBody .cmp-add").forEach((btn) => {
     const on = cmpState.items.some((x) => x.vendor === btn.dataset.vendor && x.plan === btn.dataset.plan);
     btn.textContent = on ? "✓ 对比中" : "＋对比";
     btn.classList.toggle("on", on);
@@ -186,17 +186,17 @@ function renderCmpModal() {
     row("备注", items.map((p) => `<td>${esc(p.note || "—")}</td>`).join("")),
     row("来源", items.map((p) => { const href = safeHref(p.url); return `<td>${href ? `<a href="${href}" target="_blank" rel="noopener">官网 ↗</a>` : "—"}</td>`; }).join("")),
   ];
-  document.getElementById("cmpTable").innerHTML = rows.join("");
+  byId("cmpTable").innerHTML = rows.join("");
 }
 function openCmpModal() {
   if (cmpState.items.length < 2) return;
   renderCmpModal();
-  const dlg = document.getElementById("cmpModal");
+  const dlg = byId("cmpModal");
   if (typeof dlg.showModal === "function") dlg.showModal();
   else dlg.setAttribute("open", ""); /* 老浏览器无 dialog：退化为置顶块 */
 }
 function closeCmpModal() {
-  const dlg = document.getElementById("cmpModal");
+  const dlg = byId("cmpModal");
   if (!dlg || !dlg.open) return;
   if (typeof dlg.close === "function") dlg.close();
   else dlg.removeAttribute("open");
@@ -212,10 +212,10 @@ function dynItem(d) {
 }
 function renderMisc() {
   const sorted = DYNAMICS.slice().sort((a, b) => (b.date || "").localeCompare(a.date || ""));
-  document.getElementById("dynamicsList").innerHTML = sorted.filter((d) => !d.checked).map(dynItem).join("");
-  const checkList = document.getElementById("checkList");
+  byId("dynamicsList").innerHTML = sorted.filter((d) => !d.checked).map(dynItem).join("");
+  const checkList = byId("checkList");
   if (checkList) checkList.innerHTML = sorted.filter((d) => d.checked).map(dynItem).join("");
-  document.getElementById("sourceList").innerHTML =
+  byId("sourceList").innerHTML =
     `<h3>📖 全部来源（官方定价页 / 权威报道）</h3>` +
     SOURCES.map(
       (g) => `<div class="source-group"><b>${esc(g.group)}</b><ul>${g.urls.map((u) => {
@@ -223,40 +223,40 @@ function renderMisc() {
         return href ? `<li><a href="${href}" target="_blank" rel="noopener">${esc(u)}</a></li>` : "";
       }).join("")}</ul></div>`
     ).join("");
-  document.getElementById("uncertainList").innerHTML = UNCERTAIN.map((u) => `<li>${esc(u)}</li>`).join("");
-  const uncertainSummary = document.querySelector("#uncertainWrap summary");
+  byId("uncertainList").innerHTML = UNCERTAIN.map((u) => `<li>${esc(u)}</li>`).join("");
+  const uncertainSummary = qs("#uncertainWrap summary");
   if (uncertainSummary) uncertainSummary.textContent = `展开全部不确定性说明（共 ${UNCERTAIN.length} 条，点击查看）`;
-  document.getElementById("rateText").textContent = RATE;
-  document.getElementById("rateText2").textContent = RATE;
-  document.getElementById("footDate").textContent = META.updated;
-  const heroDate = document.getElementById("heroDate");
+  byId("rateText").textContent = RATE;
+  byId("rateText2").textContent = RATE;
+  byId("footDate").textContent = META.updated;
+  const heroDate = byId("heroDate");
   if (heroDate) heroDate.textContent = META.updated;
 }
 
 /* ---------- 事件绑定 ---------- */
 function bindEvents() {
-  document.querySelectorAll("#planTable thead th, #metricsTable thead th").forEach((th) => (th.scope = "col"));
-  document.querySelectorAll("#chipCat .chip").forEach((c) =>
+  qsa("#planTable thead th, #metricsTable thead th").forEach((th) => (th.scope = "col"));
+  qsa("#chipCat .chip").forEach((c) =>
     c.addEventListener("click", () => {
-      document.querySelectorAll("#chipCat .chip").forEach((x) => x.classList.remove("active"));
+      qsa("#chipCat .chip").forEach((x) => x.classList.remove("active"));
       c.classList.add("active");
       state1.cat = c.dataset.cat;
       state1.limit = 40;
       renderPersonalChart();
     })
   );
-  document.querySelectorAll("#chipRegion .chip").forEach((c) =>
+  qsa("#chipRegion .chip").forEach((c) =>
     c.addEventListener("click", () => {
-      document.querySelectorAll("#chipRegion .chip").forEach((x) => x.classList.remove("active"));
+      qsa("#chipRegion .chip").forEach((x) => x.classList.remove("active"));
       c.classList.add("active");
       state1.region = c.dataset.region;
       state1.limit = 40;
       renderPersonalChart();
     })
   );
-  document.querySelectorAll("#chipBilling .chip").forEach((c) =>
+  qsa("#chipBilling .chip").forEach((c) =>
     c.addEventListener("click", () => {
-      document.querySelectorAll("#chipBilling .chip").forEach((x) => x.classList.remove("active"));
+      qsa("#chipBilling .chip").forEach((x) => x.classList.remove("active"));
       c.classList.add("active");
       state1.billing = c.dataset.billing;
       state1.limit = 40;
@@ -264,68 +264,69 @@ function bindEvents() {
     })
   );
   let searchTimer;
-  document.getElementById("chartSearch").addEventListener("input", (e) => {
+  byId("chartSearch").addEventListener("input", (e) => {
     state1.q = e.target.value;
     state1.limit = 40; /* 搜索后清空关键词仍回到默认前 40 档，避免停留在「显示全部」状态 */
     clearTimeout(searchTimer);
     searchTimer = setTimeout(renderPersonalChart, 150);
   });
   document.addEventListener("click", (e) => {
-    if (e.target && e.target.id === "showAllPersonal") { state1.limit = null; renderPersonalChart(); }
-    const addBtn = e.target.closest ? e.target.closest(".cmp-add") : null;
+    const target = evtTarget(e);
+    if (target && target.id === "showAllPersonal") { state1.limit = null; renderPersonalChart(); }
+    const addBtn = target.closest ? target.closest(".cmp-add") : null;
     if (addBtn) {
       const on = addBtn.classList.contains("on");
       if (on) cmpRemove(addBtn.dataset.vendor, addBtn.dataset.plan);
       else cmpAdd(addBtn.dataset.vendor, addBtn.dataset.plan);
       return;
     }
-    if (e.target && e.target.id === "showExcludedInTable") {
+    if (target && target.id === "showExcludedInTable") {
       const q = state1.q;
       tableState.search = q;
-      const input = document.getElementById("searchInput");
+      const input = byId("searchInput");
       if (input) input.value = q;
       renderTable();
       location.hash = "table";
-      document.getElementById("table")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      byId("table")?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-    const rel = e.target.closest ? e.target.closest("[data-set-picker]") : null;
+    const rel = target.closest ? target.closest("[data-set-picker]") : null;
     if (rel) {
       const eq = rel.dataset.setPicker.indexOf("=");
       if (eq > 0) setPicker(rel.dataset.setPicker.slice(0, eq), rel.dataset.setPicker.slice(eq + 1));
     }
   });
   let tableSearchTimer;
-  document.getElementById("searchInput").addEventListener("input", (e) => {
+  byId("searchInput").addEventListener("input", (e) => {
     tableState.search = e.target.value;
     clearTimeout(tableSearchTimer);
     tableSearchTimer = setTimeout(renderTable, 150); /* 与图表搜索同一防抖节奏 */
   });
-  document.getElementById("selectCat").addEventListener("change", (e) => { tableState.cat = e.target.value; renderTable(); });
-  document.getElementById("selectRegion").addEventListener("change", (e) => { tableState.region = e.target.value; renderTable(); });
+  byId("selectCat").addEventListener("change", (e) => { tableState.cat = e.target.value; renderTable(); });
+  byId("selectRegion").addEventListener("change", (e) => { tableState.region = e.target.value; renderTable(); });
   /* 数据表导出与列开关 */
-  const csvBtn = document.getElementById("exportCsvBtn");
+  const csvBtn = byId("exportCsvBtn");
   if (csvBtn) csvBtn.addEventListener("click", exportTableCsv);
-  const mdBtn = document.getElementById("copyMdBtn");
+  const mdBtn = byId("copyMdBtn");
   if (mdBtn) mdBtn.addEventListener("click", copyTableMarkdown);
-  const colsBtn = document.getElementById("tableColsToggle");
+  const colsBtn = byId("tableColsToggle");
   if (colsBtn) colsBtn.addEventListener("click", () => {
-    const showAll = document.getElementById("planTable").classList.toggle("show-all-cols");
+    const showAll = byId("planTable").classList.toggle("show-all-cols");
     colsBtn.textContent = showAll ? "精简列" : "全部列";
     colsBtn.classList.toggle("active", showAll);
   });
   /* 并排对比 */
-  const cmpOpenBtn = document.getElementById("cmpOpenBtn");
+  const cmpOpenBtn = byId("cmpOpenBtn");
   if (cmpOpenBtn) cmpOpenBtn.addEventListener("click", openCmpModal);
-  const cmpClearBtn = document.getElementById("cmpClearBtn");
+  const cmpClearBtn = byId("cmpClearBtn");
   if (cmpClearBtn) cmpClearBtn.addEventListener("click", cmpClear);
-  const cmpClearInModal = document.getElementById("cmpClearInModal");
+  const cmpClearInModal = byId("cmpClearInModal");
   if (cmpClearInModal) cmpClearInModal.addEventListener("click", cmpClear);
-  const cmpCloseBtn = document.getElementById("cmpCloseBtn");
+  const cmpCloseBtn = byId("cmpCloseBtn");
   if (cmpCloseBtn) cmpCloseBtn.addEventListener("click", closeCmpModal);
-  const cmpModal = document.getElementById("cmpModal");
+  const cmpModal = byId("cmpModal");
   if (cmpModal) cmpModal.addEventListener("click", (e) => { if (e.target === cmpModal) closeCmpModal(); }); /* 点击遮罩关闭 */
   /* 排序表头：键盘可达（Tab 聚焦后 Enter/Space 触发，与点击同一处理器） */
-  document.querySelectorAll("#planTable thead th.sortable").forEach((th) => {
+  qsa("#planTable thead th.sortable").forEach((th) => {
     th.tabIndex = 0;
     const sort = () => {
       if (tableState.sortKey === th.dataset.sort) tableState.sortDir *= -1;
@@ -335,7 +336,7 @@ function bindEvents() {
     th.addEventListener("click", sort);
     th.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); sort(); } });
   });
-  document.querySelectorAll("#picker .picker-row").forEach((row) => {
+  qsa("#picker .picker-row").forEach((row) => {
     row.querySelectorAll(".chip").forEach((chip) => {
       chip.addEventListener("click", () => {
         row.querySelectorAll(".chip").forEach((x) => x.classList.remove("active"));
@@ -345,9 +346,9 @@ function bindEvents() {
       });
     });
   });
-  document.querySelectorAll("#chipRank .chip").forEach((chip) => {
+  qsa("#chipRank .chip").forEach((chip) => {
     chip.addEventListener("click", () => {
-      document.querySelectorAll("#chipRank .chip").forEach((x) => x.classList.remove("active"));
+      qsa("#chipRank .chip").forEach((x) => x.classList.remove("active"));
       chip.classList.add("active");
       rankState.tier = chip.dataset.rank;
       renderRankChart();
@@ -407,7 +408,7 @@ const METRICS_COLUMNS = [
 
 /* 表头由列配置生成（boot 时跑一次，先于 renderMetricsTable） */
 function renderMetricsHead() {
-  const tr = document.querySelector("#metricsTable thead tr");
+  const tr = qs("#metricsTable thead tr");
   if (!tr) return;
   tr.innerHTML = METRICS_COLUMNS.map((c) =>
     c.sortKey
@@ -491,7 +492,7 @@ function paygReferenceRows() {
 }
 
 function renderMetricsTable() {
-  let rows = METRICS_ALL.map((m) => ({ m, c: computeMetrics(m) })).filter((r) => r.c);
+  let rows = METRICS_ALL.map((m) => ({ m, c: computeMetrics(m), payg: false })).filter((r) => r.c);
   if (metricsState.model !== "all") rows = rows.filter((r) => r.m.model === metricsState.model);
   if (metricsState.ver !== "all") rows = rows.filter((r) => r.m.ver === metricsState.ver);
   const payg = metricsState.ver === "all"
@@ -506,8 +507,8 @@ function renderMetricsTable() {
     if (aN || bN) { if (aN && bN) return 0; return aN ? 1 : -1; } /* 无对应额度（按量无月费、credits 制等）恒排末尾 */
     return (va - vb) * metricsState.sortDir;
   });
-  document.getElementById("metricsCount").textContent = `${shownRows.length} 行`;
-  document.getElementById("metricsBody").innerHTML = shownRows.map((r) => {
+  byId("metricsCount").textContent = `${shownRows.length} 行`;
+  byId("metricsBody").innerHTML = shownRows.map((r) => {
     const m = r.m, c = r.c, isPayg = !!r.payg;
     const prov = isPayg ? { text: "官方按量", conf: "高" } : provenance(m);
     const ctx = { m, c, isPayg, cur: m.cur, prov };
@@ -519,7 +520,7 @@ function renderMetricsTable() {
     return `<tr class="${m.isEst ? "est-row" : ""}${isPayg ? " payg-row" : ""}">${tds}</tr>`;
   }).join("");
 
-  document.querySelectorAll("#metricsTable th.sortable").forEach((th) => {
+  qsa("#metricsTable th.sortable").forEach((th) => {
     const isActive = th.dataset.sort === metricsState.sortKey;
     th.classList.toggle("sort-active", isActive);
     const arrow = isActive ? (metricsState.sortDir === 1 ? " ↑" : " ↓") : "";
@@ -528,7 +529,7 @@ function renderMetricsTable() {
     th.setAttribute("aria-sort", isActive ? (metricsState.sortDir === 1 ? "ascending" : "descending") : "none");
   });
 
-  document.getElementById("metricsNote").innerHTML =
+  byId("metricsNote").innerHTML =
     `<b>💵每M tokens</b> = 月费÷月 tokens 中值（统一折算¥，越低越便宜；绿色≤¥0.30、黄色≤¥1、红色&gt;¥1）。标「官方 API 按量」的行没有月费，这一列用同一套 80/20、95% 缓存假设把低峰牌价折成人民币，所以能和套餐排在一起；模型名下方仍是原始输入 / 输出 / 缓存命中。套餐行模型名下方的牌价也不是套餐的每 M 成本。同一请求额度下，牌价更高的模型「额度价值 / 倍率」更高，每 M 成本不变。带牌价的 credits 按这套单价把面值折成 tokens；没有逐模型牌价的美元 credits 仍按假设均价 ¥10/M，且不进入「真实单价」排行。标「官方系数」的行用厂商公布的积分系数、按同一套假设摊成 tokens，置信度为中，不进入每周 tokens 图。<br>` +
     `计算假设：输入/输出=80/20、缓存命中率 95%、每周 5 个 5h 窗口、每月 4.33 周。官方周 tokens：Tokens/5h=周÷5，Tokens/月=周×4.33。⏫额度倍率 = 该时段额度价值 ÷ 该时段分摊月费（5h=月费/21.65，周=月费/4.33，月=月费）。<b>「依据」列</b>标注出处与置信度（<span class="conf conf-hi">高</span>官方/credits · <span class="conf conf-mid">中</span>实测/区间/牌价折算 · <span class="conf conf-lo">低</span>毛利/第三方/请求折算）。当前 ${shownRows.length} 行（含 <b>${payg.length}</b> 行官方按量、<b>${rows.filter((r) => r.m.isEst).length}</b> 行「≈估」），默认按每百万成本从低到高。`;
   syncUrl();
@@ -536,7 +537,7 @@ function renderMetricsTable() {
 
 /* 模型筛选下拉：从全部数据源动态填充 */
 function populateModelFilter() {
-  const sel = document.getElementById("metricsModel");
+  const sel = byId("metricsModel");
   const models = [...new Set([...METRICS_ALL.map((m) => m.model), ...paygReferenceRows().map((r) => r.m.model)])].sort((a, b) => displayModelName(a).localeCompare(displayModelName(b), "zh"));
   sel.innerHTML = '<option value="all">全部模型</option>' + models.map((x) => `<option value="${esc(x)}">${esc(displayModelName(x))}</option>`).join("");
   /* URL 恢复的模型选择在选项就绪后回设；选项里没有则重置，避免静默空表 */
@@ -547,9 +548,9 @@ function populateModelFilter() {
 }
 
 function bindMetricsEvents() {
-  document.getElementById("metricsModel").addEventListener("change", (e) => { metricsState.model = e.target.value; renderMetricsTable(); });
-  document.getElementById("metricsVer").addEventListener("change", (e) => { metricsState.ver = e.target.value; renderMetricsTable(); });
-  document.querySelectorAll("#metricsTable th.sortable").forEach((th) => {
+  byId("metricsModel").addEventListener("change", (e) => { metricsState.model = e.target.value; renderMetricsTable(); });
+  byId("metricsVer").addEventListener("change", (e) => { metricsState.ver = e.target.value; renderMetricsTable(); });
+  qsa("#metricsTable th.sortable").forEach((th) => {
     th.tabIndex = 0;
     const sort = () => {
       if (metricsState.sortKey === th.dataset.sort) metricsState.sortDir *= -1;
@@ -563,10 +564,10 @@ function bindMetricsEvents() {
     th.addEventListener("click", sort);
     th.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); sort(); } });
   });
-  const metricsToggle = document.getElementById("metricsToggle");
+  const metricsToggle = byId("metricsToggle");
   if (metricsToggle) {
     metricsToggle.addEventListener("click", () => {
-      const table = document.getElementById("metricsTable");
+      const table = byId("metricsTable");
       const compact = table.classList.toggle("is-compact");
       metricsToggle.textContent = compact ? "展开 5 小时 / 每周明细" : "收起明细";
       metricsToggle.classList.toggle("active", !compact);

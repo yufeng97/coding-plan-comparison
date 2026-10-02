@@ -57,7 +57,7 @@ npm run serve
 - **零构建、双击可用**：页面是经典脚本按序加载，**不使用 ES Modules**——`file://` 直开会拦模块请求。加载顺序固定：`data.js → metrics.js → app-core → app-charts → app-picker → app-tables → app-init`。前面的文件只声明，顶层执行语句集中在 `app-init.js`。
 - **单一数据源**：价格走 `ref` 指回 `PLANS`；类别色走 CSS 变量 `--cat-*`（JS 的 `refreshCategoryColors()` 在主题切换时重读）；额度表的列定义只在 `METRICS_COLUMNS` 一处。
 - **缓存版本号**：`index.html` 的 `?v=` 由内容哈希生成，改完资产跑 `npm run bump`（CI 会校验没跑会挂）。
-- **测试与校验**：`npm run validate` 校验数据结构/引用一致性；`npm run test` 用手算基准锁定额度换算公式与模型分类正则（改 `metrics.js` 的假设或正则后必须跑）。CI（`.github/workflows/ci.yml`）在 push/PR 时跑全部三样。
+- **测试与校验**：`npm run validate` 校验数据结构/引用一致性（设计内状态只出说明不出警告）；`npm run test` 用手算基准锁定额度换算公式与模型分类正则；`npm run typecheck` 跑 TypeScript checkJs 静态检查（当前 0 诊断，DOM 访问统一走 `byId/qsa/qs` 助手）。CI（`.github/workflows/ci.yml`）在 push/PR 时跑全部四样。
 - **重建精简版 ECharts**（一般不需要）：
 
   ```bash

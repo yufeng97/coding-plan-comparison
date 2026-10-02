@@ -13,8 +13,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: 安装 devDependencies（typescript）
+        run: npm install
       - name: 语法检查
         run: npm run check
+      - name: 类型检查（checkJs）
+        run: npm run typecheck
       - name: 数据校验
         run: npm run validate
       - name: 额度换算与分类单元测试

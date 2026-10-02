@@ -6,7 +6,7 @@ const state1 = { cat: "all", region: "all", billing: "M", q: "", limit: 40 };
 
 /* 图例色块与图表 itemStyle 同源（都读 refreshCategoryColors 取到的 --cat-* 变量） */
 function renderLegend() {
-  const el = document.getElementById("chartLegend");
+  const el = byId("chartLegend");
   if (!el) return;
   const items = [["official", "模型官方订阅"], ["tool", "第三方工具订阅"], ["cloud", "云厂商/API 套餐"]];
   el.innerHTML = items.map(([k, lbl]) => `<span><i style="background:${esc(CAT_COLOR[k] || "")}"></i>${lbl}</span>`).join("") +
@@ -44,7 +44,7 @@ function renderPersonalChart() {
   const limit = noFilter ? state1.limit : null;
   const shown = limit ? rows.slice(0, limit) : rows;
 
-  const el = document.getElementById("chartPersonal");
+  const el = byId("chartPersonal");
   el.style.height = Math.max(420, shown.length * 30 + 130) + "px";
   const chart = makeChart("chartPersonal");
 
@@ -97,7 +97,7 @@ function renderPersonalChart() {
       (excluded.length > 8 ? ` 等 ${excluded.length} 档` : "") +
       `。<button type="button" id="showExcludedInTable" class="linkish">在完整表里看</button>`
     : "";
-  document.getElementById("notePersonal").innerHTML =
+  byId("notePersonal").innerHTML =
     `当前筛选：${rows.length} 个档位（显示 ${shown.length}） ｜ 汇率 1 USD ≈ ${RATE} CNY（2026-09-23 实测） ｜ 红色是中转站，不和官方订阅、工具订阅放在同一类颜色里 ｜ 搜索会忽略大小写、空格和连字符，并展开「同某档」` +
     (hidden > 0 ? ` ｜ <button type="button" id="showAllPersonal" class="linkish">显示全部 ${rows.length} 档</button>` : "") +
     excludedHtml;
@@ -109,7 +109,7 @@ function renderTeamChart() {
   const rows = PLANS.filter(
     (p) => (p.cat === "team" || (p.cat === "cloud" && p.seat)) && p.priceM != null && p.priceM > 0
   ).sort((a, b) => cnyOf(a, "M") - cnyOf(b, "M"));
-  const el = document.getElementById("chartTeam");
+  const el = byId("chartTeam");
   el.style.height = Math.max(380, rows.length * 30 + 130) + "px";
   const chart = makeChart("chartTeam");
 
@@ -154,7 +154,7 @@ const TOKEN_EST_COLOR = "#fbbf24";
 
 function renderTokensChart() {
   const chart = makeChart("chartTokens");
-  const el = document.getElementById("chartTokens");
+  const el = byId("chartTokens");
 
   const modelShort = (m) =>
     m.includes("Flash") ? "Flash" :
@@ -204,7 +204,8 @@ function renderTokensChart() {
     priceCNY: toCNY(e.priceM, e.cur),
     isOfficial: false, url: e.source, note: e.note, method: e.method || "第三方估算", conf: e.confidence || "低",
   }));
-  const rows = [...official, ...community].map((r) => ({ ...r, midM: (r.lowM + r.highM) / 2 }));
+  /** @typedef {{label: string, model: string, lowM: number, highM: number, midM: number, priceCNY: number, isOfficial: boolean, url: string, note?: string, method?: string, conf?: string}} TokenRow */
+  const rows = /** @type {TokenRow[]} */ ([...official, ...community].map((r) => ({ ...r, midM: (r.lowM + r.highM) / 2 })));
   rows.sort((a, b) => b.midM - a.midM);
 
   el.style.height = Math.max(420, rows.length * 30 + 150) + "px";
@@ -264,7 +265,7 @@ function renderTokensChart() {
   /* 洞察卡：全厂商性价比排行（厂商中立） */
   const valueOf = (r) => (r.priceCNY > 0 ? r.midM / r.priceCNY : -1);
   const byValue = rows.slice().sort((a, b) => valueOf(b) - valueOf(a));
-  document.getElementById("tokenInsight").innerHTML = `
+  byId("tokenInsight").innerHTML = `
     <div style="max-height:600px;overflow:auto">
     <h3>💡 性价比：每 ¥100/月 能买到多少每周 tokens（全部厂商）</h3>
     <table class="mini-table">
@@ -285,7 +286,7 @@ function renderTokensChart() {
 
 /* ---------- API 按量价格 ---------- */
 function renderApiChart() {
-  const apiEl = document.getElementById("chartApi");
+  const apiEl = byId("chartApi");
   const chart = makeChart("chartApi");
   const rows = API_PRICES.map((a) => {
     const inU = a.cur === "CNY" ? a.inCNY / RATE : a.inUSD;
@@ -336,7 +337,7 @@ function renderApiChart() {
 
   /* 购买力：$10 按输出价可购 token 量 */
   const chart2 = makeChart("chartPower");
-  const el2 = document.getElementById("chartPower");
+  const el2 = byId("chartPower");
   el2.style.height = Math.max(420, rows.length * 26 + 120) + "px";
   const power = rows.filter((a) => a.outUSD > 0).map((a) => ({ name: displayModelName(a.label || a.model) + (a.cur === "CNY" ? "·国内" : ""), m: 10 / a.outUSD, a }));
   power.sort((x, y) => y.m - x.m);
@@ -372,7 +373,7 @@ function renderApiChart() {
 /* ---------- 免费入口 ---------- */
 function renderFree() {
   const rows = PLANS.filter(isFreeCodingEntry);
-  document.getElementById("freeGrid").innerHTML = rows
+  byId("freeGrid").innerHTML = rows
     .map((p) => {
       const href = safeHref(p.url);
       return `
@@ -402,7 +403,7 @@ function renderRankChart() {
   describeChart("chartRank", "每百万 tokens 成本排行（¥，越低越划算）前三：" +
     rows.slice(0, 3).map((r) => shortVendor(r.m.vendor) + " " + r.m.plan + " ¥" + r.c.costPerM.toFixed(3)).join("、"));
 
-  const el = document.getElementById("chartRank");
+  const el = byId("chartRank");
   el.style.height = Math.max(420, rows.length * 30 + 130) + "px";
   const chart = makeChart("chartRank");
 
@@ -447,7 +448,7 @@ function renderRankChart() {
   chart.resize();
 
   const tierText = rankState.tier === "flagship" ? "当前只看旗舰模型。" : "当前含轻量模型，Flash、Haiku 会因为 token 便宜靠前。";
-  document.getElementById("rankNote").textContent =
+  byId("rankNote").textContent =
     `共 ${all.length} 档${all.length > rows.length ? `，此处显示前 ${rows.length} 档` : ""}。${tierText}只统计官方公布每周 tokens、且新用户当前可购买的计划。请求折算、第三方估算、已停售、已下架、一次性预付和仅老用户续费不在此列。绿色 ≤¥0.30 · 黄色 ≤¥1 · 红色 >¥1。`;
   syncUrl();
 }
