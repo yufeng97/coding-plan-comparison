@@ -15,7 +15,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%23b9ff00'/%3E%3Ctext%20x='16'%20y='22'%20font-family='monospace'%20font-size='15'%20font-weight='bold'%20text-anchor='middle'%20fill='%2310110f'%3E%26lt;/%26gt;%3C/text%3E%3C/svg%3E">
   <script>try{var __m=localStorage.getItem("cp-theme")||"system";var __d=matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.dataset.theme=__m==="system"?(__d?"dark":"light"):__m;}catch(e){}</script>
   <link rel="stylesheet" href="libs/fonts/fonts.css?v=0070d79">
-  <link rel="stylesheet" href="css/style.css?v=598fb34">
+  <link rel="stylesheet" href="css/style.css?v=cf61509">
 </head>
 <body>
     <div class="scroll-progress" aria-hidden="true"><span id="scrollBar"></span></div>
@@ -306,6 +306,26 @@
 
 <button type="button" id="toTop" class="to-top" aria-label="回到顶部"><i class="ric" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5m0 0-6 6m6-6 6 6"/></svg></i></button>
 
+<div id="cmpBar" class="cmp-bar" hidden>
+  <span id="cmpBarText"></span>
+  <button type="button" class="chip" id="cmpOpenBtn">对比</button>
+  <button type="button" class="chip" id="cmpClearBtn">清空</button>
+</div>
+
+<dialog id="cmpModal" class="cmp-modal">
+  <div class="cmp-head">
+    <h3>⚖️ 并排对比</h3>
+    <div class="cmp-head-actions">
+      <button type="button" class="chip" id="cmpClearInModal">清空对比</button>
+      <button type="button" class="chip" id="cmpCloseBtn">关闭 ✕</button>
+    </div>
+  </div>
+  <p class="cmp-tip">各家「额度」口径不同（5 小时窗口 / 每周 tokens / credits），不能直接互比；此处保留官方口径原文对照。</p>
+  <div class="table-wrap cmp-wrap">
+    <table id="cmpTable"></table>
+  </div>
+</dialog>
+
 <footer class="footer">
   <p>Coding Plan 全球比价中心 · 数据调研与核实日期 <span id="footDate">2026-09-30</span> · 仅供参考，以各厂商官方页面为准 · 纯静态页面：无统计、无跟踪，仅本地记住主题</p>
 </footer>
@@ -316,7 +336,7 @@
 <script src="js/app-core.js?v=0a7bb1e"></script>
 <script src="js/app-charts.js?v=4adbca6"></script>
 <script src="js/app-picker.js?v=b4eb48f"></script>
-<script src="js/app-tables.js?v=08525f7"></script>
-<script src="js/app-init.js?v=507010c"></script>
+<script src="js/app-tables.js?v=2363819"></script>
+<script src="js/app-init.js?v=9dc7786"></script>
 </body>
 </html>

@@ -33,6 +33,8 @@ const URL_KEYS = {
   mmodel: () => metricsState.model,
   mver: () => metricsState.ver,
   msort: () => metricsState.sortKey + ":" + metricsState.sortDir,
+  /* 并排对比（数据表勾选；空集不写入） */
+  cmp: () => cmpState.items.map((p) => p.vendor + "|" + p.plan).join(";"),
 };
 const URL_DEFAULTS = {};
 const URL_VALID = {
@@ -87,6 +89,14 @@ function applyUrlState() {
     const [key, dir] = ms.split(":");
     if (URL_VALID.msortKeys.has(key)) { metricsState.sortKey = key; metricsState.sortDir = dir === "-1" ? -1 : 1; }
   }
+  const cmp = p.get("cmp");
+  if (cmp != null) {
+    /* 只保留能在 PLANS 里找到的档位，超上限截断；解析失败整体清空 */
+    cmpState.items = cmp.split(";").map((s) => {
+      const [vendor, plan] = s.split("|");
+      return PLANS.find((x) => x.vendor === vendor && x.plan === plan);
+    }).filter(Boolean).slice(0, 4);
+  }
 }
 
 function syncUrl() {
@@ -115,6 +125,9 @@ function syncControlsFromState() {
 
 applyUrlState();
 syncControlsFromState();
+renderCmpBar();
+/* 分享的对比链接：≥2 档时自动弹出对比视图 */
+if (cmpState.items.length >= 2) boot("cmpModal", openCmpModal);
 
 /* 首屏只画「帮我选」以上的内容；图表在滚动接近时再初始化（见 LAZY_CHARTS） */
 boot("theme", initTheme);

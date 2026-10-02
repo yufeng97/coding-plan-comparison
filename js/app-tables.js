@@ -41,9 +41,10 @@ function renderTable() {
       const pmSub = p.priceM > 0 ? `<br/><span class="sub">≈${fmtCNY(cnyOf(p, "M"))}</span>` : "";
       const py = p.priceY == null ? (p.priceM != null && p.priceM > 0 ? '<span class="sub">仅月付</span>' : "—") : priceText(p, "priceY") + `<br/><span class="sub">≈${fmtCNY(cnyOf(p, "Y"))}</span>`;
       const href = safeHref(p.url);
+      const cmpOn = cmpState.items.some((x) => x.vendor === p.vendor && x.plan === p.plan);
       return `<tr>
         <td class="td-vendor">${esc(p.vendor)}</td>
-        <td class="td-plan"><span class="plan-name">${esc(p.plan)}</span><div class="badge-row">${badgeHtml(p)}</div></td>
+        <td class="td-plan"><span class="plan-name">${esc(p.plan)}</span><div class="badge-row">${badgeHtml(p)}</div><button type="button" class="cmp-add${cmpOn ? " on" : ""}" data-vendor="${esc(p.vendor)}" data-plan="${esc(p.plan)}" aria-pressed="${cmpOn}">${cmpOn ? "✓ 对比中" : "＋对比"}</button></td>
         <td><span class="tag tag-${esc(p.cat)}">${esc(CAT_LABEL[p.cat] || p.cat)}</span></td>
         <td class="region-${esc(p.region)}">${esc(REGION_LABEL[p.region] || "")}</td>
         <td class="td-price">${pm}${pmSub}</td>
@@ -122,6 +123,80 @@ function flashBtn(id, text) {
   btn._flashTimer = setTimeout(() => { btn.textContent = btn.dataset.orig; }, 1800);
 }
 
+/* ---------- 并排对比：数据表内勾选 2–4 档，URL（cmp=）可分享 ---------- */
+const cmpState = { items: [] }; /* 元素为 PLANS 条目，顺序即加入顺序 */
+const CMP_MAX = 4;
+
+function cmpAdd(vendor, plan) {
+  if (cmpState.items.some((x) => x.vendor === vendor && x.plan === plan)) return;
+  const p = PLANS.find((x) => x.vendor === vendor && x.plan === plan);
+  if (!p) return;
+  if (cmpState.items.length >= CMP_MAX) { flashBtn("cmpOpenBtn", `最多对比 ${CMP_MAX} 档`); return; }
+  cmpState.items.push(p);
+  renderCmpBar();
+  syncTableCmpButtons();
+  syncUrl();
+}
+function cmpRemove(vendor, plan) {
+  cmpState.items = cmpState.items.filter((x) => !(x.vendor === vendor && x.plan === plan));
+  renderCmpBar();
+  syncTableCmpButtons();
+  syncUrl();
+}
+function cmpClear() {
+  if (!cmpState.items.length) return;
+  cmpState.items = [];
+  renderCmpBar();
+  syncTableCmpButtons();
+  syncUrl();
+  const dlg = document.getElementById("cmpModal");
+  if (dlg && dlg.open) dlg.close();
+}
+function renderCmpBar() {
+  const bar = document.getElementById("cmpBar");
+  if (!bar) return;
+  bar.hidden = cmpState.items.length === 0;
+  document.getElementById("cmpBarText").textContent =
+    `已选 ${cmpState.items.length}/${CMP_MAX} 档` +
+    (cmpState.items.length ? "：" + cmpState.items.map((p) => shortVendor(p.vendor) + " " + p.plan).join("、") : "");
+  document.getElementById("cmpOpenBtn").disabled = cmpState.items.length < 2;
+}
+function syncTableCmpButtons() {
+  document.querySelectorAll("#tableBody .cmp-add").forEach((btn) => {
+    const on = cmpState.items.some((x) => x.vendor === btn.dataset.vendor && x.plan === btn.dataset.plan);
+    btn.textContent = on ? "✓ 对比中" : "＋对比";
+    btn.classList.toggle("on", on);
+  });
+}
+function renderCmpModal() {
+  const items = cmpState.items;
+  const row = (label, cells) => `<tr><th scope="row">${label}</th>${cells}</tr>`;
+  const priceCell = (p) => {
+    const pm = priceText(p, "priceM");
+    const sub = p.priceM > 0 ? `<span class="sub">≈${fmtCNY(cnyOf(p, "M"))}/月</span>` : "";
+    const py = p.priceY != null ? `<span class="sub"> · 年付 ${priceText(p, "priceY")}/月</span>` : "";
+    return `${pm}<br>${sub}${py}`;
+  };
+  const rows = [
+    row("厂商 · 计划", items.map((p) => `<td><b>${esc(p.vendor)}</b><br>${esc(p.plan)}</td>`).join("")),
+    row("定位", items.map((p) => `<td><span class="tag tag-${esc(p.cat)}">${esc(CAT_LABEL[p.cat] || p.cat)}</span> ${esc(REGION_LABEL[p.region] || "")}${badgeHtml(p) ? `<div class="badge-row">${badgeHtml(p)}</div>` : ""}</td>`).join("")),
+    row("价格", items.map((p) => `<td>${priceCell(p)}</td>`).join("")),
+    row("额度（官方口径）", items.map((p) => `<td>${esc(p.quota)}</td>`).join("")),
+    row("模型", items.map((p) => `<td>${esc(p.models)}</td>`).join("")),
+    row("支持工具", items.map((p) => `<td>${esc(p.tools)}</td>`).join("")),
+    row("备注", items.map((p) => `<td>${esc(p.note || "—")}</td>`).join("")),
+    row("来源", items.map((p) => { const href = safeHref(p.url); return `<td>${href ? `<a href="${href}" target="_blank" rel="noopener">官网 ↗</a>` : "—"}</td>`; }).join("")),
+  ];
+  document.getElementById("cmpTable").innerHTML = rows.join("");
+}
+function openCmpModal() {
+  if (cmpState.items.length < 2) return;
+  renderCmpModal();
+  const dlg = document.getElementById("cmpModal");
+  if (typeof dlg.showModal === "function") dlg.showModal();
+  else dlg.setAttribute("open", ""); /* 老浏览器无 dialog：退化为置顶块 */
+}
+
 /* ---------- 动态 / 来源 / 说明 ---------- */
 function dynItem(d) {
   const href = safeHref(d.url);
@@ -192,6 +267,13 @@ function bindEvents() {
   });
   document.addEventListener("click", (e) => {
     if (e.target && e.target.id === "showAllPersonal") { state1.limit = null; renderPersonalChart(); }
+    const addBtn = e.target.closest ? e.target.closest(".cmp-add") : null;
+    if (addBtn) {
+      const on = addBtn.classList.contains("on");
+      if (on) cmpRemove(addBtn.dataset.vendor, addBtn.dataset.plan);
+      else cmpAdd(addBtn.dataset.vendor, addBtn.dataset.plan);
+      return;
+    }
     if (e.target && e.target.id === "showExcludedInTable") {
       const q = state1.q;
       tableState.search = q;
@@ -226,6 +308,17 @@ function bindEvents() {
     colsBtn.textContent = showAll ? "精简列" : "全部列";
     colsBtn.classList.toggle("active", showAll);
   });
+  /* 并排对比 */
+  const cmpOpenBtn = document.getElementById("cmpOpenBtn");
+  if (cmpOpenBtn) cmpOpenBtn.addEventListener("click", openCmpModal);
+  const cmpClearBtn = document.getElementById("cmpClearBtn");
+  if (cmpClearBtn) cmpClearBtn.addEventListener("click", cmpClear);
+  const cmpClearInModal = document.getElementById("cmpClearInModal");
+  if (cmpClearInModal) cmpClearInModal.addEventListener("click", cmpClear);
+  const cmpCloseBtn = document.getElementById("cmpCloseBtn");
+  if (cmpCloseBtn) cmpCloseBtn.addEventListener("click", () => document.getElementById("cmpModal").close());
+  const cmpModal = document.getElementById("cmpModal");
+  if (cmpModal) cmpModal.addEventListener("click", (e) => { if (e.target === cmpModal) cmpModal.close(); }); /* 点击遮罩关闭 */
   /* 排序表头：键盘可达（Tab 聚焦后 Enter/Space 触发，与点击同一处理器） */
   document.querySelectorAll("#planTable thead th.sortable").forEach((th) => {
     th.tabIndex = 0;
