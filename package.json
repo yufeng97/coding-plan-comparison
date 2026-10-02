@@ -5,6 +5,9 @@
   "description": "国内外 AI Coding Plan（编程订阅计划）价格与 token 额度可视化对比",
   "scripts": {
     "serve": "node scripts/serve.js",
-    "validate": "node scripts/validate-data.js"
+    "validate": "node scripts/validate-data.js",
+    "test": "node scripts/test-metrics.js",
+    "bump": "node scripts/bump-versions.js",
+    "check": "node --check js/data.js && node --check js/metrics.js && node --check js/app-core.js && node --check js/app-charts.js && node --check js/app-picker.js && node --check js/app-tables.js && node --check js/app-init.js"
   }
 }

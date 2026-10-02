@@ -13,7 +13,7 @@
 
 ## 使用方式
 
-无需构建。字体与图标已放在 `libs/fonts/`，用浏览器打开 [index.html](index.html) 即可。
+无需构建。字体已放在 `libs/fonts/`（图标为内联 SVG，无字体文件），用浏览器打开 [index.html](index.html) 即可。
 
 本地预览请用项目自带的静态服务器（只监听 127.0.0.1，且不能读到项目目录以外的文件）：
 
@@ -39,11 +39,36 @@ npm run serve
 | 文件 | 说明 |
 |---|---|
 | `index.html` | 页面结构 |
-| `css/style.css` | 样式（亮色默认；支持暗色与跟随系统） |
+| `css/style.css` | 样式（亮色默认；支持暗色与跟随系统；`--cat-*` 类别色变量是图表/图例/标签的单一色源） |
 | `js/data.js` | 全部数据（订阅计划、API 单价、动态、来源；额度对比数据经 `ref` 引用 `PLANS` 的价格，改价只改 `PLANS` 一处） |
-| `js/app.js` | 图表与表格渲染逻辑 |
-| `libs/echarts.min.js` | ECharts 5.5.1（本地化） |
-| `libs/fonts/` | Manrope、IBM Plex Mono 与 Remix Icon（本地化，可用 `node scripts/archive/vendor-fonts.js` 重新下载） |
+| `js/metrics.js` | 额度换算纯计算（`computeMetrics`、`blendPrice`、旗舰判定等；无 DOM，测试与校验器共用） |
+| `js/app-core.js` | 常量、工具、主题、统计卡、内联 SVG 图标 |
+| `js/app-charts.js` | 五个 ECharts 图表渲染 + 免费入口卡 |
+| `js/app-picker.js` | 「帮我选」推荐引擎与卡片 |
+| `js/app-tables.js` | 数据表、额度深度对比表（列配置 `METRICS_COLUMNS` 是表头/排序/渲染的唯一来源）、事件绑定 |
+| `js/app-init.js` | 启动、图表懒加载（IntersectionObserver）、`?debug=1` 自检 |
+| `libs/echarts.min.js` | ECharts 5.5.1 按需精简构建（仅柱状图 + Grid/Tooltip/Legend/Title/AxisPointer，493KB） |
+| `libs/fonts/` | Manrope、IBM Plex Mono 子集（本地化） |
+
+## 开发与架构约定
+
+- **零构建、双击可用**：页面是经典脚本按序加载，**不使用 ES Modules**——`file://` 直开会拦模块请求。加载顺序固定：`data.js → metrics.js → app-core → app-charts → app-picker → app-tables → app-init`。前面的文件只声明，顶层执行语句集中在 `app-init.js`。
+- **单一数据源**：价格走 `ref` 指回 `PLANS`；类别色走 CSS 变量 `--cat-*`（JS 的 `refreshCategoryColors()` 在主题切换时重读）；额度表的列定义只在 `METRICS_COLUMNS` 一处。
+- **缓存版本号**：`index.html` 的 `?v=` 由内容哈希生成，改完资产跑 `npm run bump`（CI 会校验没跑会挂）。
+- **测试与校验**：`npm run validate` 校验数据结构/引用一致性；`npm run test` 用手算基准锁定额度换算公式与模型分类正则（改 `metrics.js` 的假设或正则后必须跑）。CI（`.github/workflows/ci.yml`）在 push/PR 时跑全部三样。
+- **重建精简版 ECharts**（一般不需要）：
+
+  ```bash
+  # 临时目录里：npm i echarts@5.5.1 esbuild
+  # 入口（scripts/echarts-entry.mjs）：
+  #   import * as echarts from "echarts/core";
+  #   import { BarChart } from "echarts/charts";
+  #   import { GridComponent, TooltipComponent, LegendComponent, TitleComponent, AxisPointerComponent } from "echarts/components";
+  #   import { CanvasRenderer } from "echarts/renderers";
+  #   echarts.use([...]); globalThis.echarts = echarts;
+  # 构建：npx esbuild scripts/echarts-entry.mjs --bundle --minify --format=iife --outfile=libs/echarts.min.js
+  ```
+- **调试**：给 URL 加 `?debug=1` 会在控制台跑「帮我选」的 headline 断言（`auditProfiles`），正常访问不执行。
 
 ## 免责声明
 

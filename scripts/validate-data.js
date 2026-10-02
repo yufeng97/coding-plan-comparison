@@ -218,7 +218,7 @@ for (const g of SOURCES) {
 
 /* ---- index.html 引用与文件存在性 ---- */
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-for (const f of ["js/data.js", "js/app.js", "css/style.css", "libs/echarts.min.js"]) {
+for (const f of ["js/data.js", "js/metrics.js", "js/app-core.js", "js/app-charts.js", "js/app-picker.js", "js/app-tables.js", "js/app-init.js", "css/style.css", "libs/echarts.min.js", "libs/fonts/fonts.css"]) {
   check(html.includes(f), `index.html 未引用: ${f}`);
   check(fs.existsSync(path.join(root, f)), `文件不存在: ${f}`);
 }

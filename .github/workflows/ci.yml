@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: 语法检查
+        run: npm run check
+      - name: 数据校验
+        run: npm run validate
+      - name: 额度换算与分类单元测试
+        run: npm run test
+      - name: 缓存版本号与文件一致（改动资产后须跑 npm run bump）
+        run: node scripts/bump-versions.js && git diff --exit-code index.html

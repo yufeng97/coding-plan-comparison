@@ -12,10 +12,10 @@
 <meta property="og:title" content="Coding Plan 全球比价中心 · 每日更新">
 <meta property="og:description" content="一次看全市面上在售的 AI 编程订阅计划：模型官方 / 云厂商 / 第三方工具与中转站的每月价格、可用 token 额度、每百万 tokens 实际成本与免费入口对比。">
 <meta name="twitter:card" content="summary">
-<script>try{var __m=localStorage.getItem("cp-theme")||"system";var __d=matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.dataset.theme=__m==="system"?(__d?"dark":"light"):__m;}catch(e){}</script>
-  <link rel="stylesheet" href="libs/fonts/fonts.css?v=43">
-  <link rel="stylesheet" href="libs/fonts/remixicon.css?v=43">
-  <link rel="stylesheet" href="css/style.css?v=50">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%23b9ff00'/%3E%3Ctext%20x='16'%20y='22'%20font-family='monospace'%20font-size='15'%20font-weight='bold'%20text-anchor='middle'%20fill='%2310110f'%3E%26lt;/%26gt;%3C/text%3E%3C/svg%3E">
+  <script>try{var __m=localStorage.getItem("cp-theme")||"system";var __d=matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.dataset.theme=__m==="system"?(__d?"dark":"light"):__m;}catch(e){}</script>
+  <link rel="stylesheet" href="libs/fonts/fonts.css?v=0070d79">
+  <link rel="stylesheet" href="css/style.css?v=f26502f">
 </head>
 <body>
     <div class="scroll-progress" aria-hidden="true"><span id="scrollBar"></span></div>
@@ -34,7 +34,7 @@
       <a href="#s4">API 按量</a>
       <a href="#table">数据表</a>
     </nav>
-    <button id="themeBtn" class="theme-btn" title="切换主题：暗色 → 亮色 → 跟随系统"><i class="ri-moon-line" aria-hidden="true"></i></button>
+    <button id="themeBtn" class="theme-btn" title="切换主题：暗色 → 亮色 → 跟随系统"><i class="ric" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z"/></svg></i></button>
   </div>
 </header>
 
@@ -131,22 +131,7 @@
       <table id="metricsTable" class="is-compact">
         <thead>
           <tr>
-            <th class="sticky-col">厂商·计划</th>
-            <th class="col-more">版本</th>
-            <th>模型</th>
-            <th class="sortable" data-sort="price"><span>月费</span></th>
-            <th class="col-more">TPS</th>
-            <th class="sortable" data-sort="cpm"><span>💵每M tokens</span></th>
-            <th class="sortable col-more" data-sort="t5h"><span>Tokens/5h</span></th>
-            <th class="col-more">💰价值/5h</th>
-            <th class="sortable col-more" data-sort="r5h"><span>⏫倍率/5h</span></th>
-            <th class="sortable col-more" data-sort="twk"><span>Tokens/周</span></th>
-            <th class="col-more">💰价值/周</th>
-            <th class="sortable col-more" data-sort="rwk"><span>⏫倍率/周</span></th>
-            <th class="sortable" data-sort="tmo"><span>每月 tokens</span></th>
-            <th class="col-more">💰价值/月</th>
-            <th class="sortable col-more" data-sort="rmo"><span>⏫倍率/月</span></th>
-            <th>依据</th>
+            <!-- 列由 js/app-tables.js 的 METRICS_COLUMNS 生成（表头/排序/渲染同源） -->
           </tr>
         </thead>
         <tbody id="metricsBody"></tbody>
@@ -199,12 +184,7 @@
         <button class="chip active" data-billing="M">月付</button>
         <button class="chip" data-billing="Y">年付（折月）</button>
       </div>
-      <div class="legend-inline">
-        <span><i style="background:#5575f6"></i>模型官方订阅</span>
-        <span><i style="background:#16b8a6"></i>第三方工具订阅</span>
-        <span><i style="background:#ff973d"></i>云厂商/API 套餐</span>
-        <span><i style="background:#d4534a"></i>中转站</span>
-      </div>
+      <div class="legend-inline" id="chartLegend"></div>
     </div>
     <div class="chart-card"><div id="chartPersonal" class="chart"></div></div>
     <p class="chart-note" id="notePersonal"></p>
@@ -321,14 +301,19 @@
 
 </main>
 
-<button type="button" id="toTop" class="to-top" aria-label="回到顶部"><i class="ri-arrow-up-line" aria-hidden="true"></i></button>
+<button type="button" id="toTop" class="to-top" aria-label="回到顶部"><i class="ric" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5m0 0-6 6m6-6 6 6"/></svg></i></button>
 
 <footer class="footer">
   <p>Coding Plan 全球比价中心 · 数据调研与核实日期 <span id="footDate">2026-09-30</span> · 仅供参考，以各厂商官方页面为准</p>
 </footer>
 
-<script src="libs/echarts.min.js?v=43"></script>
-<script src="js/data.js?v=56"></script>
-<script src="js/app.js?v=65"></script>
+<script src="libs/echarts.min.js?v=65770fe"></script>
+<script src="js/data.js?v=35a72c2"></script>
+<script src="js/metrics.js?v=cd98041"></script>
+<script src="js/app-core.js?v=1d43a05"></script>
+<script src="js/app-charts.js?v=2e60f2e"></script>
+<script src="js/app-picker.js?v=cb534db"></script>
+<script src="js/app-tables.js?v=a30cacc"></script>
+<script src="js/app-init.js?v=3f6fc1b"></script>
 </body>
 </html>
