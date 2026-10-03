@@ -516,7 +516,14 @@ function setPicker(rowKey, value) {
   pickerState[rowKey] = value;
   renderPicker();
 }
+/* 帮我选四行 chips 的高亮以 pickerState 为准（渲染时自愈，程序化改状态也不会脱钩） */
+function syncPickerChips() {
+  qsa("#picker .picker-row").forEach((row) => {
+    setChipPressed(row.querySelectorAll(".chip"), (chip) => chip.dataset.value === pickerState[row.dataset.pick]);
+  });
+}
 function renderPicker() {
+  syncPickerChips();
   const pool = eligibleProfiles();
   const grid = byId("quickGrid");
   const note = byId("pickerNote");
@@ -535,27 +542,35 @@ function renderPicker() {
   syncUrl();
 }
 function auditProfiles() {
-  const by = (vendor, plan) => PLANS.find((p) => p.vendor === vendor && p.plan === plan);
-  const idOf = (p) => { const h = planProfile(p).headline; return h ? h.id : ""; };
-  const expect = (vendor, plan, id) => {
-    const got = idOf(by(vendor, plan));
-    if (got !== id) console.error("[picker]", vendor, plan, "headline", got || "(none)", "expected", id || "(none)");
-  };
-  expect("Anthropic", "Claude Pro", "claude-opus");
-  expect("Anthropic", "Claude Free", "");
-  expect("Anthropic", "Claude Max 5x", "claude-opus");
-  expect("Cursor", "Pro", "");
-  expect("OpenAI", "ChatGPT Plus", "gpt-sol");
-  expect("智谱 BigModel", "GLM Coding V3 Lite", "glm-5");
-  expect("智谱 BigModel", "GLM Coding V3 Pro", "glm-5");
-  expect("智谱 BigModel", "GLM Coding V3 Max", "glm-5");
-  /* 不限预算时主计划会跳过中档，「省钱档」行必须能把 GLM V3 Pro 补回来 */
-  const maxProfile = planProfile(by("智谱 BigModel", "GLM Coding V3 Max"));
-  if (!cheaperTiers(maxProfile).some((x) => x.p.plan === "GLM Coding V3 Pro")) {
-    console.error("[picker] GLM V3 Max 的省钱档应列出 GLM Coding V3 Pro");
+  /* 断言隐含「国内 + 不限预算 + 不限工具」的筛选前提（如智谱省钱档），先锁定状态，
+     结束后还原，避免 ?debug=1 时污染页面正在展示的推荐。 */
+  const saved = { ...pickerState };
+  Object.assign(pickerState, { budget: "any", region: "cn", tool: "any", task: "both" });
+  try {
+    const by = (vendor, plan) => PLANS.find((p) => p.vendor === vendor && p.plan === plan);
+    const idOf = (p) => { const h = planProfile(p).headline; return h ? h.id : ""; };
+    const expect = (vendor, plan, id) => {
+      const got = idOf(by(vendor, plan));
+      if (got !== id) console.error("[picker]", vendor, plan, "headline", got || "(none)", "expected", id || "(none)");
+    };
+    expect("Anthropic", "Claude Pro", "claude-opus");
+    expect("Anthropic", "Claude Free", "");
+    expect("Anthropic", "Claude Max 5x", "claude-opus");
+    expect("Cursor", "Pro", "");
+    expect("OpenAI", "ChatGPT Plus", "gpt-sol");
+    expect("智谱 BigModel", "GLM Coding V3 Lite", "glm-5");
+    expect("智谱 BigModel", "GLM Coding V3 Pro", "glm-5");
+    expect("智谱 BigModel", "GLM Coding V3 Max", "glm-5");
+    /* 不限预算时主计划会跳过中档，「省钱档」行必须能把 GLM V3 Pro 补回来 */
+    const maxProfile = planProfile(by("智谱 BigModel", "GLM Coding V3 Max"));
+    if (!cheaperTiers(maxProfile).some((x) => x.p.plan === "GLM Coding V3 Pro")) {
+      console.error("[picker] GLM V3 Max 的省钱档应列出 GLM Coding V3 Pro");
+    }
+    const cursor = planProfile(by("Cursor", "Pro"));
+    if (!cursor.internalDaily.some((r) => r.id === "grok")) console.error("[picker] Cursor Pro 应把 Grok 当成分开的日常额度");
+    if (cursor.metered.every((r) => r.id !== "claude-opus")) console.error("[picker] Cursor Pro 的 Opus 应在按量池");
+  } finally {
+    Object.assign(pickerState, saved);
   }
-  const cursor = planProfile(by("Cursor", "Pro"));
-  if (!cursor.internalDaily.some((r) => r.id === "grok")) console.error("[picker] Cursor Pro 应把 Grok 当成分开的日常额度");
-  if (cursor.metered.every((r) => r.id !== "claude-opus")) console.error("[picker] Cursor Pro 的 Opus 应在按量池");
 }
 

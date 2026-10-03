@@ -504,6 +504,7 @@ function renderRankChart() {
   }[rankState.scope];
   byId("rankNote").textContent =
     `共 ${all.length} 档${all.length > rows.length ? `，此处显示前 ${rows.length} 档` : ""}。${tierText}${scopeText}绿色 ≤¥0.30 · 黄色 ≤¥1 · 红色 >¥1。`;
+  syncRankChips();
   syncUrl();
 }
 

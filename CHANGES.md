@@ -2,6 +2,7 @@
 
 > 由每日巡检任务自动追加（每天 09:30），人工调研的大版本更新也记录在此。
 
+## 2026-10-02：审查收尾——chip 高亮改为渲染时自愈（renderRankChart/renderPicker 末尾各调 syncRankChips/syncPickerChips，未来程序化改筛选状态不再脱钩）；auditProfiles 先锁定「国内+不限预算+不限工具」前提再断言、结束后还原，修复带 region=intl 等分享链接打开 ?debug=1 时省钱档断言误报且污染页面状态的问题
 ## 2026-10-02：审查补丁——对比条在点「＋对比」后才出现，只选 1 档时写明「再选 1 档可对比」；「＋对比」改成计划名下的胶囊按钮并补 aria-pressed；排行悬停的每 M 成本颜色与柱色一致，月 tokens / 月倍率缺数据时显示「—」而不是抛错
 ## 2026-10-02：工具链清零——①TypeScript checkJs 静态检查从 57 条诊断清到 0：app-core 新增 byId/qsa/qs/evtTarget 四个 DOM 类型断言助手（统一 83 处元素访问），renderTokensChart 补 TokenRow typedef，额度表行补 payg:false 对齐联合类型；typecheck 纳入 package.json（typescript devDependency）与 CI 第 2 步；②validate-data 报告分级：15 条「无标价（按量/定制）」与 2 条「PAYG 未在 API_PRICES 单列」为设计内状态，从警告降级为「ℹ️ 说明」，警告只留给巡检需人工确认的问题——每日巡检输出恢复零警告
 ## 2026-10-02：P2-8 并排对比——数据表计划列内「＋对比」勾选 2–4 档（超限拦截、再点移除），底部浮动条聚合显示，dialog 并排对比 8 个字段（价格含折算与年付、额度官方口径、模型、支持工具、备注、来源）；对比集写入 URL cmp= 参数可分享，打开带参链接自动恢复并弹出对比视图（无效档位过滤、超上限截断）；file:// 直开降级兼容。审查修复：init 的 cmp 截断改用 CMP_MAX 常量、dialog 关闭加守卫、移动端回顶按钮避让浮动条、dialog 补 aria-labelledby、validator 增加对比容器检查

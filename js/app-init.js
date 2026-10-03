@@ -116,9 +116,7 @@ function syncUrl() {
 
 /* 恢复 URL 状态后，把输入框/下拉/chip 的显示值同步到状态 */
 function syncControlsFromState() {
-  qsa("#picker .picker-row").forEach((row) => {
-    setChipPressed(row.querySelectorAll(".chip"), (chip) => chip.dataset.value === pickerState[row.dataset.pick]);
-  });
+  syncPickerChips(); /* renderPicker 渲染时也会自愈同步，这里先跑一次避免首帧高亮错档 */
   setChipPressed(qsa("#chipCat .chip"), (chip) => chip.dataset.cat === state1.cat);
   setChipPressed(qsa("#chipRegion .chip"), (chip) => chip.dataset.region === state1.region);
   setChipPressed(qsa("#chipBilling .chip"), (chip) => chip.dataset.billing === state1.billing);
