@@ -165,7 +165,9 @@ test("限量只看计划名", () => {
 
 console.log("auditProfiles（帮我选）");
 test("默认数据下 auditProfiles 不报错", () => {
-  const files = ["js/data.js", "js/metrics.js", "js/app-core.js", "js/app-charts.js", "js/app-picker.js", "js/app-tables.js"];
+  const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+  const files = [...html.matchAll(/<script\b[^>]*\bsrc=["'](js\/[^"'?]+)(?:\?[^"']*)?["']/g)]
+    .map((match) => match[1]).filter((file) => file !== "js/app-init.js");
   const code = files.map((f) => fs.readFileSync(path.join(root, f), "utf8")).join("\n;\n");
   const errors = [];
   const fakeConsole = { log() {}, warn() {}, error(...a) { errors.push(a.join(" ")); } };
@@ -184,6 +186,7 @@ test("默认数据下 auditProfiles 不报错", () => {
     location: { search: "", pathname: "/index.html", hash: "" },
     history: { replaceState() {} },
     navigator: {},
+    URLSearchParams,
   };
   box.globalThis = box;
   vm.createContext(box);

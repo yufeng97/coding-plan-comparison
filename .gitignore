@@ -1,3 +1,6 @@
 .vercel
 js/data.js.bak
 node_modules/
+.site-build/
+playwright-report/
+test-results/

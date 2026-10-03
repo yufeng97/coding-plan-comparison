@@ -14,8 +14,8 @@
 <meta name="twitter:card" content="summary">
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%23b9ff00'/%3E%3Ctext%20x='16'%20y='22'%20font-family='monospace'%20font-size='15'%20font-weight='bold'%20text-anchor='middle'%20fill='%2310110f'%3E%26lt;/%26gt;%3C/text%3E%3C/svg%3E">
   <script>try{var __m=localStorage.getItem("cp-theme")||"system";var __d=matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.dataset.theme=__m==="system"?(__d?"dark":"light"):__m;}catch(e){}</script>
-  <link rel="stylesheet" href="libs/fonts/fonts.css?v=0070d79">
-  <link rel="stylesheet" href="css/style.css?v=22b2f1a">
+  <link rel="stylesheet" href="libs/fonts/fonts.css?v=2f1d0cb">
+  <link rel="stylesheet" href="css/style.css?v=48cb796">
 </head>
 <body>
     <div class="scroll-progress" aria-hidden="true"><span id="scrollBar"></span></div>
@@ -135,6 +135,7 @@
         <option value="V2">V2（老用户续费）</option>
       </select>
       <span class="table-count" id="metricsCount" role="status" aria-live="polite"></span>
+      <span class="table-sort-hint" id="metricsSortHint" role="status" aria-live="polite"></span>
       <button type="button" class="chip" id="metricsResetBtn">清除筛选</button>
       <button type="button" class="chip" id="metricsToggle">展开 5 小时 / 每周明细</button>
     </div>
@@ -359,7 +360,8 @@
   <button type="button" class="chip" id="cmpClearBtn">清空</button>
 </div>
 
-<dialog id="cmpModal" class="cmp-modal" aria-labelledby="cmpModalTitle">
+<div id="cmpBackdrop" class="cmp-fallback-backdrop" hidden aria-hidden="true"></div>
+<dialog id="cmpModal" class="cmp-modal" role="dialog" tabindex="-1" aria-labelledby="cmpModalTitle">
   <div class="cmp-head">
     <h3 id="cmpModalTitle">⚖️ 并排对比</h3>
     <div class="cmp-head-actions">
@@ -377,13 +379,15 @@
   <p>Coding Plan 全球比价中心 · 数据调研与核实日期 <span id="footDate">2026-10-01</span> · 仅供参考，以各厂商官方页面为准 · 纯静态页面：无统计、无跟踪，仅本地记住主题</p>
 </footer>
 
-<script src="libs/echarts.min.js?v=65770fe"></script>
-<script src="js/data.js?v=b036cc0"></script>
+<script src="libs/echarts.min.js?v=14c5497"></script>
+<script src="js/data.js?v=b76f0c4"></script>
 <script src="js/metrics.js?v=107a63b"></script>
-<script src="js/app-core.js?v=4453a1e"></script>
-<script src="js/app-charts.js?v=df97a57"></script>
-<script src="js/app-picker.js?v=afdc620"></script>
-<script src="js/app-tables.js?v=ae68671"></script>
-<script src="js/app-init.js?v=f46e49a"></script>
+<script src="js/app-core.js?v=3294c3e"></script>
+<script src="js/app-state.js?v=5ed5f07"></script>
+<script src="js/app-charts.js?v=30d2cd2"></script>
+<script src="js/app-picker.js?v=b16ea65"></script>
+<script src="js/app-tables.js?v=b37bcbf"></script>
+<script src="js/app-events.js?v=3d1904e"></script>
+<script src="js/app-init.js?v=1bbc55c"></script>
 </body>
 </html>

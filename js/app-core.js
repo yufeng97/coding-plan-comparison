@@ -54,13 +54,12 @@ const RATE = RATE_USD_CNY;
 const MODEL_ROLES_ASOF = (MODEL_ROLES.find((r) => r.asOf) || {}).asOf || META.updated;
 
 /* ---------- 计划主索引：METRICS_RAW / ESTIMATES / PLAN_TOKENS 经 ref 引用 PLANS 的价格（单一数据源） ---------- */
-const PLAN_INDEX = new Map(PLANS.map((p) => [p.vendor + "|" + p.plan, p]));
 function resolvePlan(m) {
-  /* ref 可解析时以 PLANS 价格为准。解析失败则跳过该行，避免展示条目里可能过期的价格。 */
-  if (Array.isArray(m.ref)) {
-    const p = PLAN_INDEX.get(m.ref[0] + "|" + m.ref[1]);
-    if (p) return { ...m, priceM: p.priceM, cur: p.cur, windowPeriod: m.windowPeriod || p.windowPeriod };
-    console.warn("[data] ref 未解析，已跳过:", m.ref.join(" | "));
+  /* ref 可解析时，身份、名称和价格统一取 PLANS；model 等额度口径仍由该行保留。 */
+  if (m.ref != null) {
+    const p = findPlanReference(m.ref);
+    if (p) return { ...m, vendor: p.vendor, plan: p.plan, priceM: p.priceM, cur: p.cur, windowPeriod: m.windowPeriod || p.windowPeriod };
+    console.warn("[data] ref 未解析，已跳过:", m.ref);
     return null;
   }
   return m;
@@ -121,8 +120,8 @@ function badgeHtml(p) {
 }
 function metricOfferOk(m) {
   if (/已停售|已下架|老用户|一次性|预付/.test(m.plan || "")) return false;
-  if (Array.isArray(m.ref)) {
-    const p = PLAN_INDEX.get(m.ref[0] + "|" + m.ref[1]);
+  if (m.ref != null) {
+    const p = findPlanReference(m.ref);
     if (p && (isRetiredPlan(p) || isOneTimePlan(p) || isRenewalOnly(p) || !offerable(p))) return false;
   }
   return true;
@@ -222,10 +221,12 @@ function makeChart(id) {
   return chartCache[id];
 }
 let resizeTimer;
-window.addEventListener("resize", () => {
-  clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(rerenderCharts, 150);
-});
+function bindChartResize() {
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(rerenderCharts, 150);
+  }, { passive: true });
+}
 
 /* ---------- 主题（暗/亮/跟随系统）与图表调色板 ---------- */
 let PAL = {};

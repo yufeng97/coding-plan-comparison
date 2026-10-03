@@ -1,13 +1,12 @@
-/* ============ Coding Plan 比价中心 — 数据表 / 额度表 / 绑定 ============ */
+/* ============ Coding Plan 比价中心 — 数据表 / 额度表 / 并排对比 ============ */
 "use strict";
 
 /* ---------- 数据表 ---------- */
-const tableState = { search: "", cat: "all", region: "all", sortKey: "priceM", sortDir: 1 };
 
 function focusTableControl(el) {
   if (!el || el.isConnected === false || el.disabled || typeof el.focus !== "function") return false;
   el.focus({ preventScroll: true });
-  return true;
+  return document.activeElement === el;
 }
 function tableFeedback(message) {
   const el = byId("tableFeedback");
@@ -25,6 +24,39 @@ function syncSortHeader(th, label, key, dir, firstDir = 1) {
   th.title = `点击或按 Enter / 空格，按${label}${next}排序`;
   th.setAttribute("aria-label", `${label}${active ? "，当前" + direction(dir) : ""}，激活后${next}排序`);
 }
+
+function planMonthlyPriceCell(p) {
+  const sub = p.priceM > 0 ? `<br><span class="sub">≈${fmtCNY(cnyOf(p, "M"))}/${esc(priceUnit(p))}</span>` : "";
+  return esc(planPriceLabel(p)) + sub;
+}
+function planAnnualPriceCell(p) {
+  if (p.priceY == null) return isOneTimePlan(p) ? "—" : '<span class="sub">未列年付价</span>';
+  return esc(planPriceLabel(p, "Y")) + `<br><span class="sub">≈${fmtCNY(cnyOf(p, "Y"))}/${p.seat ? "席位/月" : "月"}</span>`;
+}
+
+/* 数据表与两种导出的列定义同源；单位及更新元数据只在导出里单列。 */
+const PLAN_COLUMNS = [
+  { id: "vendor", label: "厂商", cls: "td-vendor", value: (p) => p.vendor },
+  { id: "plan", label: "计划", cls: "td-plan", value: (p) => p.plan,
+    cell: (p) => `<span class="plan-name">${esc(p.plan)}</span><div class="badge-row">${badgeHtml(p)}</div><button type="button" class="cmp-add" data-plan-id="${esc(p.id || "")}" data-vendor="${esc(p.vendor)}" data-plan="${esc(p.plan)}">＋对比</button>` },
+  { id: "cat", label: "类别", value: (p) => CAT_LABEL[p.cat] || p.cat,
+    cell: (p) => `<span class="tag tag-${esc(p.cat)}">${esc(CAT_LABEL[p.cat] || p.cat)}</span>` },
+  { id: "region", label: "地区", value: (p) => REGION_LABEL[p.region] || "", tdClass: (p) => "region-" + esc(p.region) },
+  { id: "priceM", label: "价格 / 周期", cls: "td-price", value: (p) => planPriceLabel(p), cell: planMonthlyPriceCell },
+  { id: "priceUnit", label: "计价单位", table: false, value: priceUnit },
+  { id: "priceY", label: "年付折月", cls: "td-price", value: (p) => p.priceY == null ? "" : planPriceLabel(p, "Y"),
+    markdownValue: (p) => p.priceY == null ? "—" : planPriceLabel(p, "Y"), cell: planAnnualPriceCell },
+  { id: "quota", label: "额度（官方口径）", cls: "td-quota", value: (p) => resolvedField(p, "quota") },
+  { id: "models", label: "模型", cls: "td-models col-opt", value: (p) => resolvedField(p, "models") },
+  { id: "tools", label: "支持工具", cls: "col-opt", value: (p) => resolvedField(p, "tools") },
+  { id: "note", label: "备注", cls: "td-note col-opt", value: (p) => resolvedField(p, "note"),
+    markdownValue: (p) => resolvedField(p, "note") || "—", cell: (p) => esc(resolvedField(p, "note") || "—") },
+  { id: "url", label: "来源", cls: "td-trust", value: (p) => p.url || "",
+    cell: (p) => { const href = safeHref(p.url); return `${href ? `<a href="${href}" target="_blank" rel="noopener">官网</a>` : "—"}<span class="sub">在售 · 数据截至 ${esc(META.updated)}</span>`; } },
+  { id: "updated", label: "数据更新日期", table: false, markdown: false, value: () => META.updated },
+  { id: "rate", label: "参考汇率（USD/CNY）", table: false, markdown: false, value: () => RATE },
+];
+const PLAN_TABLE_COLUMNS = PLAN_COLUMNS.filter((c) => c.table !== false);
 
 /* 筛选 + 排序集中在这里：渲染与 CSV/Markdown 导出共用同一份结果 */
 function computeTableRows() {
@@ -46,39 +78,23 @@ function computeTableRows() {
 }
 
 function renderTable() {
+  const focused = /** @type {HTMLElement | null} */ (document.activeElement);
+  const focusedPlanId = focused && byId("tableBody").contains(focused) && focused.classList.contains("cmp-add") ? focused.dataset.planId : "";
   const rows = computeTableRows();
   byId("planTable").classList.toggle("is-empty", rows.length === 0);
   const onSale = PLANS.filter(isOnSalePlan);
   const k = tableState.sortKey;
   byId("tableCount").textContent = `${rows.length} / ${onSale.length} 档`;
   qsa("#planTable thead th.sortable").forEach((th) => {
-    syncSortHeader(th, th.dataset.sort === "priceM" ? "价格 / 周期" : "年付折月", k, tableState.sortDir);
+    const col = PLAN_COLUMNS.find((c) => c.id === th.dataset.sort);
+    if (col) syncSortHeader(th, col.label, k, tableState.sortDir);
   });
   const filters = [tableState.search.trim() ? `关键词「${tableState.search.trim()}」` : "",
     tableState.cat === "all" ? "" : CAT_LABEL[tableState.cat], tableState.region === "all" ? "" : REGION_LABEL[tableState.region]].filter(Boolean).join(" · ");
-  byId("tableBody").innerHTML = rows.length ? rows
-    .map((p) => {
-      const pm = esc(planPriceLabel(p));
-      const pmSub = p.priceM > 0 ? `<br/><span class="sub">≈${fmtCNY(cnyOf(p, "M"))}/${esc(priceUnit(p))}</span>` : "";
-      const py = p.priceY == null
-        ? (isOneTimePlan(p) ? "—" : '<span class="sub">未列年付价</span>')
-        : esc(planPriceLabel(p, "Y")) + `<br/><span class="sub">≈${fmtCNY(cnyOf(p, "Y"))}/${p.seat ? "席位/月" : "月"}</span>`;
-      const href = safeHref(p.url);
-      return `<tr>
-        <td class="td-vendor">${esc(p.vendor)}</td>
-        <td class="td-plan"><span class="plan-name">${esc(p.plan)}</span><div class="badge-row">${badgeHtml(p)}</div><button type="button" class="cmp-add" data-vendor="${esc(p.vendor)}" data-plan="${esc(p.plan)}">＋对比</button></td>
-        <td><span class="tag tag-${esc(p.cat)}">${esc(CAT_LABEL[p.cat] || p.cat)}</span></td>
-        <td class="region-${esc(p.region)}">${esc(REGION_LABEL[p.region] || "")}</td>
-        <td class="td-price">${pm}${pmSub}</td>
-        <td class="td-price">${py}</td>
-        <td class="td-quota">${esc(resolvedField(p, "quota"))}</td>
-        <td class="td-models col-opt">${esc(resolvedField(p, "models"))}</td>
-        <td class="col-opt">${esc(resolvedField(p, "tools"))}</td>
-        <td class="td-note col-opt">${esc(resolvedField(p, "note") || "—")}</td>
-        <td class="td-trust">${href ? `<a href="${href}" target="_blank" rel="noopener">官网</a>` : "—"}<span class="sub">在售 · 数据截至 ${esc(META.updated)}</span></td>
-      </tr>`;
-    })
-    .join("") : `<tr><td colspan="11" class="table-empty"><b>没有匹配的在售方案</b><p>${esc(filters || "当前筛选")}没有结果。可以调整关键词或清除筛选。${cmpState.items.length ? "已选的对比方案仍保留。" : ""}</p><button type="button" class="chip" id="tableEmptyResetBtn" data-reset-table>清除筛选</button></td></tr>`;
+  byId("tableBody").innerHTML = rows.length ? rows.map((p) => `<tr>${PLAN_TABLE_COLUMNS.map((col) => {
+    const cls = col.tdClass ? col.tdClass(p) : col.cls || "";
+    return `<td${cls ? ` class="${cls}"` : ""}>${col.cell ? col.cell(p) : esc(col.value(p))}</td>`;
+  }).join("")}</tr>`).join("") : `<tr><td colspan="${PLAN_TABLE_COLUMNS.length}" class="table-empty"><b>没有匹配的在售方案</b><p>${esc(filters || "当前筛选")}没有结果。可以调整关键词或清除筛选。${cmpState.items.length ? "已选的对比方案仍保留。" : ""}</p><button type="button" class="chip" id="tableEmptyResetBtn" data-reset-table>清除筛选</button></td></tr>`;
   ["exportCsvBtn", "copyMdBtn"].forEach((id) => {
     const btn = byId(id);
     if (!btn) return;
@@ -89,7 +105,11 @@ function renderTable() {
   if (reset) reset.disabled = !tableState.search && tableState.cat === "all" && tableState.region === "all" && tableState.sortKey === "priceM" && tableState.sortDir === 1;
   tableFeedback("");
   syncTableCmpButtons();
-  syncUrl();
+  /* 防抖搜索期间用户可能已 Tab 到方案按钮；按身份找回重绘后的同一操作。 */
+  if (focusedPlanId && focused.isConnected === false) {
+    const replacement = [...qsa("#tableBody .cmp-add")].find((btn) => btn.dataset.planId === focusedPlanId);
+    if (!focusTableControl(replacement)) focusTableControl(byId("searchInput"));
+  }
 }
 
 function resetTableFilters() {
@@ -110,13 +130,9 @@ function tableExportName(ext) {
   return `coding-plans-${safe}-${day}.${ext}`;
 }
 function tableRowsCsv(rows) {
-  const head = ["厂商", "计划", "类别", "地区", "价格 / 周期", "计价单位", "年付折月", "额度（官方口径）", "模型", "支持工具", "备注", "来源", "数据更新日期", "参考汇率（USD/CNY）"];
   const cell = (v) => '"' + String(v ?? "").replace(/"/g, '""') + '"';
-  const lines = [head.map(cell).join(",")].concat(rows.map((p) => [
-    p.vendor, p.plan, CAT_LABEL[p.cat] || p.cat, REGION_LABEL[p.region] || "",
-    planPriceLabel(p), priceUnit(p), p.priceY == null ? "" : planPriceLabel(p, "Y"),
-    resolvedField(p, "quota"), resolvedField(p, "models"), resolvedField(p, "tools"), resolvedField(p, "note"), p.url || "", META.updated, RATE,
-  ].map(cell).join(",")));
+  const lines = [PLAN_COLUMNS.map((c) => cell(c.label)).join(",")]
+    .concat(rows.map((p) => PLAN_COLUMNS.map((c) => cell(c.value(p))).join(",")));
   return lines.join("\r\n");
 }
 function exportTableCsv() {
@@ -136,13 +152,10 @@ function exportTableCsv() {
 }
 function tableRowsMarkdown(rows) {
   const escMd = (v) => String(v ?? "").replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
-  const head = "| 厂商 | 计划 | 类别 | 地区 | 价格 / 周期 | 计价单位 | 年付折月 | 额度（官方口径） | 模型 | 支持工具 | 备注 | 来源 |";
-  const sep = "|---|---|---|---|---|---|---|---|---|---|---|---|";
-  const body = rows.map((p) => "| " + [
-    p.vendor, p.plan, CAT_LABEL[p.cat] || p.cat, REGION_LABEL[p.region] || "",
-    planPriceLabel(p), priceUnit(p), p.priceY == null ? "—" : planPriceLabel(p, "Y"),
-    resolvedField(p, "quota"), resolvedField(p, "models"), resolvedField(p, "tools"), resolvedField(p, "note") || "—", p.url || "",
-  ].map(escMd).join(" | ") + " |");
+  const columns = PLAN_COLUMNS.filter((c) => c.markdown !== false);
+  const head = "| " + columns.map((c) => c.label).join(" | ") + " |";
+  const sep = "|" + columns.map(() => "---").join("|") + "|";
+  const body = rows.map((p) => "| " + columns.map((c) => escMd(c.markdownValue ? c.markdownValue(p) : c.value(p))).join(" | ") + " |");
   const meta = `数据更新日期：${META.updated}；参考汇率：1 USD ≈ ${RATE} CNY。金额包含计价单位；一次性、席位及每 4 周价格不能直接视为个人月费。`;
   return [meta, "", head, sep].concat(body).join("\n");
 }
@@ -178,10 +191,44 @@ function flashBtn(id, text) {
 }
 
 /* ---------- 并排对比：数据表内勾选 2–4 档，URL（cmp=）可分享 ---------- */
-const cmpState = { items: [] }; /* 元素为 PLANS 条目，顺序即加入顺序 */
-const CMP_MAX = 4;
 let cmpReturnFocus = null;
 let cmpNeedsFocusRestore = false;
+let cmpBackgroundState = [];
+
+function isCmpModalOpen() {
+  const dlg = byId("cmpModal");
+  return !!dlg && (dlg.open === true || dlg.getAttribute("open") != null);
+}
+function cmpFocusableElements() {
+  const dlg = byId("cmpModal");
+  if (!dlg) return [];
+  return [...dlg.querySelectorAll("a[href], button, input, select, textarea, [tabindex]")]
+    .filter((el) => !el.disabled && !el.hidden && el.getAttribute("tabindex") !== "-1" && !el.closest("[hidden]"));
+}
+function setCmpBackgroundInert(on) {
+  if (on) {
+    if (cmpBackgroundState.length) return;
+    const dlg = byId("cmpModal"), backdrop = byId("cmpBackdrop");
+    cmpBackgroundState = Array.from(document.body.children).filter((el) => el !== dlg && el !== backdrop && !/^(SCRIPT|STYLE)$/.test(el.tagName))
+      .map((el) => ({ el, inert: el.getAttribute("inert"), ariaHidden: el.getAttribute("aria-hidden") }));
+    cmpBackgroundState.forEach(({ el }) => { el.setAttribute("inert", ""); el.setAttribute("aria-hidden", "true"); });
+  } else {
+    cmpBackgroundState.forEach(({ el, inert, ariaHidden }) => {
+      if (inert == null) el.removeAttribute("inert"); else el.setAttribute("inert", inert);
+      if (ariaHidden == null) el.removeAttribute("aria-hidden"); else el.setAttribute("aria-hidden", ariaHidden);
+    });
+    cmpBackgroundState = [];
+  }
+}
+function finishCmpModalClose() {
+  const backdrop = byId("cmpBackdrop");
+  if (backdrop) backdrop.hidden = true;
+  const dlg = byId("cmpModal");
+  if (dlg) dlg.removeAttribute("aria-modal");
+  document.body.classList.remove("has-cmp-modal");
+  setCmpBackgroundInert(false);
+  restoreCmpFocus();
+}
 
 function restoreCmpFocus() {
   if (!cmpNeedsFocusRestore) return;
@@ -192,9 +239,9 @@ function restoreCmpFocus() {
 }
 
 function cmpAdd(vendor, plan) {
-  if (cmpState.items.some((x) => x.vendor === vendor && x.plan === plan)) return;
-  const p = PLANS.find((x) => x.vendor === vendor && x.plan === plan);
+  const p = findPlanReference(plan == null ? vendor : [vendor, plan]);
   if (!p) return;
+  if (cmpState.items.some((x) => x.id === p.id)) return;
   if (cmpState.items.length >= CMP_MAX) {
     flashBtn("cmpOpenBtn", `最多对比 ${CMP_MAX} 档`);
     tableFeedback(`最多对比 ${CMP_MAX} 档，请先移出一档再添加。`);
@@ -207,14 +254,15 @@ function cmpAdd(vendor, plan) {
   tableFeedback(`已加入 ${shortVendor(p.vendor)} ${p.plan}。当前选择 ${cmpState.items.length}/${CMP_MAX} 档${cmpState.items.length === 1 ? "，再选一档即可比较" : ""}。`);
 }
 function cmpRemove(vendor, plan) {
-  const index = cmpState.items.findIndex((x) => x.vendor === vendor && x.plan === plan);
+  const index = cmpState.items.findIndex((x) => plan == null ? x.id === vendor : x.vendor === vendor && x.plan === plan);
   if (index < 0) return;
-  const modalOpen = !!byId("cmpModal")?.open;
-  cmpState.items = cmpState.items.filter((x) => !(x.vendor === vendor && x.plan === plan));
+  const removed = cmpState.items[index];
+  const modalOpen = isCmpModalOpen();
+  cmpState.items = cmpState.items.filter((x) => x.id !== removed.id);
   renderCmpBar();
   syncTableCmpButtons();
   syncUrl();
-  tableFeedback(`已移出 ${shortVendor(vendor)} ${plan}。当前选择 ${cmpState.items.length}/${CMP_MAX} 档。`);
+  tableFeedback(`已移出 ${shortVendor(removed.vendor)} ${removed.plan}。当前选择 ${cmpState.items.length}/${CMP_MAX} 档。`);
   if (modalOpen) {
     if (cmpState.items.length < 2) closeCmpModal();
     else {
@@ -252,7 +300,7 @@ function renderCmpBar() {
 }
 function syncTableCmpButtons() {
   qsa("#tableBody .cmp-add").forEach((btn) => {
-    const on = cmpState.items.some((x) => x.vendor === btn.dataset.vendor && x.plan === btn.dataset.plan);
+    const on = cmpState.items.some((x) => x.id === btn.dataset.planId);
     btn.textContent = on ? "✓ 对比中" : "＋对比";
     const full = !on && cmpState.items.length >= CMP_MAX;
     if (full) btn.textContent = "对比已满";
@@ -281,7 +329,7 @@ function renderCmpModal() {
     return `${pm}<br>${sub}${py}`;
   };
   const rows = [
-    row("厂商 · 计划", items.map((p) => `<th scope="col"><b>${esc(p.vendor)}</b><br>${esc(p.plan)}<br><button type="button" class="chip cmp-remove" data-vendor="${esc(p.vendor)}" data-plan="${esc(p.plan)}" aria-label="移出 ${esc(shortVendor(p.vendor))} ${esc(p.plan)}">移出对比</button></th>`).join(""), [], "col"),
+    row("厂商 · 计划", items.map((p) => `<th scope="col"><b>${esc(p.vendor)}</b><br>${esc(p.plan)}<br><button type="button" class="chip cmp-remove" data-plan-id="${esc(p.id || "")}" data-vendor="${esc(p.vendor)}" data-plan="${esc(p.plan)}" aria-label="移出 ${esc(shortVendor(p.vendor))} ${esc(p.plan)}">移出对比</button></th>`).join(""), [], "col"),
     row("定位", items.map((p) => `<td><span class="tag tag-${esc(p.cat)}">${esc(CAT_LABEL[p.cat] || p.cat)}</span> ${esc(REGION_LABEL[p.region] || "")}${badgeHtml(p) ? `<div class="badge-row">${badgeHtml(p)}</div>` : ""}</td>`).join("")),
     row("价格", items.map((p) => {
       const best = lowest != null && cnyOf(p, "M") === lowest;
@@ -300,20 +348,29 @@ function openCmpModal() {
   const dlg = byId("cmpModal");
   if (!dlg) return;
   renderCmpModal();
-  if (dlg.open) return;
+  if (isCmpModalOpen()) return;
   const active = document.activeElement;
   cmpReturnFocus = active && active !== document.body && !dlg.contains(active) ? active : null;
   cmpNeedsFocusRestore = true;
-  if (typeof dlg.showModal === "function") dlg.showModal();
-  else dlg.setAttribute("open", ""); /* 老浏览器无 dialog：退化为置顶块 */
+  const fallback = typeof dlg.showModal !== "function";
+  dlg.classList.toggle("cmp-fallback", fallback);
+  dlg.setAttribute("aria-modal", "true");
+  document.body.classList.add("has-cmp-modal");
+  if (!fallback) dlg.showModal();
+  else {
+    dlg.setAttribute("open", "");
+    const backdrop = byId("cmpBackdrop");
+    if (backdrop) backdrop.hidden = false;
+    setCmpBackgroundInert(true);
+  }
   focusTableControl(byId("cmpCloseBtn"));
 }
 function closeCmpModal() {
   const dlg = byId("cmpModal");
-  if (!dlg || !dlg.open) return;
-  if (typeof dlg.close === "function") dlg.close();
+  if (!dlg || !isCmpModalOpen()) return;
+  if (!dlg.classList.contains("cmp-fallback") && typeof dlg.close === "function") dlg.close();
   else dlg.removeAttribute("open");
-  restoreCmpFocus();
+  finishCmpModalClose();
 }
 
 /* ---------- 动态 / 来源 / 说明 ---------- */
@@ -347,166 +404,7 @@ function renderMisc() {
   if (heroDate) heroDate.textContent = META.updated;
 }
 
-/* ---------- 事件绑定 ---------- */
-function bindEvents() {
-  ["tableCount", "metricsCount", "cmpBarText"].forEach((id) => {
-    const el = byId(id);
-    if (el) { el.setAttribute("role", "status"); el.setAttribute("aria-live", "polite"); el.setAttribute("aria-atomic", "true"); }
-  });
-  qsa("#planTable thead th, #metricsTable thead th").forEach((th) => (th.scope = "col"));
-  qsa("#chipCat .chip").forEach((c) =>
-    c.addEventListener("click", () => {
-      setChipPressed(qsa("#chipCat .chip"), (x) => x === c);
-      state1.cat = c.dataset.cat;
-      state1.limit = PERSONAL_DEFAULT_LIMIT;
-      renderPersonalChart();
-    })
-  );
-  qsa("#chipRegion .chip").forEach((c) =>
-    c.addEventListener("click", () => {
-      setChipPressed(qsa("#chipRegion .chip"), (x) => x === c);
-      state1.region = c.dataset.region;
-      state1.limit = PERSONAL_DEFAULT_LIMIT;
-      renderPersonalChart();
-    })
-  );
-  qsa("#chipBilling .chip").forEach((c) =>
-    c.addEventListener("click", () => {
-      setChipPressed(qsa("#chipBilling .chip"), (x) => x === c);
-      state1.billing = c.dataset.billing;
-      state1.limit = PERSONAL_DEFAULT_LIMIT;
-      renderPersonalChart();
-    })
-  );
-  let searchTimer;
-  byId("chartSearch").addEventListener("input", (e) => {
-    state1.q = e.target.value;
-    state1.limit = PERSONAL_DEFAULT_LIMIT; /* 搜索后清空关键词仍回到默认档数，避免停留在「显示全部」状态 */
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(renderPersonalChart, 150);
-  });
-  document.addEventListener("click", (e) => {
-    const target = evtTarget(e);
-    if (!target) return;
-    if (target.id === "showAllPersonal") { state1.limit = state1.limit == null ? PERSONAL_DEFAULT_LIMIT : null; renderPersonalChart(); }
-    if (target.id === "personalResetBtn") { clearTimeout(searchTimer); resetPersonalFilters(); focusTableControl(byId("chartSearch")); return; }
-    if (target.closest && target.closest("[data-reset-table]")) { clearTimeout(tableSearchTimer); resetTableFilters(); return; }
-    if (target.closest && target.closest("[data-reset-metrics]")) { resetMetricsFilters(); return; }
-    const addBtn = target.closest ? target.closest(".cmp-add") : null;
-    if (addBtn) {
-      const on = addBtn.classList.contains("on");
-      if (on) cmpRemove(addBtn.dataset.vendor, addBtn.dataset.plan);
-      else cmpAdd(addBtn.dataset.vendor, addBtn.dataset.plan);
-      return;
-    }
-    const removeBtn = target.closest ? target.closest(".cmp-remove") : null;
-    if (removeBtn) { cmpRemove(removeBtn.dataset.vendor, removeBtn.dataset.plan); return; }
-    if (target && target.id === "showExcludedInTable") {
-      const q = state1.q;
-      tableState.search = q;
-      tableState.cat = "all";
-      tableState.region = "all";
-      const input = byId("searchInput");
-      if (input) input.value = q;
-      byId("selectCat").value = "all";
-      byId("selectRegion").value = "all";
-      renderTable();
-      navigateToSection("#table");
-    }
-    const rel = target.closest ? target.closest("[data-set-picker]") : null;
-    if (rel) {
-      const eq = rel.dataset.setPicker.indexOf("=");
-      if (eq > 0) setPicker(rel.dataset.setPicker.slice(0, eq), rel.dataset.setPicker.slice(eq + 1));
-    }
-  });
-  let tableSearchTimer;
-  byId("searchInput").addEventListener("input", (e) => {
-    tableState.search = e.target.value;
-    clearTimeout(tableSearchTimer);
-    tableSearchTimer = setTimeout(renderTable, 150); /* 与图表搜索同一防抖节奏 */
-  });
-  byId("selectCat").addEventListener("change", (e) => { tableState.cat = e.target.value; renderTable(); });
-  byId("selectRegion").addEventListener("change", (e) => { tableState.region = e.target.value; renderTable(); });
-  const resetBtn = byId("tableResetBtn");
-  if (resetBtn) resetBtn.addEventListener("click", () => { clearTimeout(tableSearchTimer); resetTableFilters(); });
-  /* 数据表导出与列开关 */
-  const csvBtn = byId("exportCsvBtn");
-  if (csvBtn) csvBtn.addEventListener("click", exportTableCsv);
-  const mdBtn = byId("copyMdBtn");
-  if (mdBtn) mdBtn.addEventListener("click", copyTableMarkdown);
-  const colsBtn = byId("tableColsToggle");
-  if (colsBtn) {
-    const sync = () => {
-      const showAll = byId("planTable").classList.contains("show-all-cols");
-      colsBtn.textContent = showAll ? "收起详细列" : "展开详细列";
-      colsBtn.title = showAll ? "隐藏模型、支持工具和备注列" : "显示模型、支持工具和备注列";
-      colsBtn.classList.toggle("active", showAll);
-      colsBtn.setAttribute("aria-expanded", String(showAll));
-      colsBtn.setAttribute("aria-controls", "planTable");
-    };
-    sync();
-    colsBtn.addEventListener("click", () => { byId("planTable").classList.toggle("show-all-cols"); sync(); });
-  }
-  /* 并排对比 */
-  const cmpOpenBtn = byId("cmpOpenBtn");
-  if (cmpOpenBtn) cmpOpenBtn.addEventListener("click", openCmpModal);
-  const cmpClearBtn = byId("cmpClearBtn");
-  if (cmpClearBtn) cmpClearBtn.addEventListener("click", cmpClear);
-  const cmpClearInModal = byId("cmpClearInModal");
-  if (cmpClearInModal) cmpClearInModal.addEventListener("click", cmpClear);
-  const cmpCloseBtn = byId("cmpCloseBtn");
-  if (cmpCloseBtn) cmpCloseBtn.addEventListener("click", closeCmpModal);
-  const cmpModal = byId("cmpModal");
-  if (cmpModal) {
-    cmpModal.addEventListener("close", restoreCmpFocus);
-    cmpModal.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") { e.preventDefault(); closeCmpModal(); }
-    });
-    cmpModal.addEventListener("click", (e) => {
-      if (e.target !== cmpModal) return;
-      const r = cmpModal.getBoundingClientRect();
-      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) closeCmpModal();
-    });
-  }
-  /* 排序表头：键盘可达（Tab 聚焦后 Enter/Space 触发，与点击同一处理器） */
-  qsa("#planTable thead th.sortable").forEach((th) => {
-    th.tabIndex = 0;
-    const sort = () => {
-      if (tableState.sortKey === th.dataset.sort) tableState.sortDir *= -1;
-      else { tableState.sortKey = th.dataset.sort; tableState.sortDir = 1; }
-      renderTable();
-    };
-    th.addEventListener("click", sort);
-    th.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); sort(); } });
-  });
-  qsa("#picker .picker-row").forEach((row) => {
-    row.querySelectorAll(".chip").forEach((chip) => {
-      chip.addEventListener("click", () => {
-        setChipPressed(row.querySelectorAll(".chip"), (x) => x === chip);
-        pickerState[row.dataset.pick] = chip.dataset.value;
-        renderPicker();
-      });
-    });
-  });
-  qsa("#chipRank .chip").forEach((chip) => {
-    chip.addEventListener("click", () => {
-      rankState.tier = chip.dataset.rank;
-      syncRankChips();
-      renderRankChart();
-    });
-  });
-  /* 排行图口径：官方每周 tokens / 含官方折算 / 含全部估算 */
-  qsa("#chipRScope .chip").forEach((chip) => {
-    chip.addEventListener("click", () => {
-      rankState.scope = chip.dataset.rscope;
-      syncRankChips();
-      renderRankChart();
-    });
-  });
-}
-
 /* ---------- 额度深度对比表 ---------- */
-const metricsState = { model: "all", ver: "all", sortKey: "cpm", sortDir: 1 };
 /* 额度换算的常量与纯函数（WEEKS_PER_MONTH、blendPrice、computeMetrics 等）在 js/metrics.js */
 
 function resetMetricsFilters() {
@@ -521,11 +419,12 @@ function resetMetricsFilters() {
    加列只改这个数组；.col-more 控制该列在紧凑模式下是否隐藏。 */
 const METRICS_COLUMNS = [
   { id: "plan", label: "厂商·计划", cls: "sticky-col",
-    cell: ({ m }) => `${m.isEst ? '<span class="est-badge" title="社区/推算估算值，非官方数字">≈估</span> ' : ""}${esc(m.vendor)}<br><span style="color:var(--text-dim);font-size:11px">${esc(m.plan)}</span>` },
+    cell: ({ m }) => `${m.isEst ? '<span class="est-badge" title="社区/推算估算值，非官方数字">≈估</span> ' : ""}<span class="metrics-vendor">${esc(m.vendor)}</span><span class="metrics-plan">${esc(m.plan)}</span>`,
+    title: ({ m }) => m.vendor + " · " + m.plan },
   { id: "ver", label: "版本", cls: "col-more",
     cell: ({ m }) => `<span class="ver-tag ${m.ver === "V3" ? "ver-v3" : m.ver === "V2" ? "ver-v2" : "ver-na"}">${esc(m.ver)}</span>` },
   { id: "model", label: "模型", cls: "model-cell",
-    cell: ({ m }) => `${esc(displayModelName(m.model))}${(m.note || "").startsWith("对照") ? '<br><span style="color:var(--text-faint);font-size:10px">套餐列表未列 · 牌价对照</span>' : ""}${listPriceHint(m)}` },
+    cell: ({ m }) => `${esc(displayModelName(m.model))}${(m.note || "").startsWith("对照") ? '<br><span class="model-reference-note">套餐列表未列 · 牌价对照</span>' : ""}${listPriceHint(m)}` },
   { id: "price", label: "月费", sortKey: "price", asc: true, cls: "td-price",
     cell: ({ c, isPayg }) => (isPayg ? "按量" : fmtCNY(c.priceCNY)) },
   { id: "tps", label: "TPS", cls: "col-more tps-cell",
@@ -553,7 +452,7 @@ const METRICS_COLUMNS = [
     tdClass: ({ c, isPayg }) => (isPayg ? "" : " " + rateClass(c.rwk)),
     cell: ({ c, isPayg }) => fmtRate(isPayg ? null : c.rwk) },
   { id: "tmo", label: "每月 tokens", sortKey: "tmo", cls: "tok-cell",
-    cell: ({ c, isPayg }) => (isPayg ? '<span style="color:var(--text-faint)">无套餐额度</span>' : fTokCell(c.moLow, c.moHigh)) },
+    cell: ({ c, isPayg }) => (isPayg ? '<span style="color:var(--faint)">无套餐额度</span>' : fTokCell(c.moLow, c.moHigh)) },
   { id: "valMo", label: "💰价值/月", cls: "col-more val-cell",
     cell: ({ c, isPayg, cur }) => (isPayg ? "—" : fmtVal(c.valMo, cur)) },
   { id: "rmo", label: "⏫倍率/月", sortKey: "rmo", cls: "col-more rate-cell",
@@ -590,7 +489,7 @@ const METRICS_SORT_GET = {
 /* 无额度（credits 制无牌价）的时段显示占位 */
 function fTokCell(lo, hi, emptyLabel = "credits制") {
   return lo == null
-    ? `<span style="color:var(--text-faint)">${esc(emptyLabel)}</span>`
+    ? `<span style="color:var(--faint)">${esc(emptyLabel)}</span>`
     : `${fmtTok(lo)}${hi > lo ? "–" + fmtTok(hi) : ""}`;
 }
 function fmtRate(v) { return v == null ? "—" : `${v.toFixed(1)}×`; }
@@ -610,9 +509,9 @@ function fmtUnit(n) {
 function listPriceHint(m) {
   if (typeof m.apiIn !== "number") return "";
   const sym = m.cur === "USD" ? "$" : "¥";
-  return `<br><span style="color:var(--text-faint);font-size:10.5px" title="模型牌价：输入 / 输出 / 缓存命中，每百万 tokens">${sym}${fmtUnit(m.apiIn)} / ${sym}${fmtUnit(m.apiOut)} / 缓存 ${sym}${fmtUnit(m.apiCache)}</span>`;
+  return `<span class="model-price" title="模型牌价：输入 / 输出 / 缓存命中，每百万 tokens"><span>${sym}${fmtUnit(m.apiIn)}</span> / <span>${sym}${fmtUnit(m.apiOut)}</span> / <span>缓存 ${sym}${fmtUnit(m.apiCache)}</span></span>`;
 }
-function cpmColor(v) { return v == null ? "var(--text-faint)" : v <= 0.3 ? "var(--green)" : v <= 1 ? "var(--gold)" : "var(--red)"; }
+function cpmColor(v) { return v == null ? "var(--faint)" : v <= 0.3 ? "var(--green)" : v <= 1 ? "var(--gold)" : "var(--red)"; }
 
 /* 数据来源标注：每行额度的出处与置信度 */
 function provenance(m) {
@@ -684,11 +583,19 @@ function renderMetricsTable() {
   if (reset) reset.disabled = metricsState.model === "all" && metricsState.ver === "all" && metricsState.sortKey === "cpm" && metricsState.sortDir === 1;
   const sortColumn = METRICS_COLUMNS.find((c) => c.sortKey === metricsState.sortKey);
   const sortDescription = sortColumn ? `${esc(sortColumn.label)}${metricsState.sortDir === 1 ? "从低到高" : "从高到低"}` : "当前列";
+  renderMetricsSortHint();
 
   byId("metricsNote").innerHTML =
     `<b>💵每M tokens</b> = 月费÷月 tokens 中值（统一折算¥，越低越便宜；绿色≤¥0.30、黄色≤¥1、红色&gt;¥1）。标「官方 API 按量」的行没有月费，这一列用同一套 80/20、95% 缓存假设把低峰牌价折成人民币，所以能和套餐排在一起；模型名下方仍是原始输入 / 输出 / 缓存命中。套餐行模型名下方的牌价也不是套餐的每 M 成本。同一请求额度下，牌价更高的模型「额度价值 / 倍率」更高，每 M 成本不变。带牌价的 credits 按这套单价把面值折成 tokens；没有逐模型牌价的美元 credits 仍按假设均价 ¥10/M，且不进入「真实单价」排行。标「官方系数」的行用厂商公布的积分系数、按同一套假设摊成 tokens，置信度为中，不进入每周 tokens 图。<br>` +
     `计算假设：输入/输出=80/20、缓存命中率 95%、每周 5 个 5h 窗口、每月 4.33 周。官方周 tokens：Tokens/5h=周÷5，Tokens/月=周×4.33。请求数制若同时写了每 5 小时、每周、每月上限，三列各自用该窗口的次数，不按「周÷5、周×4.33」互相换算，因此 Tokens/5h×5 可以不等于 Tokens/周。⏫额度倍率 = 该时段额度价值 ÷ 该时段分摊月费（5h=月费/21.65，周=月费/4.33，月=月费）。<b>「依据」列</b>标注出处与置信度（<span class="conf conf-hi">高</span>官方/credits · <span class="conf conf-mid">中</span>实测/区间/牌价折算 · <span class="conf conf-lo">低</span>毛利/第三方/请求折算）。当前 ${shownRows.length} 行（含 <b>${payg.length}</b> 行官方按量、<b>${rows.filter((r) => r.m.isEst).length}</b> 行「≈估」），按${sortDescription}排序。`;
-  syncUrl();
+}
+
+function renderMetricsSortHint() {
+  const el = byId("metricsSortHint");
+  const col = METRICS_COLUMNS.find((c) => c.sortKey === metricsState.sortKey);
+  if (!el || !col) return;
+  const hidden = byId("metricsTable").classList.contains("is-compact") && (col.cls || "").split(" ").includes("col-more");
+  el.textContent = `排序：${col.label}${metricsState.sortDir === 1 ? "从低到高" : "从高到低"}${hidden ? "（明细列，展开查看）" : ""}`;
 }
 
 /* 模型筛选下拉：从全部数据源动态填充 */
@@ -700,38 +607,5 @@ function populateModelFilter() {
   if (metricsState.model !== "all") {
     if ([...sel.options].some((o) => o.value === metricsState.model)) sel.value = metricsState.model;
     else metricsState.model = "all";
-  }
-}
-
-function bindMetricsEvents() {
-  byId("metricsModel").addEventListener("change", (e) => { metricsState.model = e.target.value; renderMetricsTable(); });
-  byId("metricsVer").addEventListener("change", (e) => { metricsState.ver = e.target.value; renderMetricsTable(); });
-  const resetBtn = byId("metricsResetBtn");
-  if (resetBtn) resetBtn.addEventListener("click", resetMetricsFilters);
-  qsa("#metricsTable th.sortable").forEach((th) => {
-    th.tabIndex = 0;
-    const sort = () => {
-      if (metricsState.sortKey === th.dataset.sort) metricsState.sortDir *= -1;
-      else {
-        metricsState.sortKey = th.dataset.sort;
-        const col = METRICS_COLUMNS.find((x) => x.sortKey === th.dataset.sort);
-        metricsState.sortDir = col && col.asc ? 1 : -1;
-      }
-      renderMetricsTable();
-    };
-    th.addEventListener("click", sort);
-    th.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); sort(); } });
-  });
-  const metricsToggle = byId("metricsToggle");
-  if (metricsToggle) {
-    const sync = () => {
-      const compact = byId("metricsTable").classList.contains("is-compact");
-      metricsToggle.textContent = compact ? "展开 5 小时 / 每周明细" : "收起明细";
-      metricsToggle.classList.toggle("active", !compact);
-      metricsToggle.setAttribute("aria-expanded", String(!compact));
-      metricsToggle.setAttribute("aria-controls", "metricsTable");
-    };
-    sync();
-    metricsToggle.addEventListener("click", () => { byId("metricsTable").classList.toggle("is-compact"); sync(); });
   }
 }

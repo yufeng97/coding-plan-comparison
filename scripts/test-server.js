@@ -27,9 +27,11 @@ async function main() {
   const server = createServer();
   await new Promise((resolve, reject) => {
     server.once("error", reject);
-    server.listen(0, "127.0.0.1", resolve);
+    server.listen(0, "127.0.0.1", () => resolve(undefined));
   });
-  const port = server.address().port;
+  const address = server.address();
+  assert.ok(address && typeof address !== "string");
+  const port = address.port;
   let tempDir = null;
   let testLink = null;
   try {

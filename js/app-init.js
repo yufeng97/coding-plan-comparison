@@ -1,6 +1,5 @@
 /* ============ Coding Plan 比价中心 — 启动与懒加载 ============ */
 "use strict";
-const DEBUG_MODE = new URLSearchParams(location.search).has("debug");
 
 /* ---------- 初始化：单块失败不阻断其余区块 ---------- */
 function boot(name, fn) {
@@ -11,138 +10,23 @@ function boot(name, fn) {
   }
 }
 
-/* ---------- URL 状态化：筛选/排序可分享、刷新可恢复 ----------
- * 各区块的 render 函数是状态变更的唯一汇聚点，末尾统一调 syncUrl()；
- * 这里在首次渲染前读 URL 恢复状态（带白名单校验，非法参数忽略）。
- * file:// 直开时 history 不可写，降级为仅当前页生效。 */
-const URL_KEYS = {
-  /* 「帮我选」（最常被分享的一组） */
-  budget: () => pickerState.budget,
-  region: () => pickerState.region,
-  tool: () => pickerState.tool,
-  task: () => pickerState.task,
-  /* 个人订阅价格全景 */
-  pcat: () => state1.cat,
-  pregion: () => state1.region,
-  pbilling: () => state1.billing,
-  pq: () => state1.q,
-  plimit: () => state1.limit == null ? "all" : String(state1.limit),
-  /* 性价比排行 */
-  rank: () => rankState.tier,
-  rscope: () => rankState.scope,
-  /* 数据表 */
-  q: () => tableState.search,
-  tcat: () => tableState.cat,
-  tregion: () => tableState.region,
-  tsort: () => tableState.sortKey + ":" + tableState.sortDir,
-  /* 额度深度对比表 */
-  mmodel: () => metricsState.model,
-  mver: () => metricsState.ver,
-  msort: () => metricsState.sortKey + ":" + metricsState.sortDir,
-  /* 并排对比（数据表勾选；空集不写入） */
-  cmp: () => cmpState.items.map((p) => p.vendor + "|" + p.plan).join(";"),
-};
-const URL_DEFAULTS = {};
-const URL_VALID = {
-  budget: new Set(["0", "100", "200", "500", "any"]),
-  region: new Set(["all", "cn", "intl"]),
-  tool: new Set(["any", "claude", "codex", "cursor", "own"]),
-  task: new Set(["hard", "both", "daily"]),
-  pcat: new Set(["all", "official", "tool", "cloud"]),
-  pregion: new Set(["all", "cn", "intl"]),
-  pbilling: new Set(["M", "Y"]),
-  plimit: new Set([String(PERSONAL_DEFAULT_LIMIT), "all"]),
-  rank: new Set(["flagship", "all"]),
-  rscope: new Set(["official", "credits", "all"]),
-  tcat: new Set(["all", "official", "tool", "cloud", "team"]),
-  tregion: new Set(["all", "cn", "intl"]),
-  tsortKeys: new Set(["priceM", "priceY"]),
-  mver: new Set(["all", "V3", "V2"]),
-  msortKeys: new Set(["price", "cpm", "t5h", "r5h", "twk", "rwk", "tmo", "rmo"]),
-};
-
-let URL_SNAPSHOTTED = false;
-function applyUrlState() {
-  /* 默认值只快照一次：重复调用会以"非默认"状态为基线，污染 syncUrl 的判断 */
-  if (!URL_SNAPSHOTTED) {
-    for (const k of Object.keys(URL_KEYS)) URL_DEFAULTS[k] = URL_KEYS[k]();
-    URL_SNAPSHOTTED = true;
-  }
-  const p = new URLSearchParams(location.search);
-  const pick = (k, valid, target, key) => {
-    const v = p.get(k);
-    if (v != null && (!valid || valid.has(v))) target[key] = v;
-  };
-  pick("budget", URL_VALID.budget, pickerState, "budget");
-  pick("region", URL_VALID.region, pickerState, "region");
-  pick("tool", URL_VALID.tool, pickerState, "tool");
-  pick("task", URL_VALID.task, pickerState, "task");
-  pick("pcat", URL_VALID.pcat, state1, "cat");
-  pick("pregion", URL_VALID.pregion, state1, "region");
-  pick("pbilling", URL_VALID.pbilling, state1, "billing");
-  if (p.get("pq") != null) state1.q = p.get("pq");
-  if (URL_VALID.plimit.has(p.get("plimit"))) state1.limit = p.get("plimit") === "all" ? null : PERSONAL_DEFAULT_LIMIT;
-  pick("rank", URL_VALID.rank, rankState, "tier");
-  pick("rscope", URL_VALID.rscope, rankState, "scope");
-  if (p.get("q") != null) tableState.search = p.get("q");
-  pick("tcat", URL_VALID.tcat, tableState, "cat");
-  pick("tregion", URL_VALID.tregion, tableState, "region");
-  const ts = p.get("tsort");
-  if (ts) {
-    const [key, dir] = ts.split(":");
-    if (URL_VALID.tsortKeys.has(key)) { tableState.sortKey = key; tableState.sortDir = dir === "-1" ? -1 : 1; }
-  }
-  if (p.get("mmodel") != null) metricsState.model = p.get("mmodel");
-  pick("mver", URL_VALID.mver, metricsState, "ver");
-  const ms = p.get("msort");
-  if (ms) {
-    const [key, dir] = ms.split(":");
-    if (URL_VALID.msortKeys.has(key)) { metricsState.sortKey = key; metricsState.sortDir = dir === "-1" ? -1 : 1; }
-  }
-  const cmp = p.get("cmp");
-  if (cmp != null) {
-    /* 只保留能在 PLANS 里找到的档位，超上限截断；解析失败整体清空 */
-    cmpState.items = cmp.split(";").map((s) => {
-      const [vendor, plan] = s.split("|");
-      return PLANS.find((x) => x.vendor === vendor && x.plan === plan);
-    }).filter((x, i, all) => x && all.indexOf(x) === i).slice(0, CMP_MAX);
-  }
-}
-
-function syncUrl() {
-  /* 仅写入仍受支持的状态，旧链接中的 country 等退役参数会在首次渲染时清除。 */
-  const p = new URLSearchParams();
-  if (DEBUG_MODE) p.set("debug", "1");
-  for (const [k, get] of Object.entries(URL_KEYS)) {
-    const v = String(get());
-    if (v !== String(URL_DEFAULTS[k]) && v !== "") p.set(k, v);
-  }
-  const qs = p.toString();
-  const hash = location.hash || "";
-  try { history.replaceState(null, "", (qs ? "?" + qs : location.pathname) + hash); }
-  catch (e) { /* file:// 直开时地址栏不可写，状态仅在当前页生效 */ }
-}
-
-/* 恢复 URL 状态后，把输入框/下拉/chip 的显示值同步到状态 */
-function syncControlsFromState() {
-  syncPickerChips(); /* renderPicker 渲染时也会自愈同步，这里先跑一次避免首帧高亮错档 */
-  setChipPressed(qsa("#chipCat .chip"), (chip) => chip.dataset.cat === state1.cat);
-  setChipPressed(qsa("#chipRegion .chip"), (chip) => chip.dataset.region === state1.region);
-  setChipPressed(qsa("#chipBilling .chip"), (chip) => chip.dataset.billing === state1.billing);
-  const setVal = (id, v) => { const el = byId(id); if (el) el.value = v; };
-  setVal("chartSearch", state1.q);
-  setVal("searchInput", tableState.search);
-  setVal("selectCat", tableState.cat);
-  setVal("selectRegion", tableState.region);
-  setVal("metricsVer", metricsState.ver); /* 模型下拉在 populateModelFilter 填充后再设值 */
-  syncRankChips();
-}
 
 applyUrlState();
 syncControlsFromState();
 renderCmpBar();
 /* 分享的对比链接：≥2 档时自动弹出对比视图 */
-if (cmpState.items.length >= 2) boot("cmpModal", openCmpModal);
+if (cmpState.items.length >= 2) {
+  boot("cmpModal", openCmpModal);
+  /* 初次载入的原生 fragment 导航可能清空降级窗口焦点；载入完成后恢复一次。 */
+  window.addEventListener("load", () => {
+    const restore = () => {
+      const dialog = byId("cmpModal");
+      if (isCmpModalOpen() && dialog && !dialog.contains(document.activeElement)) focusTableControl(byId("cmpCloseBtn"));
+    };
+    if (typeof requestAnimationFrame === "function") requestAnimationFrame(restore);
+    else restore();
+  }, { once: true });
+}
 
 /* 首屏只画「帮我选」以上的内容；图表在滚动接近时再初始化（见 LAZY_CHARTS） */
 boot("theme", initTheme);
@@ -187,7 +71,7 @@ function prepareSection(hash) {
   });
   return target;
 }
-function navigateToSection(hash, updateHistory = true) {
+function navigateToSection(hash, updateHistory = true, moveFocus = true) {
   const target = prepareSection(hash);
   if (!target) return;
   if (updateHistory && location.hash !== hash) {
@@ -196,6 +80,10 @@ function navigateToSection(hash, updateHistory = true) {
   }
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   target.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+  if (moveFocus) {
+    if (target.getAttribute("tabindex") == null) target.setAttribute("tabindex", "-1");
+    target.focus({ preventScroll: true });
+  }
 }
 document.addEventListener("click", (e) => {
   const target = evtTarget(e);
@@ -218,7 +106,55 @@ document.addEventListener("click", (e) => {
     }
   }
 });
-window.addEventListener("hashchange", () => navigateToSection(location.hash, false));
+/* Back/Forward 恢复整份状态。恢复期间视图不允许写回 URL。 */
+let historyRestoreVersion = 0;
+function restoreHistoryState() {
+  const restoreVersion = ++historyRestoreVersion;
+  const focused = /** @type {HTMLElement | null} */ (document.activeElement);
+  const focusedClass = focused && (focused.classList.contains("cmp-remove") ? "cmp-remove" : focused.classList.contains("cmp-add") ? "cmp-add" : "");
+  const focusedPlanId = focusedClass ? focused.dataset.planId : "";
+  clearTimeout(personalSearchTimer);
+  clearTimeout(tableSearchTimer);
+  URL_RESTORING = true;
+  try {
+    applyUrlState();
+    populateModelFilter();
+    syncControlsFromState();
+    renderPicker();
+    renderTable();
+    renderMetricsTable();
+    renderCmpBar();
+    if (isCmpModalOpen()) {
+      if (cmpState.items.length < 2) closeCmpModal();
+      else renderCmpModal();
+    }
+    rerenderCharts();
+    if (location.hash) navigateToSection(location.hash, false, false);
+    /* 关闭窗口已找回可用入口时保留；仅修复被重绘或隐藏后丢失的方案按钮焦点。 */
+    const currentFocus = document.activeElement;
+    const modalClosed = focusedClass === "cmp-remove" && !isCmpModalOpen();
+    const focusLost = modalClosed
+      ? currentFocus === focused || currentFocus === document.body || !currentFocus || currentFocus.isConnected === false
+      : focused && focused.isConnected === false;
+    if (focusedClass && focusLost) {
+      const selector = focusedClass === "cmp-add" ? "#tableBody .cmp-add" : isCmpModalOpen() ? "#cmpTable .cmp-remove" : "";
+      const replacement = selector && focusedPlanId ? [...qsa(selector)].find((btn) => btn.dataset.planId === focusedPlanId) : null;
+      if (!focusTableControl(replacement)) focusTableControl(byId(isCmpModalOpen() ? "cmpCloseBtn" : "searchInput"));
+    }
+    /* 原生历史锚点处理可能在 popstate 返回后再次清空焦点；只补回这一轮已恢复的位置。 */
+    const restoredFocus = /** @type {HTMLElement | null} */ (document.activeElement);
+    if (focusedClass && restoredFocus && restoredFocus !== document.body && typeof requestAnimationFrame === "function") {
+      const restoredUrl = location.href;
+      requestAnimationFrame(() => {
+        const active = document.activeElement;
+        if (restoreVersion !== historyRestoreVersion || location.href !== restoredUrl || (active && active !== document.body && active.isConnected !== false)) return;
+        if (!focusTableControl(restoredFocus)) focusTableControl(byId(isCmpModalOpen() ? "cmpCloseBtn" : "searchInput"));
+      });
+    }
+  } finally { URL_RESTORING = false; }
+}
+window.addEventListener("popstate", restoreHistoryState);
+window.addEventListener("hashchange", () => navigateToSection(location.hash, false, false));
 if (typeof IntersectionObserver === "function") {
   const lazyIo = new IntersectionObserver(
     (entries) => {
@@ -249,12 +185,15 @@ function renderLazyIfNeeded() {
 window.addEventListener("scroll", renderLazyIfNeeded, { passive: true });
 window.addEventListener("resize", renderLazyIfNeeded, { passive: true });
 renderLazyIfNeeded();
-/* 再兜一层：隐藏标签页不派发 scroll 事件、IO 不产帧，用短轮询保证最终一定渲染；
-   全部画完后自清理。后台标签下浏览器会把间隔节流到 ≥1s，无碍。 */
+/* 有限首屏兜底；恢复前台时再检查，不在首屏持续轮询。 */
+let lazyAttempts = 0;
 const lazyTimer = setInterval(() => {
   renderLazyIfNeeded();
-  if (LAZY_DONE.size >= LAZY_CHARTS.length) clearInterval(lazyTimer);
+  if (++lazyAttempts >= 5 || LAZY_DONE.size >= LAZY_CHARTS.length) clearInterval(lazyTimer);
 }, 800);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) renderLazyIfNeeded();
+});
 
 /* picker 的 headline 断言只在调试时跑：?debug=1 */
 if (DEBUG_MODE) {
@@ -282,6 +221,8 @@ if (DEBUG_MODE) {
   btn.addEventListener("click", () => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+    const title = qs(".hero h1");
+    if (title) { title.setAttribute("tabindex", "-1"); title.focus({ preventScroll: true }); }
   });
   window.addEventListener("scroll", toggle, { passive: true });
   toggle();
@@ -289,5 +230,7 @@ if (DEBUG_MODE) {
 
 bindEvents();
 bindMetricsEvents();
+bindChartResize();
+syncUrl();
 /* 直接打开分享锚点时也先铺好上方布局。 */
-if (location.hash) navigateToSection(location.hash, false);
+if (location.hash) navigateToSection(location.hash, false, false);

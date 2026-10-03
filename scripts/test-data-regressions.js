@@ -14,7 +14,7 @@ function load() {
   const box = { console };
   vm.createContext(box);
   vm.runInContext(dataSource + "\n;\n" + metricsSource +
-    "\n;globalThis.__D={PLANS,METRICS_RAW,ESTIMATES,UNCERTAIN,RATE_USD_CNY,resolvedField,matchModelRoles,windowTokens,computeMetrics,isFlagshipModelName,hasIncludedModelQuota,isPurchaseCountryAllowed,isPersonalMonthly,isOnSalePlan,isFourWeekPlan};", box);
+    "\n;globalThis.__D={PLANS,METRICS_RAW,ESTIMATES,UNCERTAIN,RATE_USD_CNY,resolvedField,matchModelRoles,windowTokens,computeMetrics,isFlagshipModelName,hasIncludedModelQuota,isPurchaseCountryAllowed,isPersonalMonthly,isOnSalePlan,isFourWeekPlan,findPlanReference};", box);
   return box.__D;
 }
 const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-8, `${actual} != ${expected}`);
@@ -24,7 +24,8 @@ const plan = (d, vendor, name) => {
   return found;
 };
 const withPrice = (d, m) => {
-  const p = plan(d, m.ref[0], m.ref[1]);
+  const p = d.findPlanReference(m.ref);
+  assert.ok(p, `未解析的价格引用 ${JSON.stringify(m.ref)}`);
   return { ...m, priceM: p.priceM, cur: p.cur, windowPeriod: p.windowPeriod };
 };
 
@@ -99,7 +100,9 @@ test("Gemini Pro、连字符 Kimi 为旗舰，轻量变体仍排除", () => {
   for (const name of ["Gemini 3.1 Flash", "Kimi-K2.6-mini", "Kimi-K3-Flash"]) assert.equal(d.isFlagshipModelName(name), false, name);
 });
 
-for (const [model, upper] of [["GPT-6 Sol", 150], ["GPT-6.1 Sol", 160]]) {
+/** @type {[string, number][]} */
+const modelRanges = [["GPT-6 Sol", 150], ["GPT-6.1 Sol", 160]];
+for (const [model, upper] of modelRanges) {
   test(model + " Plus 使用条数 × 单次 tokens 派生区间", () => {
     const d = load();
     const row = d.ESTIMATES.find((m) => m.plan === "ChatGPT Plus" && m.model === model);
@@ -230,11 +233,39 @@ test("明确附赠编码工具的计划保持编程入口资格", () => {
   assert.notEqual(plan(d, "xAI", "SuperGrok Lite").codingSurface, true);
 });
 
+test("永久 ID 在改名和重排后保持引用与权益继承", () => {
+  const d = load();
+  const original = plan(d, "Cursor", "Pro");
+  const inherited = d.PLANS.find((p) => p.fieldRefs?.models === original.id);
+  assert.ok(inherited);
+  const before = d.resolvedField(inherited, "models");
+  original.vendor = "改名厂商";
+  original.plan = "改名计划";
+  d.PLANS.reverse();
+  assert.equal(d.findPlanReference(original.id), original);
+  assert.equal(d.resolvedField(inherited, "models"), before);
+  assert.equal(d.findPlanReference(["改名厂商", "改名计划"]), original);
+  assert.equal(d.findPlanReference("plan-missing"), null);
+});
+
+test("所有继承权益在整表更名重排后保持不变", () => {
+  const d = load();
+  const previous = new Map();
+  for (const p of d.PLANS) for (const field of ["models", "tools", "quota"]) previous.set(p.id + "|" + field, d.resolvedField(p, field));
+  d.PLANS.reverse();
+  for (const p of d.PLANS) { p.vendor = "厂商 " + p.id; p.plan = "档位 " + p.id; }
+  for (const p of d.PLANS) for (const field of ["models", "tools", "quota"]) assert.equal(d.resolvedField(p, field), previous.get(p.id + "|" + field));
+});
+
 test("真实数据校验通过（内存运行）", () => {
   const result = validateFixture("");
   assert.equal(result.exitCode, 0, result.output);
 });
-for (const [label, mutation, expected] of [
+/** @type {[string, string, RegExp][]} */
+const invalidFixtures = [
+  ["重复永久ID", "PLANS[1].id=PLANS[0].id;", /重复 id/],
+  ["缺失永久ID", "delete PLANS[0].id;", /缺有效永久 id/],
+  ["无效ID引用", "METRICS_RAW[0].ref='plan-missing';", /ref 无法解析/],
   ["NaN 月费", "PLANS.find(p=>p.vendor==='Google'&&p.plan==='Google AI Pro').priceM=NaN;", /priceM 必须为有限非负数/],
   ["Infinity 月费", "PLANS.find(p=>p.vendor==='Google'&&p.plan==='Google AI Pro').priceM=Infinity;", /priceM 必须为有限非负数/],
   ["负月费", "PLANS.find(p=>p.vendor==='Google'&&p.plan==='Google AI Pro').priceM=-1;", /priceM 必须为有限非负数/],
@@ -242,7 +273,8 @@ for (const [label, mutation, expected] of [
   ["负输出价", "METRICS_RAW[0].apiOut=-1;", /缺完整有限牌价/],
   ["过高缓存价", "METRICS_RAW[0].apiCache=METRICS_RAW[0].apiIn+1;", /缺完整有限牌价/],
   ["倒置官方条数区间", "ESTIMATES.find(m=>m.model==='GPT-6.1 Sol').reqHighPer5h=1;", /区间上下限颠倒/],
-]) {
+];
+for (const [label, mutation, expected] of invalidFixtures) {
   test("校验器拒绝 " + label + " fixture", () => {
     const result = validateFixture(mutation);
     assert.equal(result.exitCode, 1, result.output);

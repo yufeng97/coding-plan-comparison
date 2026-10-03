@@ -2,7 +2,6 @@
 "use strict";
 
 /* ---------- 帮我选 ---------- */
-const pickerState = { budget: "200", region: "cn", tool: "any", task: "both" };
 const PICK_ACCENT = ["#34d399", "#f59e0b", "#6366f1", "#f472b6"];
 /* 选了具体工具时，该工具自家厂商的订阅单独出一张对照卡（如点 Cursor 给 Cursor Pro）。
    自家订阅不一定赢下主计划（比如 Cursor 的旗舰走按量池），但不该从推荐里消失。 */
@@ -14,7 +13,7 @@ const OWN_VENDOR_NOTE = {
 };
 
 function metricMatchesPlan(m, p) {
-  if (Array.isArray(m.ref)) return m.ref[0] === p.vendor && m.ref[1] === p.plan;
+  if (m.ref != null) return findPlanReference(m.ref) === p;
   return m.vendor === p.vendor && m.plan === p.plan;
 }
 function hasCodingSurface(p) {
@@ -544,7 +543,7 @@ function setPicker(rowKey, value) {
   const row = qs(`#picker .picker-row[data-pick="${rowKey}"]`);
   if (row) setChipPressed(row.querySelectorAll(".chip"), (x) => x.dataset.value === value);
   pickerState[rowKey] = value;
-  renderPicker();
+  updateAppState(() => {}, renderPicker);
 }
 /* 帮我选四行 chips 的高亮以 pickerState 为准（渲染时自愈，程序化改状态也不会脱钩） */
 function syncPickerChips() {
@@ -577,12 +576,10 @@ function renderPicker() {
     note.textContent = own
       ? "上面是所选工具的自家订阅，供参考；请结合预算、地区和所选任务查看，参考卡不等于当前条件下的推荐。中转站不参与。"
       : "平台免费但推理另付费的工具不作为免费模型套餐推荐；国家限定套餐保留在完整数据表，不参与通用推荐。中转站不参与。";
-    syncUrl();
     return;
   }
   grid.innerHTML = [mainCard(main, pool), dailyCard(main, pool), upgradeCard(main), own].filter(Boolean).join("");
   note.textContent = `符合条件 ${pool.length} 档。${own ? "最后一张是所选工具的自家订阅，供对照，不参与主计划排序。" : "三张卡是一套用法："}复杂任务按模型用途和已公开额度选择；日常额度共享情况未公开时，不据此建议加购。已包含的覆盖无需重复付费，补充订阅会列出合计月费。预算再往上可以高于当前筛选。模型角色按 ${MODEL_ROLES_ASOF} 的用法归类，不是跑分。中转站不参与。每百万 tokens 排行仍然只比价格。`;
-  syncUrl();
 }
 function auditProfiles() {
   /* 断言隐含「国内 + 不限预算 + 不限工具」的筛选前提（如智谱省钱档），先锁定状态，

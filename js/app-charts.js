@@ -2,9 +2,6 @@
 "use strict";
 
 /* ---------- 个人订阅价格全景 ---------- */
-const PERSONAL_DEFAULT_LIMIT = 20;
-const state1 = { cat: "all", region: "all", billing: "M", q: "", limit: PERSONAL_DEFAULT_LIMIT };
-
 function resetPersonalFilters() {
   Object.assign(state1, { cat: "all", region: "all", billing: "M", q: "", limit: PERSONAL_DEFAULT_LIMIT });
   byId("chartSearch").value = "";
@@ -56,7 +53,7 @@ function personalTooltip(p) {
 
 function renderPersonalChart() {
   renderLegend();
-  const q1 = state1.q.trim().toLowerCase();
+  const q1 = foldSearch(state1.q);
   const rows = PLANS.filter(
     (p) => isPersonalMonthly(p) &&
       (state1.cat === "all" || p.cat === state1.cat) &&
@@ -65,7 +62,7 @@ function renderPersonalChart() {
   ).sort((a, b) => cnyOf(a, state1.billing) - cnyOf(b, state1.billing));
 
   // 无筛选时默认只展示最便宜的前 N 档，避免图表过长；可点「显示全部」展开
-  const noFilter = state1.cat === "all" && state1.region === "all" && !state1.q;
+  const noFilter = state1.cat === "all" && state1.region === "all" && !q1;
   const limit = noFilter ? state1.limit : null;
   const shown = limit ? rows.slice(0, limit) : rows;
 
@@ -132,7 +129,6 @@ function renderPersonalChart() {
     (hidden > 0 ? ` ｜ <button type="button" id="showAllPersonal" class="linkish">显示全部 ${rows.length} 档</button>` :
       noFilter && rows.length > PERSONAL_DEFAULT_LIMIT ? ` ｜ <button type="button" id="showAllPersonal" class="linkish">收起为 ${PERSONAL_DEFAULT_LIMIT} 档</button>` : "") +
     excludedHtml;
-  syncUrl();
 }
 
 /* ---------- 团队 / 企业 / 云厂商（席位价 + 整包价） ---------- */
@@ -210,9 +206,9 @@ function renderTokensChart() {
   };
 
   const official = PLAN_TOKENS.flatMap((t) => {
-    const p = PLAN_INDEX.get(t.ref[0] + "|" + t.ref[1]);
+    const p = findPlanReference(t.ref);
     if (!p) {
-      console.warn("[data] PLAN_TOKENS ref 未解析，已跳过:", t.ref.join(" | "));
+      console.warn("[data] PLAN_TOKENS ref 未解析，已跳过:", t.ref);
       return [];
     }
     return [{
@@ -227,12 +223,12 @@ function renderTokensChart() {
      系数折算（小米 / 腾讯积分）不进本图。其余带每周 tokens 的行按出处着色：
      高置信且非估算视为官方公布，新厂商不会被默认涂成低置信社区估算。
      官方条数区间按结构化公式折算，其余请求数制只在额度深度对比表里呈现。 */
-  const coveredPlan = new Set(PLAN_TOKENS.filter((t) => Array.isArray(t.ref)).map((t) => t.ref[0] + "|" + t.ref[1]));
+  const coveredPlan = new Set(PLAN_TOKENS.map((t) => findPlanReference(t.ref)?.id).filter(Boolean));
   const weeklyExtra = METRICS_ALL.filter((m) => {
     if (m.wkLowM == null && m.reqLowPer5h == null) return false;
     if (m.note && m.note.includes("系数折算")) return false;
     if (m.vendor === "智谱 BigModel") return false;
-    if (Array.isArray(m.ref) && coveredPlan.has(m.ref[0] + "|" + m.ref[1])) return false;
+    if (coveredPlan.has(findPlanReference(m.ref)?.id)) return false;
     return true;
   }).flatMap((e) => {
     const computed = computeMetrics(e);
@@ -474,7 +470,6 @@ function renderFree() {
 
 /* ---------- 性价比排行图（每 M tokens 成本） ---------- */
 /* scope: official=官方公布每周 tokens（高置信）；credits=再加官方口径折算（credits 面值/系数/官方区间，中置信）；all=含全部估算（低置信） */
-const rankState = { tier: "flagship", scope: "official" };
 function rankScopeOk(m) {
   if (rankState.scope === "all") return true;
   const conf = provenance(m).conf;
@@ -572,5 +567,4 @@ function renderRankChart() {
   byId("rankNote").textContent =
     `共 ${all.length} 档${all.length > rows.length ? `，此处显示前 ${rows.length} 档` : ""}。${tierText}${scopeText}绿色 ≤¥0.30 · 黄色 ≤¥1 · 红色 >¥1。`;
   syncRankChips();
-  syncUrl();
 }

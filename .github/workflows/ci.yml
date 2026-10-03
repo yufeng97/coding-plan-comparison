@@ -18,8 +18,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: 安装 devDependencies（typescript）
-        run: npm install
+      - name: 按 lockfile 安装固定开发依赖
+        run: npm ci
       - name: 语法检查
         run: npm run check
       - name: 类型检查（checkJs）
@@ -29,4 +29,12 @@ jobs:
       - name: 额度换算、用户流程与 HTTP 服务回归
         run: npm run test
       - name: 缓存版本号与文件一致（改动资产后须跑 npm run bump）
-        run: node scripts/bump-versions.js && git diff --exit-code index.html
+        run: npm run cache:check
+      - name: 安装浏览器回归所需 Chromium
+        run: npx playwright install --with-deps chromium
+      - name: 真实浏览器回归
+        run: npm run test:browser
+      - name: 校验公共网站部署产物
+        run: npm run build:site
+      - name: 依赖安全检查
+        run: npm audit --audit-level=moderate --registry=https://registry.npmjs.org

@@ -28,11 +28,11 @@ sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(
   fs.readFileSync(path.join(root, "js/data.js"), "utf8") +
-    "\n;globalThis.__D={RATE_USD_CNY,PLANS,METRICS_RAW,ESTIMATES,PLAN_TOKENS,DYNAMICS,API_PRICES,PAYG_REFERENCES,SOURCES,MODEL_ROLES,matchModelRoles,isRetiredPlan,isFreeCodingEntry,isOnSalePlan,isPersonalMonthly,resolvedField,hasOwnClient,offerable};",
+    "\n;globalThis.__D={RATE_USD_CNY,PLANS,METRICS_RAW,ESTIMATES,PLAN_TOKENS,DYNAMICS,API_PRICES,PAYG_REFERENCES,SOURCES,MODEL_ROLES,matchModelRoles,isRetiredPlan,isFreeCodingEntry,isOnSalePlan,isPersonalMonthly,resolvedField,hasOwnClient,offerable,findPlanReference};",
   sandbox,
   { filename: "js/data.js" }
 );
-const { RATE_USD_CNY, PLANS, METRICS_RAW, ESTIMATES, PLAN_TOKENS, DYNAMICS, API_PRICES, PAYG_REFERENCES, SOURCES, MODEL_ROLES, matchModelRoles, isRetiredPlan, isFreeCodingEntry, isOnSalePlan, isPersonalMonthly, resolvedField, hasOwnClient, offerable } = sandbox.__D;
+const { RATE_USD_CNY, PLANS, METRICS_RAW, ESTIMATES, PLAN_TOKENS, DYNAMICS, API_PRICES, PAYG_REFERENCES, SOURCES, MODEL_ROLES, matchModelRoles, isRetiredPlan, isFreeCodingEntry, isOnSalePlan, isPersonalMonthly, resolvedField, hasOwnClient, offerable, findPlanReference } = sandbox.__D;
 
 const CATS = ["official", "tool", "cloud", "team"];
 const REGIONS = ["cn", "intl"];
@@ -40,10 +40,14 @@ check(finitePositive(RATE_USD_CNY), "RATE_USD_CNY 必须为有限正数");
 
 /* ---- PLANS ---- */
 const planKeys = new Set();
+const planIds = new Set();
 for (const p of PLANS) {
   const key = (p.vendor || "?") + "|" + (p.plan || "?");
   check(!planKeys.has(key), `PLANS 重复条目: ${key}`);
   planKeys.add(key);
+  check(typeof p.id === "string" && /^plan-[a-z0-9-]+$/.test(p.id), `PLANS 缺有效永久 id: ${key}`);
+  check(!planIds.has(p.id), `PLANS 重复 id: ${p.id}`);
+  planIds.add(p.id);
   check(typeof p.vendor === "string" && !!p.vendor, `PLANS 缺 vendor: ${key}`);
   check(typeof p.plan === "string" && !!p.plan, `PLANS 缺 plan: ${key}`);
   check(CATS.includes(p.cat), `PLANS cat 非法(${p.cat}): ${key}`);
@@ -133,11 +137,10 @@ check(opusRole && opusRole.task === "hard" && opusRole.burn === "fast", "Claude 
 check(grokRole && grokRole.task === "daily" && grokRole.burn === "slow", "Grok 应为日常、消耗慢");
 
 /* ---- 指标条目（METRICS_RAW + ESTIMATES）---- */
-const idx = new Map(PLANS.map((p) => [p.vendor + "|" + p.plan, p]));
 for (const p of PLANS) {
   for (const [field, ref] of Object.entries(p.fieldRefs || {})) {
     check(["models", "tools", "quota"].includes(field), `fieldRefs 字段非法: ${p.vendor}|${p.plan} ${field}`);
-    check(Array.isArray(ref) && ref.length === 2 && idx.has(ref[0] + "|" + ref[1]), `fieldRefs 无法解析: ${p.vendor}|${p.plan} ${field}`);
+    check(!!findPlanReference(ref), `fieldRefs 无法解析: ${p.vendor}|${p.plan} ${field}`);
   }
 }
 const allMetrics = [
@@ -168,9 +171,9 @@ for (const m of allMetrics) {
     check(finiteNonnegative(m.apiIn) && finitePositive(m.apiOut) && finiteNonnegative(m.apiCache) && m.apiCache <= m.apiIn,
       `缺完整有限牌价，或缓存价不在输入价范围内: ${key}`);
   }
-  if (Array.isArray(m.ref)) {
-    const p = idx.get(m.ref[0] + "|" + m.ref[1]);
-    check(!!p, `ref 无法解析(PLANS 中不存在): ${m.ref.join("|")}`);
+  if (m.ref != null) {
+    const p = findPlanReference(m.ref);
+    check(!!p, `ref 无法解析(PLANS 中不存在): ${JSON.stringify(m.ref)}`);
     if (p) check(finitePositive(p.priceM), `ref 必须指向有有效正月费的计划: ${key}`);
     if (p && typeof m.priceM === "number" && typeof p.priceM === "number") {
       warn(Math.abs(m.priceM - p.priceM) < 0.01, `ref 已解析但价格与 PLANS 不一致(条目 ${m.priceM} vs ${p.priceM}): ${key}`);
@@ -183,7 +186,7 @@ for (const m of allMetrics) {
   warn(!/多模型|混合|全系|全模型/.test(m.model || ""), `模型名仍含糊（多模型/混合/全系/全模型）: ${key}`);
 }
 /* ref 覆盖率（提醒：指标条目应尽量通过 ref 指向 PLANS 单一价格源） */
-const noRef = allMetrics.filter((m) => !Array.isArray(m.ref)).length;
+const noRef = allMetrics.filter((m) => m.ref == null).length;
 if (noRef > 0) note(`${noRef} 个指标条目未设 ref（价格未与 PLANS 单一数据源对齐）`);
 
 /* ---- API_PRICES ---- */
@@ -235,9 +238,9 @@ for (const t of PLAN_TOKENS) {
   check(finitePositive(t.lowM), `lowM 非法: ${key}`);
   check(finitePositive(t.highM) && t.highM >= t.lowM, `highM 非法: ${key}`);
   let priceCNY = t.priceCNY != null ? t.priceCNY : t.priceUSD != null ? t.priceUSD * RATE_USD_CNY : null;
-  if (Array.isArray(t.ref)) {
-    const p = idx.get(t.ref[0] + "|" + t.ref[1]);
-    check(!!p, `PLAN_TOKENS ref 无法解析: ${t.ref.join("|")}`);
+  if (t.ref != null) {
+    const p = findPlanReference(t.ref);
+    check(!!p, `PLAN_TOKENS ref 无法解析: ${JSON.stringify(t.ref)}`);
     if (p) priceCNY = p.cur === "USD" ? p.priceM * RATE_USD_CNY : p.priceM;
   }
   check(finitePositive(priceCNY), `缺有效正价格(且无有效 ref): ${key}`);

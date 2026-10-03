@@ -243,6 +243,8 @@ html[data-theme="light"] .brand-mark { color: #315f59; background: var(--brand);
 
 /* ---------- Section ---------- */
 .section { max-width: 1280px; margin: 0 auto; padding: 56px 24px 6px; }
+.section:focus-visible { outline: none; }
+.section:focus-visible .section-head h2 { text-decoration: underline; text-decoration-color: var(--accent-2); text-decoration-thickness: 2px; text-underline-offset: 6px; }
 .section-head { margin-bottom: 20px; }
 .sec-no {
   display: inline-block; margin-right: 10px;
@@ -293,12 +295,6 @@ html[data-theme="dark"] .search-input:focus, html[data-theme="dark"] .select:foc
 }
 .chart { width: 100%; min-height: 420px; overflow: visible; }
 .chart-empty { padding: 54px 24px; text-align: center; color: var(--muted); line-height: 1.8; }
-.payg-row td { background: var(--surface); }
-#metricsTable tbody tr.payg-row td:first-child,
-#metricsTable tbody tr.est-row td:first-child { background: linear-gradient(var(--surface), var(--surface)), var(--panel); }
-#metricsTable tbody tr.payg-row td:first-child { box-shadow: inset 3px 0 0 var(--accent-2); }
-#metricsTable tbody tr.payg-row:hover td:first-child,
-#metricsTable tbody tr.est-row:hover td:first-child { background: var(--row-hover); }
 .chart-fixed { height: 480px; }
 .chart-note { color: var(--faint); font-size: 12.5px; margin: 8px 6px 20px; line-height: 1.7; }
 .chart-note a { color: var(--accent); }
@@ -440,13 +436,27 @@ td.td-price .sub { color: var(--faint); font-weight: 400; }
   position: sticky; left: 0; z-index: 5;
   background: var(--panel-2); min-width: 140px; text-align: left;
 }
+#metricsTable thead .sticky-col { z-index: 6; }
 #metricsTable tbody td:first-child {
   position: sticky; left: 0; background: var(--panel); z-index: 3;
-  font-weight: 700; color: var(--ink); max-width: 180px; overflow: hidden; text-overflow: ellipsis;
+  font-weight: 700; color: var(--ink); width: 180px; max-width: 180px;
+  white-space: normal; overflow-wrap: anywhere;
 }
-#metricsTable tbody tr:hover td:first-child { background: var(--panel-2); }
+.payg-row td { background: var(--surface); }
+#metricsTable tbody tr.payg-row td:first-child,
+#metricsTable tbody tr.est-row td:first-child { background: linear-gradient(var(--surface), var(--surface)), var(--panel); }
+#metricsTable tbody tr.payg-row td:first-child { box-shadow: inset 3px 0 0 var(--accent-2); }
+/* 首列覆盖横滚内容：透明行色必须叠在不透明面板上，悬停也保留底层。 */
+#metricsTable tbody tr:hover td:first-child { background: linear-gradient(var(--row-hover), var(--row-hover)), var(--panel); }
+.metrics-vendor { color: var(--ink); }
+.metrics-plan { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.table-sort-hint { color: var(--muted); font-size: 12px; }
 .tps-cell { color: var(--faint); font-size: 11.5px; font-family: var(--mono); }
 .model-cell { color: var(--accent-2); font-size: 11.5px; }
+#metricsTable td.model-cell { min-width: 140px; max-width: 240px; white-space: normal; overflow-wrap: anywhere; }
+.model-price { display: block; max-width: 220px; margin-top: 2px; color: var(--faint); font-size: 10.5px; line-height: 1.5; white-space: normal; }
+.model-price > span { white-space: nowrap; }
+.model-reference-note { color: var(--faint); font-size: 10px; }
 .tok-cell { color: var(--muted); font-weight: 600; font-family: var(--mono); font-size: 12px; }
 .val-cell { color: var(--gold); font-weight: 600; font-family: var(--mono); font-size: 12px; }
 .rate-cell { font-weight: 700; font-size: 12.5px; font-family: var(--mono); }
@@ -460,7 +470,7 @@ td.td-price .sub { color: var(--faint); font-weight: 400; }
 
 /* 估算行与依据列 */
 .est-row td { background: var(--surface); }
-.est-row:hover td { background: var(--row-hover) !important; }
+.est-row:hover td { background: var(--row-hover); }
 .est-badge {
   display: inline-block; padding: 1px 5px; border-radius: 4px; font-size: 10px;
   font-family: var(--mono); background: var(--ver-na-bg); color: var(--faint); vertical-align: 1px;
@@ -540,7 +550,11 @@ html[data-theme="dark"] .method-box summary:hover { color: var(--brand); }
   border: 1px solid var(--line-strong); border-radius: var(--radius-l);
   background: var(--panel); color: var(--text); padding: 16px 18px 14px;
 }
+.cmp-modal:not([open]) { display: none; }
 .cmp-modal::backdrop { background: rgba(10, 12, 10, .55); }
+.has-cmp-modal { overflow: hidden; }
+.cmp-fallback-backdrop { position: fixed; inset: 0; z-index: 300; background: rgba(10, 12, 10, .55); }
+.cmp-modal.cmp-fallback[open] { display: block; position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0; z-index: 310; overflow: auto; }
 .cmp-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
 .cmp-head h3 { color: var(--ink); font-size: 16px; font-weight: 800; }
 .cmp-head-actions { display: flex; gap: 8px; }
@@ -576,7 +590,7 @@ html[data-theme="dark"] .method-box summary:hover { color: var(--brand); }
 .table-empty .chip { margin: 10px 0 0; }
 table.is-empty { min-width: 0 !important; }
 table.is-empty thead { display: none; }
-#metricsTable.is-empty tbody td.table-empty { position: static; max-width: none; white-space: normal; overflow: visible; }
+#metricsTable.is-empty tbody td.table-empty { position: static; width: auto; max-width: none; white-space: normal; overflow: visible; }
 .table-feedback { min-height: 0; color: var(--muted); font-size: 12px; margin-bottom: 10px; }
 .table-feedback:empty { display: none; }
 .cmp-remove { display: block; margin-top: 8px; }

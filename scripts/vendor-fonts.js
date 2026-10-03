@@ -1,54 +1,73 @@
 #!/usr/bin/env node
-/* 更新 libs/fonts 下的 Google Fonts 子集（Manrope + IBM Plex Mono）：
- *   node scripts/vendor-fonts.js
- * 按 fonts.googleapis.com 当前切片重新下载 gf-*.woff2 并回写 fonts.css 的本地映射。
- * 图标已改为内联 SVG（js/app-core.js 的 ICON_SVG），不再需要图标字体。
- */
-const https = require("https");
-const fs = require("fs");
-const path = require("path");
+"use strict";
+const https = require("node:https");
+const fs = require("node:fs");
+const path = require("node:path");
+const crypto = require("node:crypto");
+const FONT_CSS_URL = "https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap";
 
-const dir = path.join(__dirname, "..", "libs", "fonts");
-fs.mkdirSync(dir, { recursive: true });
-
-function get(url, headers) {
+/** @returns {Promise<Buffer>} */
+function get(url, headers = {}, redirects = 0) {
   return new Promise((resolve, reject) => {
-    https.get(url, { headers: headers || {} }, (r) => {
-      if (r.statusCode >= 300 && r.statusCode < 400 && r.headers.location) {
-        get(r.headers.location, headers).then(resolve, reject);
+    const req = https.get(url, { headers }, (response) => {
+      response.on("error", reject);
+      const status = response.statusCode || 0;
+      if (status >= 300 && status < 400 && response.headers.location) {
+        response.resume();
+        if (redirects >= 5) { reject(new Error("字体下载重定向过多")); return; }
+        get(new URL(response.headers.location, url).href, headers, redirects + 1).then(resolve, reject);
         return;
       }
-      if (r.statusCode !== 200) {
-        reject(new Error(r.statusCode + " " + url));
-        return;
-      }
+      if (status !== 200) { response.resume(); reject(new Error(status + " " + url)); return; }
       const chunks = [];
-      r.on("data", (c) => chunks.push(c));
-      r.on("end", () => resolve(Buffer.concat(chunks)));
-    }).on("error", reject);
+      response.on("data", (chunk) => chunks.push(chunk));
+      response.on("end", () => resolve(Buffer.concat(chunks)));
+    });
+    req.setTimeout(15000, () => req.destroy(new Error("字体下载超时：" + url)));
+    req.on("error", reject);
   });
 }
 
-(async () => {
-  /* Google Fonts 要求浏览器 UA 才下发 woff2 切片 */
-  const ua = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+/** @param {{dir?:string,fetcher?:typeof get,rename?:typeof fs.renameSync}} options */
+async function updateFonts(options = {}) {
+  const dir = path.resolve(options.dir || path.join(__dirname, "..", "libs", "fonts"));
+  const parent = path.dirname(dir);
+  if (dir === parent || !path.basename(dir)) throw new Error("字体目录不能是磁盘根目录");
+  fs.mkdirSync(parent, { recursive: true });
+  const stage = fs.mkdtempSync(path.join(parent, ".fonts-stage-"));
+  const backup = fs.mkdtempSync(path.join(parent, ".fonts-backup-"));
+  const rename = options.rename || fs.renameSync;
+  let oldMoved = false, committed = false;
+  const removeOwned = (target, prefix) => {
+    if (path.dirname(target) !== parent || !path.basename(target).startsWith(prefix)) throw new Error("拒绝清理未知字体暂存路径");
+    fs.rmSync(target, { recursive: true, force: true });
   };
-  let gcss = (await get(
-    "https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
-    ua
-  )).toString("utf8");
-  const urls = [...gcss.matchAll(/url\((https:\/\/[^)]+)\)/g)].map((m) => m[1]);
-  let i = 0;
-  for (const u of urls) {
-    const buf = await get(u);
-    const name = "gf-" + (i++) + ".woff2";
-    fs.writeFileSync(path.join(dir, name), buf);
-    gcss = gcss.replace(u, name);
+  try {
+    const fetcher = options.fetcher || get;
+    const headers = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" };
+    let css = (await fetcher(FONT_CSS_URL, headers)).toString("utf8");
+    const urls = [...new Set([...css.matchAll(/url\((https:\/\/[^)]+)\)/g)].map((match) => match[1]))];
+    if (!urls.length) throw new Error("Google Fonts 响应不含字体文件");
+    let index = 0;
+    for (const url of urls) {
+      const bytes = await fetcher(url);
+      if (bytes.subarray(0, 4).toString() !== "wOF2") throw new Error("字体响应不是 WOFF2：" + url);
+      const digest = crypto.createHash("sha1").update(bytes).digest("hex").slice(0, 10);
+      const name = "gf-" + index++ + "-" + digest + ".woff2";
+      fs.writeFileSync(path.join(stage, name), bytes);
+      css = css.split(url).join(name);
+    }
+    fs.writeFileSync(path.join(stage, "fonts.css"), css);
+    fs.rmdirSync(backup);
+    if (fs.existsSync(dir)) { rename(dir, backup); oldMoved = true; }
+    try { rename(stage, dir); committed = true; }
+    catch (error) { if (oldMoved) { rename(backup, dir); oldMoved = false; } throw error; }
+    return { count: urls.length, dir };
+  } finally {
+    if (!committed) removeOwned(stage, ".fonts-stage-");
+    if (!oldMoved || committed) removeOwned(backup, ".fonts-backup-");
   }
-  fs.writeFileSync(path.join(dir, "fonts.css"), gcss);
-  console.log("webfonts", urls.length, "->", dir);
-})().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+}
+if (require.main === module) updateFonts().then((result) => console.log("✅ " + result.count + " 个字体已整组更新：" + result.dir))
+  .catch((error) => { console.error(error.message); process.exitCode = 1; });
+module.exports = { updateFonts, get };

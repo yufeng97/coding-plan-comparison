@@ -2,7 +2,11 @@
   "compilerOptions": {
     "target": "ES2020",
     "checkJs": true,
-    "noEmit": true
+    "noEmit": true,
+    "lib": ["ES2020", "DOM"],
+    "types": [],
+    "skipLibCheck": true
   },
-  "exclude": ["libs", ".vercel", "scripts/archive", ".git"]
+  "include": ["js/**/*.js", "js/**/*.d.ts"],
+  "exclude": ["node_modules", "libs", ".vercel", ".site-build", ".git"]
 }
