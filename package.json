@@ -6,7 +6,7 @@
   "scripts": {
     "serve": "node scripts/serve.js",
     "validate": "node scripts/validate-data.js",
-    "test": "node scripts/test-metrics.js",
+    "test": "node scripts/test-metrics.js && node scripts/test-data-regressions.js && node scripts/test-app.js && node scripts/test-server.js",
     "bump": "node scripts/bump-versions.js",
     "check": "node --check js/data.js && node --check js/metrics.js && node --check js/app-core.js && node --check js/app-charts.js && node --check js/app-picker.js && node --check js/app-tables.js && node --check js/app-init.js",
     "typecheck": "tsc --noEmit --allowJs --checkJs --target ES2020 --lib ES2020,DOM --skipLibCheck js/data.js js/metrics.js js/app-core.js js/app-charts.js js/app-picker.js js/app-tables.js js/app-init.js js/globals.d.ts"

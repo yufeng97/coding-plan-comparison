@@ -36,57 +36,60 @@ function fileFromUrl(urlPath) {
 }
 function pathBlocked(relToRoot) {
   if (!relToRoot || relToRoot.startsWith("..") || path.isAbsolute(relToRoot)) return true;
-  return relToRoot.split(/[/\\]/).includes(".git");
+  /* Windows 不区分路径大小写，realpath 也可能保留请求的大小写。两次检查均按段折叠。 */
+  return relToRoot.split(/[/\\]/).some((segment) => segment.toLowerCase() === ".git");
 }
 
-const server = http.createServer((q, r) => {
-  const file = fileFromUrl(q.url);
-  if (!file) {
-    r.writeHead(403, { "Content-Type": "text/plain; charset=utf-8" });
-    r.end("403");
-    return;
-  }
-  fs.realpath(file, (realErr, real) => {
-    if (realErr) {
-      const missing = realErr.code === "ENOENT";
-      r.writeHead(missing ? 404 : 403, { "Content-Type": "text/plain; charset=utf-8" });
-      r.end(missing ? "404" : "403");
-      return;
-    }
-    if (pathBlocked(path.relative(rootReal, real))) {
+function createServer() {
+  return http.createServer((q, r) => {
+    const file = fileFromUrl(q.url);
+    if (!file) {
       r.writeHead(403, { "Content-Type": "text/plain; charset=utf-8" });
       r.end("403");
       return;
     }
-    fs.readFile(real, (err, data) => {
-      if (err) {
-        r.writeHead(err.code === "ENOENT" ? 404 : 403, { "Content-Type": "text/plain; charset=utf-8" });
-        r.end(err.code === "ENOENT" ? "404" : "403");
+    fs.realpath(file, (realErr, real) => {
+      if (realErr) {
+        const missing = realErr.code === "ENOENT";
+        r.writeHead(missing ? 404 : 403, { "Content-Type": "text/plain; charset=utf-8" });
+        r.end(missing ? "404" : "403");
         return;
       }
-      const ext = path.extname(real).toLowerCase();
-      /* no-cache 需要校验器才能完成条件请求：按内容发 ETag，命中则 304 */
-      const etag = '"' + crypto.createHash("md5").update(data).digest("hex").slice(0, 16) + '"';
-      if (q.headers["if-none-match"] === etag) {
-        r.writeHead(304, { ETag: etag });
-        r.end();
+      if (pathBlocked(path.relative(rootReal, real))) {
+        r.writeHead(403, { "Content-Type": "text/plain; charset=utf-8" });
+        r.end("403");
         return;
       }
-      r.writeHead(200, {
-        "Content-Type": types[ext] || "application/octet-stream",
-        "Cache-Control": "no-cache",
-        ETag: etag,
-        "X-Content-Type-Options": "nosniff",
+      fs.readFile(real, (err, data) => {
+        if (err) {
+          r.writeHead(err.code === "ENOENT" ? 404 : 403, { "Content-Type": "text/plain; charset=utf-8" });
+          r.end(err.code === "ENOENT" ? "404" : "403");
+          return;
+        }
+        const ext = path.extname(real).toLowerCase();
+        /* no-cache 需要校验器才能完成条件请求：按内容发 ETag，命中则 304 */
+        const etag = '"' + crypto.createHash("md5").update(data).digest("hex").slice(0, 16) + '"';
+        if (q.headers["if-none-match"] === etag) {
+          r.writeHead(304, { ETag: etag });
+          r.end();
+          return;
+        }
+        r.writeHead(200, {
+          "Content-Type": types[ext] || "application/octet-stream",
+          "Cache-Control": "no-cache",
+          ETag: etag,
+          "X-Content-Type-Options": "nosniff",
+        });
+        r.end(data);
       });
-      r.end(data);
     });
   });
-});
+}
 
 if (require.main === module) {
-  server.listen(port, host, () => {
+  createServer().listen(port, host, () => {
     console.log("http://" + host + ":" + port);
   });
 }
 
-module.exports = { fileFromUrl, root };
+module.exports = { fileFromUrl, createServer, root };

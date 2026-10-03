@@ -7,8 +7,13 @@ on:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
+      - name: 保持跨平台检出文件的 LF 换行
+        run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
@@ -21,7 +26,7 @@ jobs:
         run: npm run typecheck
       - name: 数据校验
         run: npm run validate
-      - name: 额度换算与分类单元测试
+      - name: 额度换算、用户流程与 HTTP 服务回归
         run: npm run test
       - name: 缓存版本号与文件一致（改动资产后须跑 npm run bump）
         run: node scripts/bump-versions.js && git diff --exit-code index.html

@@ -23,6 +23,11 @@ const TOKENS_PER_REQ = 20000;
  * @property {number} [reqPerWk] 请求数制：每周请求
  * @property {number} [reqPerMo] 请求数制：每月请求
  * @property {number} [reqPer5h] 请求数制：每 5h 请求
+ * @property {number} [reqLowPer5h] 官方每 5h 条数区间下限
+ * @property {number} [reqHighPer5h] 官方每 5h 条数区间上限
+ * @property {number} [tokensLowPerReq] 区间折算：单次 tokens 下限
+ * @property {number} [tokensHighPerReq] 区间折算：单次 tokens 上限
+ * @property {string} [windowPeriod] 周期标记；月池和无5h限制不生成窗口上限
  * @property {number} [creditUSD] credits 制：月池美元面值
  * @property {number} [creditCNY] credits 制：月池人民币面值
  * @property {number} [apiIn]   模型牌价：输入 / 1M tokens
@@ -73,7 +78,7 @@ function fmtTok(m) {
  */
 function periodRates(val5hCNY, valWkCNY, valMoCNY, priceCNY) {
   const slots = WEEKS_PER_MONTH * SLOTS_PER_WEEK;
-  if (!(priceCNY > 0)) return null;
+  if (!Number.isFinite(priceCNY) || !(priceCNY > 0) || ![val5hCNY, valWkCNY, valMoCNY].every((v) => Number.isFinite(v) && v >= 0)) return null;
   return {
     r5h: val5hCNY / (priceCNY / slots),
     rwk: valWkCNY / (priceCNY / WEEKS_PER_MONTH),
@@ -88,7 +93,18 @@ function periodRates(val5hCNY, valWkCNY, valMoCNY, priceCNY) {
  * @returns {{fLow:number,fHigh:number,wkLowM:number,wkHighM:number,moLow:number,moHigh:number}|null}
  */
 function windowTokens(m) {
+  if (!m || typeof m !== "object") return null;
+  const positive = (v) => typeof v === "number" && Number.isFinite(v) && v > 0;
+  const rangeFields = [m.reqLowPer5h, m.reqHighPer5h, m.tokensLowPerReq, m.tokensHighPerReq];
+  if (rangeFields.some((v) => v != null)) {
+    if (!rangeFields.every(positive) || m.reqHighPer5h < m.reqLowPer5h || m.tokensHighPerReq < m.tokensLowPerReq) return null;
+    const fLow = m.reqLowPer5h * m.tokensLowPerReq / 1e6;
+    const fHigh = m.reqHighPer5h * m.tokensHighPerReq / 1e6;
+    const wkLowM = fLow * SLOTS_PER_WEEK, wkHighM = fHigh * SLOTS_PER_WEEK;
+    return { fLow, fHigh, wkLowM, wkHighM, moLow: wkLowM * WEEKS_PER_MONTH, moHigh: wkHighM * WEEKS_PER_MONTH };
+  }
   if (m.wkLowM != null) {
+    if (!positive(m.wkLowM) || (m.wkHighM != null && (!positive(m.wkHighM) || m.wkHighM < m.wkLowM))) return null;
     const wkLowM = m.wkLowM;
     const wkHighM = m.wkHighM ?? m.wkLowM;
     return {
@@ -98,6 +114,7 @@ function windowTokens(m) {
     };
   }
   if (m.reqPerWk == null && m.reqPerMo == null && m.reqPer5h == null) return null;
+  if (![m.reqPerWk, m.reqPerMo, m.reqPer5h].every((v) => v == null || positive(v))) return null;
   const toM = (n) => (n * TOKENS_PER_REQ) / 1e6;
   const wk = m.reqPerWk != null ? toM(m.reqPerWk) : null;
   const moCap = m.reqPerMo != null ? toM(m.reqPerMo) : null;
@@ -115,24 +132,38 @@ const METRICS_COMPUTED = new WeakMap();
  * @returns {MetricsResult|null} 口径不完整或月费非正时返回 null
  */
 function computeMetrics(m) {
+  if (!m || typeof m !== "object") return null;
   if (METRICS_COMPUTED.has(m)) return METRICS_COMPUTED.get(m);
   const result = computeMetricsUncached(m);
-  METRICS_COMPUTED.set(m, result);
-  return result;
+  /* 月credits面值/历史周量不能证明存在5h配额；保留周/月参考，5h列留空。 */
+  if (result && (m.creditUSD != null || m.creditCNY != null || m.windowPeriod === "none" || m.windowPeriod === "month")) {
+    result.fLow = result.fHigh = null;
+    result.val5h = result.val5hHi = null;
+    result.r5h = result.r5hHi = null;
+  }
+  const valid = result && Object.values(result).some((v) => typeof v === "number" && !Number.isFinite(v)) ? null : result;
+  METRICS_COMPUTED.set(m, valid);
+  return valid;
 }
 function computeMetricsUncached(m) {
+  if (!Number.isFinite(m.priceM) || !(m.priceM > 0) || (m.cur !== "USD" && m.cur !== "CNY")) return null;
+  const hasApi = [m.apiIn, m.apiOut, m.apiCache].some((v) => v != null);
+  if (hasApi && !(Number.isFinite(m.apiIn) && m.apiIn >= 0 && Number.isFinite(m.apiOut) && m.apiOut > 0 && Number.isFinite(m.apiCache) && m.apiCache >= 0 && m.apiCache <= m.apiIn)) return null;
   /* Credits 月池制：额度价值按官方锚点（美元 credits 或 1M Credit=¥1）。
      倍率 = 该时段额度价值 ÷ 该时段分摊月费。写了模型牌价时再把面值折成 tokens。 */
   if (m.creditUSD != null || m.creditCNY != null) {
-    if (!(m.priceM > 0)) return null;
+    if (m.creditUSD != null && m.creditCNY != null) return null;
     const isUSD = m.creditUSD != null;
     const creditCur = isUSD ? "USD" : "CNY";
     const priceCNY = toCNY(m.priceM, m.cur);
-    const valMo = isUSD ? m.creditUSD : m.creditCNY;
-    if (!(valMo > 0)) return null;
+    const faceValue = isUSD ? m.creditUSD : m.creditCNY;
+    if (!Number.isFinite(faceValue) || !(faceValue > 0)) return null;
+    /* API 牌价使用 m.cur；面值先换到同币种，返回的价值列也保持 m.cur。 */
+    const valueCNY = toCNY(faceValue, creditCur);
+    const valMo = m.cur === "USD" ? valueCNY / RATE_USD_CNY : valueCNY;
     const valWk = valMo / WEEKS_PER_MONTH;
     const val5h = valWk / SLOTS_PER_WEEK;
-    const rates = periodRates(toCNY(val5h, creditCur), toCNY(valWk, creditCur), toCNY(valMo, creditCur), priceCNY);
+    const rates = periodRates(toCNY(val5h, m.cur), toCNY(valWk, m.cur), toCNY(valMo, m.cur), priceCNY);
     if (!rates) return null;
     /* 有逐模型牌价时，把 credits 面值折成 tokens（与请求数制同一套 80/20、95% 缓存假设）。
        没有牌价的美元 credits 仍用 ¥10/M 假设，只出每 M 成本、不出 token 列。 */
@@ -187,6 +218,6 @@ function isFlagshipModelName(name) {
   return String(name || "").split(/[、,，/|；;]+/).some((part) => {
     const t = part.trim();
     if (!t || /flash|haiku|luna|nano|\bmini\b/i.test(t)) return false;
-    return /opus|fable|sonnet|gpt-6(?:\.\d+)?\s*sol|gpt-5|kimi\s*k[23]|\bk3\b|deepseek[\w.\s-]*pro|minimax[\s-]*m3|mimo[\w.\s-]*pro|qwen3(?:\.\d+)?-max|qwen3-coder-(?:plus|next)|doubao[\s-]?seed[\s-]?[\d.]+[\s-]?(?:pro|code)|glm-?\s*5|step[\s-]?5|hy[34]/i.test(t);
+    return /opus|fable|sonnet|gpt-6(?:\.\d+)?\s*sol|gpt-5|gemini[\s-]*\d+(?:\.\d+)?[\s-]*pro|kimi[\s-]*k[23]|\bk3\b|deepseek[\w.\s-]*pro|minimax[\s-]*m3|mimo[\w.\s-]*pro|qwen3(?:\.\d+)?-max|qwen3-coder-(?:plus|next)|doubao[\s-]?seed[\s-]?[\d.]+[\s-]?(?:pro|code)|glm-?\s*5|step[\s-]?5|hy[34]/i.test(t);
   });
 }

@@ -2,7 +2,33 @@
 "use strict";
 
 /* ---------- 个人订阅价格全景 ---------- */
-const state1 = { cat: "all", region: "all", billing: "M", q: "", limit: 40 };
+const PERSONAL_DEFAULT_LIMIT = 20;
+const state1 = { cat: "all", region: "all", billing: "M", q: "", limit: PERSONAL_DEFAULT_LIMIT };
+
+function resetPersonalFilters() {
+  Object.assign(state1, { cat: "all", region: "all", billing: "M", q: "", limit: PERSONAL_DEFAULT_LIMIT });
+  byId("chartSearch").value = "";
+  setChipPressed(qsa("#chipCat .chip"), (c) => c.dataset.cat === "all");
+  setChipPressed(qsa("#chipRegion .chip"), (c) => c.dataset.region === "all");
+  setChipPressed(qsa("#chipBilling .chip"), (c) => c.dataset.billing === "M");
+  renderPersonalChart();
+}
+
+/* DOM 图例可用键盘操作；同一名称的区间基柱和上限段一起切换。 */
+function bindChartLegend(chart, id) {
+  const chips = qsa("#" + id + " [data-series]");
+  setChipPressed(chips, (chip) => chip.getAttribute("aria-pressed") !== "false");
+  chips.forEach((chip) => {
+    if (chip.getAttribute("aria-pressed") === "false") chart.dispatchAction({ type: "legendUnSelect", name: chip.dataset.series });
+  });
+  chips.forEach((chip) => {
+    chip.onclick = () => chart.dispatchAction({ type: "legendToggleSelect", name: chip.dataset.series });
+  });
+  if (typeof chart.off === "function" && typeof chart.on === "function") {
+    chart.off("legendselectchanged");
+    chart.on("legendselectchanged", (event) => setChipPressed(chips, (chip) => event.selected[chip.dataset.series] !== false));
+  }
+}
 
 /* 图例色块与图表 itemStyle 同源（都读 refreshCategoryColors 取到的 --cat-* 变量） */
 function renderLegend() {
@@ -21,11 +47,11 @@ function personalTooltip(p) {
   return `<b style="font-size:13.5px">${esc(p.vendor)} · ${esc(p.plan)}</b><br/>
     ${state1.billing === "Y" ? `折算价：${esc(uni)}<br/>` : ""}
     月付：${p.priceM != null ? esc(p.cur === "USD" ? "$" + p.priceM : "¥" + p.priceM) : "—"} ｜ ${esc(y)}<br/>
-    <span style="color:#fcd34d">额度：</span>${esc(trunc(p.quota, 90))}<br/>
-    <span style="color:#a5b4fc">模型：</span>${esc(trunc(p.models, 80))}<br/>
+    <span style="color:${PAL.gold}">额度：</span>${esc(trunc(resolvedField(p, "quota"), 120))}<br/>
+    <span style="color:${PAL.info}">模型：</span>${esc(trunc(resolvedField(p, "models"), 120))}<br/>
     ${isRelay(p) ? `<span style="color:${RELAY_COLOR}">中转站，不和官方订阅比单价</span><br/>` : ""}
     ${p.note ? `<span style="color:${PAL.dim}">备注：${esc(trunc(p.note, 60))}</span><br/>` : ""}
-    ${href ? `<span style="color:#6b7893;font-size:11.5px">来源：${href}</span>` : ""}`;
+    ${href ? `<span style="color:${PAL.dim};font-size:11.5px">来源：${href} · 数据截至 ${esc(META.updated)}</span>` : ""}`;
 }
 
 function renderPersonalChart() {
@@ -44,6 +70,9 @@ function renderPersonalChart() {
   const shown = limit ? rows.slice(0, limit) : rows;
 
   const el = byId("chartPersonal");
+  byId("chartPersonalEmpty").hidden = shown.length > 0;
+  /* 初始化/缩放时需要真实容器宽度，空态在完成配置后再隐藏 canvas。 */
+  el.hidden = false;
   el.style.height = Math.max(420, shown.length * 30 + 130) + "px";
   const chart = makeChart("chartPersonal");
 
@@ -58,11 +87,11 @@ function renderPersonalChart() {
     {
       backgroundColor: "transparent",
       tooltip: { trigger: "item", ...tipStyle(el), formatter: (d) => personalTooltip(d.data._p) },
-      grid: { left: 16, right: 70, top: 30, bottom: 20, containLabel: true },
-      xAxis: { type: "value", name: "统一折算人民币（元/月）", nameTextStyle: { color: PAL.faint }, ...axisStyle() },
+      grid: { left: 12, right: 64, top: 24, bottom: 44, containLabel: true },
+      xAxis: { type: "value", name: "人民币（元/月）", nameLocation: "middle", nameGap: 30, nameTextStyle: { color: PAL.dim, fontSize: 11 }, ...axisStyle() },
       yAxis: {
         type: "category", data: labels, inverse: true, ...axisStyle(),
-        axisLabel: { color: PAL.catLabel, fontSize: 12.5 },
+        axisLabel: chartAxisLabel(el),
         axisLine: { lineStyle: { color: PAL.axisLine } },
       },
       series: [
@@ -75,6 +104,7 @@ function renderPersonalChart() {
     true
   );
   chart.resize();
+  el.hidden = shown.length === 0;
 
   describeChart("chartPersonal", "个人订阅价格全景 " + shown.length + " 档，最低三档：" + shown.slice(0, 3).map((p) => shortVendor(p.vendor) + " " + p.plan + " " + priceText(p, "priceM")).join("、"));
   const hidden = rows.length - shown.length;
@@ -87,6 +117,7 @@ function renderPersonalChart() {
     if (p.cat === "team" || p.seat) return "团队/企业档";
     if (isRenewalOnly(p)) return "仅老用户续费";
     if (isOneTimePlan(p)) return "一次性预付";
+    if (isFourWeekPlan(p)) return "每4周计费";
     if (p.priceM === 0) return "免费档";
     return "按量或定制";
   };
@@ -98,7 +129,8 @@ function renderPersonalChart() {
     : "";
   byId("notePersonal").innerHTML =
     `当前筛选：${rows.length} 个档位（显示 ${shown.length}） ｜ 汇率 1 USD ≈ ${RATE} CNY（2026-09-23 实测） ｜ 红色是中转站，不和官方订阅、工具订阅放在同一类颜色里 ｜ 搜索会忽略大小写、空格和连字符，并展开「同某档」` +
-    (hidden > 0 ? ` ｜ <button type="button" id="showAllPersonal" class="linkish">显示全部 ${rows.length} 档</button>` : "") +
+    (hidden > 0 ? ` ｜ <button type="button" id="showAllPersonal" class="linkish">显示全部 ${rows.length} 档</button>` :
+      noFilter && rows.length > PERSONAL_DEFAULT_LIMIT ? ` ｜ <button type="button" id="showAllPersonal" class="linkish">收起为 ${PERSONAL_DEFAULT_LIMIT} 档</button>` : "") +
     excludedHtml;
   syncUrl();
 }
@@ -127,16 +159,16 @@ function renderTeamChart() {
           const href = safeHref(p.url);
           return `<b style="font-size:13.5px">${esc(p.vendor)} · ${esc(p.plan)}</b><br/>
             ${p.seat ? "每席位/用户/月" : "整包价/月"}：${esc(p.cur === "USD" ? "$" + p.priceM : "¥" + p.priceM)} ≈ ${fmtCNY(cnyOf(p, "M"))}${p.priceY != null ? `（年付 ${esc(p.cur === "USD" ? "$" + p.priceY : "¥" + p.priceY)}/月）` : ""}<br/>
-            <span style="color:#fcd34d">额度：</span>${esc(trunc(p.quota, 90))}<br/>
-            ${href ? `<span style="color:#6b7893;font-size:11.5px">来源：${href}</span>` : ""}`;
+            <span style="color:${PAL.gold}">额度：</span>${esc(trunc(resolvedField(p, "quota"), 120))}<br/>
+            ${href ? `<span style="color:${PAL.dim};font-size:11.5px">来源：${href}</span>` : ""}`;
         },
       },
-      grid: { left: 16, right: 70, top: 20, bottom: 20, containLabel: true },
-      xAxis: { type: "value", name: "折算人民币（元/月）", nameTextStyle: { color: PAL.faint }, ...axisStyle() },
+      grid: { left: 12, right: 64, top: 20, bottom: 44, containLabel: true },
+      xAxis: { type: "value", name: "人民币（元/月）", nameLocation: "middle", nameGap: 30, nameTextStyle: { color: PAL.dim, fontSize: 11 }, ...axisStyle() },
       yAxis: {
         type: "category", inverse: true,
         data: rows.map((p) => shortVendor(p.vendor) + " · " + p.plan + (p.region === "cn" ? "·国内" : "") + (!p.seat ? "·整包" : "")),
-        ...axisStyle(), axisLabel: { color: PAL.catLabel, fontSize: 12.5 },
+        ...axisStyle(), axisLabel: chartAxisLabel(el),
         axisLine: { lineStyle: { color: PAL.axisLine } },
       },
       series: [{ type: "bar", data, barWidth: 16, label: { show: true, position: "right", color: PAL.text, fontSize: 12, formatter: (d) => "¥" + d.value.toLocaleString("zh-CN") } }],
@@ -194,26 +226,28 @@ function renderTokensChart() {
   /* 已在 PLAN_TOKENS 里的档不重复。智谱国内 V3 与 Z.ai 每周额度相同，也不再画一遍。
      系数折算（小米 / 腾讯积分）不进本图。其余带每周 tokens 的行按出处着色：
      高置信且非估算视为官方公布，新厂商不会被默认涂成低置信社区估算。
-     请求数制不进本图，只在额度深度对比表里呈现。 */
+     官方条数区间按结构化公式折算，其余请求数制只在额度深度对比表里呈现。 */
   const coveredPlan = new Set(PLAN_TOKENS.filter((t) => Array.isArray(t.ref)).map((t) => t.ref[0] + "|" + t.ref[1]));
   const weeklyExtra = METRICS_ALL.filter((m) => {
-    if (m.wkLowM == null) return false;
+    if (m.wkLowM == null && m.reqLowPer5h == null) return false;
     if (m.note && m.note.includes("系数折算")) return false;
     if (m.vendor === "智谱 BigModel") return false;
     if (Array.isArray(m.ref) && coveredPlan.has(m.ref[0] + "|" + m.ref[1])) return false;
     return true;
-  }).map((e) => {
+  }).flatMap((e) => {
+    const computed = computeMetrics(e);
+    if (!computed || computed.wkLowM == null || computed.wkHighM == null) return [];
     const prov = provenance(e);
-    return {
+    return [{
       label: tokPlanLabel(e.vendor, e.plan) + "·" + modelShort(e.model),
       model: e.model,
-      lowM: e.wkLowM, highM: e.wkHighM ?? e.wkLowM,
+      lowM: computed.wkLowM, highM: computed.wkHighM,
       priceCNY: toCNY(e.priceM, e.cur),
       isOfficial: !e.isEst && prov.conf === "高",
       url: e.source, note: e.note,
       method: e.method || prov.text,
       conf: e.confidence || prov.conf,
-    };
+    }];
   });
   const community = weeklyExtra.filter((r) => !r.isOfficial);
   const officialBars = official.concat(weeklyExtra.filter((r) => r.isOfficial));
@@ -228,15 +262,15 @@ function renderTokensChart() {
     { name: "官方公布", type: "bar", stack: "o", barWidth: 14,
       data: rows.map((r) => r.isOfficial ? { value: r.lowM, _r: r } : null),
       itemStyle: { color: TOKEN_OFFICIAL_COLOR } },
-    { name: "官方区间", type: "bar", stack: "o", barWidth: 14,
+    { name: "官方公布", type: "bar", stack: "o", barWidth: 14,
       data: rows.map((r) => r.isOfficial ? { value: r.highM - r.lowM, _r: r } : null),
       itemStyle: { color: "rgba(52,211,153,.32)", borderRadius: [0, 4, 4, 0] },
       label: { show: true, position: "right", color: PAL.catLabel, fontSize: 11,
         formatter: (d) => (d.data && d.data._r ? d.data._r.lowM + "–" + d.data._r.highM + "M" : "") } },
-    { name: "社区推算", type: "bar", stack: "c", barWidth: 14,
+    { name: "折算 / 社区推算", type: "bar", stack: "c", barWidth: 14,
       data: rows.map((r) => !r.isOfficial ? { value: r.lowM, _r: r } : null),
       itemStyle: { color: TOKEN_EST_COLOR } },
-    { name: "社区区间", type: "bar", stack: "c", barWidth: 14,
+    { name: "折算 / 社区推算", type: "bar", stack: "c", barWidth: 14,
       data: rows.map((r) => !r.isOfficial ? { value: r.highM - r.lowM, _r: r } : null),
       itemStyle: { color: "rgba(251,191,36,.30)", borderRadius: [0, 4, 4, 0] },
       label: { show: true, position: "right", color: PAL.catLabel, fontSize: 11,
@@ -253,26 +287,27 @@ function renderTokensChart() {
           if (!r) return "";
           const prov = r.isOfficial
             ? '<span class="conf conf-hi">官方公布</span>'
-            : `<span class="conf conf-lo">社区推算·${esc(r.conf || "低")}</span>`;
+            : `<span class="conf conf-${r.conf === "低" ? "lo" : "mid"}">折算/推算·${esc(r.conf || "低")}</span>`;
           const per100 = r.priceCNY > 0 ? (r.midM / r.priceCNY * 100).toFixed(1) : "—";
           return `<b>${esc(r.label)}</b> ${prov}<br/>
             每周可用：${r.lowM}–${r.highM}M tokens（${esc(r.model)}）<br/>
             月费：${fmtCNY(r.priceCNY)} ｜ 每 ¥100/月 ≈ <b>${per100}${per100 === "—" ? "" : "M"}</b> tokens/周<br/>
             ${r.note ? `<span style="color:${PAL.dim}">${esc(trunc(r.note, 120))}</span><br/>` : ""}
-            ${safeHref(r.url) ? `<span style="color:#8b98b8;font-size:11.5px">来源：${safeHref(r.url)}</span>` : ""}`;
+            ${safeHref(r.url) ? `<span style="color:${PAL.dim};font-size:11.5px">来源：${safeHref(r.url)}</span>` : ""}`;
         },
       },
-      grid: { left: 16, right: 95, top: 40, bottom: 10, containLabel: true },
-      legend: { data: ["官方公布", "社区推算"], textStyle: { color: PAL.dim, fontSize: 12.5 }, top: 4 },
-      xAxis: { type: "value", name: "tokens / 周（百万）", nameTextStyle: { color: PAL.faint }, ...axisStyle() },
+      grid: { left: 12, right: 88, top: 20, bottom: 44, containLabel: true },
+      legend: { data: ["官方公布", "折算 / 社区推算"], show: false },
+      xAxis: { type: "value", name: "tokens / 周（百万）", nameLocation: "middle", nameGap: 30, nameTextStyle: { color: PAL.dim, fontSize: 11 }, ...axisStyle() },
       yAxis: { type: "category", data: cats, inverse: true, ...axisStyle(),
-        axisLabel: { color: PAL.catLabel, fontSize: 11.5 },
+        axisLabel: chartAxisLabel(el, 11.5),
         axisLine: { lineStyle: { color: PAL.axisLine } } },
       series,
     },
     true
   );
   chart.resize();
+  bindChartLegend(chart, "tokensLegend");
   describeChart("chartTokens", "每周可用 tokens 对比 " + rows.length + " 行：官方公布 " + officialBars.length + " 行、社区推算 " + community.length + " 行。");
 
   /* 洞察卡：全厂商性价比排行（厂商中立） */
@@ -286,15 +321,15 @@ function renderTokensChart() {
         const per100 = r.priceCNY > 0 ? (r.midM / r.priceCNY * 100).toFixed(1) : "—";
         return `
         <tr>
-          <td>${esc(r.label)}<br><span style="color:#8b98b8;font-size:11px">${fmtCNY(r.priceCNY)}/月 · ${r.isOfficial
+          <td>${esc(r.label)}<br><span style="color:${PAL.dim};font-size:11px">${fmtCNY(r.priceCNY)}/月 · ${r.isOfficial
             ? '<span class="conf conf-hi">官方公布</span>'
-            : `<span class="conf conf-lo">估算·${esc(r.conf || "低")}</span>`}</span></td>
+            : `<span class="conf conf-${r.conf === "低" ? "lo" : "mid"}">估算·${esc(r.conf || "低")}</span>`}</span></td>
           <td><b>${per100}${per100 === "—" ? "" : "M"}</b> tokens/周</td>
         </tr>`;
       }).join("")}
     </table>
     </div>
-    <p style="margin-top:12px;font-size:12.5px;color:#8b98b8">⚠️ 公平比较提示：不同模型产出质量不同——Flash/Haiku 类轻量模型 token 数高但质量低于旗舰；<span style="color:#34d399">绿色柱</span>为 Z.ai 官方公布的估算（目前唯一官方公布每周 tokens 的厂商），<span style="color:#fbbf24">黄色柱</span>为社区推算（受缓存率与动态限流影响，仅供量级参考；方法与置信度见「额度深度对比」表的「依据」列与「方法论」折叠块）。智谱 BigModel 国内 V3 各档积分额度与 Z.ai 相同（¥118/538/1,078 每月）。</p>`;
+    <p>公平比较提示：不同模型的 token 数不能代表产出质量。<span class="text-green">绿色柱</span>为官方公布的每周 tokens 区间，<span class="text-gold">黄色柱</span>为折算或社区推算。估算受单次用量、缓存率和动态限流影响，仅供量级参考；完整方法与置信度见「额度深度对比」。</p>`;
 }
 
 /* ---------- API 按量价格 ---------- */
@@ -337,15 +372,15 @@ function renderApiChart() {
           return `<b>${esc(apiLabel(a))}</b>${a.region === "cn" ? " · 国内" : ""}<br/>${idLine}
             ${fmtPrice(a, a.inUSD, a.outUSD)}<br/>
             ${a.note ? `<span style="color:${PAL.dim}">${esc(trunc(a.note, 120))}</span><br/>` : ""}
-            ${href ? `<span style="color:#6b7893;font-size:11.5px">来源：${href}</span>` : ""}`;
+            ${href ? `<span style="color:${PAL.dim};font-size:11.5px">来源：${href}</span>` : ""}`;
         },
       },
-      grid: { left: 8, right: 28, top: 40, bottom: 28, containLabel: true },
-      legend: { data: ["输入 / 1M tokens", "输出 / 1M tokens"], textStyle: { color: PAL.dim, fontSize: 12.5 }, top: 4 },
-      xAxis: { type: "value", name: "USD / 1M", nameTextStyle: { color: PAL.faint }, ...axisStyle() },
+      grid: { left: 8, right: 28, top: 20, bottom: 44, containLabel: true },
+      legend: { data: ["输入 / 1M tokens", "输出 / 1M tokens"], show: false },
+      xAxis: { type: "value", name: "USD / 1M tokens", nameLocation: "middle", nameGap: 30, nameTextStyle: { color: PAL.dim, fontSize: 11 }, ...axisStyle() },
       yAxis: {
         type: "category", data: cats, inverse: true, ...axisStyle(),
-        axisLabel: { color: PAL.catLabel, fontSize: 11, width: 170, overflow: "truncate" },
+        axisLabel: chartAxisLabel(apiEl, 11),
       },
       series: [
         { name: "输入 / 1M tokens", type: "bar", data: rows.map((a) => a.inUSD), barWidth: 7, itemStyle: { color: "#6366f1", borderRadius: [0, 3, 3, 0] } },
@@ -355,6 +390,7 @@ function renderApiChart() {
     true
   );
   chart.resize();
+  bindChartLegend(chart, "apiLegend");
 
   /* 购买力：$10 按输出价可购 token 量。按地区拆双系列（barGap -100% 重叠），
      图例可点击过滤国际/国内；axis 触发 + 阴影指示器与左图一致。 */
@@ -366,13 +402,13 @@ function renderApiChart() {
   const POWER_COLORS = { intl: "#22d3ee", cn: "#34d399" };
   const powerSeriesData = power.map((p) => {
     const item = { value: Math.round(p.m * 10) / 10, a: p.a };
-    return p.a.cur === "CNY" ? [null, item] : [item, null];
+    return p.a.region === "cn" ? [null, item] : [item, null];
   });
   const powerLabel = { show: true, position: "right", color: PAL.text, fontSize: 11, formatter: (d) => (d.value != null ? d.value + "M" : "") };
   chart2.setOption(
     {
       backgroundColor: "transparent",
-      title: { text: "$10 预算的输出 token 购买力（M tokens）", left: "center", top: 4, textStyle: { color: PAL.dim, fontSize: 13, fontWeight: 500 } },
+      title: { text: "$10 可购买的输出 tokens（M）", left: "center", top: 4, textStyle: { color: PAL.dim, fontSize: 12, fontWeight: 500 } },
       tooltip: {
         trigger: "axis", ...tipStyle(el2), axisPointer: { type: "shadow" },
         formatter: (ps) => {
@@ -382,10 +418,10 @@ function renderApiChart() {
           return `<b>${esc(p.name)}</b><br/>$10 ≈ <b>${Number(p.m).toFixed(1)}M</b> 输出 tokens<br/>（${price}/1M 输出）`;
         },
       },
-      legend: { data: ["国际模型", "国内模型"], textStyle: { color: PAL.dim, fontSize: 12.5 }, top: 26 },
-      grid: { left: 16, right: 56, top: 58, bottom: 6, containLabel: true },
+      legend: { data: ["国际模型", "国内模型"], show: false },
+      grid: { left: 12, right: 56, top: 36, bottom: 24, containLabel: true },
       xAxis: { type: "value", ...axisStyle() },
-      yAxis: { type: "category", inverse: true, data: power.map((p) => p.name), ...axisStyle(), axisLabel: { color: PAL.catLabel, fontSize: 11 } },
+      yAxis: { type: "category", inverse: true, data: power.map((p) => p.name), ...axisStyle(), axisLabel: chartAxisLabel(el2, 11) },
       series: [
         { name: "国际模型", type: "bar", barWidth: 12, barGap: "-100%",
           data: powerSeriesData.map((d) => d[0]),
@@ -400,7 +436,17 @@ function renderApiChart() {
     true
   );
   chart2.resize();
+  bindChartLegend(chart2, "powerLegend");
+  byId("apiDetailBody").innerHTML = rows.map((a) => {
+    const href = safeHref(a.url);
+    const usd = (n) => "$" + Number(n.toFixed(4));
+    return `<tr><th scope="row">${esc(apiLabel(a))}</th><td>${esc(REGION_LABEL[a.region] || "—")}</td>` +
+      `<td>${usd(a.inUSD)}</td><td>${usd(a.outUSD)}</td>` +
+      `<td>${a.outUSD > 0 ? Number((10 / a.outUSD).toFixed(1)) + "M" : "—"}</td>` +
+      `<td>${href ? `<a href="${href}" target="_blank" rel="noopener">官网 ↗</a>` : "—"}</td></tr>`;
+  }).join("");
   describeChart("chartApi", "API 按量单价对比 " + rows.length + " 款模型（左图）；$10 预算输出 token 购买力 " + power.length + " 行（右图）。");
+  describeChart("chartPower", "$10 预算输出 token 购买力 " + power.length + " 行；使用图例按钮筛选国内或国际模型，完整数值见下方明细。");
 }
 
 /* ---------- 免费入口 ---------- */
@@ -416,9 +462,10 @@ function renderFree() {
           <span class="fc-region">${esc(REGION_LABEL[p.region] || "")}</span>
         </div>
         <div class="fc-plan">${esc(p.plan)}</div>
-        <div class="fc-quota"><b>✓</b> ${esc(p.quota)}</div>
-        <div class="fc-tools">支持：${esc(trunc(p.tools, 60))}</div>
-        ${href ? `<a class="fc-link" href="${href}" target="_blank" rel="noopener">来源 ↗</a>` : ""}
+        <div class="fc-cost">${esc(planPriceLabel(p))}</div>
+        <div class="fc-quota"><b>✓</b> ${esc(resolvedField(p, "quota"))}</div>
+        <div class="fc-tools">支持：${esc(trunc(resolvedField(p, "tools"), 100))}</div>
+        <div class="fc-footer">${href ? `<a class="fc-link" href="${href}" target="_blank" rel="noopener">官网来源 ↗</a>` : ""}<small class="checked-date">数据截至 ${esc(META.updated)}</small></div>
       </div>`;
     })
     .join("");
@@ -487,7 +534,7 @@ function renderRankChart() {
           const r = d.data._r;
           const prov = provenance(r.m);
           const cp = r.c.costPerM;
-          const cpColor = cp <= 0.3 ? "#34d399" : cp <= 1 ? "#f59e0b" : "#f87171";
+          const cpColor = cp <= 0.3 ? PAL.green : cp <= 1 ? PAL.gold : PAL.red;
           const mo = r.c.moLow == null
             ? "—"
             : `约 ${fmtTok(r.c.moLow)}${r.c.moHigh > r.c.moLow ? "–" + fmtTok(r.c.moHigh) : ""}`;
@@ -499,11 +546,11 @@ function renderRankChart() {
             <span style="color:${PAL.dim}">依据：${esc(prov.text)} · 置信${esc(prov.conf)}${prov.conf !== "高" ? "（tokens 为折算/估算值）" : ""}</span>`;
         },
       },
-      grid: { left: 16, right: 80, top: 20, bottom: 20, containLabel: true },
-      xAxis: { type: "value", name: "¥ / 百万 tokens（越低越便宜）", nameTextStyle: { color: PAL.faint }, ...axisStyle() },
+      grid: { left: 12, right: 76, top: 20, bottom: 44, containLabel: true },
+      xAxis: { type: "value", name: "¥ / 百万 tokens", nameLocation: "middle", nameGap: 30, nameTextStyle: { color: PAL.dim, fontSize: 11 }, ...axisStyle() },
       yAxis: {
         type: "category", data: labels, inverse: true, ...axisStyle(),
-        axisLabel: { color: PAL.catLabel, fontSize: 11.5 },
+        axisLabel: chartAxisLabel(el, 11.5),
         axisLine: { lineStyle: { color: PAL.axisLine } },
       },
       series: [{
@@ -527,4 +574,3 @@ function renderRankChart() {
   syncRankChips();
   syncUrl();
 }
-

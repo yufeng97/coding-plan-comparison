@@ -59,7 +59,7 @@ function resolvePlan(m) {
   /* ref 可解析时以 PLANS 价格为准。解析失败则跳过该行，避免展示条目里可能过期的价格。 */
   if (Array.isArray(m.ref)) {
     const p = PLAN_INDEX.get(m.ref[0] + "|" + m.ref[1]);
-    if (p) return { ...m, priceM: p.priceM, cur: p.cur };
+    if (p) return { ...m, priceM: p.priceM, cur: p.cur, windowPeriod: m.windowPeriod || p.windowPeriod };
     console.warn("[data] ref 未解析，已跳过:", m.ref.join(" | "));
     return null;
   }
@@ -105,6 +105,10 @@ function planBadges(p) {
   if (/BYOK|自备\s*API|自带\s*API|自备 Key/i.test(blob)) badges.push({ t: "要自备 Key", k: "risk" });
   if (isRenewalOnly(p)) badges.push({ t: "仅老用户", k: "risk" });
   if (isOneTimePlan(p)) badges.push({ t: "一次性", k: "risk" });
+  if (p.purchaseCountries && p.purchaseCountries.length) {
+    const countries = { IN: "印度", CN: "中国", US: "美国" };
+    badges.push({ t: "仅限" + p.purchaseCountries.map((c) => countries[c] || c).join("/"), k: "risk" });
+  }
   if (/不稳定|403|连接失败|无法访问/.test(blob)) badges.push({ t: "访问不稳", k: "risk" });
   if (/Claude Code/i.test(tools)) badges.push({ t: "Claude Code", k: "agent" });
   if (/Codex/i.test(tools)) badges.push({ t: "Codex", k: "agent" });
@@ -189,6 +193,27 @@ function priceText(p, key) {
   return (p.cur === "USD" ? "$" + v : "¥" + v);
 }
 
+/* 所有表格/对比/导出共用计价单位，不能把充值或席位费用当作个人月费。 */
+function priceUnit(p) {
+  if (isOneTimePlan(p)) return "一次性";
+  if (isFourWeekPlan(p)) return p.seat ? "席位/4周" : "4周";
+  return p.seat ? "席位/月" : "月";
+}
+function planPriceLabel(p, billing = "M") {
+  const key = billing === "Y" ? "priceY" : "priceM";
+  if (p[key] == null) return billing === "Y" ? "—" : "按量/定制";
+  if (p[key] === 0) return p.includedModelQuota === false ? "平台免费；推理另计" : "免费";
+  return priceText(p, key) + "/" + priceUnit(p) + (billing === "Y" ? "（年付折月）" : "");
+}
+
+/* 严格限制轴标签占宽，窄屏仍保留价格柱；完整名称在 tooltip 和数据表中查看。 */
+function chartAxisLabel(hostEl, fontSize = 12.5) {
+  const width = hostEl.getBoundingClientRect().width || window.innerWidth - 72;
+  return { color: PAL.catLabel, fontSize: width < 480 ? 10.5 : fontSize,
+    width: Math.max(60, Math.min(width < 480 ? 110 : 260, width * 0.34)),
+    overflow: "truncate", margin: 8 };
+}
+
 const chartCache = {};
 function makeChart(id) {
   if (!chartCache[id]) {
@@ -199,19 +224,25 @@ function makeChart(id) {
 let resizeTimer;
 window.addEventListener("resize", () => {
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => Object.values(chartCache).forEach((c) => c.resize()), 150);
+  resizeTimer = setTimeout(rerenderCharts, 150);
 });
 
 /* ---------- 主题（暗/亮/跟随系统）与图表调色板 ---------- */
 let PAL = {};
 function refreshPalette() {
   const L = document.documentElement.dataset.theme === "light";
+  const cs = getComputedStyle(document.documentElement);
+  const color = (name, fallback) => (cs.getPropertyValue(name) || "").trim() || fallback;
   PAL = L ? {
-    text: "#10110f", dim: "#6f726b", catLabel: "#3a3d38", faint: "#8a8d85",
+    text: "#10110f", dim: "#6f726b", catLabel: "#3a3d38", faint: color("--faint", "#70746c"),
+    gold: color("--gold", "#996100"), green: color("--green", "#287c3e"),
+    red: color("--red", "#b52a25"), info: color("--info", "#2458ae"),
     axisLine: "rgba(16,17,15,.22)", splitLine: "rgba(16,17,15,.07)",
     tipBg: "rgba(255,255,255,.98)", tipBorder: "rgba(16,17,15,.18)", tipText: "#10110f",
   } : {
-    text: "#eceee8", dim: "#9fa39a", catLabel: "#c8ccc2", faint: "#74786f",
+    text: "#eceee8", dim: "#9fa39a", catLabel: "#c8ccc2", faint: color("--faint", "#868a83"),
+    gold: color("--gold", "#e9b117"), green: color("--green", "#4cbf6b"),
+    red: color("--red", "#ef554f"), info: color("--info", "#6d9bff"),
     axisLine: "rgba(236,238,232,.2)", splitLine: "rgba(236,238,232,.08)",
     tipBg: "rgba(22,24,21,.97)", tipBorder: "rgba(236,238,232,.16)", tipText: "#eceee8",
   };
@@ -284,7 +315,7 @@ function foldSearch(s) {
   return String(s || "").toLowerCase().replace(/[\s_\-./·]+/g, "");
 }
 function planSearchBlob(p) {
-  return foldSearch([p.vendor, p.plan, resolvedField(p, "models"), resolvedField(p, "tools"), p.quota, p.note].join(" "));
+  return foldSearch([p.vendor, p.plan, resolvedField(p, "models"), resolvedField(p, "tools"), resolvedField(p, "quota"), resolvedField(p, "note")].join(" "));
 }
 function queryHit(blob, q) {
   const fq = foldSearch(q);
@@ -293,33 +324,114 @@ function queryHit(blob, q) {
 
 /* ---------- 明暗主题切换（暗 → 亮 → 跟随系统 循环） ---------- */
 const THEME_KEY = "cp-theme";
+let themeMode = "system";
+function readThemeMode() {
+  try {
+    const saved = localStorage.getItem(THEME_KEY);
+    return ["dark", "light", "system"].includes(saved) ? saved : "system";
+  } catch (e) { return "system"; }
+}
 function applyTheme(mode) {
+  mode = ["dark", "light", "system"].includes(mode) ? mode : "system";
+  themeMode = mode;
   const sysDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
   const eff = mode === "system" ? (sysDark ? "dark" : "light") : mode;
   document.documentElement.dataset.theme = eff;
   document.documentElement.dataset.themeMode = mode;
-  localStorage.setItem(THEME_KEY, mode);
+  try { localStorage.setItem(THEME_KEY, mode); } catch (e) { /* 存储受限只影响回访记忆。 */ }
   refreshPalette();
+  const browserColor = (getComputedStyle(document.documentElement).getPropertyValue("--paper") || "").trim()
+    || (eff === "dark" ? "#131511" : "#fbfbf8");
+  /* 两个带系统 media 的标签都写实际主题色，手动选择主题也能更新浏览器外观。 */
+  qsa('meta[name="theme-color"]').forEach((meta) => meta.setAttribute("content", browserColor));
   const btn = byId("themeBtn");
   if (btn) {
     btn.innerHTML = mode === "dark" ? icon("moon") : mode === "light" ? icon("sun") : icon("computer");
     const name = mode === "dark" ? "暗色" : mode === "light" ? "亮色" : "跟随系统";
-    btn.title = "主题：" + name + "（点击切换 暗色 → 亮色 → 跟随系统）";
+    const nextName = mode === "dark" ? "亮色" : mode === "light" ? "跟随系统" : "暗色";
+    const current = mode === "system" ? name + "（当前" + (eff === "dark" ? "暗色" : "亮色") + "）" : name;
+    const label = "当前主题：" + current + "；点击切换为" + nextName;
+    btn.title = label;
+    btn.setAttribute("aria-label", label);
   }
 }
 function rerenderCharts() {
-  renderPersonalChart(); renderTeamChart(); renderTokensChart(); renderApiChart(); renderRankChart();
+  const renderers = { chartPersonal: renderPersonalChart, chartTeam: renderTeamChart,
+    chartTokens: renderTokensChart, chartApi: renderApiChart, chartRank: renderRankChart };
+  Object.entries(renderers).forEach(([id, render]) => {
+    if (chartCache[id]) render();
+  });
+}
+/* 测量固定页头，供锚点间距和当前章节判断共用；不读取或渲染图表内容。 */
+let headerHeight = 0;
+let navigationInitialized = false;
+function syncHeaderHeight() {
+  const header = qs(".topbar");
+  if (!header || typeof header.getBoundingClientRect !== "function") return;
+  const height = Math.ceil(header.getBoundingClientRect().height);
+  if (!Number.isFinite(height) || height <= 0) return;
+  headerHeight = height;
+  const style = document.documentElement.style;
+  if (style && typeof style.setProperty === "function") style.setProperty("--header-height", height + "px");
+}
+function updateActiveNav() {
+  const links = Array.from(qsa('.topnav a[href^="#"]'));
+  const previous = links.find((link) => link.getAttribute("aria-current") === "location");
+  const cutoff = headerHeight + 13;
+  let active = null, closestTop = -Infinity;
+  links.forEach((link) => {
+    const target = byId((link.getAttribute("href") || "").slice(1));
+    if (!target || typeof target.getBoundingClientRect !== "function") return;
+    const top = target.getBoundingClientRect().top;
+    if (Number.isFinite(top) && top <= cutoff && top >= closestTop) {
+      closestTop = top;
+      active = link;
+    }
+  });
+  links.forEach((link) => {
+    const on = link === active;
+    link.classList.toggle("active", on);
+    if (on) link.setAttribute("aria-current", "location");
+    else link.removeAttribute("aria-current");
+  });
+  /* 窄屏导航横向滚动时让当前章节露出来，只在章节变化时调整。 */
+  const nav = qs(".topnav");
+  if (active && active !== previous && nav && nav.scrollWidth > nav.clientWidth) {
+    const box = /** @type {HTMLElement} */ (active).getBoundingClientRect(), bounds = nav.getBoundingClientRect();
+    if (box.left < bounds.left + 8) nav.scrollLeft += box.left - bounds.left - 8;
+    else if (box.right > bounds.right - 8) nav.scrollLeft += box.right - bounds.right + 8;
+  }
+}
+function initPageNavigation() {
+  if (navigationInitialized) return;
+  navigationInitialized = true;
+  const refreshHeader = () => { syncHeaderHeight(); updateActiveNav(); };
+  refreshHeader();
+  const header = qs(".topbar");
+  if (header && typeof ResizeObserver === "function") new ResizeObserver(refreshHeader).observe(header);
+  window.addEventListener("resize", refreshHeader, { passive: true });
+  let pending = false;
+  window.addEventListener("scroll", () => {
+    if (pending) return;
+    pending = true;
+    const update = () => { pending = false; updateActiveNav(); };
+    if (typeof window.requestAnimationFrame === "function") window.requestAnimationFrame(update);
+    else update();
+  }, { passive: true });
+  window.addEventListener("hashchange", updateActiveNav);
 }
 function initTheme() {
-  applyTheme(localStorage.getItem(THEME_KEY) || "system");
-  byId("themeBtn").addEventListener("click", () => {
+  applyTheme(readThemeMode());
+  initPageNavigation();
+  const btn = byId("themeBtn");
+  if (btn) btn.addEventListener("click", () => {
     const order = ["dark", "light", "system"];
-    applyTheme(order[(order.indexOf(localStorage.getItem(THEME_KEY) || "system") + 1) % 3]);
+    applyTheme(order[(order.indexOf(themeMode) + 1) % 3]);
     rerenderCharts();
   });
   const mq = window.matchMedia("(prefers-color-scheme: dark)");
   const onSchemeChange = () => {
-    if ((localStorage.getItem(THEME_KEY) || "system") === "system") { applyTheme("system"); rerenderCharts(); }
+    if (themeMode === "system") { applyTheme("system"); rerenderCharts(); }
   };
   /* 旧版 Safari（<14）只支持 addListener，此处做回退 */
   if (mq.addEventListener) mq.addEventListener("change", onSchemeChange);
@@ -360,4 +472,3 @@ function renderStats() {
     .map((i) => `<div><dt>${icon(i.icon)}${esc(i.lbl)}</dt><dd>${esc(i.num)}${i.sub ? `<small title="${esc(i.sub)}">${esc(i.sub)}</small>` : ""}</dd></div>`)
     .join("");
 }
-

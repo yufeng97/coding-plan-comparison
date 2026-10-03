@@ -19,6 +19,8 @@ const warn = (cond, msg) => { if (!cond) warns.push(msg); };
 /* note 用于"设计内状态"的说明（如按量/定制无标价、Flash 只写在按量对照），
    不计入警告——警告留给巡检真正需要人工确认的问题。 */
 const note = (msg) => notes.push(msg);
+const finiteNonnegative = (v) => typeof v === "number" && Number.isFinite(v) && v >= 0;
+const finitePositive = (v) => finiteNonnegative(v) && v > 0;
 
 /* 载入数据（data.js 为纯常量声明，无 DOM 依赖） */
 const sandbox = { console };
@@ -34,6 +36,7 @@ const { RATE_USD_CNY, PLANS, METRICS_RAW, ESTIMATES, PLAN_TOKENS, DYNAMICS, API_
 
 const CATS = ["official", "tool", "cloud", "team"];
 const REGIONS = ["cn", "intl"];
+check(finitePositive(RATE_USD_CNY), "RATE_USD_CNY 必须为有限正数");
 
 /* ---- PLANS ---- */
 const planKeys = new Set();
@@ -46,11 +49,17 @@ for (const p of PLANS) {
   check(CATS.includes(p.cat), `PLANS cat 非法(${p.cat}): ${key}`);
   check(REGIONS.includes(p.region), `PLANS region 非法(${p.region}): ${key}`);
   check(p.cur === "USD" || p.cur === "CNY", `PLANS cur 非法(${p.cur}): ${key}`);
-  check(p.priceM == null || typeof p.priceM === "number", `PLANS priceM 类型错误: ${key}`);
-  check(p.priceY == null || typeof p.priceY === "number", `PLANS priceY 类型错误: ${key}`);
+  check(p.priceM == null || finiteNonnegative(p.priceM), `PLANS priceM 必须为有限非负数或 null: ${key}`);
+  check(p.priceY == null || finiteNonnegative(p.priceY), `PLANS priceY 必须为有限非负数或 null: ${key}`);
   check(p.priceM !== undefined, `PLANS 缺 priceM 字段(应为数字或 null): ${key}`);
   check(typeof p.quota === "string" && p.quota.length > 4, `PLANS quota 缺失/过短: ${key}`);
   check(typeof p.url === "string" && p.url.startsWith("http"), `PLANS url 非法: ${key}`);
+  check(p.windowPeriod == null || ["5h", "month", "none", "unknown"].includes(p.windowPeriod), `PLANS windowPeriod 非法: ${key}`);
+  check(p.quotaSharing == null || ["shared", "separate", "unknown"].includes(p.quotaSharing), `PLANS quotaSharing 非法: ${key}`);
+  check(p.codingSurface == null || typeof p.codingSurface === "boolean", `PLANS codingSurface 非法: ${key}`);
+  check(p.includedModelQuota == null || typeof p.includedModelQuota === "boolean", `PLANS includedModelQuota 非法: ${key}`);
+  check(p.modelAccess == null || ["included", "byok", "metered"].includes(p.modelAccess), `PLANS modelAccess 非法: ${key}`);
+  check(p.purchaseCountries == null || (Array.isArray(p.purchaseCountries) && p.purchaseCountries.length > 0 && p.purchaseCountries.every((c) => /^[A-Z]{2}$/.test(c))), `PLANS purchaseCountries 必须为非空 ISO 国别数组: ${key}`);
   if (p.priceM != null && p.priceM > 0 && p.priceY != null) warn(p.priceY <= p.priceM, `PLANS 年付折月高于月付: ${key}`);
   if (p.priceM == null) note(`PLANS 无标价（按量/定制）: ${key}`);
   if (!isRetiredPlan(p) && typeof p.url === "string" && /web\.archive\.org/i.test(p.url)) {
@@ -125,6 +134,12 @@ check(grokRole && grokRole.task === "daily" && grokRole.burn === "slow", "Grok �
 
 /* ---- 指标条目（METRICS_RAW + ESTIMATES）---- */
 const idx = new Map(PLANS.map((p) => [p.vendor + "|" + p.plan, p]));
+for (const p of PLANS) {
+  for (const [field, ref] of Object.entries(p.fieldRefs || {})) {
+    check(["models", "tools", "quota"].includes(field), `fieldRefs 字段非法: ${p.vendor}|${p.plan} ${field}`);
+    check(Array.isArray(ref) && ref.length === 2 && idx.has(ref[0] + "|" + ref[1]), `fieldRefs 无法解析: ${p.vendor}|${p.plan} ${field}`);
+  }
+}
 const allMetrics = [
   ...METRICS_RAW.map((m) => ({ ...m, isEst: false, arr: "METRICS_RAW" })),
   ...ESTIMATES.map((m) => ({ ...m, isEst: true, arr: "ESTIMATES" })),
@@ -135,29 +150,36 @@ for (const m of allMetrics) {
   check(!metricKeys.has(key), `${m.arr} 重复条目: ${key}`);
   metricKeys.add(key);
   const hasReq = m.reqPerWk != null || m.reqPerMo != null || m.reqPer5h != null;
-  const kinds = [m.wkLowM != null, hasReq, m.creditUSD != null, m.creditCNY != null].filter(Boolean).length;
-  check(kinds === 1, `额度口径必须且只能有一种(周tokens/请求数/creditsUSD/creditsCNY): ${key}`);
+  const hasReqRange = m.reqLowPer5h != null || m.reqHighPer5h != null || m.tokensLowPerReq != null || m.tokensHighPerReq != null;
+  const kinds = [m.wkLowM != null, hasReq, hasReqRange, m.creditUSD != null, m.creditCNY != null].filter(Boolean).length;
+  check(kinds === 1, `额度口径必须且只能有一种(周tokens/请求数/条数区间/creditsUSD/creditsCNY): ${key}`);
   if (m.wkLowM != null) {
-    check(typeof m.wkLowM === "number" && m.wkLowM > 0, `wkLowM 非法: ${key}`);
-    check(m.wkHighM == null || (typeof m.wkHighM === "number" && m.wkHighM >= m.wkLowM), `wkHighM < wkLowM: ${key}`);
-    check(typeof m.apiIn === "number" && typeof m.apiOut === "number" && typeof m.apiCache === "number",
-      `周tokens 制缺 apiIn/apiOut/apiCache: ${key}`);
+    check(finitePositive(m.wkLowM), `wkLowM 非法: ${key}`);
+    check(m.wkHighM == null || (finitePositive(m.wkHighM) && m.wkHighM >= m.wkLowM), `wkHighM 非法或 < wkLowM: ${key}`);
   }
-  if (m.reqPerWk != null) check(typeof m.reqPerWk === "number" && m.reqPerWk > 0, `reqPerWk 非法: ${key}`);
-  if (m.reqPerMo != null) check(typeof m.reqPerMo === "number" && m.reqPerMo > 0, `reqPerMo 非法: ${key}`);
-  if (m.reqPer5h != null) check(typeof m.reqPer5h === "number" && m.reqPer5h > 0, `reqPer5h 非法: ${key}`);
-  if (m.creditUSD != null) check(typeof m.creditUSD === "number" && m.creditUSD > 0, `creditUSD 非法: ${key}`);
-  if (m.creditCNY != null) check(typeof m.creditCNY === "number" && m.creditCNY > 0, `creditCNY 非法: ${key}`);
+  for (const field of ["reqPerWk", "reqPerMo", "reqPer5h", "creditUSD", "creditCNY"]) {
+    if (m[field] != null) check(finitePositive(m[field]), `${field} 必须为有限正数: ${key}`);
+  }
+  if (hasReqRange) {
+    for (const field of ["reqLowPer5h", "reqHighPer5h", "tokensLowPerReq", "tokensHighPerReq"]) check(finitePositive(m[field]), `条数区间缺有效 ${field}: ${key}`);
+    check(m.reqHighPer5h >= m.reqLowPer5h && m.tokensHighPerReq >= m.tokensLowPerReq, `条数/tokens 区间上下限颠倒: ${key}`);
+  }
+  if (m.wkLowM != null || hasReq || hasReqRange || [m.apiIn, m.apiOut, m.apiCache].some((v) => v != null)) {
+    check(finiteNonnegative(m.apiIn) && finitePositive(m.apiOut) && finiteNonnegative(m.apiCache) && m.apiCache <= m.apiIn,
+      `缺完整有限牌价，或缓存价不在输入价范围内: ${key}`);
+  }
   if (Array.isArray(m.ref)) {
     const p = idx.get(m.ref[0] + "|" + m.ref[1]);
     check(!!p, `ref 无法解析(PLANS 中不存在): ${m.ref.join("|")}`);
+    if (p) check(finitePositive(p.priceM), `ref 必须指向有有效正月费的计划: ${key}`);
     if (p && typeof m.priceM === "number" && typeof p.priceM === "number") {
       warn(Math.abs(m.priceM - p.priceM) < 0.01, `ref 已解析但价格与 PLANS 不一致(条目 ${m.priceM} vs ${p.priceM}): ${key}`);
     }
   } else {
-    check(typeof m.priceM === "number", `无 ref 且缺 priceM: ${key}`);
+    check(finitePositive(m.priceM), `无 ref 且缺有效正 priceM: ${key}`);
+    check(m.cur === "USD" || m.cur === "CNY", `无 ref 条目缺有效币种: ${key}`);
   }
-  if (m.isEst) check(!!m.method && !!m.confidence, `估算条目缺 method/confidence: ${key}`);
+  if (m.isEst) check(!!m.method && ["高", "中", "低"].includes(m.confidence), `估算条目缺 method 或有效 confidence: ${key}`);
   warn(!/多模型|混合|全系|全模型/.test(m.model || ""), `模型名仍含糊（多模型/混合/全系/全模型）: ${key}`);
 }
 /* ref 覆盖率（提醒：指标条目应尽量通过 ref 指向 PLANS 单一价格源） */
@@ -168,8 +190,8 @@ if (noRef > 0) note(`${noRef} 个指标条目未设 ref（价格未与 PLANS 单
 for (const a of API_PRICES) {
   const key = (a.vendor || "?") + " " + (a.model || "?");
   check(a.cur === "USD" || a.cur === "CNY", `API_PRICES cur 非法: ${key}`);
-  if (a.cur === "USD") check(typeof a.inUSD === "number" && typeof a.outUSD === "number", `缺 inUSD/outUSD: ${key}`);
-  if (a.cur === "CNY") check(typeof a.inCNY === "number" && typeof a.outCNY === "number", `缺 inCNY/outCNY: ${key}`);
+  if (a.cur === "USD") check(finiteNonnegative(a.inUSD) && finitePositive(a.outUSD), `缺有限非负 inUSD/正 outUSD: ${key}`);
+  if (a.cur === "CNY") check(finiteNonnegative(a.inCNY) && finitePositive(a.outCNY), `缺有限非负 inCNY/正 outCNY: ${key}`);
   check(typeof a.label === "string", `缺 label: ${key}`);
   check(typeof a.url === "string" && a.url.startsWith("http"), `url 非法: ${key}`);
 }
@@ -182,9 +204,9 @@ for (const s of PAYG_REFERENCES || []) {
   check(!paygKeys.has(key), `PAYG_REFERENCES 重复: ${key}`);
   paygKeys.add(key);
   check(s.cur === "USD" || s.cur === "CNY", `PAYG cur 非法: ${key}`);
-  check(typeof s.apiIn === "number" && s.apiIn >= 0, `PAYG apiIn 非法: ${key}`);
-  check(typeof s.apiOut === "number" && s.apiOut > 0, `PAYG apiOut 非法: ${key}`);
-  check(typeof s.apiCache === "number" && s.apiCache >= 0 && s.apiCache <= s.apiIn, `PAYG 缓存价应介于 0 与输入价之间: ${key}`);
+  check(finiteNonnegative(s.apiIn), `PAYG apiIn 非法: ${key}`);
+  check(finitePositive(s.apiOut), `PAYG apiOut 非法: ${key}`);
+  check(finiteNonnegative(s.apiCache) && s.apiCache <= s.apiIn, `PAYG 缓存价应介于 0 与输入价之间: ${key}`);
   check(typeof s.note === "string" && s.note.length > 8, `PAYG note 过短: ${key}`);
   check(typeof s.source === "string" && s.source, `PAYG 缺 source: ${key}`);
   check(typeof s.url === "string" && s.url.startsWith("http"), `PAYG url 非法: ${key}`);
@@ -210,15 +232,15 @@ for (const s of PAYG_REFERENCES || []) {
 /* ---- PLAN_TOKENS ---- */
 for (const t of PLAN_TOKENS) {
   const key = t.plan + "·" + (t.model || "?");
-  check(typeof t.lowM === "number" && t.lowM > 0, `lowM 非法: ${key}`);
-  check(typeof t.highM === "number" && t.highM >= t.lowM, `highM 非法: ${key}`);
+  check(finitePositive(t.lowM), `lowM 非法: ${key}`);
+  check(finitePositive(t.highM) && t.highM >= t.lowM, `highM 非法: ${key}`);
   let priceCNY = t.priceCNY != null ? t.priceCNY : t.priceUSD != null ? t.priceUSD * RATE_USD_CNY : null;
   if (Array.isArray(t.ref)) {
     const p = idx.get(t.ref[0] + "|" + t.ref[1]);
     check(!!p, `PLAN_TOKENS ref 无法解析: ${t.ref.join("|")}`);
     if (p) priceCNY = p.cur === "USD" ? p.priceM * RATE_USD_CNY : p.priceM;
   }
-  check(priceCNY != null, `缺价格(且无有效 ref): ${key}`);
+  check(finitePositive(priceCNY), `缺有效正价格(且无有效 ref): ${key}`);
   check(typeof t.url === "string" && t.url.startsWith("http"), `url 非法: ${key}`);
 }
 

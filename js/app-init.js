@@ -1,10 +1,14 @@
 /* ============ Coding Plan 比价中心 — 启动与懒加载 ============ */
 "use strict";
+const DEBUG_MODE = new URLSearchParams(location.search).has("debug");
 
 /* ---------- 初始化：单块失败不阻断其余区块 ---------- */
 function boot(name, fn) {
-  try { fn(); }
-  catch (err) { console.error("[render] " + name, err); }
+  try { fn(); return true; }
+  catch (err) {
+    console.error("[render] " + name, err);
+    return false;
+  }
 }
 
 /* ---------- URL 状态化：筛选/排序可分享、刷新可恢复 ----------
@@ -22,6 +26,7 @@ const URL_KEYS = {
   pregion: () => state1.region,
   pbilling: () => state1.billing,
   pq: () => state1.q,
+  plimit: () => state1.limit == null ? "all" : String(state1.limit),
   /* 性价比排行 */
   rank: () => rankState.tier,
   rscope: () => rankState.scope,
@@ -46,6 +51,7 @@ const URL_VALID = {
   pcat: new Set(["all", "official", "tool", "cloud"]),
   pregion: new Set(["all", "cn", "intl"]),
   pbilling: new Set(["M", "Y"]),
+  plimit: new Set([String(PERSONAL_DEFAULT_LIMIT), "all"]),
   rank: new Set(["flagship", "all"]),
   rscope: new Set(["official", "credits", "all"]),
   tcat: new Set(["all", "official", "tool", "cloud", "team"]),
@@ -75,6 +81,7 @@ function applyUrlState() {
   pick("pregion", URL_VALID.pregion, state1, "region");
   pick("pbilling", URL_VALID.pbilling, state1, "billing");
   if (p.get("pq") != null) state1.q = p.get("pq");
+  if (URL_VALID.plimit.has(p.get("plimit"))) state1.limit = p.get("plimit") === "all" ? null : PERSONAL_DEFAULT_LIMIT;
   pick("rank", URL_VALID.rank, rankState, "tier");
   pick("rscope", URL_VALID.rscope, rankState, "scope");
   if (p.get("q") != null) tableState.search = p.get("q");
@@ -98,12 +105,14 @@ function applyUrlState() {
     cmpState.items = cmp.split(";").map((s) => {
       const [vendor, plan] = s.split("|");
       return PLANS.find((x) => x.vendor === vendor && x.plan === plan);
-    }).filter(Boolean).slice(0, CMP_MAX);
+    }).filter((x, i, all) => x && all.indexOf(x) === i).slice(0, CMP_MAX);
   }
 }
 
 function syncUrl() {
+  /* 仅写入仍受支持的状态，旧链接中的 country 等退役参数会在首次渲染时清除。 */
   const p = new URLSearchParams();
+  if (DEBUG_MODE) p.set("debug", "1");
   for (const [k, get] of Object.entries(URL_KEYS)) {
     const v = String(get());
     if (v !== String(URL_DEFAULTS[k]) && v !== "") p.set(k, v);
@@ -159,8 +168,57 @@ const LAZY_DONE = new Set();
 function bootLazy(item) {
   if (LAZY_DONE.has(item.el)) return;
   LAZY_DONE.add(item.el);
-  boot(item.name, item.fn);
+  if (!boot(item.name, item.fn)) {
+    const el = byId(item.el);
+    if (el) el.innerHTML = `<p class="render-error" role="alert">图表暂时无法显示。<button type="button" class="chip" data-retry-chart="${esc(item.el)}">重试</button></p>`;
+  }
 }
+
+/* 锚点跳转前完成目标前方图表的布局；滚动期间不再被懒加载增高顶偏。 */
+function prepareSection(hash) {
+  let id;
+  try { id = decodeURIComponent(String(hash || "").replace(/^#/, "")); }
+  catch (e) { return null; }
+  const target = byId(id);
+  if (!target) return null;
+  LAZY_CHARTS.forEach((item) => {
+    const chart = byId(item.el);
+    if (chart && (target.contains(chart) || (chart.compareDocumentPosition(target) & 4))) bootLazy(item);
+  });
+  return target;
+}
+function navigateToSection(hash, updateHistory = true) {
+  const target = prepareSection(hash);
+  if (!target) return;
+  if (updateHistory && location.hash !== hash) {
+    try { history.pushState(null, "", location.pathname + location.search + hash); }
+    catch (e) { location.hash = hash; }
+  }
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  target.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+}
+document.addEventListener("click", (e) => {
+  const target = evtTarget(e);
+  const link = target && target.closest ? target.closest('a[href^="#"]') : null;
+  if (link && !e.defaultPrevented && e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
+    const hash = link.getAttribute("href");
+    if (!byId(hash.slice(1))) return;
+    e.preventDefault();
+    navigateToSection(hash);
+  }
+  const retry = target && target.closest ? target.closest("[data-retry-chart]") : null;
+  if (retry) {
+    const id = retry.dataset.retryChart;
+    const item = LAZY_CHARTS.find((x) => x.el === id);
+    if (item) {
+      if (chartCache[id]) { chartCache[id].dispose(); delete chartCache[id]; }
+      byId(id).innerHTML = "";
+      LAZY_DONE.delete(id);
+      bootLazy(item);
+    }
+  }
+});
+window.addEventListener("hashchange", () => navigateToSection(location.hash, false));
 if (typeof IntersectionObserver === "function") {
   const lazyIo = new IntersectionObserver(
     (entries) => {
@@ -199,7 +257,7 @@ const lazyTimer = setInterval(() => {
 }, 800);
 
 /* picker 的 headline 断言只在调试时跑：?debug=1 */
-if (new URLSearchParams(location.search).has("debug")) {
+if (DEBUG_MODE) {
   boot("audit", auditProfiles);
 }
 
@@ -231,3 +289,5 @@ if (new URLSearchParams(location.search).has("debug")) {
 
 bindEvents();
 bindMetricsEvents();
+/* 直接打开分享锚点时也先铺好上方布局。 */
+if (location.hash) navigateToSection(location.hash, false);

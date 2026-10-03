@@ -8,7 +8,7 @@ const PICK_ACCENT = ["#34d399", "#f59e0b", "#6366f1", "#f472b6"];
    自家订阅不一定赢下主计划（比如 Cursor 的旗舰走按量池），但不该从推荐里消失。 */
 const TOOL_OWN_VENDOR = { claude: "Anthropic", codex: "OpenAI", cursor: "Cursor" };
 const OWN_VENDOR_NOTE = {
-  Cursor: "Cursor 的旗舰模型（Opus、GPT-6 等）走按量池另计费，额度池以 Grok、Composer 为主，所以没拿下复杂任务主计划；适合想把 IDE 和订阅绑在一家的情况。",
+  Cursor: "Cursor 各档的模型池和额外按量费用不同；请对照具体套餐的总费用、支持工具和额度规则。",
   Anthropic: "Claude 官方订阅用的是 Claude Code 本身，模型和额度都是第一方；是否最优看第一张卡的对比。",
   OpenAI: "ChatGPT 官方订阅用 Codex 本身，模型和额度都是第一方；是否最优看第一张卡的对比。",
 };
@@ -18,9 +18,15 @@ function metricMatchesPlan(m, p) {
   return m.vendor === p.vendor && m.plan === p.plan;
 }
 function hasCodingSurface(p) {
+  if (typeof p.codingSurface === "boolean") return p.codingSurface;
   const tools = resolvedField(p, "tools");
   if (/Claude Code/i.test(tools) || /\bCodex\b/i.test(tools) || p.vendor === "Cursor" || /\bCursor\b/i.test(tools)) return true;
   return hasOwnClient(p);
+}
+/* 通用推荐排除国家限定套餐；工具免费不等于模型推理免费。 */
+function recommendablePlan(p) {
+  return !isRelay(p) && !isRetiredPlan(p) && offerable(p) && hasCodingSurface(p) &&
+    hasIncludedModelQuota(p) && isPurchaseCountryAllowed(p, "");
 }
 function matchesTool(p, tool) {
   if (tool === "any") return true;
@@ -85,16 +91,21 @@ function modelTextForRoles(p) {
   }
   return own;
 }
-/* 同一 5 小时窗口。双池、或官方按模型分开写条数的，日常模型才算另一池。
-   官方逐模型条数（如 Sol 15–160、Luna 350–3,000）是最具体的窗口信号，优先于泛泛的「共享」措辞
-   （例：ChatGPT 的「Work 与 Codex 用量共享」说的是跨端共享，不是模型共用窗口）。 */
+/* 重置周期和模型之间的共享关系是两个独立事实。
+   不同模型的条数区间并不能证明它们拥有独立额度池；未公开时保留 unknown。 */
+function quotaWindowPeriod(p) { return p.windowPeriod || "unknown"; }
+function quotaSharing(p) { return p.quotaSharing || "unknown"; }
 function oneSharedWindow(p) {
-  const q = `${p.quota || ""} ${p.note || ""}`;
-  if (/双池|按模型\s*5\s*h|按模型 5h/i.test(q)) return false;
-  const named = q.match(/(?:Sol|Luna|Astra|Opus|Haiku|Sonnet)\s*[^。；]{0,24}\d/gi);
-  if (named && named.length >= 2) return false;
-  /* 其余情况（含泛泛的「共享」措辞）保守视为同一窗口 */
-  return true;
+  return quotaWindowPeriod(p) === "5h" && quotaSharing(p) === "shared";
+}
+function roleUseText(role) {
+  if (!role) return "";
+  if (role.ceiling) return "复杂任务的高强度选项，实际消耗以套餐说明为准";
+  return role.task === "hard" ? "适合复杂编码和重构任务" : "适合日常编码和轻量任务";
+}
+function quotaLabel(p) {
+  const period = quotaWindowPeriod(p);
+  return period === "5h" ? "5 小时窗口" : period === "month" ? "月度额度" : "额度规则";
 }
 function metricForRole(p, role) {
   if (!role) return null;
@@ -113,8 +124,9 @@ function knownTokens(p, role) {
 }
 function planProfile(p) {
   const access = splitModelAccess(modelTextForRoles(p));
-  const included = matchModelRoles(access.included);
-  const metered = matchModelRoles(access.metered);
+  const hasQuota = hasIncludedModelQuota(p);
+  const included = hasQuota ? matchModelRoles(access.included) : [];
+  const metered = matchModelRoles(hasQuota ? access.metered : modelTextForRoles(p));
   const hard = included.filter((r) => r.task === "hard" && !r.ceiling);
   const ceilings = included.filter((r) => r.task === "hard" && r.ceiling);
   hard.sort((a, b) => bandRank(b.band) - bandRank(a.band));
@@ -122,7 +134,10 @@ function planProfile(p) {
   const headline = hard[0] || ceilings[0] || null;
   const loose = included.filter((r) => r.task === "daily" && r.burn === "slow");
   const shared = oneSharedWindow(p);
-  return { p, included, metered, headline, ceilings, loose, shared, internalDaily: shared ? [] : loose };
+  const windowPeriod = quotaWindowPeriod(p);
+  const sharing = quotaSharing(p);
+  return { p, included, metered, headline, ceilings, loose, shared, windowPeriod, sharing,
+    internalDaily: sharing === "separate" ? loose : [] };
 }
 function windowStats(x) {
   const role = x.headline || x.loose[0];
@@ -142,11 +157,15 @@ function tokSpan(c, keyLow, keyHigh) {
   return fmtTok(lo);
 }
 function windowSentence(p, role) {
+  const period = quotaWindowPeriod(p);
+  const q = String(resolvedField(p, "quota")).replace(/\s+/g, " ");
+  if (period === "none") return `目前没有 5 小时上限；总体用量仍以官方仪表盘为准。原文：${trunc(q, 96)}`;
+  if (period === "month") return `额度按月计量；具体重置和超额规则请核对官网。原文：${trunc(q, 96)}`;
+  if (period === "unknown") return `额度重置周期或窗口上限未公开。原文：${trunc(q, 96)}`;
   const met = metricForRole(p, role);
   if (met && met.conf === "高" && met.c.fLow != null) {
     return `5 小时窗口按官方每周额度折算大约 ${tokSpan(met.c, "fLow", "fHigh")} tokens。`;
   }
-  const q = String(p.quota || "").replace(/\s+/g, " ");
   const bit = dailyRoleBit(role);
   if (new RegExp(escRe(bit), "i").test(q) && /5\s*小时|\/5h/i.test(q)) {
     return `5 小时窗口按官方原文：${trunc(q, 96)}`;
@@ -158,7 +177,7 @@ function windowSentence(p, role) {
   return `官方没有公布 5 小时窗口。额度原文：${trunc(q, 72)}`;
 }
 function withinBudget(p) {
-  if (isRelay(p) || isRetiredPlan(p) || !offerable(p)) return false;
+  if (!recommendablePlan(p)) return false;
   if (pickerState.region !== "all" && p.region !== pickerState.region) return false;
   if (!matchesTool(p, pickerState.tool)) return false;
   if (pickerState.budget === "0") return isFreeCodingEntry(p);
@@ -233,7 +252,7 @@ function cheaperTiers(main) {
   const mainPrice = cnyOf(main.p, "M") || 0;
   const rows = [];
   PLANS.forEach((p) => {
-    if (p.vendor !== main.p.vendor || !isPersonalMonthly(p) || !offerable(p)) return;
+    if (p.vendor !== main.p.vendor || !isPersonalMonthly(p) || !recommendablePlan(p)) return;
     if (pickerState.region !== "all" && p.region !== pickerState.region) return;
     if (!matchesTool(p, pickerState.tool)) return;
     if ((cnyOf(p, "M") || 0) >= mainPrice - 0.05) return;
@@ -262,16 +281,19 @@ function peerNote(main, pool) {
   return `同预算还能买 ${planTitle(top.p)}（${top.headline.name}）。官方没有给出高置信的 5 小时 token 数，所以主计划用了能看清窗口的这一档。`;
 }
 function nextTier(current) {
-  const roleId = current.headline && current.headline.id;
+  const dailyLead = pickerState.task === "daily" || !current.headline;
+  const roleId = dailyLead ? current.loose[0] && current.loose[0].id : current.headline.id;
   let best = null;
   PLANS.forEach((p) => {
-    if (p.vendor !== current.p.vendor || isRelay(p) || !isPersonalMonthly(p) || !offerable(p)) return;
+    if (p.vendor !== current.p.vendor || !isPersonalMonthly(p) || !recommendablePlan(p)) return;
     if (pickerState.region !== "all" && p.region !== pickerState.region) return;
     if (!matchesTool(p, pickerState.tool)) return;
     const price = cnyOf(p, "M") || 0;
     if (price <= (cnyOf(current.p, "M") || 0) + 0.05) return;
     const prof = planProfile(p);
-    if (roleId) {
+    if (dailyLead) {
+      if (!prof.loose.some((r) => r.id === roleId)) return;
+    } else if (roleId) {
       if (!prof.headline || prof.headline.id !== roleId) return;
     } else if (!prof.loose.length) return;
     if (!best || price < (cnyOf(best.p, "M") || 0)) best = prof;
@@ -279,24 +301,24 @@ function nextTier(current) {
   return best;
 }
 function unlockText(cur, next) {
-  const sameHard = cur.headline && next.headline && cur.headline.id === next.headline.id;
-  const sameDaily = !cur.headline && !next.headline && cur.loose[0] && next.loose[0] && cur.loose[0].id === next.loose[0].id;
-  if (sameHard || sameDaily) {
-    const role = cur.headline || cur.loose[0];
-    const nextRole = next.headline || next.loose[0];
+  const dailyLead = pickerState.task === "daily" || !cur.headline;
+  const role = dailyLead ? cur.loose[0] : cur.headline;
+  const nextRole = dailyLead ? next.loose.find((r) => role && r.id === role.id) : next.headline;
+  if (role && nextRole && role.id === nextRole.id) {
     const a = metricForRole(cur.p, role);
     const b = metricForRole(next.p, nextRole);
-    if (a && b && a.conf === "高" && b.conf === "高" && a.c.fLow != null && b.c.fLow != null) {
+    if (cur.windowPeriod === "5h" && next.windowPeriod === "5h" && a && b && a.conf === "高" && b.conf === "高" && a.c.fLow != null && b.c.fLow != null) {
       return `模型仍是 ${role.name}。5 小时窗口从大约 ${tokSpan(a.c, "fLow", "fHigh")} tokens 提到 ${tokSpan(b.c, "fLow", "fHigh")} tokens，加的钱换来更大的窗口。`;
     }
     const mult = (next.p.quota || "").match(/(\d+(?:\.\d+)?)\s*×\s*(Pro|Plus|Lite|Standard)/i);
-    if (mult) return `模型仍是 ${role.name}。官方额度是 ${mult[1]}× ${mult[2]}，加的钱换来更大的窗口。`;
-    return `模型仍是 ${role.name}。额度原文：${trunc(next.p.quota, 72)}`;
+    if (mult) return `模型仍是 ${role.name}。官方额度是 ${mult[1]}× ${mult[2]}，具体重置周期以官方说明为准。`;
+    return `模型仍是 ${role.name}。未公开的额度差不能按价格推算；请核对官网。额度原文：${trunc(next.p.quota, 72)}`;
   }
+  if (dailyLead && next.loose.length) return `这档带日常模型 ${next.loose.map((r) => r.name).join("、")}。额度原文：${trunc(next.p.quota, 80)}`;
   if (next.headline && (!cur.headline || bandRank(next.headline.band) > bandRank(cur.headline.band))) {
-    return `这档才能把复杂任务模型换成 ${next.headline.name}。${next.headline.reason}。`;
+    return `这档才能把复杂任务模型换成 ${next.headline.name}。${roleUseText(next.headline)}。`;
   }
-  if (next.loose.length) return `这档带慢烧模型 ${next.loose.map((r) => r.name).join("、")}。${next.loose[0].reason}。`;
+  if (next.loose.length) return `这档带日常模型 ${next.loose.map((r) => r.name).join("、")}。${roleUseText(next.loose[0])}。`;
   return `额度原文：${trunc(next.p.quota, 80)}`;
 }
 function dailyEntries(pool, main) {
@@ -321,9 +343,9 @@ function dailyQuotaSignal(p, role) {
   if (single) return (Number(single[1].replace(/,/g, "")) * TOKENS_PER_REQ) / 1e6;
   return 0;
 }
-/* 有「独立日常池」的才算硬覆盖：双池计划，或档内慢烧模型单独计额度（如 ChatGPT Plus 的 Luna 独立条数） */
+/* 只有明确标注模型之间分池的套餐才算独立日常池。 */
 function hasSeparateDaily(x) {
-  return x.internalDaily.length > 0 || /双池/.test(x.p.quota || "");
+  return x.internalDaily.length > 0;
 }
 function pickSupplement(main, pool) {
   const list = dailyEntries(pool, main).slice().sort((a, b) => {
@@ -351,7 +373,8 @@ function sameWindowText(profile) {
   const names = profile.included.filter((r) => r.task === "daily").map((r) => r.name);
   if (!profile.headline) return "";
   if (!names.length) return `${profile.headline.name} 这档没有另外的慢烧模型。`;
-  return `${names.join("、")} 和 ${profile.headline.name} 共用同一个 5 小时窗口。拿它们做日常，用的还是这一格额度。`;
+  if (profile.shared) return `${names.join("、")} 和 ${profile.headline.name} 共用同一个 5 小时窗口。日常使用会消耗这一窗口的额度。`;
+  return windowNoteShort(profile);
 }
 function meteredText(profile) {
   if (!profile.metered.some((r) => r.id === "claude-opus")) return "";
@@ -372,18 +395,18 @@ function mainCard(main, pool) {
   const bits = [`<b>${esc(planTitle(p))}</b><div class="badge-row">${badgeHtml(p)}</div>`];
   if (dailyLead) {
     const names = main.loose.map((r) => r.name).join("、");
-    bits.push(lineHtml("日常", `${names}。${main.loose[0].reason}。`));
-    bits.push(lineHtml("5 小时窗口", windowSentence(p, main.loose[0])));
-    if (main.headline) bits.push(lineHtml("同档还有", `${main.headline.name}。${main.shared ? "和慢烧模型共用同一个窗口。" : main.headline.reason + "。"}`));
+    bits.push(lineHtml("日常", `${names}。${roleUseText(main.loose[0])}。`));
+    bits.push(lineHtml(quotaLabel(p), windowSentence(p, main.loose[0])));
+    if (main.headline) bits.push(lineHtml("同档还有", `${main.headline.name}。${windowNoteShort(main)}`));
   } else if (main.headline) {
     const ceiling = main.ceilings.find((r) => r.id !== main.headline.id);
-    let hard = `${main.headline.name}。${main.headline.reason}。`;
-    if (ceiling) hard += `${ceiling.name} 也能开，${ceiling.reason}。`;
+    let hard = `${main.headline.name}。${roleUseText(main.headline)}。`;
+    if (ceiling) hard += `${ceiling.name} 也能开，${roleUseText(ceiling)}。`;
     bits.push(lineHtml("复杂任务", hard));
-    bits.push(lineHtml("5 小时窗口", windowSentence(p, main.headline)));
+    bits.push(lineHtml(quotaLabel(p), windowSentence(p, main.headline)));
   } else {
-    bits.push(lineHtml("日常", `${main.loose.map((r) => r.name).join("、")}。${main.loose[0].reason}。`));
-    bits.push(lineHtml("5 小时窗口", windowSentence(p, main.loose[0])));
+    bits.push(lineHtml("日常", `${main.loose.map((r) => r.name).join("、")}。${roleUseText(main.loose[0])}。`));
+    bits.push(lineHtml(quotaLabel(p), windowSentence(p, main.loose[0])));
   }
   const meter = meteredText(main);
   if (meter) bits.push(lineHtml("另一池", meter));
@@ -392,9 +415,10 @@ function mainCard(main, pool) {
   if (peer) bits.push(lineHtml("同预算", peer));
   const cheaper = cheaperTiers(main);
   if (cheaper.length) {
-    const list = cheaper.slice(0, 2).map((x) => `${esc(x.p.plan)}（${esc(priceLine(x.p))}）`).join("、");
-    bits.push(lineHtml("省钱档", `同一个 ${esc(main.headline.name)} 还有更便宜的 ${list}，窗口更小。`));
+    const list = cheaper.slice(0, 2).map((x) => `${x.p.plan}（${priceLine(x.p)}）`).join("、");
+    bits.push(lineHtml("省钱档", `同一个 ${main.headline.name} 还有更便宜的 ${list}，具体额度差请核对官网。`));
   }
+  bits.push(lineHtml("核对信息", `页面数据更新于 ${META.updated}；下单前点击官网核对价格、购买资格与额度规则。`));
   if (p.region === "intl" && pickerState.region !== "cn") bits.push(`<div class="qc-avoid">需要外币或国际账号支付。</div>`);
   const title = dailyLead || !main.headline ? "主计划 · 日常" : "主计划 · 复杂任务";
   return quickCard(PICK_ACCENT[0], title, moneyHtml(p), bits.join(""), p);
@@ -402,13 +426,12 @@ function mainCard(main, pool) {
 /* 中间卡的三条底线：能不花钱覆盖就不推荐第二档；要另买时写清差多少；实在没有才留空值 */
 function dailyCard(main, pool) {
   const dailyNames = main.loose.map((r) => r.name).join("、");
-  const windowNote = main.shared
-    ? "和复杂任务模型共用同一个 5 小时窗口，日常用多了会挤占复杂任务额度。"
-    : "额度与复杂任务模型分开。";
+  const windowNote = windowNoteShort(main);
+  const included = (title, text) => quickCard(PICK_ACCENT[1], title, "<em>已包含</em>",
+    `<b>${esc(planTitle(main.p))}</b>${lineHtml("不用另买", text)}${lineHtml("合计月费", priceLine(main.p))}`, main.p);
   if (pickerState.task === "hard") {
     if (main.loose.length) {
-      return quickCard(PICK_ACCENT[1], "日常覆盖", moneyHtml(main.p),
-        `<b>${esc(planTitle(main.p))}</b>${lineHtml("顺手覆盖", `筛选以复杂任务为主，日常可以用同一档里的 ${esc(dailyNames)}，不用另买。${windowNote}`)}`, main.p);
+      return included("日常覆盖", `日常可以用同一档里的 ${dailyNames}。${windowNote}`);
     }
     return quickCard(PICK_ACCENT[1], "日常覆盖", "<em>—</em>",
       lineHtml("这次不配", "筛选以复杂任务为主，这一档也没有能日常慢烧的模型。"), null);
@@ -416,51 +439,53 @@ function dailyCard(main, pool) {
   if (pickerState.task === "daily") {
     const meter = meteredText(main);
     if (meter) {
-      return quickCard(PICK_ACCENT[1], "复杂任务", moneyHtml(main.p),
+      return quickCard(PICK_ACCENT[1], "复杂任务", "<em>按量另计</em>",
         `<b>${esc(planTitle(main.p))}</b>${lineHtml("另一池", meter)}`, main.p);
     }
     if (main.headline) {
-      return quickCard(PICK_ACCENT[1], "复杂任务", moneyHtml(main.p),
-        `<b>${esc(planTitle(main.p))}</b>${lineHtml("就在这档里", `${main.headline.name} 也在这档里。${main.shared ? "和慢烧模型共用同一个窗口，偶尔的复杂任务直接用它顶。" : "额度分开，复杂任务直接用。"}`)}`, main.p);
+      return included("复杂任务", `${main.headline.name} 也在这档里，可用于偶尔的复杂任务。${windowNote}`);
     }
     return quickCard(PICK_ACCENT[1], "复杂任务", "<em>—</em>",
-      lineHtml("这档不包含", "这档没有能单独拿来做复杂任务的模型。复杂任务要另买带 Claude Opus 一类模型的订阅。"), null);
+      lineHtml("这档不包含", "这档没有匹配到复杂任务模型；需要时可改选复杂任务，比较包含这类模型的套餐。"), null);
   }
   if (main.internalDaily.length) {
-    const text = `用 ${dailyNames}。${main.internalDaily[0].reason}。和复杂任务模型分开计算额度，不用再买第二档。`;
-    return quickCard(PICK_ACCENT[1], "日常覆盖", moneyHtml(main.p), `<b>${esc(planTitle(main.p))}</b>${lineHtml("就在这档里", text)}`, main.p);
+    return included("日常覆盖", `用 ${dailyNames}。${roleUseText(main.internalDaily[0])}。${windowNote}`);
+  }
+  /* 已有日常模型时，仅明确的共享 5h 窗口才考虑补充；未知共享关系不能成为加购依据。 */
+  if (main.loose.length && !main.shared) {
+    return included("日常覆盖", `用 ${dailyNames} 做日常。${windowNote}当前信息不足以据此建议购买第二份订阅。`);
   }
   const shared = main.headline ? sameWindowText(main) : "";
   const sup = pickSupplement(main, pool);
   if (sup.chosen) {
     const roles = sup.chosen.internalDaily.length ? sup.chosen.internalDaily : sup.chosen.loose;
-    const sepNote = hasSeparateDaily(sup.chosen) ? "这一档的日常额度是独立池，不占主计划窗口。" : "";
-    let text = `日常用 ${roles.map((r) => r.name).join("、")}，${priceLine(sup.chosen.p)}。${roles[0].reason}。${sepNote}`;
+    const total = (cnyOf(main.p, "M") || 0) + (cnyOf(sup.chosen.p, "M") || 0);
+    let text = `日常用 ${roles.map((r) => r.name).join("、")}，另付 ${priceLine(sup.chosen.p)}。${roleUseText(roles[0])}。这是另一份订阅，用量不占主计划额度。`;
+    if (main.loose.length) text += `也可以继续用主计划里的 ${dailyNames}，无需第二份订阅。`;
     if (sup.dreamed) {
       const both = (cnyOf(main.p, "M") || 0) + (cnyOf(sup.dreamed.p, "M") || 0);
       text += `若要 ${planTitle(sup.dreamed.p)} 里更大的独立池，两档合计约 ${fmtCNY(both)}，高于当前预算。`;
     }
     return quickCard(PICK_ACCENT[1], "日常覆盖", moneyHtml(sup.chosen.p),
-      `<b>${esc(planTitle(sup.chosen.p))}</b><div class="badge-row">${badgeHtml(sup.chosen.p)}</div>${shared ? lineHtml("同一窗口", shared) : ""}${lineHtml("另开一档", text)}`, sup.chosen.p);
+      `<b>${esc(planTitle(sup.chosen.p))}</b><div class="badge-row">${badgeHtml(sup.chosen.p)}</div>${shared ? lineHtml("主计划额度", shared) : ""}${lineHtml("可选补充", text)}${lineHtml("两档合计月费", `约 ${fmtCNY(total)}（按页面汇率折算）`)}`, sup.chosen.p);
   }
   if (main.loose.length) {
     /* 主计划里的慢烧模型和复杂任务共用窗口，预算内没有更合适的独立慢烧档：日常就在本档覆盖 */
-    let text = `用 ${esc(dailyNames)} 做日常。${esc(main.loose[0].reason)}。${esc(windowNote)}`;
+    let text = `用 ${dailyNames} 做日常。${roleUseText(main.loose[0])}。${windowNote}`;
     const dream = sup.dreamed || dailyEntries(pool, main)[0];
     if (dream) {
       const both = (cnyOf(main.p, "M") || 0) + (cnyOf(dream.p, "M") || 0);
-      text += `想要分开的慢烧额度：${esc(planTitle(dream.p))} 月费 ${esc(priceLine(dream.p))}，两档合计约 ${fmtCNY(both)}，高于当前预算。`;
+      text += `另一份日常订阅 ${planTitle(dream.p)} 月费 ${priceLine(dream.p)}，两档合计约 ${fmtCNY(both)}，高于当前预算。`;
     } else {
       text += "当前条件下没有带独立慢烧池的另一档。";
     }
-    return quickCard(PICK_ACCENT[1], "日常覆盖", moneyHtml(main.p),
-      `<b>${esc(planTitle(main.p))}</b>${lineHtml("就在这档里", text)}`, main.p);
+    return included("日常覆盖", text);
   }
   const dream = sup.dreamed || dailyEntries(pool, main)[0];
   if (dream) {
     const names = dream.loose.map((r) => r.name).join("、");
     const both = (cnyOf(main.p, "M") || 0) + (cnyOf(dream.p, "M") || 0);
-    const text = `当前预算还剩 ${fmtCNY(Math.max(0, sup.remain))}。它的 ${names} 是独立的慢烧额度，月费 ${priceLine(dream.p)}，两档合计约 ${fmtCNY(both)}，高于当前预算。`;
+    const text = `当前预算还剩 ${fmtCNY(Math.max(0, sup.remain))}。另一份订阅可提供 ${names}，月费 ${priceLine(dream.p)}，两档合计约 ${fmtCNY(both)}，高于当前预算。`;
     return quickCard(PICK_ACCENT[1], "日常覆盖", moneyHtml(dream.p),
       `<b>${esc(planTitle(dream.p))}</b><div class="badge-row">${badgeHtml(dream.p)}</div><div class="qc-miss">当前预算放不下第二档。</div>${lineHtml("差多少", text)}`, dream.p);
   }
@@ -469,9 +494,9 @@ function dailyCard(main, pool) {
 function upgradeCard(main) {
   const next = nextTier(main);
   if (!next) {
-    return quickCard(PICK_ACCENT[2], "预算再往上", "<em>已最高</em>", lineHtml("这档到顶", "这已经是该厂商在售个人档里，这个模型窗口最大的一档。"), main.p);
+    return quickCard(PICK_ACCENT[2], "预算再往上", "<em>暂无下一档</em>", lineHtml("当前条件", "没有找到符合地区和工具的更高同厂商通用档位；未公开的额度不能据此断定已经到顶。"), main.p);
   }
-  const over = pickerState.budget !== "any" && pickerState.budget !== "0" && (cnyOf(next.p, "M") || 0) > Number(pickerState.budget) + 0.05;
+  const over = pickerState.budget !== "any" && (cnyOf(next.p, "M") || 0) > Number(pickerState.budget) + 0.05;
   const flag = over ? `<div class="qc-miss">高于当前预算。</div>` : "";
   return quickCard(PICK_ACCENT[2], "预算再往上", moneyHtml(next.p), `${flag}<b>${esc(planTitle(next.p))}</b>${lineHtml("多出来的是", unlockText(main, next))}`, next.p);
 }
@@ -480,7 +505,7 @@ function ownVendorCard(main) {
   const vendor = TOOL_OWN_VENDOR[pickerState.tool];
   if (!vendor) return null;
   if (main && main.p.vendor === vendor) return null;
-  const all = PLANS.filter((p) => p.vendor === vendor && isPersonalMonthly(p) && offerable(p))
+  const all = PLANS.filter((p) => p.vendor === vendor && isPersonalMonthly(p) && recommendablePlan(p))
     .sort((a, b) => (cnyOf(a, "M") || 0) - (cnyOf(b, "M") || 0));
   if (!all.length) return null;
   const inRegion = all.filter((p) => pickerState.region === "all" || p.region === pickerState.region);
@@ -491,7 +516,7 @@ function ownVendorCard(main) {
   const role = prof.headline || prof.loose[0];
   if (role) {
     const use = prof.headline ? "复杂任务" : "日常";
-    bits.push(lineHtml(use, `${role.name}。${role.reason}。`));
+    bits.push(lineHtml(use, `${role.name}。${roleUseText(role)}。`));
   } else {
     bits.push(lineHtml("额度", trunc(resolvedField(plan, "quota"), 80)));
   }
@@ -501,13 +526,18 @@ function ownVendorCard(main) {
   if (overBudget) {
     const cap = pickerState.budget === "0" ? "（筛选为免费）" : " " + fmtCNY(Number(pickerState.budget));
     bits.push(`<div class="qc-miss">高于当前预算${cap}。<button type="button" class="linkish" data-set-picker="budget=any">把预算放开</button></div>`);
-  } else if (main) bits.push(lineHtml("和主计划", `它没有赢下这组条件的主计划（见第一张卡）。${OWN_VENDOR_NOTE[vendor] || ""}`));
+  } else if (main && !regionMiss) bits.push(lineHtml("和主计划", `它没有赢下这组条件的主计划（见第一张卡）。${OWN_VENDOR_NOTE[vendor] || ""}`));
   if (regionMiss) bits.push(`<div class="qc-avoid">${esc(vendor)} 只有国际档，当前地区筛选把它排除了。<button type="button" class="linkish" data-set-picker="region=all">把地区改成「不限」再看</button></div>`);
   else if (plan.region === "intl") bits.push(`<div class="qc-avoid">需要外币或国际账号支付。</div>`);
   return quickCard(PICK_ACCENT[3], `${shortVendor(vendor)} 自家订阅`, moneyHtml(plan), bits.join(""), plan);
 }
 function windowNoteShort(prof) {
-  return prof.shared ? "和复杂任务模型共用同一个窗口。" : "额度与复杂任务模型分开。";
+  if (prof.windowPeriod === "none") return "目前没有 5 小时上限；总体用量仍需查看官方仪表盘。";
+  if (prof.sharing === "separate") return "官方说明日常模型与复杂任务模型分池计算额度。";
+  if (prof.shared) return "日常模型和复杂任务模型共用同一个 5 小时窗口，日常使用会消耗这份额度。";
+  if (prof.windowPeriod === "month" && prof.sharing === "shared") return "日常模型和复杂任务模型共用月度额度池。";
+  if (prof.sharing === "shared") return "日常模型和复杂任务模型共用同一额度池；重置周期或窗口上限未公开。";
+  return "模型之间的额度共享情况未公开，无法确认日常使用是否会挤占复杂任务额度。";
 }
 /* 供卡片里的按钮一键放宽筛选（data-set-picker="region=all"） */
 function setPicker(rowKey, value) {
@@ -522,6 +552,19 @@ function syncPickerChips() {
     setChipPressed(row.querySelectorAll(".chip"), (chip) => chip.dataset.value === pickerState[row.dataset.pick]);
   });
 }
+function pickerEmptyReason(pool) {
+  if (pool.length) {
+    const task = pickerState.task === "daily" ? "日常" : "复杂任务";
+    return `有 ${pool.length} 档符合购买条件，但没有匹配到附赠的${task}模型。可以调整任务选择，或在数据表核对完整模型列表。`;
+  }
+  const base = PLANS.filter((p) => recommendablePlan(p) &&
+    (pickerState.budget === "0" ? isFreeCodingEntry(p) : isPersonalMonthly(p)));
+  const region = base.filter((p) => pickerState.region === "all" || p.region === pickerState.region);
+  if (!region.length) return "所选地区没有包含编程推理额度的通用个人档。可以调整地区；国家限定套餐可在完整数据表查看。";
+  const tool = region.filter((p) => matchesTool(p, pickerState.tool));
+  if (!tool.length) return "所选地区没有匹配这个工具的通用个人档。可以改选工具或地区；自备 Key 的免费平台不等于免费推理。";
+  return "当前预算没有匹配的通用套餐。可以提高预算或查看免费入口；国家限定套餐可在完整数据表查看。";
+}
 function renderPicker() {
   syncPickerChips();
   const pool = eligibleProfiles();
@@ -530,15 +573,15 @@ function renderPicker() {
   const main = chooseMain(pool);
   const own = ownVendorCard(main);
   if (!main) {
-    grid.innerHTML = `<div class="picker-empty">这组条件没有能下单的个人档。可以把预算放开，或把地区改成不限。</div>` + (own || "");
+    grid.innerHTML = `<div class="picker-empty">${esc(pickerEmptyReason(pool))}</div>` + (own || "");
     note.textContent = own
-      ? "上面是所选工具的自家订阅，供参考；它不满足当前的预算或地区筛选，所以没进推荐。中转站不参与。"
-      : "中转站不参与。模型只分成复杂任务和日常，不使用跑分。";
+      ? "上面是所选工具的自家订阅，供参考；请结合预算、地区和所选任务查看，参考卡不等于当前条件下的推荐。中转站不参与。"
+      : "平台免费但推理另付费的工具不作为免费模型套餐推荐；国家限定套餐保留在完整数据表，不参与通用推荐。中转站不参与。";
     syncUrl();
     return;
   }
   grid.innerHTML = [mainCard(main, pool), dailyCard(main, pool), upgradeCard(main), own].filter(Boolean).join("");
-  note.textContent = `符合条件 ${pool.length} 档。${own ? "最后一张是所选工具的自家订阅，供对照，不参与主计划排序。" : "三张卡是一套用法："}复杂任务看最强模型和它的 5 小时窗口，日常只把分开的慢烧额度算作覆盖。预算再往上可以高于当前筛选。模型角色按 ${MODEL_ROLES_ASOF} 的用法归类，不是跑分。中转站不参与。每百万 tokens 排行仍然只比价格。`;
+  note.textContent = `符合条件 ${pool.length} 档。${own ? "最后一张是所选工具的自家订阅，供对照，不参与主计划排序。" : "三张卡是一套用法："}复杂任务按模型用途和已公开额度选择；日常额度共享情况未公开时，不据此建议加购。已包含的覆盖无需重复付费，补充订阅会列出合计月费。预算再往上可以高于当前筛选。模型角色按 ${MODEL_ROLES_ASOF} 的用法归类，不是跑分。中转站不参与。每百万 tokens 排行仍然只比价格。`;
   syncUrl();
 }
 function auditProfiles() {
@@ -573,4 +616,3 @@ function auditProfiles() {
     Object.assign(pickerState, saved);
   }
 }
-
