@@ -378,13 +378,16 @@ function syncHeaderHeight() {
 function updateActiveNav() {
   const links = Array.from(qsa('.topnav a[href^="#"]'));
   const previous = links.find((link) => link.getAttribute("aria-current") === "location");
-  const cutoff = headerHeight + 13;
+  const scrollPadding = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("scroll-padding-top"));
+  const readingTop = Number.isFinite(scrollPadding) ? scrollPadding : headerHeight;
   let active = null, closestTop = -Infinity;
   links.forEach((link) => {
     const target = byId((link.getAttribute("href") || "").slice(1));
     if (!target || typeof target.getBoundingClientRect !== "function") return;
     const top = target.getBoundingClientRect().top;
-    if (Number.isFinite(top) && top <= cutoff && top >= closestTop) {
+    /* 章节顶部的实际留白进入阅读区即属于本节，容纳字体加载后的轻微布局变化。 */
+    const paddingTop = parseFloat(getComputedStyle(target).getPropertyValue("padding-top")) || 0;
+    if (Number.isFinite(top) && top <= readingTop + paddingTop && top >= closestTop) {
       closestTop = top;
       active = link;
     }
@@ -420,6 +423,9 @@ function initPageNavigation() {
     else update();
   }, { passive: true });
   window.addEventListener("hashchange", updateActiveNav);
+  /* 加载完成后只更新当前位置；用户已滚动时不重新跳到原分享锚点。 */
+  window.addEventListener("load", refreshHeader, { once: true });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(refreshHeader, refreshHeader);
 }
 function initTheme() {
   applyTheme(readThemeMode());

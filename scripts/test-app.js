@@ -196,6 +196,7 @@ function createApp(options = {}) {
     removeEventListener(type, fn) { documentEvents.set(type, (documentEvents.get(type) || []).filter((listener) => listener !== fn)); },
     execCommand: () => true,
   };
+  if (options.fontsReady) Object.defineProperty(document, "fonts", { value: { ready: options.fontsReady } });
   function fire(target, type, extra = {}) {
     const event = { target, type, button: 0, defaultPrevented: false, propagationStopped: false, preventDefault() { this.defaultPrevented = true; }, stopPropagation() { this.propagationStopped = true; }, ...extra };
     if (type === "click" && target.disabled) return event;
@@ -582,6 +583,37 @@ test("用户锚点跳转聚焦目标章节，初始分享锚点保持原焦点",
   assert.equal(shared.timeline.includes("focus:s4"), false);
   healthy(app);
   healthy(shared);
+});
+
+test("章节高亮按真实滚动间距及章节留白判断，字体完成只刷新用户当前位置", async () => {
+  let finishFonts = () => {};
+  const fontsReady = new Promise((resolve) => { finishFonts = () => resolve(null); });
+  const app = createApp({ fontsReady, url: "http://127.0.0.1:8123/index.html#s3b" });
+  app.run(`globalThis.navTops = { rank: -900, s3b: 79.8 };
+    globalThis.sectionPadding = 56;
+    getComputedStyle = (el) => ({ getPropertyValue: (name) => name === "scroll-padding-top" ? "69px" : name === "padding-top" && el.classList.contains("section") ? sectionPadding + "px" : "" });
+    qs(".topbar").getBoundingClientRect = () => ({ height: 56.8 });
+    qsa('.topnav a[href^="#"]').forEach(link => {
+      const target = byId(link.getAttribute("href").slice(1));
+      target.getBoundingClientRect = () => ({ top: navTops[target.id] ?? 10000 });
+    });
+    syncHeaderHeight(); updateActiveNav();`);
+  const active = () => app.run('qs(\'.topnav a[aria-current="location"]\').getAttribute("href")');
+  assert.equal(active(), "#s3b", "生产中section top=79.8、scroll-padding=69时标题已进入本节留白");
+  app.run("sectionPadding = 40; navTops.s3b = 100; updateActiveNav();");
+  assert.equal(active(), "#s3b", "窄屏使用自身padding而不是桌面固定值");
+  app.run("navTops.s3b = 110; updateActiveNav();");
+  assert.equal(active(), "#rank", "超出自身留白时仍按上一章节判断，不添加任意像素容差");
+  app.run("navTops.rank = 80; navTops.s3b = 1000; window.scrollY = 4000;");
+  const scrollCount = app.scrolls.length;
+  finishFonts();
+  await fontsReady;
+  app.fireWindow("load");
+  assert.equal(active(), "#rank", "fonts/load完成应按用户现在的位置判断，不能锁定旧hash");
+  assert.equal(app.location.hash, "#s3b");
+  assert.equal(app.run("window.scrollY"), 4000);
+  assert.equal(app.scrolls.length, scrollCount, "字体/load刷新不追加锚点跳转");
+  healthy(app);
 });
 
 test("比较链接写入稳定planId，旧名称链接规范化，显示名改动不破坏身份", () => {

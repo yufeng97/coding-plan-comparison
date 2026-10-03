@@ -31,6 +31,62 @@ test("键盘锚点后下一次Tab进入目标章节的筛选控件", async ({ pa
   await expect(page.locator("#searchInput")).toBeFocused();
 });
 
+for (const width of [375, 1280]) {
+  test(`${width}px分享额度锚点和章节留白内的滚动均高亮本节，手动导航持续更新`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/#s3b");
+    await page.evaluate(() => document.fonts.ready);
+    const current = page.locator('.topnav a[aria-current="location"]');
+    await expect(current).toHaveAttribute("href", "#s3b");
+    const padding = await page.locator("#s3b").evaluate((element) => parseFloat(getComputedStyle(element).paddingTop));
+    await page.mouse.wheel(0, -padding / 2);
+    await expect.poll(() => page.locator("#s3b").evaluate((element) => element.getBoundingClientRect().top - parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop))).toBeGreaterThan(0);
+    await expect(current).toHaveAttribute("href", "#s3b");
+    const visible = await page.locator("#s3b .section-head h2").evaluate((element) => ({ top: element.getBoundingClientRect().top, header: document.querySelector(".topbar").getBoundingClientRect().bottom }));
+    expect(visible.top).toBeGreaterThan(visible.header);
+    await page.evaluate(() => {
+      const padding = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop);
+      window.scrollTo({ top: window.scrollY + document.getElementById("rank").getBoundingClientRect().top - padding, behavior: "instant" });
+    });
+    await expect(current).toHaveAttribute("href", "#rank");
+    await expect(page).toHaveURL(/#s3b$/);
+    await page.getByRole("navigation", { name: "页面章节" }).getByRole("link", { name: "订阅价格", exact: true }).click();
+    await expect(current).toHaveAttribute("href", "#s1");
+    await expect(page).toHaveURL(/#s1$/);
+  });
+}
+
+test("字体晚载和resize仅刷新手动滚动后的章节，不重新跳回分享锚点", async ({ page }) => {
+  let releaseFonts = () => {};
+  let blockedFontRequests = 0;
+  const fontsGate = new Promise((resolve) => { releaseFonts = () => resolve(null); });
+  await page.route(/\.woff2(?:\?|$)/, async (route) => { blockedFontRequests++; await fontsGate; await route.continue(); });
+  try {
+    await page.goto("/#s3b", { waitUntil: "domcontentloaded" });
+    await expect.poll(() => blockedFontRequests).toBeGreaterThan(0);
+    expect(await page.evaluate(() => document.fonts.status)).toBe("loading");
+    const tracker = await page.evaluateHandle(() => {
+      const state = { calls: 0 };
+      const original = HTMLElement.prototype.scrollIntoView;
+      HTMLElement.prototype.scrollIntoView = function (options) { state.calls++; original.call(this, options); };
+      const padding = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop);
+      window.scrollTo({ top: window.scrollY + document.getElementById("rank").getBoundingClientRect().top - padding, behavior: "instant" });
+      return state;
+    });
+    const current = page.locator('.topnav a[aria-current="location"]');
+    await expect(current).toHaveAttribute("href", "#rank");
+    releaseFonts();
+    await page.waitForLoadState("load");
+    await page.evaluate(() => document.fonts.ready);
+    await expect(current).toHaveAttribute("href", "#rank");
+    await page.setViewportSize({ width: 768, height: 900 });
+    await expect(current).toHaveAttribute("href", "#rank");
+    expect(await tracker.evaluate((state) => state.calls)).toBe(0);
+    await expect(page).toHaveURL(/#s3b$/);
+    await tracker.dispose();
+  } finally { releaseFonts(); }
+});
+
 for (const width of [375, 768]) {
   for (const colorScheme of /** @type {("light"|"dark")[]} */ (["light", "dark"])) {
     test(`${width}px ${colorScheme} 冻结表头与悬停身份列不遮挡或透底`, async ({ page }) => {
