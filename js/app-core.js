@@ -41,6 +41,12 @@ const VENDOR_SHORT = {
   "Factory (Droid)": "Droid",
   "讯飞星辰 MaaS": "讯飞 Astron",
   "Canopy Wave": "Canopy",
+  /* API 按量图里的厂商短名 */
+  "月之暗面 Moonshot": "月之暗面",
+  "阿里云百炼": "百炼",
+  "火山引擎（豆包/方舟）": "火山方舟",
+  "硅基流动 SiliconFlow": "硅基流动",
+  "阶跃星辰 StepFun": "阶跃",
 };
 
 const RATE = RATE_USD_CNY;

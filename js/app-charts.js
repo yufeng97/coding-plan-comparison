@@ -308,7 +308,15 @@ function renderApiChart() {
   })
     .filter((a) => a.inUSD != null && a.outUSD != null)
     .sort((x, y) => x.outUSD - y.outUSD);
-  const cats = rows.map((a) => displayModelName(a.label || a.model));
+  /* 统一纵轴标签：厂商 · 模型。label 里的平台后缀（(Z.ai) / [硅基] 等）由厂商前缀承担，
+     厂商名与模型名重复时（DeepSeek · DeepSeek V4-Pro）去掉重复的厂商词。 */
+  const apiLabel = (a) => {
+    const vendor = shortVendor(a.vendor);
+    let model = displayModelName(String(a.label || a.model).replace(/\s*[(（\[【].*$/, "").trim());
+    if (model.toLowerCase().startsWith(vendor.toLowerCase() + " ")) model = model.slice(vendor.length + 1);
+    return vendor + " · " + model;
+  };
+  const cats = rows.map(apiLabel);
   apiEl.style.height = Math.max(640, rows.length * 28 + 72) + "px";
 
   const fmtPrice = (a, inU, outU) =>
@@ -326,7 +334,7 @@ function renderApiChart() {
           const href = safeHref(a.url);
           const shown = displayModelName(a.label || a.model);
           const idLine = a.model && displayModelName(a.model) !== shown ? `<span style="color:${PAL.dim}">计费 ID：${esc(a.model)}</span><br/>` : "";
-          return `<b>${esc(a.vendor)} · ${esc(shown)}</b>${a.region === "cn" ? " · 国内" : ""}<br/>${idLine}
+          return `<b>${esc(apiLabel(a))}</b>${a.region === "cn" ? " · 国内" : ""}<br/>${idLine}
             ${fmtPrice(a, a.inUSD, a.outUSD)}<br/>
             ${a.note ? `<span style="color:${PAL.dim}">${esc(trunc(a.note, 120))}</span><br/>` : ""}
             ${href ? `<span style="color:#6b7893;font-size:11.5px">来源：${href}</span>` : ""}`;
@@ -337,7 +345,7 @@ function renderApiChart() {
       xAxis: { type: "value", name: "USD / 1M", nameTextStyle: { color: PAL.faint }, ...axisStyle() },
       yAxis: {
         type: "category", data: cats, inverse: true, ...axisStyle(),
-        axisLabel: { color: PAL.catLabel, fontSize: 11, width: 148, overflow: "truncate" },
+        axisLabel: { color: PAL.catLabel, fontSize: 11, width: 170, overflow: "truncate" },
       },
       series: [
         { name: "输入 / 1M tokens", type: "bar", data: rows.map((a) => a.inUSD), barWidth: 7, itemStyle: { color: "#6366f1", borderRadius: [0, 3, 3, 0] } },
@@ -348,34 +356,46 @@ function renderApiChart() {
   );
   chart.resize();
 
-  /* 购买力：$10 按输出价可购 token 量 */
+  /* 购买力：$10 按输出价可购 token 量。按地区拆双系列（barGap -100% 重叠），
+     图例可点击过滤国际/国内；axis 触发 + 阴影指示器与左图一致。 */
   const chart2 = makeChart("chartPower");
   const el2 = byId("chartPower");
   el2.style.height = Math.max(420, rows.length * 26 + 120) + "px";
-  const power = rows.filter((a) => a.outUSD > 0).map((a) => ({ name: displayModelName(a.label || a.model) + (a.cur === "CNY" ? "·国内" : ""), m: 10 / a.outUSD, a }));
+  const power = rows.filter((a) => a.outUSD > 0).map((a) => ({ name: apiLabel(a), m: 10 / a.outUSD, a }));
   power.sort((x, y) => y.m - x.m);
+  const POWER_COLORS = { intl: "#22d3ee", cn: "#34d399" };
+  const powerSeriesData = power.map((p) => {
+    const item = { value: Math.round(p.m * 10) / 10, a: p.a };
+    return p.a.cur === "CNY" ? [null, item] : [item, null];
+  });
+  const powerLabel = { show: true, position: "right", color: PAL.text, fontSize: 11, formatter: (d) => (d.value != null ? d.value + "M" : "") };
   chart2.setOption(
     {
       backgroundColor: "transparent",
-      title: { text: "$10 预算的输出 token 购买力（M tokens）", left: "center", top: 6, textStyle: { color: PAL.dim, fontSize: 13, fontWeight: 500 } },
+      title: { text: "$10 预算的输出 token 购买力（M tokens）", left: "center", top: 4, textStyle: { color: PAL.dim, fontSize: 13, fontWeight: 500 } },
       tooltip: {
-        trigger: "item", ...tipStyle(el2),
-        formatter: (d) => {
-          const row = d.data && d.data.a;
-          if (!row) return "";
-          const million = d.data.value != null ? d.data.value : d.data.m;
-          const price = row.cur === "CNY" ? "¥" + row.outCNY : "$" + row.outUSD;
-          return `<b>${esc(row.vendor)} · ${esc(displayModelName(row.label || row.model))}</b><br/>$10 ≈ <b>${Number(million).toFixed(1)}M</b> 输出 tokens<br/>（${price}/1M 输出）`;
+        trigger: "axis", ...tipStyle(el2), axisPointer: { type: "shadow" },
+        formatter: (ps) => {
+          const p = power[ps[0].dataIndex];
+          if (!p) return "";
+          const price = p.a.cur === "CNY" ? "¥" + p.a.outCNY : "$" + p.a.outUSD;
+          return `<b>${esc(p.name)}</b><br/>$10 ≈ <b>${Number(p.m).toFixed(1)}M</b> 输出 tokens<br/>（${price}/1M 输出）`;
         },
       },
-      grid: { left: 16, right: 56, top: 42, bottom: 6, containLabel: true },
+      legend: { data: ["国际模型", "国内模型"], textStyle: { color: PAL.dim, fontSize: 12.5 }, top: 26 },
+      grid: { left: 16, right: 56, top: 58, bottom: 6, containLabel: true },
       xAxis: { type: "value", ...axisStyle() },
       yAxis: { type: "category", inverse: true, data: power.map((p) => p.name), ...axisStyle(), axisLabel: { color: PAL.catLabel, fontSize: 11 } },
-      series: [{
-        type: "bar", barWidth: 12,
-        data: power.map((p) => ({ value: Math.round(p.m * 10) / 10, a: p.a, itemStyle: { color: p.a.cur === "CNY" ? "#34d399" : "#22d3ee", borderRadius: [0, 4, 4, 0] } })),
-        label: { show: true, position: "right", color: PAL.text, fontSize: 11, formatter: (d) => d.value + "M" },
-      }],
+      series: [
+        { name: "国际模型", type: "bar", barWidth: 12, barGap: "-100%",
+          data: powerSeriesData.map((d) => d[0]),
+          itemStyle: { color: POWER_COLORS.intl, borderRadius: [0, 4, 4, 0] },
+          label: powerLabel },
+        { name: "国内模型", type: "bar", barWidth: 12, barGap: "-100%",
+          data: powerSeriesData.map((d) => d[1]),
+          itemStyle: { color: POWER_COLORS.cn, borderRadius: [0, 4, 4, 0] },
+          label: powerLabel },
+      ],
     },
     true
   );
