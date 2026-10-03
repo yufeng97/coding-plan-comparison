@@ -9,7 +9,7 @@
 const RATE_USD_CNY = 6.71;
 
 const META = {
-  updated: "2026-10-01",
+  updated: "2026-10-03",
   rate: RATE_USD_CNY,
 };
 
@@ -2289,6 +2289,9 @@ const DYNAMICS = [
   { date: "2026-10-01", checked: true, text: "智谱官网购买页在售连续包季 8 折、连续包年 7 折：Lite ¥82.6、Pro ¥376.6、Max ¥754.6/月（年付折算，划线价 ¥118/538/1078）。此前记录的「年付 7 折活动 08-15 截止」已不成立。", source: "bigmodel.cn/glm-coding（官网直抓）", url: "https://bigmodel.cn/glm-coding" },
   { date: "2026-09-29", text: "OpenAI DevDay 发布 GPT-6.1 Sol：API $2/$10、缓存输入 $0.10（GPT-6 Sol 的一半），官方称编码对齐 Astra、约其 1/5 价。ChatGPT Plus 额度表新增 GPT-6.1 Sol 15–160 条/5h；Pro 重构为 $100/$200/$500 三档、官方注明目前无 5 小时上限，Astra Ultrafast（8x 计量）仅 $500 档。", source: "OpenAI 定价文档", url: "https://learn.chatgpt.com/docs/pricing" },
   { date: "2026-09-28", text: "Anthropic 上线 Claude Sonnet 5.5：API 价格与 Sonnet 5 持平（$2/$10、缓存读 $0.20、Batch $1/$5）；Cursor Other Models 池与 GitHub Copilot Pro 同步上架。", source: "Anthropic 定价文档", url: "https://platform.claude.com/docs/en/about-claude/pricing" },
+  { date: "2026-10-03", checked: true, text: "OpenAI Codex 定价页核对：与 10-01 口径一致（Plus 各模型 5 小时条数、Pro $100/$200/$500 目前无 5 小时上限、GPT-5.5 确认 10-14 全线退役）。新增确认：GPT-5.6 Sol 促销 credits 价（输入 100 / 缓存 10 / 输出 500 每百万 tokens）官方写明至少延续至 2026-11-21；Speed 档倍率 Fast 2.5×、Astra Ultrafast 订阅内 8×。第三方「Plus 用量 10-30 起 20×降为 10×」传闻在官方页无对应倍率标注，未入库。", source: "OpenAI Codex 定价文档", url: "https://learn.chatgpt.com/docs/pricing" },
+  { date: "2026-10-03", checked: true, text: "Anthropic API 定价页核对：与库内一致，无 10 月调价——Opus 5.5 $4/$20（缓存读 $0.20 = 输入价 0.05×，5m 写 $5 / 1h 写 $8）、Sonnet 5.5 与 Sonnet 5 $2/$10 标准价、Haiku 4.5 $1/$5；Opus 5.5 Fast 模式 $8/$40，inference_geo us 区 1.1×。第三方「API 10-01 调价」说法与官方页不符（所列数字即现行价）。", source: "Anthropic 定价文档", url: "https://platform.claude.com/docs/en/about-claude/pricing" },
+  { date: "2026-10-03", checked: true, text: "智谱 / Z.ai 核对：官方渠道无新调价公告，双节非高峰 5 折（09-25~10-07）与夜间畅用仍在进行；第三方报道确认 2 月结构性调价（涨幅 30% 起）与 9 月天猫 ¥118/538/1078 三档均已在库。", source: "Z.ai / BigModel 官方文档", url: "https://docs.z.ai/devpack/overview.md" },
 ];
 
 /* 数据来源（按厂商分组） */

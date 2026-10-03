@@ -2,6 +2,8 @@
 
 > 由每日巡检任务自动追加（每天 09:30），人工调研的大版本更新也记录在此。
 
+## 2026-10-03：每日巡检（10-02/10-03）——官方页核对日：OpenAI Codex 定价页与 10-01 口径一致，新增确认 GPT-5.6 Sol 促销 credits 价（100/10/500 每百万 tokens）至少延续至 2026-11-21、Speed 档倍率 Fast 2.5×/Astra Ultrafast 8×；Anthropic API 页与库内一致无 10 月调价（Opus 5.5 $4/$20、Sonnet $2/$10 标准价）；智谱/Z.ai 无新调价，双节非高峰 5 折与夜间畅用进行中（至 10-07）。第三方「Plus 用量 10-30 起 20×降 10×」传闻官方页无据、第三方「Anthropic API 10-01 调价」所列即现行价，均未入库。META.updated → 2026-10-03
+
 ## 2026-10-02：审查收尾——chip 高亮改为渲染时自愈（renderRankChart/renderPicker 末尾各调 syncRankChips/syncPickerChips，未来程序化改筛选状态不再脱钩）；auditProfiles 先锁定「国内+不限预算+不限工具」前提再断言、结束后还原，修复带 region=intl 等分享链接打开 ?debug=1 时省钱档断言误报且污染页面状态的问题
 ## 2026-10-02：审查补丁——对比条在点「＋对比」后才出现，只选 1 档时写明「再选 1 档可对比」；「＋对比」改成计划名下的胶囊按钮并补 aria-pressed；排行悬停的每 M 成本颜色与柱色一致，月 tokens / 月倍率缺数据时显示「—」而不是抛错
 ## 2026-10-02：工具链清零——①TypeScript checkJs 静态检查从 57 条诊断清到 0：app-core 新增 byId/qsa/qs/evtTarget 四个 DOM 类型断言助手（统一 83 处元素访问），renderTokensChart 补 TokenRow typedef，额度表行补 payg:false 对齐联合类型；typecheck 纳入 package.json（typescript devDependency）与 CI 第 2 步；②validate-data 报告分级：15 条「无标价（按量/定制）」与 2 条「PAYG 未在 API_PRICES 单列」为设计内状态，从警告降级为「ℹ️ 说明」，警告只留给巡检需人工确认的问题——每日巡检输出恢复零警告
