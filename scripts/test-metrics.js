@@ -17,8 +17,8 @@ const src = ["js/data.js", "js/metrics.js"]
 const sandbox = { console };
 sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
-vm.runInContext(src + "\n;globalThis.__T={computeMetrics,blendPrice,windowTokens,periodRates,fmtTok,isFlagshipModelName,matchModelRoles,WEEKS_PER_MONTH,SLOTS_PER_WEEK,CACHE_HIT_RATE,API_MIX_IN,API_MIX_OUT,TOKENS_PER_REQ};", sandbox, { filename: "metrics-test" });
-const { computeMetrics, blendPrice, windowTokens, periodRates, fmtTok, isFlagshipModelName, matchModelRoles } = sandbox.__T;
+vm.runInContext(src + "\n;globalThis.__T={computeMetrics,blendPrice,windowTokens,periodRates,fmtTok,isFlagshipModelName,matchModelRoles,resolvedField,hasOwnClient,offerable,isOnSalePlan,isPersonalMonthly,PLANS,WEEKS_PER_MONTH,SLOTS_PER_WEEK,CACHE_HIT_RATE,API_MIX_IN,API_MIX_OUT,TOKENS_PER_REQ};", sandbox, { filename: "metrics-test" });
+const { computeMetrics, blendPrice, windowTokens, periodRates, fmtTok, isFlagshipModelName, matchModelRoles, resolvedField, hasOwnClient, offerable, isOnSalePlan, isPersonalMonthly, PLANS } = sandbox.__T;
 
 let failed = 0, passed = 0;
 function test(name, fn) {
@@ -34,7 +34,7 @@ test("GLM-5.3 国内牌价 ¥8/¥28/缓存¥2 → 混合价 7.44", () => {
 test("Claude Sonnet 5 牌价 $2/$10/缓存$0.2 → 混合价 2.232", () => {
   assert.ok(near(blendPrice({ apiIn: 2, apiOut: 10, apiCache: 0.2 }), 2.232));
 });
-test("缓存价越高混合价越低", () => {
+test("缓存价越高混合价越高", () => {
   assert.ok(blendPrice({ apiIn: 2, apiOut: 10, apiCache: 0.2 }) < blendPrice({ apiIn: 2, apiOut: 10, apiCache: 2 }));
 });
 
@@ -138,6 +138,58 @@ test("「不含 Opus」的套餐不匹配 Opus", () => {
 test("需另购 credits 的 Fable 不算进套餐", () => {
   const ids = matchModelRoles("Claude Opus 5.5 / Sonnet 5 / Haiku 4.5（Fable 5.1 需 usage credits）").map((r) => r.id);
   assert.ok(ids.includes("claude-opus") && !ids.includes("claude-fable"));
+});
+
+console.log("计划口径（在售 / 同字段 / 自家客户端）");
+test("无月费档不算在售有标价", () => {
+  assert.ok(PLANS.some((p) => p.priceM == null));
+  assert.ok(PLANS.filter((p) => p.priceM == null).every((p) => !isOnSalePlan(p)));
+});
+test("老用户续费不算个人月付", () => {
+  const rows = PLANS.filter((p) => /老用户/.test(p.plan));
+  assert.ok(rows.length >= 6);
+  assert.ok(rows.every((p) => !isPersonalMonthly(p)));
+});
+test("OpenCode Go Plus 继承 Go 的工具", () => {
+  const plus = PLANS.find((p) => p.plan === "OpenCode Go Plus");
+  assert.ok(/Claude Code/i.test(resolvedField(plus, "tools")));
+});
+test("自家客户端认 Desktop，不认纯 API", () => {
+  assert.ok(hasOwnClient(PLANS.find((p) => p.plan === "Droid Pro")));
+  assert.ok(!hasOwnClient(PLANS.find((p) => p.plan === "通用 Token Plan Lite")));
+});
+test("限量只看计划名", () => {
+  assert.ok(offerable(PLANS.find((p) => p.plan === "方舟 Coding Plan Lite")));
+  assert.ok(!offerable(PLANS.find((p) => /限量抢购/.test(p.plan))));
+});
+
+console.log("auditProfiles（帮我选）");
+test("默认数据下 auditProfiles 不报错", () => {
+  const files = ["js/data.js", "js/metrics.js", "js/app-core.js", "js/app-charts.js", "js/app-picker.js", "js/app-tables.js"];
+  const code = files.map((f) => fs.readFileSync(path.join(root, f), "utf8")).join("\n;\n");
+  const errors = [];
+  const fakeConsole = { log() {}, warn() {}, error(...a) { errors.push(a.join(" ")); } };
+  const box = {
+    console: fakeConsole,
+    document: {
+      documentElement: { dataset: {}, style: {} },
+      getElementById() { return null; },
+      querySelector() { return null; },
+      querySelectorAll() { return []; },
+      addEventListener() {},
+    },
+    window: { addEventListener() {}, matchMedia() { return { matches: false, addEventListener() {}, addListener() {} }; } },
+    localStorage: { getItem() { return null; }, setItem() {} },
+    echarts: {},
+    location: { search: "", pathname: "/index.html", hash: "" },
+    history: { replaceState() {} },
+    navigator: {},
+  };
+  box.globalThis = box;
+  vm.createContext(box);
+  vm.runInContext(code + "\n;globalThis.__audit=auditProfiles;", box, { filename: "picker-audit" });
+  box.__audit();
+  assert.deepStrictEqual(errors, [], errors.join("\n"));
 });
 
 console.log(`\n结果：${passed} 通过，${failed} 失败`);

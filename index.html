@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Coding Plan 全球比价中心 · 2026年9月</title>
+<title>Coding Plan 全球比价中心 · 2026年10月</title>
 <meta name="description" content="国内外模型官方、云厂商、第三方工具与中转站的 AI Coding Plan 订阅价格与 token 额度可视化对比：订阅价格全景、每 M tokens 成本排行、额度深度对比、免费入口与 API 按量单价。">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0e1a">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f3f5fa">
@@ -15,7 +15,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%23b9ff00'/%3E%3Ctext%20x='16'%20y='22'%20font-family='monospace'%20font-size='15'%20font-weight='bold'%20text-anchor='middle'%20fill='%2310110f'%3E%26lt;/%26gt;%3C/text%3E%3C/svg%3E">
   <script>try{var __m=localStorage.getItem("cp-theme")||"system";var __d=matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.dataset.theme=__m==="system"?(__d?"dark":"light"):__m;}catch(e){}</script>
   <link rel="stylesheet" href="libs/fonts/fonts.css?v=0070d79">
-  <link rel="stylesheet" href="css/style.css?v=9bf37da">
+  <link rel="stylesheet" href="css/style.css?v=bdee718">
 </head>
 <body>
     <div class="scroll-progress" aria-hidden="true"><span id="scrollBar"></span></div>
@@ -46,7 +46,7 @@
       <span class="prompt-mark" aria-hidden="true">&gt;_</span>
       <h1><span>全球 Coding Plan</span><span>价格与额度对比。</span></h1>
       <p class="hero-lede">先按预算和任务结构配一套计划：复杂任务留给最强模型，日常任务交给烧得慢的模型。再往下对照价格、额度和 API 单价。中转站单独标出。</p>
-      <p class="hero-meta">数据更新至 <strong id="heroDate">2026-09-30</strong> · 每日 09:30 巡检（无变化则不更新） · 汇率 1 USD ≈ <span id="rateText">6.71</span> CNY · 来源见页脚</p>
+      <p class="hero-meta">数据更新至 <strong id="heroDate">2026-10-01</strong> · 每日 09:30 巡检（无变化则不更新） · 汇率 1 USD ≈ <span id="rateText">6.71</span> CNY · 来源见页脚</p>
       <dl class="stats-row" id="statsRow"></dl>
     </div>
   </section>
@@ -60,31 +60,31 @@
     <div class="picker" id="picker">
       <div class="picker-row" data-pick="budget">
         <span class="picker-label">预算</span>
-        <button type="button" class="chip" data-value="0">免费</button>
-        <button type="button" class="chip" data-value="100">≤ ¥100</button>
-        <button type="button" class="chip active" data-value="200">≤ ¥200</button>
-        <button type="button" class="chip" data-value="500">≤ ¥500</button>
-        <button type="button" class="chip" data-value="any">不限</button>
+        <button type="button" class="chip" data-value="0" aria-pressed="false">免费</button>
+        <button type="button" class="chip" data-value="100" aria-pressed="false">≤ ¥100</button>
+        <button type="button" class="chip active" data-value="200" aria-pressed="true">≤ ¥200</button>
+        <button type="button" class="chip" data-value="500" aria-pressed="false">≤ ¥500</button>
+        <button type="button" class="chip" data-value="any" aria-pressed="false">不限</button>
       </div>
       <div class="picker-row" data-pick="region">
         <span class="picker-label">地区</span>
-        <button type="button" class="chip active" data-value="cn">国内</button>
-        <button type="button" class="chip" data-value="intl">国际</button>
-        <button type="button" class="chip" data-value="all">不限</button>
+        <button type="button" class="chip active" data-value="cn" aria-pressed="true">国内</button>
+        <button type="button" class="chip" data-value="intl" aria-pressed="false">国际</button>
+        <button type="button" class="chip" data-value="all" aria-pressed="false">不限</button>
       </div>
       <div class="picker-row" data-pick="tool">
         <span class="picker-label">工具</span>
-        <button type="button" class="chip active" data-value="any">不限</button>
-        <button type="button" class="chip" data-value="claude">Claude Code</button>
-        <button type="button" class="chip" data-value="codex">Codex</button>
-        <button type="button" class="chip" data-value="cursor">Cursor</button>
-        <button type="button" class="chip" data-value="own">自家客户端</button>
+        <button type="button" class="chip active" data-value="any" aria-pressed="true">不限</button>
+        <button type="button" class="chip" data-value="claude" aria-pressed="false">Claude Code</button>
+        <button type="button" class="chip" data-value="codex" aria-pressed="false">Codex</button>
+        <button type="button" class="chip" data-value="cursor" aria-pressed="false">Cursor</button>
+        <button type="button" class="chip" data-value="own" aria-pressed="false">自家客户端</button>
       </div>
       <div class="picker-row" data-pick="task">
         <span class="picker-label">任务</span>
-        <button type="button" class="chip" data-value="hard">以复杂任务为主</button>
-        <button type="button" class="chip active" data-value="both">复杂和日常都有</button>
-        <button type="button" class="chip" data-value="daily">以日常为主</button>
+        <button type="button" class="chip" data-value="hard" aria-pressed="false">以复杂任务为主</button>
+        <button type="button" class="chip active" data-value="both" aria-pressed="true">复杂和日常都有</button>
+        <button type="button" class="chip" data-value="daily" aria-pressed="false">以日常为主</button>
       </div>
     </div>
     <div class="quick-grid" id="quickGrid"></div>
@@ -121,10 +121,10 @@
       <p>默认只看月费、主要模型、每月大约能用多少、每百万 tokens 成本和置信度。5 小时窗口、每周明细和推算方法可以展开。DeepSeek、GLM、Kimi、MiniMax、Qwen 的官方 API 按量价也在表里，按同一套假设折成每百万成本，点「每M tokens」会和套餐一起按价格排。</p>
     </div>
     <div class="controls controls-table">
-      <select id="metricsModel" class="select">
+      <select id="metricsModel" class="select" aria-label="按模型筛选额度表">
         <option value="all">全部模型</option>
       </select>
-      <select id="metricsVer" class="select">
+      <select id="metricsVer" class="select" aria-label="按版本筛选额度表">
         <option value="all">全部版本</option>
         <option value="V3">V3（新版积分制）</option>
         <option value="V2">V2（老用户续费）</option>
@@ -170,24 +170,24 @@
   <section class="section" id="s1">
     <div class="section-head">
       <h2><span class="sec-no">05</span>个人订阅价格全景</h2>
-      <p>在售的个人月付档（免费档见「免费入口」；已停售、已下架和一次性预付见「数据表」），按统一折算人民币从低到高排列。中转站用单独的颜色标出，不和官方订阅、工具订阅混在一类。悬停查看原币价格、额度口径与模型。</p>
+      <p>在售的个人月付档（免费档见「免费入口」；已停售、已下架、一次性预付和仅老用户续费见「数据表」），按统一折算人民币从低到高排列。中转站用单独的颜色标出，不和官方订阅、工具订阅混在一类。悬停查看原币价格、额度口径与模型。</p>
     </div>
     <div class="controls" id="ctrl1">
-      <input type="search" id="chartSearch" class="search-input" placeholder="🔍 搜索厂商 / 计划 / 模型…" style="min-width:220px">
-      <div class="chip-group" id="chipCat">
-        <button class="chip active" data-cat="all">全部类别</button>
-        <button class="chip" data-cat="official">模型官方订阅</button>
-        <button class="chip" data-cat="tool">第三方工具订阅</button>
-        <button class="chip" data-cat="cloud">云厂商/API 套餐</button>
+      <input type="search" id="chartSearch" class="search-input" placeholder="🔍 搜索厂商 / 计划 / 模型…" style="min-width:220px" aria-label="搜索个人订阅图表">
+      <div class="chip-group" id="chipCat" role="group" aria-label="类别">
+        <button type="button" class="chip active" data-cat="all" aria-pressed="true">全部类别</button>
+        <button type="button" class="chip" data-cat="official" aria-pressed="false">模型官方订阅</button>
+        <button type="button" class="chip" data-cat="tool" aria-pressed="false">第三方工具订阅</button>
+        <button type="button" class="chip" data-cat="cloud" aria-pressed="false">云厂商/API 套餐</button>
       </div>
-      <div class="chip-group" id="chipRegion">
-        <button class="chip active" data-region="all">全部地区</button>
-        <button class="chip" data-region="cn">🇨🇳 国内</button>
-        <button class="chip" data-region="intl">🌍 国际</button>
+      <div class="chip-group" id="chipRegion" role="group" aria-label="地区">
+        <button type="button" class="chip active" data-region="all" aria-pressed="true">全部地区</button>
+        <button type="button" class="chip" data-region="cn" aria-pressed="false">🇨🇳 国内</button>
+        <button type="button" class="chip" data-region="intl" aria-pressed="false">🌍 国际</button>
       </div>
-      <div class="chip-group" id="chipBilling">
-        <button class="chip active" data-billing="M">月付</button>
-        <button class="chip" data-billing="Y">年付（折月）</button>
+      <div class="chip-group" id="chipBilling" role="group" aria-label="计费周期">
+        <button type="button" class="chip active" data-billing="M" aria-pressed="true">月付</button>
+        <button type="button" class="chip" data-billing="Y" aria-pressed="false">年付（折月）</button>
       </div>
       <div class="legend-inline" id="chartLegend"></div>
     </div>
@@ -236,18 +236,18 @@
   <section class="section" id="table">
     <div class="section-head">
       <h2><span class="sec-no">09</span>在售计划（有标价）</h2>
-      <p>只列仍在售、且有标价的档（含一次性预付与仅老用户续费）。免费档在「免费 Coding 入口」；已下架、聊天免费档和不能当编程工具的免费档不放进这张表。支持搜索、筛选与按价格排序。</p>
+      <p>只列仍在售、且有标价的档（含一次性预付与仅老用户续费）。免费档在「免费 Coding 入口」；已下架、聊天免费档和不能当编程工具的免费档不放进这张表。支持搜索、筛选与按价格排序。计划名下点「＋对比」，选满 2 档后底部会出现并排对比，最多 4 档。</p>
     </div>
     <div class="controls controls-table">
-      <input type="search" id="searchInput" class="search-input" placeholder="🔍 搜索厂商 / 计划 / 模型…">
-      <select id="selectCat" class="select">
+      <input type="search" id="searchInput" class="search-input" placeholder="🔍 搜索厂商 / 计划 / 模型…" aria-label="搜索数据表">
+      <select id="selectCat" class="select" aria-label="按类别筛选数据表">
         <option value="all">全部类别</option>
         <option value="official">模型官方订阅</option>
         <option value="tool">第三方工具订阅</option>
         <option value="cloud">云厂商/API 套餐</option>
         <option value="team">团队 / 企业档</option>
       </select>
-      <select id="selectRegion" class="select">
+      <select id="selectRegion" class="select" aria-label="按地区筛选数据表">
         <option value="all">全部地区</option>
         <option value="cn">国内</option>
         <option value="intl">国际</option>
@@ -332,16 +332,16 @@
 </dialog>
 
 <footer class="footer">
-  <p>Coding Plan 全球比价中心 · 数据调研与核实日期 <span id="footDate">2026-09-30</span> · 仅供参考，以各厂商官方页面为准 · 纯静态页面：无统计、无跟踪，仅本地记住主题</p>
+  <p>Coding Plan 全球比价中心 · 数据调研与核实日期 <span id="footDate">2026-10-01</span> · 仅供参考，以各厂商官方页面为准 · 纯静态页面：无统计、无跟踪，仅本地记住主题</p>
 </footer>
 
 <script src="libs/echarts.min.js?v=65770fe"></script>
-<script src="js/data.js?v=35a72c2"></script>
+<script src="js/data.js?v=5c4f44f"></script>
 <script src="js/metrics.js?v=cd98041"></script>
-<script src="js/app-core.js?v=c6d8afb"></script>
-<script src="js/app-charts.js?v=24c62ac"></script>
-<script src="js/app-picker.js?v=0bc29b4"></script>
-<script src="js/app-tables.js?v=09dff34"></script>
-<script src="js/app-init.js?v=16624d3"></script>
+<script src="js/app-core.js?v=85c5caa"></script>
+<script src="js/app-charts.js?v=c27ffda"></script>
+<script src="js/app-picker.js?v=61226ff"></script>
+<script src="js/app-tables.js?v=15e8c3a"></script>
+<script src="js/app-init.js?v=875c2f6"></script>
 </body>
 </html>

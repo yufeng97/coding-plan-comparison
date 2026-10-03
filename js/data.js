@@ -96,7 +96,50 @@ function isFreeCodingEntry(p) {
 }
 /* 在售且明码标价（用于完整数据表与「在售订阅计划」统计卡；免费档、按量/定制、已停售不计） */
 function isOnSalePlan(p) {
-  return !!(p && p.priceM !== 0 && !isRetiredPlan(p));
+  return !!(p && p.priceM > 0 && !isRetiredPlan(p));
+}
+/* 能否直接下单。只看计划名：备注里的补货限制或「限量模型」不把整档移出推荐。 */
+function offerable(p) {
+  const name = String((p && p.plan) || "");
+  if (/抢购/.test(name)) return false;
+  return !/(?:^|[^不])限量/.test(name);
+}
+/* 自带编程入口。英文 Desktop / CLI 与「桌面 / 客户端」同样算；兼容端点、协议、框架不算。 */
+const OWN_CLIENT_RE = /IDE|客户端|桌面|\bDesktop\b|网页|VS Code|插件|编辑器|\bCLI\b|终端/i;
+const OWN_CLIENT_EXCLUDE_RE = /协议|框架|端点|兼容/;
+/* 「同 Lite 档」解析到同厂商原文。先看紧挨着的同厂商；厂商条目被拆开时，再按点名的档位找（OpenCode Go Plus → Go）。 */
+function resolvedField(p, key, seen) {
+  const raw = String((p && p[key]) || "");
+  if (!p || !/^同/.test(raw)) return raw;
+  if (seen && seen.has(p)) return raw;
+  const stack = seen || new Set();
+  stack.add(p);
+  const idx = PLANS.indexOf(p);
+  for (let i = idx - 1; i >= 0; i--) {
+    if (PLANS[i].vendor !== p.vendor) break;
+    const v = PLANS[i][key];
+    if (v && !/^同/.test(String(v))) return v;
+  }
+  const hint = /^同上/.test(raw) ? "" : raw.replace(/^同\s*/, "").split(/[（(+＋:：]/)[0].trim().replace(/(档|版)$/, "").trim();
+  if (!hint) return raw;
+  const h = hint.toLowerCase();
+  let best = null;
+  let bestScore = -1;
+  for (const other of PLANS) {
+    if (other === p || other.vendor !== p.vendor) continue;
+    const name = String(other.plan || "").toLowerCase();
+    if (!name.includes(h)) continue;
+    const score = (name.endsWith(h) ? 10 : 0) - name.length / 100;
+    if (score > bestScore) { bestScore = score; best = other; }
+  }
+  if (!best) return raw;
+  const v = best[key];
+  if (!v || /^同/.test(String(v))) return resolvedField(best, key, stack);
+  return v;
+}
+function hasOwnClient(p) {
+  const tools = resolvedField(p, "tools");
+  return OWN_CLIENT_RE.test(tools) && !OWN_CLIENT_EXCLUDE_RE.test(tools);
 }
 
 /* 类别: official=模型官方订阅  tool=第三方工具订阅  team=团队/企业/云厂商 */

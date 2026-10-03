@@ -26,11 +26,11 @@ sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(
   fs.readFileSync(path.join(root, "js/data.js"), "utf8") +
-    "\n;globalThis.__D={RATE_USD_CNY,PLANS,METRICS_RAW,ESTIMATES,PLAN_TOKENS,DYNAMICS,API_PRICES,PAYG_REFERENCES,SOURCES,MODEL_ROLES,matchModelRoles,isRetiredPlan,isFreeCodingEntry};",
+    "\n;globalThis.__D={RATE_USD_CNY,PLANS,METRICS_RAW,ESTIMATES,PLAN_TOKENS,DYNAMICS,API_PRICES,PAYG_REFERENCES,SOURCES,MODEL_ROLES,matchModelRoles,isRetiredPlan,isFreeCodingEntry,isOnSalePlan,isPersonalMonthly,resolvedField,hasOwnClient,offerable};",
   sandbox,
   { filename: "js/data.js" }
 );
-const { RATE_USD_CNY, PLANS, METRICS_RAW, ESTIMATES, PLAN_TOKENS, DYNAMICS, API_PRICES, PAYG_REFERENCES, SOURCES, MODEL_ROLES, matchModelRoles, isRetiredPlan, isFreeCodingEntry } = sandbox.__D;
+const { RATE_USD_CNY, PLANS, METRICS_RAW, ESTIMATES, PLAN_TOKENS, DYNAMICS, API_PRICES, PAYG_REFERENCES, SOURCES, MODEL_ROLES, matchModelRoles, isRetiredPlan, isFreeCodingEntry, isOnSalePlan, isPersonalMonthly, resolvedField, hasOwnClient, offerable } = sandbox.__D;
 
 const CATS = ["official", "tool", "cloud", "team"];
 const REGIONS = ["cn", "intl"];
@@ -74,6 +74,25 @@ for (const [vendor, plan] of NOT_CODING_FREE) {
   check(p.priceM === 0 && (isRetiredPlan(p) || noted), `不能当 Coding Agent 的免费档须标明不列入或已下架: ${vendor}|${plan}`);
 }
 const freeCoding = PLANS.filter(isFreeCodingEntry);
+check(!PLANS.some((p) => isOnSalePlan(p) && !(p.priceM > 0)), "无月费的档不应计入在售有标价");
+check(PLANS.filter((p) => /老用户/.test(p.plan || "")).every((p) => !isPersonalMonthly(p)), "老用户续费档不应算个人在售月付");
+for (const p of PLANS) {
+  for (const key of ["models", "tools", "quota"]) {
+    if (!/^同/.test(String(p[key] || ""))) continue;
+    const got = resolvedField(p, key);
+    check(!!got && !/^同/.test(got), `「同」字段未能解析到原文: ${p.vendor}|${p.plan} ${key}`);
+  }
+}
+const goPlus = PLANS.find((p) => p.plan === "OpenCode Go Plus");
+check(goPlus && /Claude Code/i.test(resolvedField(goPlus, "tools")), "OpenCode Go Plus 的工具应解析到 Go（含 Claude Code）");
+const droid = PLANS.find((p) => p.plan === "Droid Pro");
+check(droid && hasOwnClient(droid), "Droid Pro 应识别为自家客户端");
+const hub = PLANS.find((p) => p.plan === "通用 Token Plan Lite");
+check(hub && !hasOwnClient(hub), "TokenHub API 套餐不应算自家客户端");
+const arkLite = PLANS.find((p) => p.plan === "方舟 Coding Plan Lite");
+check(arkLite && offerable(arkLite), "备注里的限量补货不应取消可购买");
+const flashSale = PLANS.find((p) => /限量抢购/.test(p.plan || ""));
+check(flashSale && !offerable(flashSale), "计划名中的限量抢购不应直接推荐");
 
 /* ---- 模型用法（帮我选，不是跑分）---- */
 check(Array.isArray(MODEL_ROLES) && MODEL_ROLES.length >= 8, "缺少 MODEL_ROLES");
@@ -115,7 +134,8 @@ for (const m of allMetrics) {
   const key = (m.vendor || "?") + "|" + (m.plan || "?") + "|" + (m.model || "?");
   check(!metricKeys.has(key), `${m.arr} 重复条目: ${key}`);
   metricKeys.add(key);
-  const kinds = [m.wkLowM != null, m.reqPerWk != null, m.creditUSD != null, m.creditCNY != null].filter(Boolean).length;
+  const hasReq = m.reqPerWk != null || m.reqPerMo != null || m.reqPer5h != null;
+  const kinds = [m.wkLowM != null, hasReq, m.creditUSD != null, m.creditCNY != null].filter(Boolean).length;
   check(kinds === 1, `额度口径必须且只能有一种(周tokens/请求数/creditsUSD/creditsCNY): ${key}`);
   if (m.wkLowM != null) {
     check(typeof m.wkLowM === "number" && m.wkLowM > 0, `wkLowM 非法: ${key}`);
@@ -124,6 +144,8 @@ for (const m of allMetrics) {
       `周tokens 制缺 apiIn/apiOut/apiCache: ${key}`);
   }
   if (m.reqPerWk != null) check(typeof m.reqPerWk === "number" && m.reqPerWk > 0, `reqPerWk 非法: ${key}`);
+  if (m.reqPerMo != null) check(typeof m.reqPerMo === "number" && m.reqPerMo > 0, `reqPerMo 非法: ${key}`);
+  if (m.reqPer5h != null) check(typeof m.reqPer5h === "number" && m.reqPer5h > 0, `reqPer5h 非法: ${key}`);
   if (m.creditUSD != null) check(typeof m.creditUSD === "number" && m.creditUSD > 0, `creditUSD 非法: ${key}`);
   if (m.creditCNY != null) check(typeof m.creditCNY === "number" && m.creditCNY > 0, `creditCNY 非法: ${key}`);
   if (Array.isArray(m.ref)) {

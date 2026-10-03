@@ -14,7 +14,7 @@
   --ink: #10110f;
   --text: #2a2c28;
   --muted: #6f726b;
-  --faint: #8a8d85;
+  --faint: #70746c;
   --brand: #b9ff00;
   --brand-ink: #10110f;
   --brand-soft: #edffc0;
@@ -62,7 +62,7 @@ html[data-theme="dark"] {
   --ink: #eceee8;
   --text: #d8dbd2;
   --muted: #9fa39a;
-  --faint: #74786f;
+  --faint: #868a83;
   --brand: #b9ff00;
   --brand-ink: #10110f;
   --brand-soft: rgba(185,255,0,.12);
@@ -493,13 +493,15 @@ html[data-theme="dark"] .method-box summary:hover { color: var(--brand); }
 
 /* ---------- 并排对比 ---------- */
 .cmp-bar {
+  display: none;
   position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
-  z-index: 150; display: flex; align-items: center; gap: 10px;
+  z-index: 150; align-items: center; gap: 10px;
   max-width: min(92vw, 780px);
   background: var(--panel); border: 1px solid var(--line-strong); border-radius: 999px;
   padding: 7px 10px 7px 16px; box-shadow: 0 8px 24px rgba(16, 17, 15, .18);
   font-size: 12.5px; color: var(--text);
 }
+.cmp-bar.is-on { display: flex; }
 #cmpBarText { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cmp-bar .chip { flex: 0 0 auto; padding: 4px 10px; }
 .cmp-bar .chip:disabled { opacity: .45; cursor: not-allowed; }
@@ -523,12 +525,13 @@ html[data-theme="dark"] .method-box summary:hover { color: var(--brand); }
 #cmpTable td { min-width: 210px; max-width: 330px; color: var(--text); }
 #cmpTable td b { color: var(--ink); }
 .cmp-add {
-  display: inline-block; margin-top: 6px; padding: 0;
-  background: none; border: 0; color: var(--accent-2);
-  font: 600 11.5px var(--sans); cursor: pointer; text-decoration: underline;
+  display: inline-block; margin-top: 6px; padding: 2px 8px;
+  background: var(--panel); border: 1px solid var(--line-strong); border-radius: 999px;
+  color: var(--accent-2); font: 600 11.5px var(--sans); cursor: pointer;
 }
-.cmp-add.on { color: var(--green); font-weight: 700; }
-.cmp-add:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; border-radius: 3px; }
+.cmp-add:hover { border-color: var(--accent-2); color: var(--ink); }
+.cmp-add.on { color: var(--green); border-color: var(--green); font-weight: 700; }
+.cmp-add:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
 
 /* ---------- 页脚 ---------- */
 .footer { border-top: 1px solid var(--line); margin-top: 60px; padding: 26px 24px 40px; text-align: center; color: var(--faint); font-size: 12.5px; }
@@ -536,6 +539,11 @@ html[data-theme="dark"] .method-box summary:hover { color: var(--brand); }
 /* ---------- 移动端适配（≤700px） ---------- */
 /* 列开关按钮只在移动端出现：默认隐藏「模型/支持工具/备注」三列 */
 #tableColsToggle { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .chip, .quick-card, .free-card { transition: none; }
+  .quick-card:hover { transform: none; }
+}
 @media (max-width: 700px) {
   html { scroll-padding-top: 96px; }
   /* 顶栏收纳：品牌 + 主题按钮一行，导航收成单行水平滑动（约 223px → 约 80px） */

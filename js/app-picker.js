@@ -20,7 +20,7 @@ function metricMatchesPlan(m, p) {
 function hasCodingSurface(p) {
   const tools = resolvedField(p, "tools");
   if (/Claude Code/i.test(tools) || /\bCodex\b/i.test(tools) || p.vendor === "Cursor" || /\bCursor\b/i.test(tools)) return true;
-  return OWN_CLIENT_RE.test(tools) && !OWN_CLIENT_EXCLUDE_RE.test(tools);
+  return hasOwnClient(p);
 }
 function matchesTool(p, tool) {
   if (tool === "any") return true;
@@ -28,7 +28,10 @@ function matchesTool(p, tool) {
   if (tool === "claude") return /Claude Code/i.test(tools);
   if (tool === "codex") return /Codex/i.test(tools);
   if (tool === "cursor") return p.vendor === "Cursor" || /\bCursor\b/i.test(tools);
-  if (tool === "own") return !/Claude Code/i.test(tools) && !/Codex/i.test(tools) && p.vendor !== "Cursor" && !/\bCursor\b/i.test(tools);
+  if (tool === "own") {
+    if (/Claude Code/i.test(tools) || /Codex/i.test(tools) || p.vendor === "Cursor" || /\bCursor\b/i.test(tools)) return false;
+    return hasOwnClient(p);
+  }
   return true;
 }
 function planTitle(p) {
@@ -153,12 +156,6 @@ function windowSentence(p, role) {
   }
   if (/5\s*小时|\/5h/i.test(q)) return `官方没有公布这个模型的 5 小时 token 数。原文：${trunc(q, 80)}`;
   return `官方没有公布 5 小时窗口。额度原文：${trunc(q, 72)}`;
-}
-function offerable(p) {
-  /* 「限量抢购/限量释放」不算可直接下单；官方文案里的「不限量」是否定用法，不排除 */
-  const blob = (p.plan || "") + (p.note || "");
-  if (/抢购/.test(blob)) return false;
-  return !/(?:^|[^不])限量/.test(blob);
 }
 function withinBudget(p) {
   if (isRelay(p) || isRetiredPlan(p) || !offerable(p)) return false;
@@ -515,7 +512,7 @@ function windowNoteShort(prof) {
 /* 供卡片里的按钮一键放宽筛选（data-set-picker="region=all"） */
 function setPicker(rowKey, value) {
   const row = qs(`#picker .picker-row[data-pick="${rowKey}"]`);
-  if (row) row.querySelectorAll(".chip").forEach((x) => x.classList.toggle("active", x.dataset.value === value));
+  if (row) setChipPressed(row.querySelectorAll(".chip"), (x) => x.dataset.value === value);
   pickerState[rowKey] = value;
   renderPicker();
 }
@@ -530,6 +527,7 @@ function renderPicker() {
     note.textContent = own
       ? "上面是所选工具的自家订阅，供参考；它不满足当前的预算或地区筛选，所以没进推荐。中转站不参与。"
       : "中转站不参与。模型只分成复杂任务和日常，不使用跑分。";
+    syncUrl();
     return;
   }
   grid.innerHTML = [mainCard(main, pool), dailyCard(main, pool), upgradeCard(main), own].filter(Boolean).join("");

@@ -6,6 +6,7 @@ const path = require("path");
 const crypto = require("crypto");
 
 const root = path.resolve(__dirname, "..");
+const rootReal = fs.realpathSync(root);
 const host = "127.0.0.1";
 const port = Number(process.env.PORT) || 8123;
 const types = {
@@ -30,8 +31,12 @@ function fileFromUrl(urlPath) {
   if (!stripped || path.isAbsolute(stripped) || /^[a-zA-Z]:/.test(stripped)) return null;
   const resolved = path.resolve(root, stripped);
   const relToRoot = path.relative(root, resolved);
-  if (!relToRoot || relToRoot.startsWith("..") || path.isAbsolute(relToRoot)) return null;
+  if (pathBlocked(relToRoot)) return null;
   return resolved;
+}
+function pathBlocked(relToRoot) {
+  if (!relToRoot || relToRoot.startsWith("..") || path.isAbsolute(relToRoot)) return true;
+  return relToRoot.split(/[/\\]/).includes(".git");
 }
 
 const server = http.createServer((q, r) => {
@@ -41,27 +46,40 @@ const server = http.createServer((q, r) => {
     r.end("403");
     return;
   }
-  fs.readFile(file, (err, data) => {
-    if (err) {
-      r.writeHead(err.code === "ENOENT" ? 404 : 403, { "Content-Type": "text/plain; charset=utf-8" });
-      r.end(err.code === "ENOENT" ? "404" : "403");
+  fs.realpath(file, (realErr, real) => {
+    if (realErr) {
+      const missing = realErr.code === "ENOENT";
+      r.writeHead(missing ? 404 : 403, { "Content-Type": "text/plain; charset=utf-8" });
+      r.end(missing ? "404" : "403");
       return;
     }
-    const ext = path.extname(file).toLowerCase();
-    /* no-cache 需要校验器才能完成条件请求：按内容发 ETag，命中则 304 */
-    const etag = '"' + crypto.createHash("md5").update(data).digest("hex").slice(0, 16) + '"';
-    if (q.headers["if-none-match"] === etag) {
-      r.writeHead(304, { ETag: etag });
-      r.end();
+    if (pathBlocked(path.relative(rootReal, real))) {
+      r.writeHead(403, { "Content-Type": "text/plain; charset=utf-8" });
+      r.end("403");
       return;
     }
-    r.writeHead(200, {
-      "Content-Type": types[ext] || "application/octet-stream",
-      "Cache-Control": "no-cache",
-      ETag: etag,
-      "X-Content-Type-Options": "nosniff",
+    fs.readFile(real, (err, data) => {
+      if (err) {
+        r.writeHead(err.code === "ENOENT" ? 404 : 403, { "Content-Type": "text/plain; charset=utf-8" });
+        r.end(err.code === "ENOENT" ? "404" : "403");
+        return;
+      }
+      const ext = path.extname(real).toLowerCase();
+      /* no-cache 需要校验器才能完成条件请求：按内容发 ETag，命中则 304 */
+      const etag = '"' + crypto.createHash("md5").update(data).digest("hex").slice(0, 16) + '"';
+      if (q.headers["if-none-match"] === etag) {
+        r.writeHead(304, { ETag: etag });
+        r.end();
+        return;
+      }
+      r.writeHead(200, {
+        "Content-Type": types[ext] || "application/octet-stream",
+        "Cache-Control": "no-cache",
+        ETag: etag,
+        "X-Content-Type-Options": "nosniff",
+      });
+      r.end(data);
     });
-    r.end(data);
   });
 });
 

@@ -50,11 +50,12 @@ const MODEL_ROLES_ASOF = (MODEL_ROLES.find((r) => r.asOf) || {}).asOf || META.up
 /* ---------- 计划主索引：METRICS_RAW / ESTIMATES / PLAN_TOKENS 经 ref 引用 PLANS 的价格（单一数据源） ---------- */
 const PLAN_INDEX = new Map(PLANS.map((p) => [p.vendor + "|" + p.plan, p]));
 function resolvePlan(m) {
-  /* ref 可解析时以 PLANS 价格为准（单一数据源）；解析失败时回退到条目自身价格，避免整页崩溃 */
+  /* ref 可解析时以 PLANS 价格为准。解析失败则跳过该行，避免展示条目里可能过期的价格。 */
   if (Array.isArray(m.ref)) {
     const p = PLAN_INDEX.get(m.ref[0] + "|" + m.ref[1]);
     if (p) return { ...m, priceM: p.priceM, cur: p.cur };
-    console.warn("[data] ref 未解析，使用条目自身价格:", m.ref.join(" | "));
+    console.warn("[data] ref 未解析，已跳过:", m.ref.join(" | "));
+    return null;
   }
   return m;
 }
@@ -68,8 +69,7 @@ function safeHref(u) {
   const s = String(u ?? "").trim();
   return /^https?:\/\//i.test(s) ? esc(s) : "";
 }
-/* 计划分类判定（isRetiredPlan / isOneTimePlan / isRenewalOnly / isPersonalMonthly /
-   isFreeCodingEntry / isOnSalePlan）已下沉到 js/data.js，页面与校验器共用同一份，避免逻辑漂移。 */
+/* 计划分类、offerable、resolvedField、hasOwnClient 在 js/data.js，页面与校验器共用。 */
 /* 号池 / API 转售。和官方订阅、Cursor 这类工具订阅分开上色，不进「帮我选」。 */
 const RELAY_VENDORS = new Set([
   "R4 Coder（r4.codes）",
@@ -87,21 +87,6 @@ function isRelay(p) {
   if (RELAY_VENDORS.has(p.vendor)) return true;
   return /仅提供中转|号池|中转站/.test((p.note || "") + (p.plan || ""));
 }
-/* 自带 IDE/客户端/插件等编程入口（且只是兼容端点的不算），planBadges 与 hasCodingSurface 共用 */
-const OWN_CLIENT_RE = /IDE|客户端|桌面|网页|VS Code|插件|编辑器/;
-const OWN_CLIENT_EXCLUDE_RE = /协议|框架|端点|兼容/;
-/* 「同 Lite 档」沿同一厂商往前找到原文 */
-function resolvedField(p, key) {
-  const raw = String((p && p[key]) || "");
-  if (!p || !/^同/.test(raw)) return raw;
-  const idx = PLANS.indexOf(p);
-  for (let i = idx - 1; i >= 0; i--) {
-    if (PLANS[i].vendor !== p.vendor) break;
-    const v = PLANS[i][key];
-    if (v && !/^同/.test(v)) return v;
-  }
-  return raw;
-}
 /* isFlagshipModelName 等额度/模型分类的纯计算函数在 js/metrics.js（校验器与测试共用） */
 function planBlob(p) {
   return [p.tools, p.note, p.plan, p.quota].filter(Boolean).join(" ");
@@ -118,8 +103,7 @@ function planBadges(p) {
   if (/Claude Code/i.test(tools)) badges.push({ t: "Claude Code", k: "agent" });
   if (/Codex/i.test(tools)) badges.push({ t: "Codex", k: "agent" });
   if (p.vendor === "Cursor" || /\bCursor\b/i.test(tools)) badges.push({ t: "Cursor", k: "agent" });
-  const ownClient = OWN_CLIENT_RE.test(tools) && !OWN_CLIENT_EXCLUDE_RE.test(tools);
-  if (!badges.some((b) => b.k === "agent") && !isRelay(p) && ownClient) badges.push({ t: "自家客户端", k: "agent" });
+  if (!badges.some((b) => b.k === "agent") && !isRelay(p) && hasOwnClient(p)) badges.push({ t: "自家客户端", k: "agent" });
   return badges;
 }
 function badgeHtml(p) {
@@ -129,14 +113,18 @@ function metricOfferOk(m) {
   if (/已停售|已下架|老用户|一次性|预付/.test(m.plan || "")) return false;
   if (Array.isArray(m.ref)) {
     const p = PLAN_INDEX.get(m.ref[0] + "|" + m.ref[1]);
-    if (p && (isRetiredPlan(p) || isOneTimePlan(p) || isRenewalOnly(p))) return false;
+    if (p && (isRetiredPlan(p) || isOneTimePlan(p) || isRenewalOnly(p) || !offerable(p))) return false;
   }
   return true;
 }
+function adoptMetric(m, isEst) {
+  const resolved = resolvePlan(m);
+  return resolved ? { ...resolved, isEst } : null;
+}
 const METRICS_ALL = [
-  ...METRICS_RAW.map((m) => ({ ...resolvePlan(m), isEst: false })),
-  ...ESTIMATES.map((m) => ({ ...resolvePlan(m), isEst: true })),
-];
+  ...METRICS_RAW.map((m) => adoptMetric(m, false)),
+  ...ESTIMATES.map((m) => adoptMetric(m, true)),
+].filter(Boolean);
 
 /* ---------- 工具函数 ---------- */
 const shortVendor = (v) => VENDOR_SHORT[v] || v;
@@ -164,6 +152,13 @@ function byId(id) { return /** @type {any} */ (document.getElementById(id)); }
 function qsa(sel) { return /** @type {any} */ (document.querySelectorAll(sel)); }
 function qs(sel) { return /** @type {any} */ (document.querySelector(sel)); }
 function evtTarget(e) { return /** @type {any} */ (e && e.target); }
+function setChipPressed(chips, isOn) {
+  chips.forEach((chip) => {
+    const on = !!isOn(chip);
+    chip.classList.toggle("active", on);
+    chip.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+}
 /* 图表是 canvas，读屏不可见：渲染后写一句文字摘要进容器 */
 function describeChart(id, text) {
   const el = byId(id);

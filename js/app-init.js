@@ -109,15 +109,19 @@ function syncUrl() {
     if (v !== String(URL_DEFAULTS[k]) && v !== "") p.set(k, v);
   }
   const qs = p.toString();
-  try { history.replaceState(null, "", qs ? "?" + qs : location.pathname); }
+  const hash = location.hash || "";
+  try { history.replaceState(null, "", (qs ? "?" + qs : location.pathname) + hash); }
   catch (e) { /* file:// 直开时地址栏不可写，状态仅在当前页生效 */ }
 }
 
 /* 恢复 URL 状态后，把输入框/下拉/chip 的显示值同步到状态 */
 function syncControlsFromState() {
   qsa("#picker .picker-row").forEach((row) => {
-    row.querySelectorAll(".chip").forEach((chip) => chip.classList.toggle("active", chip.dataset.value === pickerState[row.dataset.pick]));
+    setChipPressed(row.querySelectorAll(".chip"), (chip) => chip.dataset.value === pickerState[row.dataset.pick]);
   });
+  setChipPressed(qsa("#chipCat .chip"), (chip) => chip.dataset.cat === state1.cat);
+  setChipPressed(qsa("#chipRegion .chip"), (chip) => chip.dataset.region === state1.region);
+  setChipPressed(qsa("#chipBilling .chip"), (chip) => chip.dataset.billing === state1.billing);
   const setVal = (id, v) => { const el = byId(id); if (el) el.value = v; };
   setVal("chartSearch", state1.q);
   setVal("searchInput", tableState.search);

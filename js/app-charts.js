@@ -32,8 +32,7 @@ function renderPersonalChart() {
   renderLegend();
   const q1 = state1.q.trim().toLowerCase();
   const rows = PLANS.filter(
-    (p) => p.cat !== "team" && !p.seat && p.priceM != null && p.priceM > 0 &&
-      !isRetiredPlan(p) && !isOneTimePlan(p) &&
+    (p) => isPersonalMonthly(p) &&
       (state1.cat === "all" || p.cat === state1.cat) &&
       (state1.region === "all" || p.region === state1.region) &&
       (!q1 || queryHit(planSearchBlob(p), q1))
@@ -82,11 +81,11 @@ function renderPersonalChart() {
   const excluded = q1 ? PLANS.filter((p) => {
     if (!queryHit(planSearchBlob(p), q1)) return false;
     if (isRetiredPlan(p)) return false;
-    const onChart = p.cat !== "team" && !p.seat && p.priceM != null && p.priceM > 0 && !isOneTimePlan(p);
-    return !onChart;
+    return !isPersonalMonthly(p);
   }) : [];
   const reasonOf = (p) => {
     if (p.cat === "team" || p.seat) return "团队/企业档";
+    if (isRenewalOnly(p)) return "仅老用户续费";
     if (isOneTimePlan(p)) return "一次性预付";
     if (p.priceM === 0) return "免费档";
     return "按量或定制";
@@ -192,20 +191,34 @@ function renderTokensChart() {
       isOfficial: true, url: t.url,
     }];
   });
-  /* 社区推算来源：ESTIMATES（≈估行）全部 + METRICS_RAW 中有每周 token 估算、且不是 Z.ai / 智谱 BigModel 的条目（如 MiniMax 第三方估算）
-   * （Z.ai 各档已由 PLAN_TOKENS 官方数据代表；智谱 BigModel 国内档额度相同，不重复入图。
-   *  LKEAP / 百炼 / 讯飞 / Canopy 为请求数制（tokens 按 ~20K/请求假设折算，误差过大），不入本图，仅在额度深度对比表中呈现） */
-  /* 系数折算行（小米 Credits、腾讯积分）有每周 token，但是按假设摊出来的，不进本图 */
-  const communitySrc = METRICS_ALL.filter((m) => m.isEst || (m.wkLowM != null && m.vendor !== "Z.ai" && m.vendor !== "智谱 BigModel" && !(m.note && m.note.includes("系数折算"))));
-  const community = communitySrc.filter((e) => e.wkLowM != null).map((e) => ({
-    label: tokPlanLabel(e.vendor, e.plan) + "·" + modelShort(e.model),
-    model: e.model,
-    lowM: e.wkLowM, highM: e.wkHighM,
-    priceCNY: toCNY(e.priceM, e.cur),
-    isOfficial: false, url: e.source, note: e.note, method: e.method || "第三方估算", conf: e.confidence || "低",
-  }));
+  /* 已在 PLAN_TOKENS 里的档不重复。智谱国内 V3 与 Z.ai 每周额度相同，也不再画一遍。
+     系数折算（小米 / 腾讯积分）不进本图。其余带每周 tokens 的行按出处着色：
+     高置信且非估算视为官方公布，新厂商不会被默认涂成低置信社区估算。
+     请求数制不进本图，只在额度深度对比表里呈现。 */
+  const coveredPlan = new Set(PLAN_TOKENS.filter((t) => Array.isArray(t.ref)).map((t) => t.ref[0] + "|" + t.ref[1]));
+  const weeklyExtra = METRICS_ALL.filter((m) => {
+    if (m.wkLowM == null) return false;
+    if (m.note && m.note.includes("系数折算")) return false;
+    if (m.vendor === "智谱 BigModel") return false;
+    if (Array.isArray(m.ref) && coveredPlan.has(m.ref[0] + "|" + m.ref[1])) return false;
+    return true;
+  }).map((e) => {
+    const prov = provenance(e);
+    return {
+      label: tokPlanLabel(e.vendor, e.plan) + "·" + modelShort(e.model),
+      model: e.model,
+      lowM: e.wkLowM, highM: e.wkHighM ?? e.wkLowM,
+      priceCNY: toCNY(e.priceM, e.cur),
+      isOfficial: !e.isEst && prov.conf === "高",
+      url: e.source, note: e.note,
+      method: e.method || prov.text,
+      conf: e.confidence || prov.conf,
+    };
+  });
+  const community = weeklyExtra.filter((r) => !r.isOfficial);
+  const officialBars = official.concat(weeklyExtra.filter((r) => r.isOfficial));
   /** @typedef {{label: string, model: string, lowM: number, highM: number, midM: number, priceCNY: number, isOfficial: boolean, url: string, note?: string, method?: string, conf?: string}} TokenRow */
-  const rows = /** @type {TokenRow[]} */ ([...official, ...community].map((r) => ({ ...r, midM: (r.lowM + r.highM) / 2 })));
+  const rows = /** @type {TokenRow[]} */ ([...officialBars, ...community].map((r) => ({ ...r, midM: (r.lowM + r.highM) / 2 })));
   rows.sort((a, b) => b.midM - a.midM);
 
   el.style.height = Math.max(420, rows.length * 30 + 150) + "px";
@@ -260,7 +273,7 @@ function renderTokensChart() {
     true
   );
   chart.resize();
-  describeChart("chartTokens", "每周可用 tokens 对比 " + rows.length + " 行：官方公布 " + official.length + " 行、社区推算 " + community.length + " 行。");
+  describeChart("chartTokens", "每周可用 tokens 对比 " + rows.length + " 行：官方公布 " + officialBars.length + " 行、社区推算 " + community.length + " 行。");
 
   /* 洞察卡：全厂商性价比排行（厂商中立） */
   const valueOf = (r) => (r.priceCNY > 0 ? r.midM / r.priceCNY : -1);
@@ -453,10 +466,16 @@ function renderRankChart() {
         formatter: (d) => {
           const r = d.data._r;
           const prov = provenance(r.m);
+          const cp = r.c.costPerM;
+          const cpColor = cp <= 0.3 ? "#34d399" : cp <= 1 ? "#f59e0b" : "#f87171";
+          const mo = r.c.moLow == null
+            ? "—"
+            : `约 ${fmtTok(r.c.moLow)}${r.c.moHigh > r.c.moLow ? "–" + fmtTok(r.c.moHigh) : ""}`;
+          const rate = r.c.rmo == null ? "—" : `${r.c.rmo.toFixed(1)}×`;
           return `<b>${esc(r.m.vendor)} · ${esc(r.m.plan)}</b>（${esc(displayModelName(r.m.model))}）<br/>
-            💵每 M tokens：<b style="color:#34d399">¥${r.c.costPerM.toFixed(3)}</b><br/>
-            月费：${fmtCNY(r.c.priceCNY)} ｜ 月倍率：<b>${r.c.rmo.toFixed(1)}×</b><br/>
-            月 tokens：约 ${fmtTok(r.c.moLow)}${r.c.moHigh > r.c.moLow ? "–" + fmtTok(r.c.moHigh) : ""}<br/>
+            💵每 M tokens：<b style="color:${cpColor}">¥${cp.toFixed(3)}</b><br/>
+            月费：${fmtCNY(r.c.priceCNY)} ｜ 月倍率：<b>${rate}</b><br/>
+            月 tokens：${mo}<br/>
             <span style="color:${PAL.dim}">依据：${esc(prov.text)} · 置信${esc(prov.conf)}${prov.conf !== "高" ? "（tokens 为折算/估算值）" : ""}</span>`;
         },
       },

@@ -41,10 +41,9 @@ function renderTable() {
       const pmSub = p.priceM > 0 ? `<br/><span class="sub">≈${fmtCNY(cnyOf(p, "M"))}</span>` : "";
       const py = p.priceY == null ? (p.priceM != null && p.priceM > 0 ? '<span class="sub">仅月付</span>' : "—") : priceText(p, "priceY") + `<br/><span class="sub">≈${fmtCNY(cnyOf(p, "Y"))}</span>`;
       const href = safeHref(p.url);
-      const cmpOn = cmpState.items.some((x) => x.vendor === p.vendor && x.plan === p.plan);
       return `<tr>
         <td class="td-vendor">${esc(p.vendor)}</td>
-        <td class="td-plan"><span class="plan-name">${esc(p.plan)}</span><div class="badge-row">${badgeHtml(p)}</div><button type="button" class="cmp-add${cmpOn ? " on" : ""}" data-vendor="${esc(p.vendor)}" data-plan="${esc(p.plan)}" aria-pressed="${cmpOn}">${cmpOn ? "✓ 对比中" : "＋对比"}</button></td>
+        <td class="td-plan"><span class="plan-name">${esc(p.plan)}</span><div class="badge-row">${badgeHtml(p)}</div><button type="button" class="cmp-add" data-vendor="${esc(p.vendor)}" data-plan="${esc(p.plan)}">＋对比</button></td>
         <td><span class="tag tag-${esc(p.cat)}">${esc(CAT_LABEL[p.cat] || p.cat)}</span></td>
         <td class="region-${esc(p.region)}">${esc(REGION_LABEL[p.region] || "")}</td>
         <td class="td-price">${pm}${pmSub}</td>
@@ -57,6 +56,7 @@ function renderTable() {
       </tr>`;
     })
     .join("");
+  syncTableCmpButtons();
   syncUrl();
 }
 
@@ -154,17 +154,25 @@ function cmpClear() {
 function renderCmpBar() {
   const bar = byId("cmpBar");
   if (!bar) return;
-  bar.hidden = cmpState.items.length === 0;
+  const n = cmpState.items.length;
+  const show = n > 0;
+  bar.hidden = !show;
+  bar.classList.toggle("is-on", show);
+  const hint = n === 1 ? "，再选 1 档可对比" : n >= CMP_MAX ? "，已满" : "";
   byId("cmpBarText").textContent =
-    `已选 ${cmpState.items.length}/${CMP_MAX} 档` +
-    (cmpState.items.length ? "：" + cmpState.items.map((p) => shortVendor(p.vendor) + " " + p.plan).join("、") : "");
-  byId("cmpOpenBtn").disabled = cmpState.items.length < 2;
+    `已选 ${n}/${CMP_MAX} 档${hint}` +
+    (n ? "：" + cmpState.items.map((p) => shortVendor(p.vendor) + " " + p.plan).join("、") : "");
+  const openBtn = byId("cmpOpenBtn");
+  openBtn.disabled = n < 2;
+  openBtn.title = n < 2 ? "至少选择 2 档" : "并排查看已选档";
 }
 function syncTableCmpButtons() {
   qsa("#tableBody .cmp-add").forEach((btn) => {
     const on = cmpState.items.some((x) => x.vendor === btn.dataset.vendor && x.plan === btn.dataset.plan);
     btn.textContent = on ? "✓ 对比中" : "＋对比";
     btn.classList.toggle("on", on);
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+    btn.title = on ? "移出并排对比" : "加入并排对比，选满 2 档后底部出现";
   });
 }
 function renderCmpModal() {
@@ -238,8 +246,7 @@ function bindEvents() {
   qsa("#planTable thead th, #metricsTable thead th").forEach((th) => (th.scope = "col"));
   qsa("#chipCat .chip").forEach((c) =>
     c.addEventListener("click", () => {
-      qsa("#chipCat .chip").forEach((x) => x.classList.remove("active"));
-      c.classList.add("active");
+      setChipPressed(qsa("#chipCat .chip"), (x) => x === c);
       state1.cat = c.dataset.cat;
       state1.limit = 40;
       renderPersonalChart();
@@ -247,8 +254,7 @@ function bindEvents() {
   );
   qsa("#chipRegion .chip").forEach((c) =>
     c.addEventListener("click", () => {
-      qsa("#chipRegion .chip").forEach((x) => x.classList.remove("active"));
-      c.classList.add("active");
+      setChipPressed(qsa("#chipRegion .chip"), (x) => x === c);
       state1.region = c.dataset.region;
       state1.limit = 40;
       renderPersonalChart();
@@ -256,8 +262,7 @@ function bindEvents() {
   );
   qsa("#chipBilling .chip").forEach((c) =>
     c.addEventListener("click", () => {
-      qsa("#chipBilling .chip").forEach((x) => x.classList.remove("active"));
-      c.classList.add("active");
+      setChipPressed(qsa("#chipBilling .chip"), (x) => x === c);
       state1.billing = c.dataset.billing;
       state1.limit = 40;
       renderPersonalChart();
@@ -339,8 +344,7 @@ function bindEvents() {
   qsa("#picker .picker-row").forEach((row) => {
     row.querySelectorAll(".chip").forEach((chip) => {
       chip.addEventListener("click", () => {
-        row.querySelectorAll(".chip").forEach((x) => x.classList.remove("active"));
-        chip.classList.add("active");
+        setChipPressed(row.querySelectorAll(".chip"), (x) => x === chip);
         pickerState[row.dataset.pick] = chip.dataset.value;
         renderPicker();
       });
@@ -534,7 +538,7 @@ function renderMetricsTable() {
 
   byId("metricsNote").innerHTML =
     `<b>💵每M tokens</b> = 月费÷月 tokens 中值（统一折算¥，越低越便宜；绿色≤¥0.30、黄色≤¥1、红色&gt;¥1）。标「官方 API 按量」的行没有月费，这一列用同一套 80/20、95% 缓存假设把低峰牌价折成人民币，所以能和套餐排在一起；模型名下方仍是原始输入 / 输出 / 缓存命中。套餐行模型名下方的牌价也不是套餐的每 M 成本。同一请求额度下，牌价更高的模型「额度价值 / 倍率」更高，每 M 成本不变。带牌价的 credits 按这套单价把面值折成 tokens；没有逐模型牌价的美元 credits 仍按假设均价 ¥10/M，且不进入「真实单价」排行。标「官方系数」的行用厂商公布的积分系数、按同一套假设摊成 tokens，置信度为中，不进入每周 tokens 图。<br>` +
-    `计算假设：输入/输出=80/20、缓存命中率 95%、每周 5 个 5h 窗口、每月 4.33 周。官方周 tokens：Tokens/5h=周÷5，Tokens/月=周×4.33。⏫额度倍率 = 该时段额度价值 ÷ 该时段分摊月费（5h=月费/21.65，周=月费/4.33，月=月费）。<b>「依据」列</b>标注出处与置信度（<span class="conf conf-hi">高</span>官方/credits · <span class="conf conf-mid">中</span>实测/区间/牌价折算 · <span class="conf conf-lo">低</span>毛利/第三方/请求折算）。当前 ${shownRows.length} 行（含 <b>${payg.length}</b> 行官方按量、<b>${rows.filter((r) => r.m.isEst).length}</b> 行「≈估」），默认按每百万成本从低到高。`;
+    `计算假设：输入/输出=80/20、缓存命中率 95%、每周 5 个 5h 窗口、每月 4.33 周。官方周 tokens：Tokens/5h=周÷5，Tokens/月=周×4.33。请求数制若同时写了每 5 小时、每周、每月上限，三列各自用该窗口的次数，不按「周÷5、周×4.33」互相换算，因此 Tokens/5h×5 可以不等于 Tokens/周。⏫额度倍率 = 该时段额度价值 ÷ 该时段分摊月费（5h=月费/21.65，周=月费/4.33，月=月费）。<b>「依据」列</b>标注出处与置信度（<span class="conf conf-hi">高</span>官方/credits · <span class="conf conf-mid">中</span>实测/区间/牌价折算 · <span class="conf conf-lo">低</span>毛利/第三方/请求折算）。当前 ${shownRows.length} 行（含 <b>${payg.length}</b> 行官方按量、<b>${rows.filter((r) => r.m.isEst).length}</b> 行「≈估」），默认按每百万成本从低到高。`;
   syncUrl();
 }
 
