@@ -5,12 +5,20 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     steps:
       - name: 保持跨平台检出文件的 LF 换行
         run: git config --global core.autocrlf false
@@ -18,8 +26,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
       - name: 按 lockfile 安装固定开发依赖
         run: npm ci
+      - name: 缓存 Playwright Chromium
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.os == 'Windows' && '~\AppData\Local\ms-playwright' || '~/.cache/ms-playwright' }}
+          key: playwright-${{ runner.os }}-chromium
       - name: 语法检查
         run: npm run check
       - name: 类型检查（checkJs）
@@ -34,7 +48,16 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: 真实浏览器回归
         run: npm run test:browser
+      - name: 上传失败截图与 trace
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results-${{ matrix.os }}
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: ignore
       - name: 校验公共网站部署产物
+        if: success()
         run: npm run build:site
       - name: 依赖安全检查
         run: npm audit --audit-level=moderate --registry=https://registry.npmjs.org

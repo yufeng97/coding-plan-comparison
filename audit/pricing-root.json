@@ -1,0 +1,1516 @@
+{
+  "checkedAt": "2026-10-04",
+  "sources": [
+    {
+      "id": "claude-plans",
+      "url": "https://claude.com/pricing",
+      "evidence": "免费0；Pro月20、年200；Team标准25/20及Premium125/100（美元，每席位月付/年均）；Enterprise年付20/席/月加API用量。"
+    },
+    {
+      "id": "claude-max",
+      "url": "https://support.claude.com/en/articles/11049741-what-is-the-max-plan",
+      "evidence": "网页Max 5x每月100美元、20x每月200美元，只有月付。"
+    },
+    {
+      "id": "openai-plans",
+      "url": "https://learn.chatgpt.com/docs/pricing",
+      "evidence": "Free0、Go8、Plus20；Pro100/200/500美元月付；Business月25/年均20每用户；Enterprise询价。"
+    },
+    {
+      "id": "google-plans",
+      "url": "https://one.google.com/about/google-ai-plans/",
+      "evidence": "真实浏览器切到United States：Plus月4.99美元；Pro月19.99/年199.99；Ultra5x月99.99、20x月199.99且仅月付。"
+    },
+    {
+      "id": "google-plus-us",
+      "url": "https://blog.google/products-and-platforms/products/google-one/google-ai-plus-availability/",
+      "evidence": "2026-01-27官方美国发布价7.99美元/月；不能用非美国页面默认4.99美元替换美国价。"
+    },
+    {
+      "id": "google-codeassist",
+      "url": "https://codeassist.google/",
+      "evidence": "个人免费；Standard月22.80/年均19美元每用户，Enterprise月54/年均45美元每用户。"
+    },
+    {
+      "id": "xai-plans",
+      "url": "https://x.ai/pricing",
+      "evidence": "免费0、SuperGrok30、Plus100美元每月；Lite/Heavy在对照表出现但未给金额，grok.com结账页抓取失败。年费未公开。"
+    },
+    {
+      "id": "mistral-plans",
+      "url": "https://mistral.ai/pricing/",
+      "evidence": "Vibe Free免费；Pro14.99美元/月；Team24.99美元/用户/月；学生5.99。未见年费。"
+    },
+    {
+      "id": "zai-checkout",
+      "url": "https://z.ai/subscribe",
+      "evidence": "直接操作当前公开结账页：月付Lite18/Pro80/Max168；季度折月14.4/64/134.4；年折月12.6/56/117.6美元。"
+    },
+    {
+      "id": "zai-transition",
+      "url": "https://docs.z.ai/devpack/transition",
+      "evidence": "V1无周限额的历史档2026-04-30取消自动续订；旧公告的现价与当前结账页不一致，不能作当前价。"
+    },
+    {
+      "id": "zai-legacy",
+      "url": "https://docs.z.ai/devpack/notice/usage-revision",
+      "evidence": "2026-07-30起旧版不对新用户销售，V2存量用户可续订/升级，官方未公开本次核查所需的存量续费价。"
+    },
+    {
+      "id": "claude-api",
+      "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+      "evidence": "百万tokens美元：Sonnet5.5及5输入2输出10；Opus5.5输入4输出20。缓存读分别0.20。"
+    },
+    {
+      "id": "openai-api",
+      "url": "https://developers.openai.com/api/docs/pricing",
+      "evidence": "Standard短上下文每百万tokens：6Astra10/50，6.1Sol2/10，6Luna0.1/0.5，5.6Sol4/20，5.3Codex1.75/14。"
+    },
+    {
+      "id": "openai-sol",
+      "url": "https://developers.openai.com/api/docs/models/gpt-6-sol",
+      "evidence": "每百万tokens美元输入2、缓存0.20、输出10。"
+    },
+    {
+      "id": "openai-terra",
+      "url": "https://developers.openai.com/api/docs/models/gpt-5.6-terra",
+      "evidence": "每百万tokens美元输入2、缓存0.20、输出12。"
+    },
+    {
+      "id": "openai-luna",
+      "url": "https://developers.openai.com/api/docs/models/gpt-5.6-luna",
+      "evidence": "每百万tokens美元输入0.20、缓存0.02、输出1.20。"
+    },
+    {
+      "id": "google-api",
+      "url": "https://ai.google.dev/gemini-api/docs/pricing",
+      "evidence": "3.1Pro Preview标准≤200K每百万tokens输入2/输出12美元；缓存0.20加存储4.50/百万/小时。"
+    },
+    {
+      "id": "zai-api",
+      "url": "https://docs.z.ai/guides/overview/pricing",
+      "evidence": "每百万tokens美元GLM5.3输入1.4/缓存0.26/输出4.4；Flash0.15/0.03/0.50。"
+    },
+    {
+      "id": "deepseek-api",
+      "url": "https://api-docs.deepseek.com/quick_start/pricing/?helper=penn&method=individual",
+      "evidence": "最新英文价表低峰Flash输入0.15/缓存0.003/输出0.6，V4Pro0.66/0.022/1.98美元；高峰2倍且中国法定节假日均低峰。请求名deepseek-flash。"
+    }
+  ],
+  "records": [
+    {
+      "kind": "plan",
+      "id": "plan-0001",
+      "vendor": "Anthropic",
+      "name": "Claude Free",
+      "status": "verified",
+      "old": {
+        "priceM": 0,
+        "priceY": 0,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 0,
+        "priceY": 0,
+        "cur": "USD",
+        "seat": false
+      },
+      "sourceIds": [
+        "claude-plans"
+      ],
+      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0002",
+      "vendor": "Anthropic",
+      "name": "Claude Pro",
+      "status": "verified",
+      "old": {
+        "priceM": 20,
+        "priceY": 16.67,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 20,
+        "priceY": 16.67,
+        "cur": "USD",
+        "seat": false
+      },
+      "sourceIds": [
+        "claude-plans"
+      ],
+      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0003",
+      "vendor": "Anthropic",
+      "name": "Claude Max 5x",
+      "status": "verified",
+      "old": {
+        "priceM": 100,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 100,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "sourceIds": [
+        "claude-max"
+      ],
+      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0004",
+      "vendor": "Anthropic",
+      "name": "Claude Max 20x",
+      "status": "verified",
+      "old": {
+        "priceM": 200,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 200,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false,
+        "note": "官方帮助文档确认 $200/月（网页订阅），仅月付；移动端及税费可能不同"
+      },
+      "sourceIds": [
+        "claude-max"
+      ],
+      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。",
+      "patch": {
+        "note": "官方帮助文档确认 $200/月（网页订阅），仅月付；移动端及税费可能不同"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0005",
+      "vendor": "Anthropic",
+      "name": "Claude Team（标准席位）",
+      "status": "verified",
+      "old": {
+        "priceM": 25,
+        "priceY": 20,
+        "cur": "USD",
+        "seat": true
+      },
+      "observed": {
+        "priceM": 25,
+        "priceY": 20,
+        "cur": "USD",
+        "seat": true
+      },
+      "sourceIds": [
+        "claude-plans"
+      ],
+      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0006",
+      "vendor": "Anthropic",
+      "name": "Claude Team（Premium 席位）",
+      "status": "verified",
+      "old": {
+        "priceM": 125,
+        "priceY": 100,
+        "cur": "USD",
+        "seat": true
+      },
+      "observed": {
+        "priceM": 125,
+        "priceY": 100,
+        "cur": "USD",
+        "seat": true
+      },
+      "sourceIds": [
+        "claude-plans"
+      ],
+      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0007",
+      "vendor": "Anthropic",
+      "name": "Claude Enterprise",
+      "status": "verified",
+      "old": {
+        "priceM": null,
+        "priceY": 20,
+        "cur": "USD",
+        "seat": true
+      },
+      "observed": {
+        "priceM": null,
+        "priceY": 20,
+        "cur": "USD",
+        "seat": true,
+        "note": "官方年付席位费 $20/席/月，API 用量另计；合同及组织需求联系销售"
+      },
+      "sourceIds": [
+        "claude-plans"
+      ],
+      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。",
+      "patch": {
+        "note": "官方年付席位费 $20/席/月，API 用量另计；合同及组织需求联系销售"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0008",
+      "vendor": "OpenAI",
+      "name": "ChatGPT Free",
+      "status": "verified",
+      "old": {
+        "priceM": 0,
+        "priceY": 0,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 0,
+        "priceY": 0,
+        "cur": "USD",
+        "seat": false
+      },
+      "sourceIds": [
+        "openai-plans"
+      ],
+      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0009",
+      "vendor": "OpenAI",
+      "name": "ChatGPT Go",
+      "status": "verified",
+      "old": {
+        "priceM": 8,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 8,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "sourceIds": [
+        "openai-plans"
+      ],
+      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0010",
+      "vendor": "OpenAI",
+      "name": "ChatGPT Plus",
+      "status": "verified",
+      "old": {
+        "priceM": 20,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 20,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "sourceIds": [
+        "openai-plans"
+      ],
+      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0011",
+      "vendor": "OpenAI",
+      "name": "ChatGPT Pro（$100）",
+      "status": "verified",
+      "old": {
+        "priceM": 100,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 100,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "sourceIds": [
+        "openai-plans"
+      ],
+      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0012",
+      "vendor": "OpenAI",
+      "name": "ChatGPT Pro（$200）",
+      "status": "verified",
+      "old": {
+        "priceM": 200,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 200,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false,
+        "note": "官方定价文档确认 $200/月；具体额度以用量仪表盘为准"
+      },
+      "sourceIds": [
+        "openai-plans"
+      ],
+      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。",
+      "patch": {
+        "note": "官方定价文档确认 $200/月；具体额度以用量仪表盘为准"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0013",
+      "vendor": "OpenAI",
+      "name": "ChatGPT Pro（$500）",
+      "status": "verified",
+      "old": {
+        "priceM": 500,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 500,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "sourceIds": [
+        "openai-plans"
+      ],
+      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0014",
+      "vendor": "OpenAI",
+      "name": "ChatGPT Business",
+      "status": "verified",
+      "old": {
+        "priceM": 25,
+        "priceY": 20,
+        "cur": "USD",
+        "seat": true
+      },
+      "observed": {
+        "priceM": 25,
+        "priceY": 20,
+        "cur": "USD",
+        "seat": true
+      },
+      "sourceIds": [
+        "openai-plans"
+      ],
+      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0015",
+      "vendor": "OpenAI",
+      "name": "ChatGPT Enterprise",
+      "status": "custom",
+      "old": {
+        "priceM": null,
+        "priceY": null,
+        "cur": "USD",
+        "seat": true
+      },
+      "observed": {
+        "priceM": null,
+        "priceY": null,
+        "cur": "USD",
+        "seat": true
+      },
+      "sourceIds": [
+        "openai-plans"
+      ],
+      "reason": "官方Enterprise需联系销售，无公开固定价。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0016",
+      "vendor": "Google",
+      "name": "Google AI Plus",
+      "status": "changed",
+      "old": {
+        "priceM": 7.99,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 4.99,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false,
+        "note": "当前美国官网 $4.99/月；400GB 存储；地区实付以结账页为准",
+        "url": "https://one.google.com/about/google-ai-plans/"
+      },
+      "sourceIds": [
+        "google-plans",
+        "google-plus-us"
+      ],
+      "reason": "真实浏览器选择 United States 后，当前官网显示4.99美元/月；1月发布价7.99已过时。",
+      "patch": {
+        "priceM": 4.99,
+        "url": "https://one.google.com/about/google-ai-plans/",
+        "note": "当前美国官网 $4.99/月；400GB 存储；地区实付以结账页为准"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0017",
+      "vendor": "Google",
+      "name": "Google AI Pro",
+      "status": "changed",
+      "old": {
+        "priceM": 19.99,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 19.99,
+        "priceY": 16.67,
+        "cur": "USD",
+        "seat": false,
+        "url": "https://one.google.com/about/google-ai-plans/",
+        "note": "美国月付 $19.99、年付 $199.99（折月约 $16.67）；含 $10/月 GCP credits",
+        "annualTotal": 199.99
+      },
+      "sourceIds": [
+        "google-plans"
+      ],
+      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。",
+      "patch": {
+        "priceY": 16.67,
+        "url": "https://one.google.com/about/google-ai-plans/",
+        "note": "美国月付 $19.99、年付 $199.99（折月约 $16.67）；含 $10/月 GCP credits"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0018",
+      "vendor": "Google",
+      "name": "Google AI Ultra（5x）",
+      "status": "verified",
+      "old": {
+        "priceM": 99.99,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 99.99,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false,
+        "url": "https://one.google.com/about/google-ai-plans/"
+      },
+      "sourceIds": [
+        "google-plans"
+      ],
+      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。",
+      "patch": {
+        "url": "https://one.google.com/about/google-ai-plans/"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0019",
+      "vendor": "Google",
+      "name": "Google AI Ultra（20x）",
+      "status": "verified",
+      "old": {
+        "priceM": 199.99,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 199.99,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false,
+        "url": "https://one.google.com/about/google-ai-plans/"
+      },
+      "sourceIds": [
+        "google-plans"
+      ],
+      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。",
+      "patch": {
+        "url": "https://one.google.com/about/google-ai-plans/"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0020",
+      "vendor": "Google",
+      "name": "Gemini CLI / Code Assist 个人免费版",
+      "status": "verified",
+      "old": {
+        "priceM": 0,
+        "priceY": 0,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 0,
+        "priceY": 0,
+        "cur": "USD",
+        "seat": false
+      },
+      "sourceIds": [
+        "google-codeassist"
+      ],
+      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0021",
+      "vendor": "Google",
+      "name": "Gemini Code Assist Standard",
+      "status": "verified",
+      "old": {
+        "priceM": 22.8,
+        "priceY": 19,
+        "cur": "USD",
+        "seat": true
+      },
+      "observed": {
+        "priceM": 22.8,
+        "priceY": 19,
+        "cur": "USD",
+        "seat": true
+      },
+      "sourceIds": [
+        "google-codeassist"
+      ],
+      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0022",
+      "vendor": "Google",
+      "name": "Gemini Code Assist Enterprise",
+      "status": "verified",
+      "old": {
+        "priceM": 54,
+        "priceY": 45,
+        "cur": "USD",
+        "seat": true
+      },
+      "observed": {
+        "priceM": 54,
+        "priceY": 45,
+        "cur": "USD",
+        "seat": true
+      },
+      "sourceIds": [
+        "google-codeassist"
+      ],
+      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0023",
+      "vendor": "xAI",
+      "name": "Grok Free",
+      "status": "verified",
+      "old": {
+        "priceM": 0,
+        "priceY": 0,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 0,
+        "priceY": 0,
+        "cur": "USD",
+        "seat": false
+      },
+      "sourceIds": [
+        "xai-plans"
+      ],
+      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0024",
+      "vendor": "xAI",
+      "name": "SuperGrok Lite",
+      "status": "unverified",
+      "old": {
+        "priceM": 10,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 10,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false,
+        "note": "历史价尚未得到本次官方确认；请以登录后的 Grok 结账页为准"
+      },
+      "sourceIds": [
+        "xai-plans"
+      ],
+      "reason": "官方对照表存在档位但没有公开价格；grok.com/plans和定向结账入口无可读取金额。",
+      "patch": {
+        "note": "历史价尚未得到本次官方确认；请以登录后的 Grok 结账页为准"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0025",
+      "vendor": "xAI",
+      "name": "SuperGrok",
+      "status": "changed",
+      "old": {
+        "priceM": 30,
+        "priceY": 25,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 30,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false,
+        "note": "官方公开月价已核实；未列公开年费，登录结账页核对地区及税费"
+      },
+      "sourceIds": [
+        "xai-plans"
+      ],
+      "reason": "月价确认，官方公开页未列年费，移除未经确认的年付折月价格。",
+      "patch": {
+        "priceY": null,
+        "note": "官方公开月价已核实；未列公开年费，登录结账页核对地区及税费"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0026",
+      "vendor": "xAI",
+      "name": "SuperGrok Plus",
+      "status": "changed",
+      "old": {
+        "priceM": 100,
+        "priceY": 83.33,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 100,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false,
+        "note": "官方公开月价已核实；未列公开年费，登录结账页核对地区及税费"
+      },
+      "sourceIds": [
+        "xai-plans"
+      ],
+      "reason": "月价确认，官方公开页未列年费，移除未经确认的年付折月价格。",
+      "patch": {
+        "priceY": null,
+        "note": "官方公开月价已核实；未列公开年费，登录结账页核对地区及税费"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0027",
+      "vendor": "xAI",
+      "name": "SuperGrok Heavy",
+      "status": "unverified",
+      "old": {
+        "priceM": 300,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 300,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false,
+        "note": "历史价尚未得到本次官方确认；请以登录后的 Grok 结账页为准"
+      },
+      "sourceIds": [
+        "xai-plans"
+      ],
+      "reason": "官方对照表存在档位但没有公开价格；grok.com/plans和定向结账入口无可读取金额。",
+      "patch": {
+        "note": "历史价尚未得到本次官方确认；请以登录后的 Grok 结账页为准"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0028",
+      "vendor": "Mistral",
+      "name": "Le Chat Free",
+      "status": "changed",
+      "old": {
+        "priceM": 0,
+        "priceY": 0,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 0,
+        "priceY": 0,
+        "cur": "USD",
+        "seat": false,
+        "plan": "Mistral Vibe Free"
+      },
+      "sourceIds": [
+        "mistral-plans"
+      ],
+      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。",
+      "patch": {
+        "plan": "Mistral Vibe Free"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0029",
+      "vendor": "Mistral",
+      "name": "Le Chat Pro",
+      "status": "changed",
+      "old": {
+        "priceM": 14.99,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 14.99,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false,
+        "plan": "Mistral Vibe Pro"
+      },
+      "sourceIds": [
+        "mistral-plans"
+      ],
+      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。",
+      "patch": {
+        "plan": "Mistral Vibe Pro"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0030",
+      "vendor": "Mistral",
+      "name": "Le Chat Team",
+      "status": "changed",
+      "old": {
+        "priceM": 24.99,
+        "priceY": null,
+        "cur": "USD",
+        "seat": true
+      },
+      "observed": {
+        "priceM": 24.99,
+        "priceY": null,
+        "cur": "USD",
+        "seat": true,
+        "plan": "Mistral Vibe Team"
+      },
+      "sourceIds": [
+        "mistral-plans"
+      ],
+      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。",
+      "patch": {
+        "plan": "Mistral Vibe Team"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0031",
+      "vendor": "Z.ai",
+      "name": "GLM Coding V3 Lite",
+      "status": "changed",
+      "old": {
+        "priceM": 18,
+        "priceY": 14.4,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 18,
+        "priceY": 12.6,
+        "cur": "USD",
+        "seat": false,
+        "url": "https://z.ai/subscribe",
+        "note": "当前月付 $18，季付 $43.2，年付 $151.2；旧公告金额已过时。非高峰减半及限时活动按官方使用文档执行"
+      },
+      "sourceIds": [
+        "zai-checkout"
+      ],
+      "reason": "当前交互结账页价格覆盖旧公告；明确区分月付、季度和年付。",
+      "patch": {
+        "priceM": 18,
+        "priceY": 12.6,
+        "url": "https://z.ai/subscribe",
+        "note": "当前月付 $18，季付 $43.2，年付 $151.2；旧公告金额已过时。非高峰减半及限时活动按官方使用文档执行"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0032",
+      "vendor": "Z.ai",
+      "name": "GLM Coding V3 Pro",
+      "status": "changed",
+      "old": {
+        "priceM": 72,
+        "priceY": 57.6,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 80,
+        "priceY": 56,
+        "cur": "USD",
+        "seat": false,
+        "url": "https://z.ai/subscribe",
+        "note": "当前月付 $80，季付 $192，年付 $672；旧公告金额已过时。非高峰减半及限时活动按官方使用文档执行"
+      },
+      "sourceIds": [
+        "zai-checkout"
+      ],
+      "reason": "当前交互结账页价格覆盖旧公告；明确区分月付、季度和年付。",
+      "patch": {
+        "priceM": 80,
+        "priceY": 56,
+        "url": "https://z.ai/subscribe",
+        "note": "当前月付 $80，季付 $192，年付 $672；旧公告金额已过时。非高峰减半及限时活动按官方使用文档执行"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0033",
+      "vendor": "Z.ai",
+      "name": "GLM Coding V3 Max",
+      "status": "changed",
+      "old": {
+        "priceM": 160,
+        "priceY": 128,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 168,
+        "priceY": 117.6,
+        "cur": "USD",
+        "seat": false,
+        "url": "https://z.ai/subscribe",
+        "note": "当前月付 $168，季付 $403.2，年付 $1411.2；旧公告金额已过时。非高峰减半及限时活动按官方使用文档执行"
+      },
+      "sourceIds": [
+        "zai-checkout"
+      ],
+      "reason": "当前交互结账页价格覆盖旧公告；明确区分月付、季度和年付。",
+      "patch": {
+        "priceM": 168,
+        "priceY": 117.6,
+        "url": "https://z.ai/subscribe",
+        "note": "当前月付 $168，季付 $403.2，年付 $1411.2；旧公告金额已过时。非高峰减半及限时活动按官方使用文档执行"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0034",
+      "vendor": "Z.ai",
+      "name": "GLM Coding V1 Lite（已停售）",
+      "status": "retired",
+      "old": {
+        "priceM": 3,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 3,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "sourceIds": [
+        "zai-transition"
+      ],
+      "reason": "官方确认V1结束自动续订；历史数字仅供追溯，当前不能购买。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0035",
+      "vendor": "Z.ai",
+      "name": "GLM Coding V1 Pro（已停售）",
+      "status": "retired",
+      "old": {
+        "priceM": 15,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 15,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "sourceIds": [
+        "zai-transition"
+      ],
+      "reason": "官方确认V1结束自动续订；历史数字仅供追溯，当前不能购买。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0036",
+      "vendor": "Z.ai",
+      "name": "GLM Coding V2 Lite（老用户续费）",
+      "status": "unverified",
+      "old": {
+        "priceM": 18,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 18,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "sourceIds": [
+        "zai-legacy"
+      ],
+      "reason": "官方确认仅存量续费，但未公开存量价格，不能套用V3当前价。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0037",
+      "vendor": "Z.ai",
+      "name": "GLM Coding V2 Pro（老用户续费）",
+      "status": "unverified",
+      "old": {
+        "priceM": 72,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 72,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "sourceIds": [
+        "zai-legacy"
+      ],
+      "reason": "官方确认仅存量续费，但未公开存量价格，不能套用V3当前价。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0038",
+      "vendor": "Z.ai",
+      "name": "GLM Coding V2 Max（老用户续费）",
+      "status": "unverified",
+      "old": {
+        "priceM": 160,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "observed": {
+        "priceM": 160,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      },
+      "sourceIds": [
+        "zai-legacy"
+      ],
+      "reason": "官方确认仅存量续费，但未公开存量价格，不能套用V3当前价。",
+      "patch": {}
+    },
+    {
+      "kind": "api",
+      "id": "Anthropic|Claude Sonnet 5.5",
+      "vendor": "Anthropic",
+      "name": "Claude Sonnet 5.5",
+      "status": "verified",
+      "old": {
+        "cur": "USD",
+        "inUSD": 2,
+        "outUSD": 10
+      },
+      "observed": {
+        "cur": "USD",
+        "inUSD": 2,
+        "outUSD": 10
+      },
+      "sourceIds": [
+        "claude-api"
+      ],
+      "reason": "核对标准短上下文/低峰原币种单价；单位每百万tokens。",
+      "patch": {}
+    },
+    {
+      "kind": "api",
+      "id": "Anthropic|Claude Sonnet 5",
+      "vendor": "Anthropic",
+      "name": "Claude Sonnet 5",
+      "status": "verified",
+      "old": {
+        "cur": "USD",
+        "inUSD": 2,
+        "outUSD": 10
+      },
+      "observed": {
+        "cur": "USD",
+        "inUSD": 2,
+        "outUSD": 10
+      },
+      "sourceIds": [
+        "claude-api"
+      ],
+      "reason": "核对标准短上下文/低峰原币种单价；单位每百万tokens。",
+      "patch": {}
+    },
+    {
+      "kind": "api",
+      "id": "Anthropic|Claude Opus 5.5",
+      "vendor": "Anthropic",
+      "name": "Claude Opus 5.5",
+      "status": "verified",
+      "old": {
+        "cur": "USD",
+        "inUSD": 4,
+        "outUSD": 20
+      },
+      "observed": {
+        "cur": "USD",
+        "inUSD": 4,
+        "outUSD": 20
+      },
+      "sourceIds": [
+        "claude-api"
+      ],
+      "reason": "核对标准短上下文/低峰原币种单价；单位每百万tokens。",
+      "patch": {}
+    },
+    {
+      "kind": "api",
+      "id": "OpenAI|gpt-6-astra",
+      "vendor": "OpenAI",
+      "name": "gpt-6-astra",
+      "status": "verified",
+      "old": {
+        "cur": "USD",
+        "inUSD": 10,
+        "outUSD": 50
+      },
+      "observed": {
+        "cur": "USD",
+        "inUSD": 10,
+        "outUSD": 50
+      },
+      "sourceIds": [
+        "openai-api"
+      ],
+      "reason": "核对标准短上下文/低峰原币种单价；单位每百万tokens。",
+      "patch": {}
+    },
+    {
+      "kind": "api",
+      "id": "OpenAI|gpt-6.1-sol",
+      "vendor": "OpenAI",
+      "name": "gpt-6.1-sol",
+      "status": "verified",
+      "old": {
+        "cur": "USD",
+        "inUSD": 2,
+        "outUSD": 10
+      },
+      "observed": {
+        "cur": "USD",
+        "inUSD": 2,
+        "outUSD": 10
+      },
+      "sourceIds": [
+        "openai-api"
+      ],
+      "reason": "核对标准短上下文/低峰原币种单价；单位每百万tokens。",
+      "patch": {}
+    },
+    {
+      "kind": "api",
+      "id": "OpenAI|gpt-6-sol",
+      "vendor": "OpenAI",
+      "name": "gpt-6-sol",
+      "status": "verified",
+      "old": {
+        "cur": "USD",
+        "inUSD": 2,
+        "outUSD": 10
+      },
+      "observed": {
+        "cur": "USD",
+        "inUSD": 2,
+        "outUSD": 10
+      },
+      "sourceIds": [
+        "openai-sol"
+      ],
+      "reason": "核对标准短上下文/低峰原币种单价；单位每百万tokens。",
+      "patch": {}
+    },
+    {
+      "kind": "api",
+      "id": "OpenAI|gpt-6-luna",
+      "vendor": "OpenAI",
+      "name": "gpt-6-luna",
+      "status": "verified",
+      "old": {
+        "cur": "USD",
+        "inUSD": 0.1,
+        "outUSD": 0.5
+      },
+      "observed": {
+        "cur": "USD",
+        "inUSD": 0.1,
+        "outUSD": 0.5
+      },
+      "sourceIds": [
+        "openai-api"
+      ],
+      "reason": "核对标准短上下文/低峰原币种单价；单位每百万tokens。",
+      "patch": {}
+    },
+    {
+      "kind": "api",
+      "id": "OpenAI|gpt-5.6-sol",
+      "vendor": "OpenAI",
+      "name": "gpt-5.6-sol",
+      "status": "verified",
+      "old": {
+        "cur": "USD",
+        "inUSD": 4,
+        "outUSD": 20
+      },
+      "observed": {
+        "cur": "USD",
+        "inUSD": 4,
+        "outUSD": 20
+      },
+      "sourceIds": [
+        "openai-api"
+      ],
+      "reason": "核对标准短上下文/低峰原币种单价；单位每百万tokens。",
+      "patch": {}
+    },
+    {
+      "kind": "api",
+      "id": "OpenAI|gpt-5.6-terra",
+      "vendor": "OpenAI",
+      "name": "gpt-5.6-terra",
+      "status": "verified",
+      "old": {
+        "cur": "USD",
+        "inUSD": 2,
+        "outUSD": 12
+      },
+      "observed": {
+        "cur": "USD",
+        "inUSD": 2,
+        "outUSD": 12
+      },
+      "sourceIds": [
+        "openai-terra"
+      ],
+      "reason": "核对标准短上下文/低峰原币种单价；单位每百万tokens。",
+      "patch": {}
+    },
+    {
+      "kind": "api",
+      "id": "OpenAI|gpt-5.6-luna",
+      "vendor": "OpenAI",
+      "name": "gpt-5.6-luna",
+      "status": "verified",
+      "old": {
+        "cur": "USD",
+        "inUSD": 0.2,
+        "outUSD": 1.2
+      },
+      "observed": {
+        "cur": "USD",
+        "inUSD": 0.2,
+        "outUSD": 1.2
+      },
+      "sourceIds": [
+        "openai-luna"
+      ],
+      "reason": "核对标准短上下文/低峰原币种单价；单位每百万tokens。",
+      "patch": {}
+    },
+    {
+      "kind": "api",
+      "id": "OpenAI|gpt-5.3-codex（编程向）",
+      "vendor": "OpenAI",
+      "name": "gpt-5.3-codex（编程向）",
+      "status": "verified",
+      "old": {
+        "cur": "USD",
+        "inUSD": 1.75,
+        "outUSD": 14
+      },
+      "observed": {
+        "cur": "USD",
+        "inUSD": 1.75,
+        "outUSD": 14
+      },
+      "sourceIds": [
+        "openai-api"
+      ],
+      "reason": "核对标准短上下文/低峰原币种单价；单位每百万tokens。",
+      "patch": {}
+    },
+    {
+      "kind": "api",
+      "id": "Google|Gemini 3.1 Pro Preview",
+      "vendor": "Google",
+      "name": "Gemini 3.1 Pro Preview",
+      "status": "verified",
+      "old": {
+        "cur": "USD",
+        "inUSD": 2,
+        "outUSD": 12
+      },
+      "observed": {
+        "cur": "USD",
+        "inUSD": 2,
+        "outUSD": 12
+      },
+      "sourceIds": [
+        "google-api"
+      ],
+      "reason": "核对标准短上下文/低峰原币种单价；单位每百万tokens。",
+      "patch": {}
+    },
+    {
+      "kind": "api",
+      "id": "Z.ai|GLM-5.3",
+      "vendor": "Z.ai",
+      "name": "GLM-5.3",
+      "status": "verified",
+      "old": {
+        "cur": "USD",
+        "inUSD": 1.4,
+        "outUSD": 4.4
+      },
+      "observed": {
+        "cur": "USD",
+        "inUSD": 1.4,
+        "outUSD": 4.4
+      },
+      "sourceIds": [
+        "zai-api"
+      ],
+      "reason": "核对标准短上下文/低峰原币种单价；单位每百万tokens。",
+      "patch": {}
+    },
+    {
+      "kind": "api",
+      "id": "DeepSeek|deepseek-flash (V4.1-Flash)",
+      "vendor": "DeepSeek",
+      "name": "deepseek-flash (V4.1-Flash)",
+      "status": "verified",
+      "old": {
+        "cur": "USD",
+        "inUSD": 0.15,
+        "outUSD": 0.6
+      },
+      "observed": {
+        "cur": "USD",
+        "inUSD": 0.15,
+        "outUSD": 0.6
+      },
+      "sourceIds": [
+        "deepseek-api"
+      ],
+      "reason": "核对标准短上下文/低峰原币种单价；单位每百万tokens。",
+      "patch": {}
+    },
+    {
+      "kind": "api",
+      "id": "DeepSeek|deepseek-v4-pro (V4-Pro-0813)",
+      "vendor": "DeepSeek",
+      "name": "deepseek-v4-pro (V4-Pro-0813)",
+      "status": "verified",
+      "old": {
+        "cur": "USD",
+        "inUSD": 0.66,
+        "outUSD": 1.98
+      },
+      "observed": {
+        "cur": "USD",
+        "inUSD": 0.66,
+        "outUSD": 1.98
+      },
+      "sourceIds": [
+        "deepseek-api"
+      ],
+      "reason": "核对标准短上下文/低峰原币种单价；单位每百万tokens。",
+      "patch": {}
+    },
+    {
+      "kind": "payg",
+      "id": "DeepSeek|deepseek-v4.1-flash",
+      "vendor": "DeepSeek",
+      "name": "deepseek-v4.1-flash",
+      "status": "verified",
+      "old": {
+        "cur": "USD",
+        "apiIn": 0.15,
+        "apiOut": 0.6,
+        "apiCache": 0.003
+      },
+      "observed": {
+        "cur": "USD",
+        "apiIn": 0.15,
+        "apiOut": 0.6,
+        "apiCache": 0.003
+      },
+      "sourceIds": [
+        "deepseek-api"
+      ],
+      "reason": "核对输入、输出和缓存命中原币种刊例。",
+      "patch": {
+        "model": "deepseek-flash",
+        "note": "官方低峰价，模型请求名 deepseek-flash；工作日高峰输入 $0.30 / 输出 $1.20 / 缓存 $0.006；中国法定节假日全天低峰。"
+      }
+    },
+    {
+      "kind": "payg",
+      "id": "DeepSeek|deepseek-v4-pro",
+      "vendor": "DeepSeek",
+      "name": "deepseek-v4-pro",
+      "status": "verified",
+      "old": {
+        "cur": "USD",
+        "apiIn": 0.66,
+        "apiOut": 1.98,
+        "apiCache": 0.022
+      },
+      "observed": {
+        "cur": "USD",
+        "apiIn": 0.66,
+        "apiOut": 1.98,
+        "apiCache": 0.022
+      },
+      "sourceIds": [
+        "deepseek-api"
+      ],
+      "reason": "核对输入、输出和缓存命中原币种刊例。",
+      "patch": {}
+    },
+    {
+      "kind": "payg",
+      "id": "Z.ai|GLM-5.3",
+      "vendor": "Z.ai",
+      "name": "GLM-5.3",
+      "status": "verified",
+      "old": {
+        "cur": "USD",
+        "apiIn": 1.4,
+        "apiOut": 4.4,
+        "apiCache": 0.26
+      },
+      "observed": {
+        "cur": "USD",
+        "apiIn": 1.4,
+        "apiOut": 4.4,
+        "apiCache": 0.26
+      },
+      "sourceIds": [
+        "zai-api"
+      ],
+      "reason": "核对输入、输出和缓存命中原币种刊例。",
+      "patch": {}
+    },
+    {
+      "kind": "payg",
+      "id": "Z.ai|GLM-5.3-Flash",
+      "vendor": "Z.ai",
+      "name": "GLM-5.3-Flash",
+      "status": "verified",
+      "old": {
+        "cur": "USD",
+        "apiIn": 0.15,
+        "apiOut": 0.5,
+        "apiCache": 0.03
+      },
+      "observed": {
+        "cur": "USD",
+        "apiIn": 0.15,
+        "apiOut": 0.5,
+        "apiCache": 0.03
+      },
+      "sourceIds": [
+        "zai-api"
+      ],
+      "reason": "核对输入、输出和缓存命中原币种刊例。",
+      "patch": {}
+    }
+  ]
+}

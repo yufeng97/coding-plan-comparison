@@ -4,14 +4,20 @@ const DEBUG_MODE = new URLSearchParams(location.search).has("debug");
 const PERSONAL_DEFAULT_LIMIT = 20;
 const CMP_MAX = 4;
 /** @type {{cat:string, region:string, billing:string, q:string, limit:number|null}} */
-const state1 = { cat:"all", region:"all", billing:"M", q:"", limit:PERSONAL_DEFAULT_LIMIT };
+const personalState = { cat:"all", region:"all", billing:"M", q:"", limit:PERSONAL_DEFAULT_LIMIT };
 const rankState = { tier:"flagship", scope:"official" };
 const pickerState = { budget:"200", region:"cn", tool:"any", task:"both" };
 const tableState = { search:"", cat:"all", region:"all", sortKey:"priceM", sortDir:1 };
 /** @type {{items: typeof PLANS}} */
 const cmpState = { items:[] };
 const metricsState = { model:"all", ver:"all", sortKey:"cpm", sortDir:1 };
-const APP_DEFAULTS = { personal:{...state1}, rank:{...rankState}, picker:{...pickerState}, table:{...tableState}, metrics:{...metricsState} };
+const APP_DEFAULTS = { personal:{...personalState}, rank:{...rankState}, picker:{...pickerState}, table:{...tableState}, metrics:{...metricsState} };
+/* 额度表模型筛选的合法取值（与 populateModelFilter 的数据源一致），供 URL 白名单校验 */
+const MODEL_FILTER_VALUES = new Set([
+  ...METRICS_RAW.map((m) => m.model),
+  ...ESTIMATES.map((m) => m.model),
+  ...PAYG_REFERENCES.map((s) => s.model),
+]);
 let URL_RESTORING = false;
 let stateUpdateDepth = 0;
 
@@ -36,11 +42,11 @@ const URL_KEYS = {
   tool: () => pickerState.tool,
   task: () => pickerState.task,
   /* 个人订阅价格全景 */
-  pcat: () => state1.cat,
-  pregion: () => state1.region,
-  pbilling: () => state1.billing,
-  pq: () => state1.q,
-  plimit: () => state1.limit == null ? "all" : String(state1.limit),
+  pcat: () => personalState.cat,
+  pregion: () => personalState.region,
+  pbilling: () => personalState.billing,
+  pq: () => personalState.q,
+  plimit: () => personalState.limit == null ? "all" : String(personalState.limit),
   /* 性价比排行 */
   rank: () => rankState.tier,
   rscope: () => rankState.scope,
@@ -76,7 +82,7 @@ const URL_VALID = {
 };
 
 function applyUrlState() {
-  Object.assign(state1, APP_DEFAULTS.personal);
+  Object.assign(personalState, APP_DEFAULTS.personal);
   Object.assign(rankState, APP_DEFAULTS.rank);
   Object.assign(pickerState, APP_DEFAULTS.picker);
   Object.assign(tableState, APP_DEFAULTS.table);
@@ -91,11 +97,11 @@ function applyUrlState() {
   pick("region", URL_VALID.region, pickerState, "region");
   pick("tool", URL_VALID.tool, pickerState, "tool");
   pick("task", URL_VALID.task, pickerState, "task");
-  pick("pcat", URL_VALID.pcat, state1, "cat");
-  pick("pregion", URL_VALID.pregion, state1, "region");
-  pick("pbilling", URL_VALID.pbilling, state1, "billing");
-  if (p.get("pq") != null) state1.q = p.get("pq");
-  if (URL_VALID.plimit.has(p.get("plimit"))) state1.limit = p.get("plimit") === "all" ? null : PERSONAL_DEFAULT_LIMIT;
+  pick("pcat", URL_VALID.pcat, personalState, "cat");
+  pick("pregion", URL_VALID.pregion, personalState, "region");
+  pick("pbilling", URL_VALID.pbilling, personalState, "billing");
+  if (p.get("pq") != null) personalState.q = p.get("pq");
+  if (URL_VALID.plimit.has(p.get("plimit"))) personalState.limit = p.get("plimit") === "all" ? null : PERSONAL_DEFAULT_LIMIT;
   pick("rank", URL_VALID.rank, rankState, "tier");
   pick("rscope", URL_VALID.rscope, rankState, "scope");
   if (p.get("q") != null) tableState.search = p.get("q");
@@ -106,7 +112,11 @@ function applyUrlState() {
     const [key, dir] = ts.split(":");
     if (URL_VALID.tsortKeys.has(key)) { tableState.sortKey = key; tableState.sortDir = dir === "-1" ? -1 : 1; }
   }
-  if (p.get("mmodel") != null) metricsState.model = p.get("mmodel");
+  if (p.get("mmodel") != null) {
+    /* 与其他参数一样过白名单：URL 里的垃圾模型值不入库，也就不会经 syncUrl 写回地址栏 */
+    const v = p.get("mmodel");
+    if (MODEL_FILTER_VALUES.has(v)) metricsState.model = v;
+  }
   pick("mver", URL_VALID.mver, metricsState, "ver");
   const ms = p.get("msort");
   if (ms) {
@@ -143,11 +153,11 @@ function syncUrl() {
 /* 恢复 URL 状态后，把输入框/下拉/chip 的显示值同步到状态 */
 function syncControlsFromState() {
   syncPickerChips(); /* renderPicker 渲染时也会自愈同步，这里先跑一次避免首帧高亮错档 */
-  setChipPressed(qsa("#chipCat .chip"), (chip) => chip.dataset.cat === state1.cat);
-  setChipPressed(qsa("#chipRegion .chip"), (chip) => chip.dataset.region === state1.region);
-  setChipPressed(qsa("#chipBilling .chip"), (chip) => chip.dataset.billing === state1.billing);
+  setChipPressed(qsa("#chipCat .chip"), (chip) => chip.dataset.cat === personalState.cat);
+  setChipPressed(qsa("#chipRegion .chip"), (chip) => chip.dataset.region === personalState.region);
+  setChipPressed(qsa("#chipBilling .chip"), (chip) => chip.dataset.billing === personalState.billing);
   const setVal = (id, v) => { const el = byId(id); if (el) el.value = v; };
-  setVal("chartSearch", state1.q);
+  setVal("chartSearch", personalState.q);
   setVal("searchInput", tableState.search);
   setVal("selectCat", tableState.cat);
   setVal("selectRegion", tableState.region);

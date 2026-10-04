@@ -1,0 +1,8 @@
+# CLI 部署（vercel 命令）只应发布公共站点文件；outputDirectory 指向仓库根目录时，
+# 没有本文件会把 scripts/、README、lockfile 等全部公开。白名单写法：先忽略一切再放行。
+/*
+!/index.html
+!/css/
+!/js/
+!/libs/
+!/vercel.json

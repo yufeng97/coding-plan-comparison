@@ -1,6 +1,9 @@
 /* ============ Coding Plan 比价中心 — 帮我选 ============ */
 "use strict";
 
+/* 预算比较的容差：CNY 价格带小数，浮点相等判断统一加这一点余量 */
+const BUDGET_EPS = 0.05;
+
 /* ---------- 帮我选 ---------- */
 const PICK_ACCENT = ["#34d399", "#f59e0b", "#6366f1", "#f472b6"];
 /* 选了具体工具时，该工具自家厂商的订阅单独出一张对照卡（如点 Cursor 给 Cursor Pro）。
@@ -24,7 +27,7 @@ function hasCodingSurface(p) {
 }
 /* 通用推荐排除国家限定套餐；工具免费不等于模型推理免费。 */
 function recommendablePlan(p) {
-  return !isRelay(p) && !isRetiredPlan(p) && offerable(p) && hasCodingSurface(p) &&
+  return isPriceConfirmed(p) && !isRelay(p) && !isRetiredPlan(p) && offerable(p) && hasCodingSurface(p) &&
     hasIncludedModelQuota(p) && isPurchaseCountryAllowed(p, "");
 }
 function matchesTool(p, tool) {
@@ -53,7 +56,7 @@ function priceLine(p) {
 function moneyHtml(p) {
   if (!p) return "<em>—</em>";
   if (p.priceM === 0) return "<em>免费</em>";
-  const raw = p.cur === "USD" ? "$" + p.priceM : "¥" + p.priceM;
+  const raw = priceText(p, "priceM");
   return `<em>${esc(raw)}</em>/月`;
 }
 function lineHtml(k, text) {
@@ -61,11 +64,12 @@ function lineHtml(k, text) {
 }
 function bandRank(band) { return band === "A" ? 3 : band === "B" ? 2 : 1; }
 function catRank(p) { return p.cat === "official" ? 3 : p.cat === "tool" ? 2 : p.cat === "cloud" ? 1 : 0; }
-/* 计划名里的 5x / 20x 优先（× 和 x 都算）。额度原文里的「5× Pro」也算加窗；「5× Free」只是入门档基线。 */
+/* 计划名里的 5x / 20x 优先（× 和 x 都算）。额度原文里的「5× Pro」也算加窗；「5× Free」只是入门档基线。
+   额度文案统一走 resolvedField，继承行（「同某档」）也能命中倍率写法。 */
 function multiplier(p) {
   const fromPlan = String(p.plan || "").match(/(\d+)\s*[x×]/i);
   if (fromPlan) return Number(fromPlan[1]);
-  const q = p.quota || "";
+  const q = resolvedField(p, "quota") || "";
   const named = q.match(/(\d+(?:\.\d+)?)\s*×\s*(Pro|Plus|Lite|Standard)/i);
   if (named) return Number(named[1]);
   if (/(\d+)\s*×\s*Free/i.test(q)) return 1;
@@ -147,7 +151,8 @@ function betterWindow(a, b) {
   const B = windowStats(b);
   if (A.tokens !== B.tokens) return A.tokens > B.tokens;
   if (A.mult !== B.mult) return A.mult > B.mult;
-  return A.price > B.price;
+  /* tokens 与倍率完全打平时取更便宜的：代表档收敛的是「同厂商同角色的性价比之选」 */
+  return A.price < B.price;
 }
 function tokSpan(c, keyLow, keyHigh) {
   const lo = c[keyLow];
@@ -182,7 +187,7 @@ function withinBudget(p) {
   if (pickerState.budget === "0") return isFreeCodingEntry(p);
   if (!isPersonalMonthly(p)) return false;
   if (pickerState.budget === "any") return true;
-  return (cnyOf(p, "M") || 0) <= Number(pickerState.budget) + 0.05;
+  return (cnyOf(p, "M") || 0) <= Number(pickerState.budget) + BUDGET_EPS;
 }
 function eligibleProfiles() {
   return PLANS.filter(withinBudget).map(planProfile);
@@ -254,7 +259,7 @@ function cheaperTiers(main) {
     if (p.vendor !== main.p.vendor || !isPersonalMonthly(p) || !recommendablePlan(p)) return;
     if (pickerState.region !== "all" && p.region !== pickerState.region) return;
     if (!matchesTool(p, pickerState.tool)) return;
-    if ((cnyOf(p, "M") || 0) >= mainPrice - 0.05) return;
+    if ((cnyOf(p, "M") || 0) >= mainPrice - BUDGET_EPS) return;
     const prof = planProfile(p);
     if (prof.headline && prof.headline.id === roleId) rows.push(prof);
   });
@@ -288,7 +293,7 @@ function nextTier(current) {
     if (pickerState.region !== "all" && p.region !== pickerState.region) return;
     if (!matchesTool(p, pickerState.tool)) return;
     const price = cnyOf(p, "M") || 0;
-    if (price <= (cnyOf(current.p, "M") || 0) + 0.05) return;
+    if (price <= (cnyOf(current.p, "M") || 0) + BUDGET_EPS) return;
     const prof = planProfile(p);
     if (dailyLead) {
       if (!prof.loose.some((r) => r.id === roleId)) return;
@@ -309,19 +314,25 @@ function unlockText(cur, next) {
     if (cur.windowPeriod === "5h" && next.windowPeriod === "5h" && a && b && a.conf === "高" && b.conf === "高" && a.c.fLow != null && b.c.fLow != null) {
       return `模型仍是 ${role.name}。5 小时窗口从大约 ${tokSpan(a.c, "fLow", "fHigh")} tokens 提到 ${tokSpan(b.c, "fLow", "fHigh")} tokens，加的钱换来更大的窗口。`;
     }
-    const mult = (next.p.quota || "").match(/(\d+(?:\.\d+)?)\s*×\s*(Pro|Plus|Lite|Standard)/i);
+    const mult = resolvedField(next.p, "quota").match(/(\d+(?:\.\d+)?)\s*×\s*(Pro|Plus|Lite|Standard)/i);
     if (mult) return `模型仍是 ${role.name}。官方额度是 ${mult[1]}× ${mult[2]}，具体重置周期以官方说明为准。`;
-    return `模型仍是 ${role.name}。未公开的额度差不能按价格推算；请核对官网。额度原文：${trunc(next.p.quota, 72)}`;
+    return `模型仍是 ${role.name}。未公开的额度差不能按价格推算；请核对官网。额度原文：${trunc(resolvedField(next.p, "quota"), 72)}`;
   }
-  if (dailyLead && next.loose.length) return `这档带日常模型 ${next.loose.map((r) => r.name).join("、")}。额度原文：${trunc(next.p.quota, 80)}`;
+  if (dailyLead && next.loose.length) return `这档带日常模型 ${next.loose.map((r) => r.name).join("、")}。额度原文：${trunc(resolvedField(next.p, "quota"), 80)}`;
   if (next.headline && (!cur.headline || bandRank(next.headline.band) > bandRank(cur.headline.band))) {
     return `这档才能把复杂任务模型换成 ${next.headline.name}。${roleUseText(next.headline)}。`;
   }
   if (next.loose.length) return `这档带日常模型 ${next.loose.map((r) => r.name).join("、")}。${roleUseText(next.loose[0])}。`;
-  return `额度原文：${trunc(next.p.quota, 80)}`;
+  return `额度原文：${trunc(resolvedField(next.p, "quota"), 80)}`;
 }
 function dailyEntries(pool, main) {
-  return pool.filter((x) => x.p !== main.p && x.p.vendor !== main.p.vendor && (x.internalDaily.length || (!x.headline && x.loose.length)));
+  /* 主计划候选可以只看月付档，补充池还须包含真正免费且附赠推理的入口。
+     免费工具/BYOK、团队与国家限定档仍按同一资格规则排除。 */
+  const seen = new Set(pool.map((x) => x.p));
+  const free = PLANS.filter((p) => !seen.has(p) && !p.seat && p.cat !== "team" &&
+    isFreeCodingEntry(p) && recommendablePlan(p) &&
+    (pickerState.region === "all" || p.region === pickerState.region) && matchesTool(p, pickerState.tool)).map(planProfile);
+  return pool.concat(free).filter((x) => x.p !== main.p && x.p.vendor !== main.p.vendor && (x.internalDaily.length || (!x.headline && x.loose.length)));
 }
 /* 官方在额度原文里给日常模型点名条数的（如 Luna 350–3,000 条/5h），折成每 5h 的 M tokens 作排序信号 */
 function dailyRoleBit(role) {
@@ -329,12 +340,9 @@ function dailyRoleBit(role) {
   const last = words[words.length - 1];
   return /^[A-Za-z][A-Za-z0-9.-]{2,}$/.test(last) ? last : role.name;
 }
-function escRe(s) {
-  return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
 function dailyQuotaSignal(p, role) {
   if (!role) return 0;
-  const q = String(p.quota || "").replace(/\s+/g, " ");
+  const q = String(resolvedField(p, "quota") || "").replace(/\s+/g, " ");
   const bit = escRe(dailyRoleBit(role));
   const range = q.match(new RegExp(bit + "\\s*[^。；]{0,24}?(\\d[\\d,]*)\\s*[–—-]\\s*(\\d[\\d,]*)\\s*条", "i"));
   if (range) return (Number(range[2].replace(/,/g, "")) * TOKENS_PER_REQ) / 1e6;
@@ -348,6 +356,8 @@ function hasSeparateDaily(x) {
 }
 function pickSupplement(main, pool) {
   const list = dailyEntries(pool, main).slice().sort((a, b) => {
+    const free = (isFreeCodingEntry(b.p) ? 1 : 0) - (isFreeCodingEntry(a.p) ? 1 : 0);
+    if (free) return free;
     const sep = (hasSeparateDaily(b) ? 1 : 0) - (hasSeparateDaily(a) ? 1 : 0);
     if (sep) return sep;
     const sig = dailyQuotaSignal(b.p, b.loose[0]) - dailyQuotaSignal(a.p, a.loose[0]);
@@ -364,9 +374,9 @@ function pickSupplement(main, pool) {
   });
   const cap = pickerState.budget === "any" ? Infinity : pickerState.budget === "0" ? 0 : Number(pickerState.budget);
   const remain = cap - (cnyOf(main.p, "M") || 0);
-  const fit = list.filter((x) => (cnyOf(x.p, "M") || 0) <= remain + 0.05);
-  const dreamed = list.find((x) => hasSeparateDaily(x));
-  return { chosen: fit[0] || null, dreamed: dreamed && fit[0] !== dreamed ? dreamed : null, remain };
+  const fit = list.filter((x) => (cnyOf(x.p, "M") || 0) <= remain + BUDGET_EPS);
+  const dreamed = list.find((x) => hasSeparateDaily(x) && (cnyOf(x.p, "M") || 0) > remain + BUDGET_EPS);
+  return { chosen: fit[0] || null, dreamed: dreamed || null, remain };
 }
 function sameWindowText(profile) {
   const names = profile.included.filter((r) => r.task === "daily").map((r) => r.name);
@@ -459,7 +469,9 @@ function dailyCard(main, pool) {
   if (sup.chosen) {
     const roles = sup.chosen.internalDaily.length ? sup.chosen.internalDaily : sup.chosen.loose;
     const total = (cnyOf(main.p, "M") || 0) + (cnyOf(sup.chosen.p, "M") || 0);
-    let text = `日常用 ${roles.map((r) => r.name).join("、")}，另付 ${priceLine(sup.chosen.p)}。${roleUseText(roles[0])}。这是另一份订阅，用量不占主计划额度。`;
+    const free = isFreeCodingEntry(sup.chosen.p);
+    const fee = free ? "，使用免费入口，无需额外月费" : `，另付 ${priceLine(sup.chosen.p)}`;
+    let text = `日常用 ${roles.map((r) => r.name).join("、")}${fee}。${roleUseText(roles[0])}。这是${free ? "独立的免费入口" : "另一份订阅"}，用量不占主计划额度。`;
     if (main.loose.length) text += `也可以继续用主计划里的 ${dailyNames}，无需第二份订阅。`;
     if (sup.dreamed) {
       const both = (cnyOf(main.p, "M") || 0) + (cnyOf(sup.dreamed.p, "M") || 0);
@@ -495,7 +507,7 @@ function upgradeCard(main) {
   if (!next) {
     return quickCard(PICK_ACCENT[2], "预算再往上", "<em>暂无下一档</em>", lineHtml("当前条件", "没有找到符合地区和工具的更高同厂商通用档位；未公开的额度不能据此断定已经到顶。"), main.p);
   }
-  const over = pickerState.budget !== "any" && (cnyOf(next.p, "M") || 0) > Number(pickerState.budget) + 0.05;
+  const over = pickerState.budget !== "any" && (cnyOf(next.p, "M") || 0) > Number(pickerState.budget) + BUDGET_EPS;
   const flag = over ? `<div class="qc-miss">高于当前预算。</div>` : "";
   return quickCard(PICK_ACCENT[2], "预算再往上", moneyHtml(next.p), `${flag}<b>${esc(planTitle(next.p))}</b>${lineHtml("多出来的是", unlockText(main, next))}`, next.p);
 }
@@ -521,7 +533,7 @@ function ownVendorCard(main) {
   }
   if (prof.loose.length && prof.headline) bits.push(lineHtml("日常", `${prof.loose.map((r) => r.name).join("、")}。${windowNoteShort(prof)}`));
   const overBudget = pickerState.budget !== "any" &&
-    (cnyOf(plan, "M") || 0) > (pickerState.budget === "0" ? 0 : Number(pickerState.budget) + 0.05);
+    (cnyOf(plan, "M") || 0) > (pickerState.budget === "0" ? 0 : Number(pickerState.budget) + BUDGET_EPS);
   if (overBudget) {
     const cap = pickerState.budget === "0" ? "（筛选为免费）" : " " + fmtCNY(Number(pickerState.budget));
     bits.push(`<div class="qc-miss">高于当前预算${cap}。<button type="button" class="linkish" data-set-picker="budget=any">把预算放开</button></div>`);

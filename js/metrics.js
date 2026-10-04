@@ -1,6 +1,6 @@
 /* ============================================================
  * 额度换算纯计算模块（无 DOM 依赖）
- * 被 js/app-*.js、scripts/validate-data.js、scripts/test-metrics.js 共用。
+ * 被 js/app-*.js、scripts/build/validate-data.js、scripts/tests/test-metrics.js 共用。
  * 经典脚本按序加载：data.js → metrics.js → app-*.js；
  * 因此这里不得声明 data.js 已有的全局名（如 RATE_USD_CNY）。
  * ============================================================ */
@@ -64,9 +64,14 @@ function blendPrice(m) {
   const effIn = CACHE_HIT_RATE * m.apiCache + (1 - CACHE_HIT_RATE) * m.apiIn;
   return API_MIX_IN * effIn + API_MIX_OUT * m.apiOut;
 }
-function toCNY(v, cur) { return cur === "USD" ? v * RATE_USD_CNY : v; }
+function toCNY(v, cur) {
+  if (cur === "USD") return v * RATE_USD_CNY;
+  if (cur === "INR") return v * RATE_INR_CNY;
+  return cur === "CNY" ? v : NaN;
+}
 /* 百万 tokens 的人类可读格式：207.84 → "208M"，2047 → "2.0B" */
 function fmtTok(m) {
+  if (m == null || !Number.isFinite(m) || m < 0) return "—";
   if (m >= 1000) return (m / 1000).toFixed(1) + "B";
   const digits = m < 1 ? 2 : m < 10 ? 1 : 0;
   return Number(m.toFixed(digits)) + "M";
@@ -135,8 +140,13 @@ function computeMetrics(m) {
   if (!m || typeof m !== "object") return null;
   if (METRICS_COMPUTED.has(m)) return METRICS_COMPUTED.get(m);
   const result = computeMetricsUncached(m);
-  /* 月credits面值/历史周量不能证明存在5h配额；保留周/月参考，5h列留空。 */
-  if (result && (m.creditUSD != null || m.creditCNY != null || m.windowPeriod === "none" || m.windowPeriod === "month")) {
+  /* 官方周 tokens 仍可按已说明的每周 5 窗口假设均摊；
+     月池、未知周期或仅日/月请求不能证明有 5h 配额。明确的 5h 请求口径单独保留。 */
+  const has5hRequests = m.reqPer5h != null || m.reqLowPer5h != null;
+  const no5hQuota = m.creditUSD != null || m.creditCNY != null ||
+    m.windowPeriod === "none" || m.windowPeriod === "month" ||
+    ((m.windowPeriod === "unknown" || m.reqPerMo != null) && !has5hRequests);
+  if (result && no5hQuota) {
     result.fLow = result.fHigh = null;
     result.val5h = result.val5hHi = null;
     result.r5h = result.r5hHi = null;

@@ -4,3 +4,4 @@ node_modules/
 .site-build/
 playwright-report/
 test-results/
+audit/ui-*.png

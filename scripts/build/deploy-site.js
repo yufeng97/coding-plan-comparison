@@ -10,7 +10,15 @@ const { stageSite } = require("./stage-site");
 function deployment(workspace, args = []) {
   if (args.some((arg) => !["--prod", "--dry-run"].includes(arg))) throw new Error("用法：npm run deploy -- [--prod] [--dry-run]");
   const root = path.resolve(workspace);
-  const project = JSON.parse(fs.readFileSync(path.join(root, ".vercel", "project.json"), "utf8"));
+  const projectFile = path.join(root, ".vercel", "project.json");
+  let project;
+  try { project = JSON.parse(fs.readFileSync(projectFile, "utf8")); }
+  catch (error) {
+    if (error && error.code === "ENOENT") {
+      throw new Error("未找到 .vercel/project.json 项目关联：请先在项目根目录运行 `npx vercel link`，或用 VERCEL_TOKEN 环境变量提供认证");
+    }
+    throw error;
+  }
   if (!project.projectId || !project.orgId) throw new Error("根目录 .vercel/project.json 缺少项目关联");
   const site = stageSite(root);
   const team = project.orgId.startsWith("team_") ? "?teamId=" + encodeURIComponent(project.orgId) : "";
@@ -65,12 +73,19 @@ async function deploySite(workspace, args = [], options = {}) {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (!message.includes(token)) throw error;
+    /* 重建错误对象脱敏消息，但保留原始堆栈的调用链部分（首行含消息，去掉后重接） */
     const safeError = new Error(redact(message));
-    if (error instanceof Error) safeError.name = error.name;
+    if (error instanceof Error) {
+      safeError.name = error.name;
+      const stackLines = (error.stack || "").split("\n");
+      safeError.stack = stackLines[0].includes(token)
+        ? [safeError.toString(), ...stackLines.slice(1)].join("\n")
+        : error.stack;
+    }
     throw safeError;
   }
 }
-if (require.main === module) deploySite(path.resolve(__dirname, ".."), process.argv.slice(2))
+if (require.main === module) deploySite(path.resolve(__dirname, "..", ".."), process.argv.slice(2))
   .then((result) => console.log(result.dryRun ? "✅ 已验证 " + result.files.length + " 个公共文件；未发起部署" : "✅ READY：https://" + result.url))
   .catch((error) => { console.error(error.message); process.exitCode = 1; });
 module.exports = { deployment, deploySite, resolveDeploymentToken };

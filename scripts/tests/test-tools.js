@@ -4,11 +4,11 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { createAssetPlan, writeAssetPlan } = require("./lib/public-assets");
-const { updateFonts } = require("./vendor-fonts");
-const { stageSite } = require("./stage-site");
-const { deployment, deploySite, resolveDeploymentToken } = require("./deploy-site");
-const { main: bump } = require("./bump-versions");
+const { createAssetPlan, writeAssetPlan } = require("../lib/public-assets");
+const { updateFonts } = require("../build/vendor-fonts");
+const { stageSite } = require("../build/stage-site");
+const { deployment, deploySite, resolveDeploymentToken } = require("../build/deploy-site");
+const { main: bump } = require("../build/bump-versions");
 
 async function fixture(fn) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "coding-plan-tools-test-"));
@@ -147,6 +147,32 @@ async function main() {
     assert.deepEqual(snapshot(dir), before);
     assert.deepEqual(fs.readdirSync(path.dirname(dir)), ["fonts"]);
   }));
+  await test("字体切换和回滚均失败时保留完整旧备份并报告可恢复路径", () => fixture(async (root) => {
+    const dir = path.join(root, "libs/fonts"), parent = path.dirname(dir), before = snapshot(dir);
+    const swapError = new Error("font swap fixture"), restoreError = new Error("font restore fixture");
+    let calls = 0;
+    await assert.rejects(updateFonts({ dir, fetcher: fetchFonts, rename: (from, to) => {
+      calls++;
+      if (calls === 2) throw swapError;
+      if (calls === 3) throw restoreError;
+      fs.renameSync(from, to);
+    } }), (error) => {
+      assert.ok(error instanceof AggregateError);
+      assert.deepEqual(error.errors, [swapError, restoreError]);
+      const backups = fs.readdirSync(parent).filter((name) => name.startsWith(".fonts-backup-"));
+      assert.equal(backups.length, 1);
+      assert.ok(error.message.includes(path.join(parent, backups[0])));
+      return true;
+    });
+    assert.equal(calls, 3);
+    assert.equal(fs.existsSync(dir), false);
+    const entries = fs.readdirSync(parent);
+    assert.equal(entries.length, 1);
+    const backup = path.join(parent, entries[0]);
+    assert.deepEqual(snapshot(backup), before);
+    fs.renameSync(backup, dir);
+    assert.deepEqual(snapshot(dir), before);
+  }));
   await test("staging复制失败或目录切换失败保留完整旧产物，清理暂存后可重试", async () => {
     for (const failure of ["copy", "swap"]) await fixture((root, write) => {
       writeAssetPlan(createAssetPlan(root));
@@ -171,6 +197,118 @@ async function main() {
       assert.equal(fs.readdirSync(root).some((name) => /^\.site-(stage|backup)-/.test(name)), false);
     });
   });
+  await test("网站切换和回滚均失败时保留完整旧产物备份且可手动恢复", () => fixture((root) => {
+    writeAssetPlan(createAssetPlan(root));
+    const previous = stageSite(root);
+    const before = new Map(previous.files.map((file) => [file, fs.readFileSync(path.join(previous.directory, file))]));
+    const originalRename = fs.renameSync;
+    const swapError = new Error("site swap fixture"), restoreError = new Error("site restore fixture");
+    let calls = 0;
+    try {
+      fs.renameSync = (from, to) => {
+        calls++;
+        if (calls === 2) throw swapError;
+        if (calls === 3) throw restoreError;
+        originalRename(from, to);
+      };
+      assert.throws(() => stageSite(root), (error) => {
+        assert.ok(error instanceof AggregateError);
+        assert.deepEqual(error.errors, [swapError, restoreError]);
+        const backups = fs.readdirSync(root).filter((name) => name.startsWith(".site-backup-"));
+        assert.equal(backups.length, 1);
+        assert.ok(error.message.includes(path.join(root, backups[0])));
+        return true;
+      });
+    } finally { fs.renameSync = originalRename; }
+    assert.equal(calls, 3);
+    assert.equal(fs.existsSync(previous.directory), false);
+    const leftovers = fs.readdirSync(root).filter((name) => /^\.site-(stage|backup)-/.test(name));
+    assert.equal(leftovers.length, 1);
+    const backup = path.join(root, leftovers[0]);
+    for (const [file, bytes] of before) assert.deepEqual(fs.readFileSync(path.join(backup, file)), bytes);
+    fs.renameSync(backup, previous.directory);
+    for (const [file, bytes] of before) assert.deepEqual(fs.readFileSync(path.join(previous.directory, file)), bytes);
+  }));
+  await test("网站目录短暂 EPERM/EBUSY/EACCES 占用均在第五次改名成功，完整提交并清理备份", async () => {
+    for (const code of ["EPERM", "EBUSY", "EACCES"]) await fixture((root, write) => {
+      writeAssetPlan(createAssetPlan(root));
+      const previous = stageSite(root);
+      write("js/extra.js", '"use strict"; /* retry success */');
+      writeAssetPlan(createAssetPlan(root));
+      const originalRename = fs.renameSync;
+      const busy = Object.assign(new Error("temporary rename fixture"), { code });
+      let attempts = 0, backupMoves = 0, restores = 0;
+      try {
+        fs.renameSync = (from, to) => {
+          const name = path.basename(String(from));
+          if (name.startsWith(".site-stage-") && ++attempts < 5) throw busy;
+          if (name === ".site-build") backupMoves++;
+          if (name.startsWith(".site-backup-")) restores++;
+          originalRename(from, to);
+        };
+        const result = stageSite(root);
+        assert.equal(result.directory, previous.directory);
+      } finally { fs.renameSync = originalRename; }
+      assert.equal(attempts, 5, code + " 应在有界重试的最后一次成功");
+      assert.equal(backupMoves, 1);
+      assert.equal(restores, 0, "提交成功不应执行回滚");
+      assert.match(fs.readFileSync(path.join(previous.directory, "js/extra.js"), "utf8"), /retry success/);
+      assert.equal(fs.readdirSync(root).some(name => /^\.site-(stage|backup)-/.test(name)), false);
+    });
+  });
+  await test("目录切换与回滚临时错误均耗尽五次重试后保留唯一完整旧备份", () => fixture((root) => {
+    writeAssetPlan(createAssetPlan(root));
+    const previous = stageSite(root);
+    const before = new Map(previous.files.map(file => [file, fs.readFileSync(path.join(previous.directory, file))]));
+    const originalRename = fs.renameSync;
+    const swapError = Object.assign(new Error("swap retries exhausted"), { code: "EACCES" });
+    const restoreError = Object.assign(new Error("restore retries exhausted"), { code: "EBUSY" });
+    let swapAttempts = 0, restoreAttempts = 0;
+    try {
+      fs.renameSync = (from, to) => {
+        if (path.basename(String(from)).startsWith(".site-stage-")) { swapAttempts++; throw swapError; }
+        if (path.basename(String(from)).startsWith(".site-backup-")) { restoreAttempts++; throw restoreError; }
+        originalRename(from, to);
+      };
+      assert.throws(() => stageSite(root), error => {
+        assert.ok(error instanceof AggregateError);
+        assert.deepEqual(error.errors, [swapError, restoreError]);
+        const backup = fs.readdirSync(root).find(name => name.startsWith(".site-backup-"));
+        assert.ok(backup && error.message.includes(path.join(root, backup)));
+        return true;
+      });
+    } finally { fs.renameSync = originalRename; }
+    assert.equal(swapAttempts, 5);
+    assert.equal(restoreAttempts, 5);
+    assert.equal(fs.existsSync(previous.directory), false);
+    const leftovers = fs.readdirSync(root).filter(name => /^\.site-(stage|backup)-/.test(name));
+    assert.equal(leftovers.length, 1);
+    const backup = path.join(root, leftovers[0]);
+    for (const [file, bytes] of before) assert.deepEqual(fs.readFileSync(path.join(backup, file)), bytes);
+    fs.renameSync(backup, previous.directory);
+    for (const [file, bytes] of before) assert.deepEqual(fs.readFileSync(path.join(previous.directory, file)), bytes);
+  }));
+  await test("非临时 ENOENT 原错误不重试，回滚短暂占用恢复后完整保留旧产物", () => fixture((root) => {
+    writeAssetPlan(createAssetPlan(root));
+    const previous = stageSite(root);
+    const before = new Map(previous.files.map(file => [file, fs.readFileSync(path.join(previous.directory, file))]));
+    const originalRename = fs.renameSync;
+    const missing = Object.assign(new Error("non-retryable fixture"), { code: "ENOENT" });
+    const busy = Object.assign(new Error("rollback temporary fixture"), { code: "EPERM" });
+    let swapAttempts = 0, restoreAttempts = 0;
+    try {
+      fs.renameSync = (from, to) => {
+        if (path.basename(String(from)).startsWith(".site-stage-")) { swapAttempts++; throw missing; }
+        if (path.basename(String(from)).startsWith(".site-backup-") && ++restoreAttempts < 3) throw busy;
+        originalRename(from, to);
+      };
+      assert.throws(() => stageSite(root), error => error === missing);
+    } finally { fs.renameSync = originalRename; }
+    assert.equal(swapAttempts, 1, "ENOENT 不能被当作暂时占用重试");
+    assert.equal(restoreAttempts, 3);
+    for (const [file, bytes] of before) assert.deepEqual(fs.readFileSync(path.join(previous.directory, file)), bytes);
+    assert.equal(fs.readdirSync(root).some(name => /^\.site-(stage|backup)-/.test(name)), false);
+  }));
   await test("部署轮询收到ERROR或CANCELED立即失败，不继续等待", () => fixture(async (root) => {
     writeAssetPlan(createAssetPlan(root));
     for (const state of ["ERROR", "CANCELED"]) {

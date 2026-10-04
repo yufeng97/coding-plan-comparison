@@ -9,13 +9,13 @@
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fbfbf8">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Coding Plan 全球比价中心">
-<meta property="og:title" content="Coding Plan 全球比价中心 · 每日更新">
+<meta property="og:title" content="Coding Plan 全球比价中心 · 逐条核价">
 <meta property="og:description" content="一次看全市面上在售的 AI 编程订阅计划：模型官方 / 云厂商 / 第三方工具与中转站的每月价格、可用 token 额度、每百万 tokens 实际成本与免费入口对比。">
 <meta name="twitter:card" content="summary">
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%23b9ff00'/%3E%3Ctext%20x='16'%20y='22'%20font-family='monospace'%20font-size='15'%20font-weight='bold'%20text-anchor='middle'%20fill='%2310110f'%3E%26lt;/%26gt;%3C/text%3E%3C/svg%3E">
   <script>try{var __m=localStorage.getItem("cp-theme")||"system";var __d=matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.dataset.theme=__m==="system"?(__d?"dark":"light"):__m;}catch(e){}</script>
   <link rel="stylesheet" href="libs/fonts/fonts.css?v=2f1d0cb">
-  <link rel="stylesheet" href="css/style.css?v=48cb796">
+  <link rel="stylesheet" href="css/style.css?v=a91c9f3">
 </head>
 <body>
     <div class="scroll-progress" aria-hidden="true"><span id="scrollBar"></span></div>
@@ -46,7 +46,8 @@
       <span class="prompt-mark" aria-hidden="true">&gt;_</span>
       <h1><span>全球 Coding Plan</span><span>价格与额度对比。</span></h1>
       <p class="hero-lede">按预算、工具和任务找到合适的编程计划，再核对包含的模型额度和实际支付成本。中转站单独标出。</p>
-      <p class="hero-meta">数据更新至 <strong id="heroDate">2026-10-03</strong> · 每日 09:30 巡检（无变化则不更新） · 汇率 1 USD ≈ <span id="rateText">6.71</span> CNY · 来源见页脚</p>
+      <p class="hero-meta">数据版本更新至 <strong id="heroDate">2026-10-04</strong> · 汇率 1 USD ≈ <span id="rateText">6.71</span> CNY · 来源见页脚</p>
+      <p class="hero-meta" id="priceAuditSummary"></p>
       <dl class="stats-row" id="statsRow"></dl>
     </div>
   </section>
@@ -177,7 +178,7 @@
   <section class="section" id="s1">
     <div class="section-head">
       <h2><span class="sec-no">05</span>个人订阅价格全景</h2>
-      <p>在售的个人月付档（免费档见「免费入口」；一次性预付、每 4 周收费和仅老用户续费在「数据表」保留原计价单位），按统一折算人民币从低到高排列。中转站用单独的颜色标出。悬停查看原币价格、额度口径与模型。</p>
+      <p>已核实价格的个人月付档（免费档见「免费入口」；一次性预付、每 4 周收费和仅老用户续费在「数据表」保留原计价单位），按统一折算人民币从低到高排列。中转站用单独的颜色标出。悬停查看原币价格、额度口径与模型。</p>
     </div>
     <div class="controls" id="ctrl1">
       <input type="search" id="chartSearch" class="search-input" placeholder="搜索厂商 / 计划 / 模型…" aria-label="搜索个人订阅图表">
@@ -275,8 +276,8 @@
   <!-- ======== 09 数据表 ======== -->
   <section class="section" id="table">
     <div class="section-head">
-      <h2><span class="sec-no">09</span>在售计划（有标价）</h2>
-      <p>只列仍在售、且有标价的档（含一次性预付与仅老用户续费）。免费档在「免费 Coding 入口」；已下架、聊天免费档和不能当编程工具的免费档不放进这张表。支持搜索、筛选与按价格排序。计划名下点「＋对比」，选满 2 档后底部会出现并排对比，最多 4 档。</p>
+      <h2><span class="sec-no">09</span>公开标价记录</h2>
+      <p>列出有公开标价的记录（含一次性预付、仅老用户续费及待核实历史价）。来源栏逐条标注价格核查状态、日期及依据。免费档在「免费 Coding 入口」；已下架、聊天免费档和不能当编程工具的免费档不放进这张表。支持搜索、筛选与按价格排序。计划名下点「＋对比」，选满 2 档后底部会出现并排对比，最多 4 档。</p>
     </div>
     <div class="controls controls-table">
       <input type="search" id="searchInput" class="search-input" placeholder="搜索厂商 / 计划 / 模型…" aria-label="搜索数据表">
@@ -301,7 +302,7 @@
     <p class="table-feedback" id="tableFeedback" role="status" aria-live="polite"></p>
     <div class="table-wrap" tabindex="0" role="region" aria-label="计划数据表，可横向滚动">
       <table id="planTable">
-        <caption class="sr-only">在售计划价格、额度、模型与来源</caption>
+        <caption class="sr-only">公开标价记录、额度、模型与核价来源</caption>
         <thead>
           <tr>
             <th>厂商</th><th>计划</th><th>类别</th><th>地区</th>
@@ -342,7 +343,7 @@
         <h3>📌 阅读提示</h3>
         <ul class="uncertain-list">
           <li>各家「额度」口径不同（每 5 小时 prompts / 每周 tokens / 每日请求 / credits），<strong>不能直接互比</strong>，表内保留官方原文。</li>
-          <li>USD 价格统一按 1 USD ≈ <span id="rateText2">6.71</span> CNY 折算仅用于图表对比；国内计划以人民币原价为准。</li>
+          <li>USD 价格按 1 USD ≈ <span id="rateText2">6.71</span> CNY 折算；印度专属档以 INR 标价并单独换算。原价和币种保留，汇率日期与来源见价格图及导出。</li>
           <li>「定制」表示需联系销售，无公开定价。</li>
           <li>价格随官方随时调整，购买前请以官网为准。</li>
         </ul>
@@ -380,14 +381,14 @@
 </footer>
 
 <script src="libs/echarts.min.js?v=14c5497"></script>
-<script src="js/data.js?v=b76f0c4"></script>
-<script src="js/metrics.js?v=107a63b"></script>
-<script src="js/app-core.js?v=a1a6183"></script>
-<script src="js/app-state.js?v=5ed5f07"></script>
-<script src="js/app-charts.js?v=30d2cd2"></script>
-<script src="js/app-picker.js?v=b16ea65"></script>
-<script src="js/app-tables.js?v=b37bcbf"></script>
-<script src="js/app-events.js?v=3d1904e"></script>
-<script src="js/app-init.js?v=1bbc55c"></script>
+<script src="js/data.js?v=823db68"></script>
+<script src="js/metrics.js?v=436b915"></script>
+<script src="js/app-core.js?v=295bbe1"></script>
+<script src="js/app-state.js?v=1d6b702"></script>
+<script src="js/app-charts.js?v=fffcf0b"></script>
+<script src="js/app-picker.js?v=164521c"></script>
+<script src="js/app-tables.js?v=2b56d10"></script>
+<script src="js/app-events.js?v=9613b7d"></script>
+<script src="js/app-init.js?v=748e1c2"></script>
 </body>
 </html>

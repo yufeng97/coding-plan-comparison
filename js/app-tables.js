@@ -52,9 +52,16 @@ const PLAN_COLUMNS = [
   { id: "note", label: "备注", cls: "td-note col-opt", value: (p) => resolvedField(p, "note"),
     markdownValue: (p) => resolvedField(p, "note") || "—", cell: (p) => esc(resolvedField(p, "note") || "—") },
   { id: "url", label: "来源", cls: "td-trust", value: (p) => p.url || "",
-    cell: (p) => { const href = safeHref(p.url); return `${href ? `<a href="${href}" target="_blank" rel="noopener">官网</a>` : "—"}<span class="sub">在售 · 数据截至 ${esc(META.updated)}</span>`; } },
+    cell: (p) => priceCheckHtml(p) },
+  { id: "priceStatus", label: "价格核实状态", table: false, value: (p) => priceCheckLabel(p) },
+  { id: "priceCheckedAt", label: "价格核查日期", table: false, value: (p) => (priceCheckOf(p) || {}).checkedAt || "" },
+  { id: "priceSources", label: "价格核查来源", table: false, value: (p) => priceCheckSources(p).join(" ; ") },
+  { id: "priceCheckReason", label: "价格核查说明", table: false, value: (p) => (priceCheckOf(p) || {}).reason || "" },
   { id: "updated", label: "数据更新日期", table: false, markdown: false, value: () => META.updated },
   { id: "rate", label: "参考汇率（USD/CNY）", table: false, markdown: false, value: () => RATE },
+  { id: "rateInr", label: "参考汇率（INR/CNY）", table: false, markdown: false, value: () => RATE_INR_CNY },
+  { id: "rateAsOf", label: "汇率日期", table: false, markdown: false, value: () => META.rateAsOf },
+  { id: "rateSource", label: "汇率来源", table: false, markdown: false, value: () => META.rateSource || "" },
 ];
 const PLAN_TABLE_COLUMNS = PLAN_COLUMNS.filter((c) => c.table !== false);
 
@@ -68,7 +75,7 @@ function computeTableRows() {
     (!q || queryHit(planSearchBlob(p), q))
   );
   const k = tableState.sortKey;
-  const sortVal = (p) => (p[k] == null ? NaN : p.cur === "USD" ? p[k] * RATE : p[k]);
+  const sortVal = (p) => (p[k] == null ? NaN : toCNY(p[k], p.cur));
   return rows.slice().sort((a, b) => {
     const va = sortVal(a), vb = sortVal(b);
     const aN = Number.isNaN(va), bN = Number.isNaN(vb);
@@ -94,7 +101,7 @@ function renderTable() {
   byId("tableBody").innerHTML = rows.length ? rows.map((p) => `<tr>${PLAN_TABLE_COLUMNS.map((col) => {
     const cls = col.tdClass ? col.tdClass(p) : col.cls || "";
     return `<td${cls ? ` class="${cls}"` : ""}>${col.cell ? col.cell(p) : esc(col.value(p))}</td>`;
-  }).join("")}</tr>`).join("") : `<tr><td colspan="${PLAN_TABLE_COLUMNS.length}" class="table-empty"><b>没有匹配的在售方案</b><p>${esc(filters || "当前筛选")}没有结果。可以调整关键词或清除筛选。${cmpState.items.length ? "已选的对比方案仍保留。" : ""}</p><button type="button" class="chip" id="tableEmptyResetBtn" data-reset-table>清除筛选</button></td></tr>`;
+  }).join("")}</tr>`).join("") : `<tr><td colspan="${PLAN_TABLE_COLUMNS.length}" class="table-empty"><b>没有匹配的公开标价记录</b><p>${esc(filters || "当前筛选")}没有结果。可以调整关键词或清除筛选。${cmpState.items.length ? "已选的对比方案仍保留。" : ""}</p><button type="button" class="chip" id="tableEmptyResetBtn" data-reset-table>清除筛选</button></td></tr>`;
   ["exportCsvBtn", "copyMdBtn"].forEach((id) => {
     const btn = byId(id);
     if (!btn) return;
@@ -130,7 +137,12 @@ function tableExportName(ext) {
   return `coding-plans-${safe}-${day}.${ext}`;
 }
 function tableRowsCsv(rows) {
-  const cell = (v) => '"' + String(v ?? "").replace(/"/g, '""') + '"';
+  /* 引号 doubling 之外，还要防 CSV 公式注入：以 = + - @ 开头的单元格加 ' 前缀，Excel 不会当公式执行 */
+  const cell = (v) => {
+    let s = String(v ?? "");
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return '"' + s.replace(/"/g, '""') + '"';
+  };
   const lines = [PLAN_COLUMNS.map((c) => cell(c.label)).join(",")]
     .concat(rows.map((p) => PLAN_COLUMNS.map((c) => cell(c.value(p))).join(",")));
   return lines.join("\r\n");
@@ -156,7 +168,7 @@ function tableRowsMarkdown(rows) {
   const head = "| " + columns.map((c) => c.label).join(" | ") + " |";
   const sep = "|" + columns.map(() => "---").join("|") + "|";
   const body = rows.map((p) => "| " + columns.map((c) => escMd(c.markdownValue ? c.markdownValue(p) : c.value(p))).join(" | ") + " |");
-  const meta = `数据更新日期：${META.updated}；参考汇率：1 USD ≈ ${RATE} CNY。金额包含计价单位；一次性、席位及每 4 周价格不能直接视为个人月费。`;
+  const meta = `数据更新日期：${META.updated}；参考汇率：1 USD ≈ ${RATE} CNY，1 INR ≈ ${RATE_INR_CNY} CNY（${META.rateAsOf}；来源：${META.rateSource || "未提供"}）。金额包含计价单位；一次性、席位及每 4 周价格不能直接视为个人月费。`;
   return [meta, "", head, sep].concat(body).join("\n");
 }
 async function copyTableMarkdown() {
@@ -320,7 +332,7 @@ function renderCmpModal() {
   };
   const prices = items.map((p) => cnyOf(p, "M"));
   const sameUnit = new Set(items.map(priceUnit)).size === 1 && !items.some(isOneTimePlan);
-  const comparable = sameUnit && prices.every((p) => p != null && Number.isFinite(p) && p > 0) && new Set(prices).size > 1;
+  const comparable = sameUnit && items.every((p) => isPriceConfirmed(p)) && prices.every((p) => p != null && Number.isFinite(p) && p > 0) && new Set(prices).size > 1;
   const lowest = comparable ? Math.min(...prices) : null;
   const priceCell = (p) => {
     const pm = esc(planPriceLabel(p));
@@ -339,7 +351,7 @@ function renderCmpModal() {
     row("模型", items.map((p) => `<td>${esc(resolvedField(p, "models"))}</td>`).join(""), items.map((p) => resolvedField(p, "models"))),
     row("支持工具", items.map((p) => `<td>${esc(resolvedField(p, "tools"))}</td>`).join(""), items.map((p) => resolvedField(p, "tools"))),
     row("备注", items.map((p) => `<td>${esc(resolvedField(p, "note") || "—")}</td>`).join("")),
-    row("来源", items.map((p) => { const href = safeHref(p.url); return `<td>${href ? `<a href="${href}" target="_blank" rel="noopener">官网 ↗</a>` : "—"}</td>`; }).join("")),
+    row("价格核查", items.map((p) => `<td>${priceCheckHtml(p)}</td>`).join("")),
   ];
   byId("cmpTable").innerHTML = `<thead>${rows[0]}</thead><tbody>${rows.slice(1).join("")}</tbody>`;
 }
@@ -393,10 +405,20 @@ function renderMisc() {
         const href = safeHref(u);
         return href ? `<li><a href="${href}" target="_blank" rel="noopener">${esc(u)}</a></li>` : "";
       }).join("")}</ul></div>`
-    ).join("");
-  byId("uncertainList").innerHTML = UNCERTAIN.map((u) => `<li>${esc(u)}</li>`).join("");
+    ).join("") + `<details class="method-box"><summary>本次逐条核价来源（${Object.keys(PRICE_CHECKS.sources).length} 页）</summary><ul>` +
+    Object.values(PRICE_CHECKS.sources).map((s) => {
+      const href = safeHref(s.url);
+      return href ? `<li><a href="${href}" target="_blank" rel="noopener">${esc(s.url)}</a> — ${esc(s.evidence)}</li>` : "";
+    }).join("") + `</ul></details>`;
+  const pendingPrices = [
+    ...PLANS.map((p) => ({ p, kind: "plan" })),
+    ...API_PRICES.map((p) => ({ p, kind: "api" })),
+    ...PAYG_REFERENCES.map((p) => ({ p, kind: "payg" })),
+  ].filter(({ p, kind }) => (priceCheckOf(p, kind) || {}).status === "unverified");
+  byId("uncertainList").innerHTML = pendingPrices.map(({ p, kind }) => `<li><b>${esc(p.vendor)} · ${esc("plan" in p ? p.plan : p.model)}</b>：${esc(priceCheckOf(p, kind).reason)} ${priceCheckHtml(p, kind)}</li>`).join("") +
+    UNCERTAIN.map((u) => `<li>${esc(u)}</li>`).join("");
   const uncertainSummary = qs("#uncertainWrap summary");
-  if (uncertainSummary) uncertainSummary.textContent = `展开全部不确定性说明（共 ${UNCERTAIN.length} 条，点击查看）`;
+  if (uncertainSummary) uncertainSummary.textContent = `展开全部不确定性说明（${pendingPrices.length} 条价格待核实，另 ${UNCERTAIN.length} 条口径说明）`;
   byId("rateText").textContent = RATE;
   byId("rateText2").textContent = RATE;
   byId("footDate").textContent = META.updated;
@@ -469,8 +491,8 @@ function renderMetricsHead() {
   if (!tr) return;
   tr.innerHTML = METRICS_COLUMNS.map((c) =>
     c.sortKey
-      ? `<th class="${c.cls || ""} sortable" data-sort="${c.sortKey}"><span>${c.label}</span></th>`
-      : `<th class="${c.cls || ""}">${c.label}</th>`
+      ? `<th scope="col" class="${c.cls || ""} sortable" data-sort="${c.sortKey}"><span>${c.label}</span></th>`
+      : `<th scope="col" class="${c.cls || ""}">${c.label}</th>`
   ).join("");
 }
 
@@ -486,11 +508,12 @@ const METRICS_SORT_GET = {
   rmo: (r) => r.c.rmo,
 };
 
-/* 无额度（credits 制无牌价）的时段显示占位 */
+/* 无额度（credits 制无牌价）的时段显示占位。与 windowSentence 的 tokSpan 同一规则：
+   上下限差 ≤5% 时只显上限值，避免「100–103M」这类噪音区间。 */
 function fTokCell(lo, hi, emptyLabel = "credits制") {
-  return lo == null
-    ? `<span style="color:var(--faint)">${esc(emptyLabel)}</span>`
-    : `${fmtTok(lo)}${hi > lo ? "–" + fmtTok(hi) : ""}`;
+  if (lo == null) return `<span style="color:var(--faint)">${esc(emptyLabel)}</span>`;
+  if (hi == null || !(hi > lo * 1.05)) return fmtTok(lo);
+  return `${fmtTok(lo)}–${fmtTok(hi)}`;
 }
 function fmtRate(v) { return v == null ? "—" : `${v.toFixed(1)}×`; }
 
@@ -511,10 +534,15 @@ function listPriceHint(m) {
   const sym = m.cur === "USD" ? "$" : "¥";
   return `<span class="model-price" title="模型牌价：输入 / 输出 / 缓存命中，每百万 tokens"><span>${sym}${fmtUnit(m.apiIn)}</span> / <span>${sym}${fmtUnit(m.apiOut)}</span> / <span>缓存 ${sym}${fmtUnit(m.apiCache)}</span></span>`;
 }
-function cpmColor(v) { return v == null ? "var(--faint)" : v <= 0.3 ? "var(--green)" : v <= 1 ? "var(--gold)" : "var(--red)"; }
+function cpmColor(v) {
+  const tier = cpmTier(v);
+  return tier === "na" ? "var(--faint)" : tier === "lo" ? "var(--green)" : tier === "mid" ? "var(--gold)" : "var(--red)";
+}
 
 /* 数据来源标注：每行额度的出处与置信度 */
 function provenance(m) {
+  const plan = m.ref != null ? findPlanReference(m.ref) : null;
+  if (plan && !isPriceConfirmed(plan)) return { text: "历史价折算 · 价格待核", conf: "低" };
   if (m.isEst) return { text: m.method, conf: m.confidence };
   if (m.creditCNY != null || m.creditUSD != null) {
     if (typeof m.apiIn === "number") return { text: "牌价折算", conf: "中" };
@@ -545,6 +573,11 @@ function paygReferenceRows() {
   });
 }
 
+/* 额度表脚注的固定说明：口径、假设与置信度图例变更时只改这里；行数与排序描述在渲染时拼接 */
+const METRICS_NOTE_LEGEND =
+  `<b>💵每M tokens</b> = 月费÷月 tokens 中值（统一折算¥，越低越便宜；绿色≤¥0.30、黄色≤¥1、红色&gt;¥1）。标「官方 API 按量」的行没有月费，这一列用同一套 80/20、95% 缓存假设把低峰牌价折成人民币，所以能和套餐排在一起；模型名下方仍是原始输入 / 输出 / 缓存命中。套餐行模型名下方的牌价也不是套餐的每 M 成本。同一请求额度下，牌价更高的模型「额度价值 / 倍率」更高，每 M 成本不变。带牌价的 credits 按这套单价把面值折成 tokens；没有逐模型牌价的美元 credits 仍按假设均价 ¥10/M，且不进入「真实单价」排行。标「官方系数」的行用厂商公布的积分系数、按同一套假设摊成 tokens，置信度为中，不进入每周 tokens 图。<br>` +
+  `计算假设：输入/输出=80/20、缓存命中率 95%、每周 5 个 5h 窗口、每月 4.33 周。官方周 tokens：Tokens/5h=周÷5，Tokens/月=周×4.33。请求数制若同时写了每 5 小时、每周、每月上限，三列各自用该窗口的次数，不按「周÷5、周×4.33」互相换算，因此 Tokens/5h×5 可以不等于 Tokens/周。⏫额度倍率 = 该时段额度价值 ÷ 该时段分摊月费（5h=月费/21.65，周=月费/4.33，月=月费）。<b>「依据」列</b>标注出处与置信度（<span class="conf conf-hi">高</span>官方/credits · <span class="conf conf-mid">中</span>实测/区间/牌价折算 · <span class="conf conf-lo">低</span>毛利/第三方/请求折算）。`;
+
 function renderMetricsTable() {
   let rows = METRICS_ALL.map((m) => ({ m, c: computeMetrics(m), payg: false })).filter((r) => r.c);
   if (metricsState.model !== "all") rows = rows.filter((r) => r.m.model === metricsState.model);
@@ -565,7 +598,7 @@ function renderMetricsTable() {
   byId("metricsCount").textContent = `${shownRows.length} 行`;
   byId("metricsBody").innerHTML = shownRows.length ? shownRows.map((r) => {
     const m = r.m, c = r.c, isPayg = !!r.payg;
-    const prov = isPayg ? { text: "官方按量", conf: "高" } : provenance(m);
+    const prov = isPayg ? (isPriceConfirmed(m, "payg") ? { text: "官方按量", conf: "高" } : { text: "历史牌价 · 待核实", conf: "低" }) : provenance(m);
     const ctx = { m, c, isPayg, cur: m.cur, prov };
     const tds = METRICS_COLUMNS.map((col) => {
       const cls = (col.cls || "") + (col.tdClass ? col.tdClass(ctx) : "");
@@ -586,8 +619,8 @@ function renderMetricsTable() {
   renderMetricsSortHint();
 
   byId("metricsNote").innerHTML =
-    `<b>💵每M tokens</b> = 月费÷月 tokens 中值（统一折算¥，越低越便宜；绿色≤¥0.30、黄色≤¥1、红色&gt;¥1）。标「官方 API 按量」的行没有月费，这一列用同一套 80/20、95% 缓存假设把低峰牌价折成人民币，所以能和套餐排在一起；模型名下方仍是原始输入 / 输出 / 缓存命中。套餐行模型名下方的牌价也不是套餐的每 M 成本。同一请求额度下，牌价更高的模型「额度价值 / 倍率」更高，每 M 成本不变。带牌价的 credits 按这套单价把面值折成 tokens；没有逐模型牌价的美元 credits 仍按假设均价 ¥10/M，且不进入「真实单价」排行。标「官方系数」的行用厂商公布的积分系数、按同一套假设摊成 tokens，置信度为中，不进入每周 tokens 图。<br>` +
-    `计算假设：输入/输出=80/20、缓存命中率 95%、每周 5 个 5h 窗口、每月 4.33 周。官方周 tokens：Tokens/5h=周÷5，Tokens/月=周×4.33。请求数制若同时写了每 5 小时、每周、每月上限，三列各自用该窗口的次数，不按「周÷5、周×4.33」互相换算，因此 Tokens/5h×5 可以不等于 Tokens/周。⏫额度倍率 = 该时段额度价值 ÷ 该时段分摊月费（5h=月费/21.65，周=月费/4.33，月=月费）。<b>「依据」列</b>标注出处与置信度（<span class="conf conf-hi">高</span>官方/credits · <span class="conf conf-mid">中</span>实测/区间/牌价折算 · <span class="conf conf-lo">低</span>毛利/第三方/请求折算）。当前 ${shownRows.length} 行（含 <b>${payg.length}</b> 行官方按量、<b>${rows.filter((r) => r.m.isEst).length}</b> 行「≈估」），按${sortDescription}排序。`;
+    METRICS_NOTE_LEGEND +
+    `当前 ${shownRows.length} 行（含 <b>${payg.length}</b> 行官方按量、<b>${rows.filter((r) => r.m.isEst).length}</b> 行「≈估」），按${sortDescription}排序。`;
 }
 
 function renderMetricsSortHint() {

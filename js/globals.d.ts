@@ -8,7 +8,7 @@ interface Plan {
   plan: string;
   cat: "official" | "tool" | "cloud" | "team";
   region: "cn" | "intl";
-  cur: "USD" | "CNY";
+  cur: "USD" | "CNY" | "INR";
   priceM: number | null;
   priceY: number | null;
   seat: boolean;
@@ -24,4 +24,11 @@ interface Plan {
   modelAccess?: "included" | "byok" | "metered";
   purchaseCountries?: string[];
   fieldRefs?: Partial<Record<"models" | "tools" | "quota", string | [string, string]>>;
+}
+
+interface PriceVerification {
+  status: "verified" | "changed" | "unverified" | "retired" | "custom";
+  checkedAt: string;
+  sourceIds: string[];
+  reason: string;
 }

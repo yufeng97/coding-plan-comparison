@@ -4,11 +4,11 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
-const root = path.join(__dirname, "..");
+const root = path.join(__dirname, "..", "..");
 const dataPath = path.join(root, "js/data.js");
 const dataSource = fs.readFileSync(dataPath, "utf8");
 const metricsSource = fs.readFileSync(path.join(root, "js/metrics.js"), "utf8");
-const validatorSource = fs.readFileSync(path.join(root, "scripts/validate-data.js"), "utf8");
+const validatorSource = fs.readFileSync(path.join(root, "scripts/build/validate-data.js"), "utf8");
 
 function load() {
   const box = { console };
@@ -44,7 +44,7 @@ function validateFixture(mutation) {
   };
   try {
     vm.runInNewContext(validatorSource, {
-      __dirname,
+      __dirname: path.join(root, "scripts", "build"),
       require(name) { return name === "fs" ? fakeFs : require(name); },
       console: Object.fromEntries(["log", "warn", "error"].map((name) => [name, (...args) => output.push(args.join(" "))])),
       process: { exit(code) { exitCode = code; throw stopped; } },
@@ -173,6 +173,28 @@ test("真实 Step 月池与 Pro 无5h标记正确", () => {
   for (const p of d.PLANS.filter((p) => p.vendor === "OpenAI" && /^ChatGPT Pro/.test(p.plan))) assert.equal(p.windowPeriod, "none");
 });
 
+test("MiMo、TokenHub与Canopy真实月额度不输出伪5h，并保留月量与成本", () => {
+  const d = load();
+  const vendors = ["小米 MiMo", "腾讯云 TokenHub", "Canopy Wave"];
+  const rows = d.METRICS_RAW.filter((m) => vendors.includes(m.vendor));
+  assert.equal(rows.length, 19);
+  for (const row of rows) {
+    const input = withPrice(d, row);
+    assert.equal(input.windowPeriod, "month", row.ref);
+    const c = d.computeMetrics(input);
+    assert.ok(c, row.ref);
+    for (const field of ["fLow", "fHigh", "val5h", "val5hHi", "r5h", "r5hHi"]) assert.equal(c[field], null, row.ref + " " + field);
+    const windows = d.windowTokens(input);
+    near(c.moLow, windows.moLow);
+    assert.ok(c.costPerM > 0 && c.valMo > 0 && c.rmo > 0, row.ref);
+  }
+  const lite = rows.find((m) => m.ref === "plan-0167" && m.model === "mimo-v2.6-flash");
+  const c = d.computeMetrics(withPrice(d, lite));
+  near(c.moLow, 90.070495);
+  near(c.costPerM, 39 / 90.070495);
+  for (const p of d.PLANS.filter((p) => p.vendor === "小米 MiMo")) assert.equal(p.windowPeriod, "month", p.id);
+});
+
 test("credits 面值与API牌价跨币种时先换算，价值列保持标价币种", () => {
   const d = load();
   const common = { apiIn: 1, apiOut: 4, apiCache: 0.25 };
@@ -261,11 +283,42 @@ test("真实数据校验通过（内存运行）", () => {
   const result = validateFixture("");
   assert.equal(result.exitCode, 0, result.output);
 });
+
+test("讯飞官方请求额度先除模型系数2，异版本牌价代理留在低置信估算", () => {
+  const d = load();
+  assert.equal(d.METRICS_RAW.some(m => m.ref === "plan-0082"), false);
+  const rows = d.ESTIMATES.filter(m => m.ref === "plan-0082");
+  assert.equal(rows.length, 1);
+  const row = rows[0];
+  assert.equal(row.model, "deepseek-v4-flash");
+  assert.deepEqual([row.reqPer5h, row.reqPerWk, row.reqPerMo], [6000 / 2, 45000 / 2, 90000 / 2]);
+  assert.equal(row.isEst, true);
+  assert.equal(row.confidence, "低");
+  assert.match(row.confidenceReason, /旧版.*未核实/);
+  assert.match(row.note, /0\.8.*未折入/);
+  assert.match(row.note, /不同版本.*V4\.1/);
+  near(row.apiIn, 0.15 * d.RATE_USD_CNY);
+  near(row.apiOut, 0.60 * d.RATE_USD_CNY);
+  near(row.apiCache, 0.003 * d.RATE_USD_CNY);
+  const c = d.computeMetrics(withPrice(d, row));
+  assert.ok(c);
+  near(c.fLow, 60);
+  near(c.wkLowM, 450);
+  near(c.moLow, 900);
+  near(c.costPerM, 199 / 900);
+});
+test("ref解析后的牌价数值锚点校验能发现合法数值漂移", () => {
+  const result = validateFixture("METRICS_RAW[0].apiIn=9;");
+  assert.equal(result.exitCode, 0, result.output);
+  assert.match(result.output, /指标行牌价与 API_PRICES 同厂商同型号条目数值不同/);
+});
 /** @type {[string, string, RegExp][]} */
 const invalidFixtures = [
   ["重复永久ID", "PLANS[1].id=PLANS[0].id;", /重复 id/],
   ["缺失永久ID", "delete PLANS[0].id;", /缺有效永久 id/],
   ["无效ID引用", "METRICS_RAW[0].ref='plan-missing';", /ref 无法解析/],
+  ["ref计划与API锚点币种不一致", "PLANS.find(p=>p.id==='plan-0157').cur='USD';", /指标行牌价币种与 API_PRICES/],
+  ["原始币种不能覆盖ref计划币种", "PLANS.find(p=>p.id==='plan-0157').cur='USD';METRICS_RAW[0].cur='CNY';", /指标行牌价币种与 API_PRICES/],
   ["NaN 月费", "PLANS.find(p=>p.vendor==='Google'&&p.plan==='Google AI Pro').priceM=NaN;", /priceM 必须为有限非负数/],
   ["Infinity 月费", "PLANS.find(p=>p.vendor==='Google'&&p.plan==='Google AI Pro').priceM=Infinity;", /priceM 必须为有限非负数/],
   ["负月费", "PLANS.find(p=>p.vendor==='Google'&&p.plan==='Google AI Pro').priceM=-1;", /priceM 必须为有限非负数/],

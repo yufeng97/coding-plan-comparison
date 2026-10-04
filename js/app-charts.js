@@ -1,9 +1,14 @@
 /* ============ Coding Plan 比价中心 — 图表渲染 ============ */
 "use strict";
 
+/* 图高随行数增长：n 行 × 每行 per px + 标题/轴留白 base，但不低于 min（空数据也要装下坐标轴） */
+function chartHeight(n, per, base, min) {
+  return Math.max(min, n * per + base);
+}
+
 /* ---------- 个人订阅价格全景 ---------- */
 function resetPersonalFilters() {
-  Object.assign(state1, { cat: "all", region: "all", billing: "M", q: "", limit: PERSONAL_DEFAULT_LIMIT });
+  Object.assign(personalState, { cat: "all", region: "all", billing: "M", q: "", limit: PERSONAL_DEFAULT_LIMIT });
   byId("chartSearch").value = "";
   setChipPressed(qsa("#chipCat .chip"), (c) => c.dataset.cat === "all");
   setChipPressed(qsa("#chipRegion .chip"), (c) => c.dataset.region === "all");
@@ -37,13 +42,13 @@ function renderLegend() {
 }
 
 function personalTooltip(p) {
-  const y = p.priceY != null ? `年付：${p.cur === "USD" ? "$" + p.priceY : "¥" + p.priceY}/月（年付折算）` : "年付：—（仅月付）";
-  const unified = priceOf(p, state1.billing);
-  const uni = unified != null ? `${p.cur === "USD" ? "$" + unified : "¥" + unified} ≈ ${fmtCNY(cnyOf(p, state1.billing))}` : "—";
+  const y = p.priceY != null ? `年付：${priceText(p, "priceY")}/月（年付折算）` : "年付：未列公开价（按月付展示）";
+  const unified = priceOf(p, personalState.billing);
+  const uni = unified != null ? `${currencySymbol(p.cur) + Number(unified.toFixed(2))} ≈ ${fmtCNY(cnyOf(p, personalState.billing))}` : "—";
   const href = safeHref(p.url);
   return `<b style="font-size:13.5px">${esc(p.vendor)} · ${esc(p.plan)}</b><br/>
-    ${state1.billing === "Y" ? `折算价：${esc(uni)}<br/>` : ""}
-    月付：${p.priceM != null ? esc(p.cur === "USD" ? "$" + p.priceM : "¥" + p.priceM) : "—"} ｜ ${esc(y)}<br/>
+    ${personalState.billing === "Y" ? `折算价：${esc(uni)}<br/>` : ""}
+    月付：${p.priceM != null ? esc(priceText(p, "priceM")) : "—"} ｜ ${esc(y)}<br/>
     <span style="color:${PAL.gold}">额度：</span>${esc(trunc(resolvedField(p, "quota"), 120))}<br/>
     <span style="color:${PAL.info}">模型：</span>${esc(trunc(resolvedField(p, "models"), 120))}<br/>
     ${isRelay(p) ? `<span style="color:${RELAY_COLOR}">中转站，不和官方订阅比单价</span><br/>` : ""}
@@ -53,29 +58,29 @@ function personalTooltip(p) {
 
 function renderPersonalChart() {
   renderLegend();
-  const q1 = foldSearch(state1.q);
+  const q1 = foldSearch(personalState.q);
   const rows = PLANS.filter(
-    (p) => isPersonalMonthly(p) &&
-      (state1.cat === "all" || p.cat === state1.cat) &&
-      (state1.region === "all" || p.region === state1.region) &&
+    (p) => isPriceConfirmed(p) && isPersonalMonthly(p) &&
+      (personalState.cat === "all" || p.cat === personalState.cat) &&
+      (personalState.region === "all" || p.region === personalState.region) &&
       (!q1 || queryHit(planSearchBlob(p), q1))
-  ).sort((a, b) => cnyOf(a, state1.billing) - cnyOf(b, state1.billing));
+  ).sort((a, b) => cnyOf(a, personalState.billing) - cnyOf(b, personalState.billing));
 
   // 无筛选时默认只展示最便宜的前 N 档，避免图表过长；可点「显示全部」展开
-  const noFilter = state1.cat === "all" && state1.region === "all" && !q1;
-  const limit = noFilter ? state1.limit : null;
+  const noFilter = personalState.cat === "all" && personalState.region === "all" && !q1;
+  const limit = noFilter ? personalState.limit : null;
   const shown = limit ? rows.slice(0, limit) : rows;
 
   const el = byId("chartPersonal");
   byId("chartPersonalEmpty").hidden = shown.length > 0;
   /* 初始化/缩放时需要真实容器宽度，空态在完成配置后再隐藏 canvas。 */
   el.hidden = false;
-  el.style.height = Math.max(420, shown.length * 30 + 130) + "px";
+  el.style.height = chartHeight(shown.length, 30, 130, 420) + "px";
   const chart = makeChart("chartPersonal");
 
   const labels = shown.map((p) => (isRelay(p) ? "中转 · " : "") + shortVendor(p.vendor) + " · " + p.plan + (p.region === "cn" ? "·国内" : ""));
   const data = shown.map((p) => ({
-    value: Math.round(cnyOf(p, state1.billing) * 10) / 10,
+    value: Math.round(cnyOf(p, personalState.billing) * 10) / 10,
     itemStyle: { color: isRelay(p) ? RELAY_COLOR : CAT_COLOR[p.cat], borderRadius: [0, 4, 4, 0] },
     _p: p,
   }));
@@ -103,14 +108,19 @@ function renderPersonalChart() {
   chart.resize();
   el.hidden = shown.length === 0;
 
-  describeChart("chartPersonal", "个人订阅价格全景 " + shown.length + " 档，最低三档：" + shown.slice(0, 3).map((p) => shortVendor(p.vendor) + " " + p.plan + " " + priceText(p, "priceM")).join("、"));
+  const billingLabel = personalState.billing === "Y" ? "年付折月" : "月付";
+  describeChart("chartPersonal", "个人订阅价格全景（" + billingLabel + "，人民币/月）" + shown.length + " 档，最低三档：" + shown.slice(0, 3).map((p) =>
+    shortVendor(p.vendor) + " " + p.plan + " " + fmtCNY(cnyOf(p, personalState.billing)) +
+    (personalState.billing === "Y" && p.priceY == null ? "（未列年付价，按月付）" : "")
+  ).join("、"));
   const hidden = rows.length - shown.length;
   const excluded = q1 ? PLANS.filter((p) => {
     if (!queryHit(planSearchBlob(p), q1)) return false;
     if (isRetiredPlan(p)) return false;
-    return !isPersonalMonthly(p);
+    return !isPersonalMonthly(p) || !isPriceConfirmed(p);
   }) : [];
   const reasonOf = (p) => {
+    if (!isPriceConfirmed(p)) return "价格待核实";
     if (p.cat === "team" || p.seat) return "团队/企业档";
     if (isRenewalOnly(p)) return "仅老用户续费";
     if (isOneTimePlan(p)) return "一次性预付";
@@ -119,13 +129,13 @@ function renderPersonalChart() {
     return "按量或定制";
   };
   const excludedHtml = excluded.length
-    ? `<br>这张图只画个人月付。同名模型还有 ${excluded.length} 档不在图上：` +
+    ? `<br>这张图只画已核实价格的个人月付。同名模型还有 ${excluded.length} 档不在图上：` +
       excluded.slice(0, 8).map((p) => `${esc(shortVendor(p.vendor))} ${esc(p.plan)}（${reasonOf(p)}）`).join("、") +
       (excluded.length > 8 ? ` 等 ${excluded.length} 档` : "") +
       `。<button type="button" id="showExcludedInTable" class="linkish">在完整表里看</button>`
     : "";
   byId("notePersonal").innerHTML =
-    `当前筛选：${rows.length} 个档位（显示 ${shown.length}） ｜ 汇率 1 USD ≈ ${RATE} CNY（2026-09-23 实测） ｜ 红色是中转站，不和官方订阅、工具订阅放在同一类颜色里 ｜ 搜索会忽略大小写、空格和连字符，并展开「同某档」` +
+    `当前筛选：${rows.length} 个档位（显示 ${shown.length}） ｜ 汇率 1 USD ≈ ${RATE} CNY，1 INR ≈ ${Number(RATE_INR_CNY.toFixed(6))} CNY（${META.rateAsOf}，<a href="${safeHref(META.rateSource)}" target="_blank" rel="noopener">汇率来源</a>） ｜ 红色是中转站，不和官方订阅、工具订阅放在同一类颜色里 ｜ 搜索会忽略大小写、空格和连字符，并展开「同某档」` +
     (hidden > 0 ? ` ｜ <button type="button" id="showAllPersonal" class="linkish">显示全部 ${rows.length} 档</button>` :
       noFilter && rows.length > PERSONAL_DEFAULT_LIMIT ? ` ｜ <button type="button" id="showAllPersonal" class="linkish">收起为 ${PERSONAL_DEFAULT_LIMIT} 档</button>` : "") +
     excludedHtml;
@@ -134,10 +144,10 @@ function renderPersonalChart() {
 /* ---------- 团队 / 企业 / 云厂商（席位价 + 整包价） ---------- */
 function renderTeamChart() {
   const rows = PLANS.filter(
-    (p) => (p.cat === "team" || (p.cat === "cloud" && p.seat)) && p.priceM != null && p.priceM > 0
+    (p) => isPriceConfirmed(p) && !isRetiredPlan(p) && (p.cat === "team" || p.seat) && p.priceM != null && p.priceM > 0
   ).sort((a, b) => cnyOf(a, "M") - cnyOf(b, "M"));
   const el = byId("chartTeam");
-  el.style.height = Math.max(380, rows.length * 30 + 130) + "px";
+  el.style.height = chartHeight(rows.length, 30, 130, 380) + "px";
   const chart = makeChart("chartTeam");
 
   const data = rows.map((p) => ({
@@ -148,13 +158,15 @@ function renderTeamChart() {
   chart.setOption(
     {
       backgroundColor: "transparent",
+      /* 数据被筛空时给出占位标题，而不是一块空白画布 */
+      ...(rows.length ? {} : { title: { text: "暂无可对比的团队/企业档", left: "center", top: "middle", textStyle: { color: PAL.dim, fontSize: 13, fontWeight: 500 } } }),
       tooltip: {
         trigger: "item", ...tipStyle(el),
         formatter: (d) => {
           const p = d.data._p;
           const href = safeHref(p.url);
           return `<b style="font-size:13.5px">${esc(p.vendor)} · ${esc(p.plan)}</b><br/>
-            ${p.seat ? "每席位/用户/月" : "整包价/月"}：${esc(p.cur === "USD" ? "$" + p.priceM : "¥" + p.priceM)} ≈ ${fmtCNY(cnyOf(p, "M"))}${p.priceY != null ? `（年付 ${esc(p.cur === "USD" ? "$" + p.priceY : "¥" + p.priceY)}/月）` : ""}<br/>
+            ${p.seat ? "每席位/用户/月" : "整包价/月"}：${esc(priceText(p, "priceM"))} ≈ ${fmtCNY(cnyOf(p, "M"))}${p.priceY != null ? `（年付 ${esc(priceText(p, "priceY"))}/月）` : ""}<br/>
             <span style="color:${PAL.gold}">额度：</span>${esc(trunc(resolvedField(p, "quota"), 120))}<br/>
             ${href ? `<span style="color:${PAL.dim};font-size:11.5px">来源：${href}</span>` : ""}`;
         },
@@ -211,6 +223,7 @@ function renderTokensChart() {
       console.warn("[data] PLAN_TOKENS ref 未解析，已跳过:", t.ref);
       return [];
     }
+    if (!isPriceConfirmed(p) || isRetiredPlan(p)) return [];
     return [{
       label: t.plan + "·" + modelShort(t.model),
       model: t.model,
@@ -225,9 +238,12 @@ function renderTokensChart() {
      官方条数区间按结构化公式折算，其余请求数制只在额度深度对比表里呈现。 */
   const coveredPlan = new Set(PLAN_TOKENS.map((t) => findPlanReference(t.ref)?.id).filter(Boolean));
   const weeklyExtra = METRICS_ALL.filter((m) => {
+    const p = m.ref != null ? findPlanReference(m.ref) : null;
+    if (p && (!isPriceConfirmed(p) || isRetiredPlan(p))) return false;
     if (m.wkLowM == null && m.reqLowPer5h == null) return false;
     if (m.note && m.note.includes("系数折算")) return false;
-    if (m.vendor === "智谱 BigModel") return false;
+    /* data.js 用 weeklyChart:false 标注与 PLAN_TOKENS 档位同额度的重复行（如智谱国内版） */
+    if (m.weeklyChart === false) return false;
     if (coveredPlan.has(findPlanReference(m.ref)?.id)) return false;
     return true;
   }).flatMap((e) => {
@@ -251,7 +267,7 @@ function renderTokensChart() {
   const rows = /** @type {TokenRow[]} */ ([...officialBars, ...community].map((r) => ({ ...r, midM: (r.lowM + r.highM) / 2 })));
   rows.sort((a, b) => b.midM - a.midM);
 
-  el.style.height = Math.max(420, rows.length * 30 + 150) + "px";
+  el.style.height = chartHeight(rows.length, 30, 150, 420) + "px";
 
   const cats = rows.map((r) => r.label);
   const series = [
@@ -332,13 +348,14 @@ function renderTokensChart() {
 function renderApiChart() {
   const apiEl = byId("chartApi");
   const chart = makeChart("chartApi");
-  const rows = API_PRICES.map((a) => {
+  const detailRows = API_PRICES.map((a) => {
     const inU = a.cur === "CNY" ? a.inCNY / RATE : a.inUSD;
     const outU = a.cur === "CNY" ? a.outCNY / RATE : a.outUSD;
     return { ...a, inUSD: inU, outUSD: outU };
   })
     .filter((a) => a.inUSD != null && a.outUSD != null)
     .sort((x, y) => x.outUSD - y.outUSD);
+  const rows = detailRows.filter((a) => isPriceConfirmed(a, "api"));
   /* 统一纵轴标签：厂商 · 模型。label 里的平台后缀（(Z.ai) / [硅基] 等）由厂商前缀承担，
      厂商名与模型名重复时（DeepSeek · DeepSeek V4-Pro）去掉重复的厂商词。 */
   const apiLabel = (a) => {
@@ -348,7 +365,7 @@ function renderApiChart() {
     return vendor + " · " + model;
   };
   const cats = rows.map(apiLabel);
-  apiEl.style.height = Math.max(640, rows.length * 28 + 72) + "px";
+  apiEl.style.height = chartHeight(rows.length, 28, 72, 640) + "px";
 
   const fmtPrice = (a, inU, outU) =>
     a.cur === "CNY"
@@ -392,7 +409,7 @@ function renderApiChart() {
      图例可点击过滤国际/国内；axis 触发 + 阴影指示器与左图一致。 */
   const chart2 = makeChart("chartPower");
   const el2 = byId("chartPower");
-  el2.style.height = Math.max(420, rows.length * 26 + 120) + "px";
+  el2.style.height = chartHeight(rows.length, 26, 120, 420) + "px";
   const power = rows.filter((a) => a.outUSD > 0).map((a) => ({ name: apiLabel(a), m: 10 / a.outUSD, a }));
   power.sort((x, y) => y.m - x.m);
   const POWER_COLORS = { intl: "#22d3ee", cn: "#34d399" };
@@ -433,13 +450,12 @@ function renderApiChart() {
   );
   chart2.resize();
   bindChartLegend(chart2, "powerLegend");
-  byId("apiDetailBody").innerHTML = rows.map((a) => {
-    const href = safeHref(a.url);
+  byId("apiDetailBody").innerHTML = detailRows.map((a) => {
     const usd = (n) => "$" + Number(n.toFixed(4));
     return `<tr><th scope="row">${esc(apiLabel(a))}</th><td>${esc(REGION_LABEL[a.region] || "—")}</td>` +
       `<td>${usd(a.inUSD)}</td><td>${usd(a.outUSD)}</td>` +
       `<td>${a.outUSD > 0 ? Number((10 / a.outUSD).toFixed(1)) + "M" : "—"}</td>` +
-      `<td>${href ? `<a href="${href}" target="_blank" rel="noopener">官网 ↗</a>` : "—"}</td></tr>`;
+      `<td>${priceCheckHtml(a, "api")}</td></tr>`;
   }).join("");
   describeChart("chartApi", "API 按量单价对比 " + rows.length + " 款模型（左图）；$10 预算输出 token 购买力 " + power.length + " 行（右图）。");
   describeChart("chartPower", "$10 预算输出 token 购买力 " + power.length + " 行；使用图例按钮筛选国内或国际模型，完整数值见下方明细。");
@@ -504,7 +520,7 @@ function renderRankChart() {
     rows.slice(0, 3).map((r) => shortVendor(r.m.vendor) + " " + r.m.plan + " ¥" + r.c.costPerM.toFixed(3)).join("、"));
 
   const el = byId("chartRank");
-  el.style.height = Math.max(420, rows.length * 30 + 130) + "px";
+  el.style.height = chartHeight(rows.length, 30, 130, 420) + "px";
   const chart = makeChart("chartRank");
 
   const labels = rows.map((r) => {
@@ -516,7 +532,8 @@ function renderRankChart() {
   });
   const data = rows.map((r) => {
     const cp = r.c.costPerM;
-    const color = cp <= 0.3 ? "#34d399" : cp <= 1 ? "#f59e0b" : "#f87171";
+    const tier = cpmTier(cp);
+    const color = tier === "lo" ? "#34d399" : tier === "mid" ? "#f59e0b" : "#f87171";
     return { value: Math.round(cp * 1000) / 1000, itemStyle: { color, borderRadius: [0, 4, 4, 0] }, _r: r };
   });
 
@@ -529,7 +546,8 @@ function renderRankChart() {
           const r = d.data._r;
           const prov = provenance(r.m);
           const cp = r.c.costPerM;
-          const cpColor = cp <= 0.3 ? PAL.green : cp <= 1 ? PAL.gold : PAL.red;
+          const tier = cpmTier(cp);
+          const cpColor = tier === "lo" ? PAL.green : tier === "mid" ? PAL.gold : PAL.red;
           const mo = r.c.moLow == null
             ? "—"
             : `约 ${fmtTok(r.c.moLow)}${r.c.moHigh > r.c.moLow ? "–" + fmtTok(r.c.moHigh) : ""}`;
@@ -558,7 +576,7 @@ function renderRankChart() {
   chart.resize();
 
   const tierText = rankState.tier === "flagship" ? "当前只看旗舰模型。" : "当前含轻量模型，Flash、Haiku 会因为 token 便宜靠前。";
-  const excluded = "已停售、已下架、一次性预付和仅老用户续费不在此列。";
+  const excluded = "价格待核实、已停售、已下架、一次性预付和仅老用户续费不在此列。";
   const scopeText = {
     official: "口径：只统计官方公布每周 tokens、且新用户当前可购买的计划（高置信，非估算）。请求折算与第三方估算不在此列。" + excluded,
     credits: "口径：在官方每周 tokens 之外，纳入按官方 credits 面值/系数/官方区间折算的档位（≈标记，置信中：tokens = 面值 ÷ 牌价混合价，按 80/20 与 95% 缓存假设）。" + excluded,

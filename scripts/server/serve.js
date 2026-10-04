@@ -4,8 +4,9 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { insideRoot, blockedSegment } = require("../lib/paths");
 
-const root = path.resolve(__dirname, "..");
+const root = path.resolve(__dirname, "..", "..");
 const rootReal = fs.realpathSync(root);
 const host = "127.0.0.1";
 const port = Number(process.env.PORT) || 8123;
@@ -25,19 +26,20 @@ function fileFromUrl(urlPath) {
   let rel;
   try { rel = decodeURIComponent(String(urlPath || "/").split("?")[0]); }
   catch (e) { return null; }
-  if (rel.includes("\0")) return null;
+  /* NTFS 的目录流别名（如 .git::$INDEX_ALLOCATION）不会被 realpath 还原。
+   * 网站路径无需冒号，统一拒绝原样和 URL 编码后的流名称。 */
+  if (rel.includes("\0") || rel.includes(":")) return null;
   if (rel === "/") rel = "/index.html";
   const stripped = rel.replace(/^[/\\]+/, "");
   if (!stripped || path.isAbsolute(stripped) || /^[a-zA-Z]:/.test(stripped)) return null;
   const resolved = path.resolve(root, stripped);
   const relToRoot = path.relative(root, resolved);
-  if (pathBlocked(relToRoot)) return null;
+  if (!insideRoot(root, resolved) || blockedSegment(relToRoot)) return null;
   return resolved;
 }
+/* Windows 不区分路径大小写，realpath 也可能保留请求的大小写。两次检查均按段折叠。 */
 function pathBlocked(relToRoot) {
-  if (!relToRoot || relToRoot.startsWith("..") || path.isAbsolute(relToRoot)) return true;
-  /* Windows 不区分路径大小写，realpath 也可能保留请求的大小写。两次检查均按段折叠。 */
-  return relToRoot.split(/[/\\]/).some((segment) => segment.toLowerCase() === ".git");
+  return !insideRoot(rootReal, path.resolve(root, relToRoot)) || blockedSegment(relToRoot);
 }
 
 function createServer() {

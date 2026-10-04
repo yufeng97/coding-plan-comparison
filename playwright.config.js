@@ -1,7 +1,7 @@
 const { defineConfig } = require("@playwright/test");
 
 module.exports = defineConfig({
-  testDir: "./scripts",
+  testDir: "./scripts/tests/browser",
   testMatch: "**/*.browser.spec.js",
   timeout: 45000,
   expect: { timeout: 10000 },
@@ -17,7 +17,7 @@ module.exports = defineConfig({
     screenshot: "only-on-failure",
   },
   webServer: {
-    command: "node scripts/serve.js",
+    command: "node scripts/server/serve.js",
     url: "http://127.0.0.1:18461",
     env: { PORT: "18461" },
     reuseExistingServer: false,

@@ -7,7 +7,7 @@ const fs = require("node:fs");
 const http = require("node:http");
 const os = require("node:os");
 const path = require("node:path");
-const { createServer, fileFromUrl, root } = require("./serve");
+const { createServer, fileFromUrl, root } = require("../server/serve");
 
 function request(port, urlPath, headers = {}, method = "GET") {
   return new Promise((resolve, reject) => {
@@ -63,6 +63,12 @@ async function main() {
       assert.equal((await request(port, urlPath)).status, 403, urlPath);
     }
     console.log("  ✓ .git 大小写、编码与路径归一化拦截");
+
+    for (const urlPath of ["/.git::$INDEX_ALLOCATION/HEAD", "/.git:$I30:$INDEX_ALLOCATION/HEAD", "/.git%3A%3A%24INDEX_ALLOCATION/HEAD", "/index.html::$DATA"]) {
+      assert.equal(fileFromUrl(urlPath), null, urlPath);
+      assert.equal((await request(port, urlPath, {}, "HEAD")).status, 403, urlPath);
+    }
+    console.log("  ✓ NTFS 目录别名与备用数据流原样/编码路径拦截");
 
     for (const urlPath of ["/%2e%2e/package.json", "/%2e%2e%2fpackage.json", "/C:/Windows/win.ini", "/bad%00path", "/%E0%A4%A"]) {
       assert.equal((await request(port, urlPath)).status, 403, urlPath);

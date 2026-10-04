@@ -3,13 +3,13 @@
 const path = require("node:path");
 const fs = require("node:fs");
 const { build } = require("esbuild");
-const { writeAssetPlan } = require("./lib/public-assets");
+const { writeAssetPlan } = require("../lib/public-assets");
 
 async function rebuild() {
-  const root = path.resolve(__dirname, "..");
+  const root = path.resolve(__dirname, "..", "..");
   const file = path.join(root, "libs", "echarts.min.js");
   const result = await build({
-    entryPoints: [path.join(root, "scripts", "echarts-entry.mjs")],
+    entryPoints: [path.join(__dirname, "echarts-entry.mjs")],
     bundle: true, minify: true, format: "iife", legalComments: "eof",
     outfile: file, write: false,
   });

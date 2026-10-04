@@ -25,7 +25,7 @@ const VENDOR_SHORT = {
   "Cognition Devin（云 agent）": "Devin 云",
   "Roo Code（Roomote）": "Roomote",
   "智谱 BigModel": "BigModel",
-  "月之暗面 Kimi": "月之暗面 Kimi",
+  "月之暗面 Kimi": "月之暗面",
   "阿里云 Qoder CN（原通义灵码）": "Qoder CN（灵码）",
   "腾讯云 CodeBuddy": "腾讯 CodeBuddy",
   "腾讯云（LKEAP 知识引擎）": "腾讯云 LKEAP",
@@ -37,17 +37,23 @@ const VENDOR_SHORT = {
   "腾讯云 TokenHub": "腾讯 TokenHub",
   "百度千帆": "百度千帆",
   "七牛云": "七牛云",
-  "阿里云（通义灵码 / Qoder CN）": "阿里云灵码",
   "Factory (Droid)": "Droid",
   "讯飞星辰 MaaS": "讯飞 Astron",
   "Canopy Wave": "Canopy",
   /* API 按量图里的厂商短名 */
-  "月之暗面 Moonshot": "月之暗面",
   "阿里云百炼": "百炼",
   "火山引擎（豆包/方舟）": "火山方舟",
   "硅基流动 SiliconFlow": "硅基流动",
   "阶跃星辰 StepFun": "阶跃",
 };
+
+/* 经典脚本各自独立求值：data.js 缺失或中途出错时给出单一明确报错，
+   而不是让后续每个顶层常量各自抛 ReferenceError。 */
+if (typeof RATE_USD_CNY !== "number" || typeof PLANS === "undefined" ||
+    typeof METRICS_RAW === "undefined" || typeof ESTIMATES === "undefined" ||
+    typeof MODEL_ROLES === "undefined" || typeof META === "undefined") {
+  throw new Error("js/data.js 未加载或缺少必需的全局数据（RATE_USD_CNY/PLANS/METRICS_RAW/ESTIMATES/MODEL_ROLES/META）");
+}
 
 const RATE = RATE_USD_CNY;
 /* 「帮我选」模型角色表的归类日期，取自 data.js 的 MODEL_ROLES.asOf */
@@ -58,7 +64,7 @@ function resolvePlan(m) {
   /* ref 可解析时，身份、名称和价格统一取 PLANS；model 等额度口径仍由该行保留。 */
   if (m.ref != null) {
     const p = findPlanReference(m.ref);
-    if (p) return { ...m, vendor: p.vendor, plan: p.plan, priceM: p.priceM, cur: p.cur, windowPeriod: m.windowPeriod || p.windowPeriod };
+    if (p) return { ...m, vendor: p.vendor, plan: p.plan, priceM: p.priceM, cur: p.cur, windowPeriod: m.windowPeriod || p.windowPeriod || "unknown" };
     console.warn("[data] ref 未解析，已跳过:", m.ref);
     return null;
   }
@@ -98,6 +104,8 @@ function planBlob(p) {
 }
 function planBadges(p) {
   const badges = [];
+  const check = priceCheckOf(p);
+  if (check && check.status === "unverified") badges.push({ t: "价格待核", k: "risk" });
   const blob = planBlob(p);
   const tools = resolvedField(p, "tools");
   if (isRelay(p)) badges.push({ t: "中转", k: "risk" });
@@ -122,7 +130,7 @@ function metricOfferOk(m) {
   if (/已停售|已下架|老用户|一次性|预付/.test(m.plan || "")) return false;
   if (m.ref != null) {
     const p = findPlanReference(m.ref);
-    if (p && (isRetiredPlan(p) || isOneTimePlan(p) || isRenewalOnly(p) || !offerable(p))) return false;
+    if (p && (isRetiredPlan(p) || !isPriceConfirmed(p) || isOneTimePlan(p) || isRenewalOnly(p) || !offerable(p))) return false;
   }
   return true;
 }
@@ -180,16 +188,33 @@ function priceOf(p, billing) {
   if (billing === "Y" && p.priceY != null) return p.priceY;
   return p.priceM;
 }
+/* 币种折算统一走 metrics.js 的 toCNY（校验器与测试共用同一实现） */
 function cnyOf(p, billing) {
   const v = priceOf(p, billing);
-  if (v == null) return null;
-  return p.cur === "USD" ? v * RATE : v;
+  return v == null ? null : toCNY(v, p.cur);
 }
 function priceText(p, key) {
   const v = p[key];
   if (v == null) return "按量/定制";
   if (v === 0) return "免费";
-  return (p.cur === "USD" ? "$" + v : "¥" + v);
+  return currencySymbol(p.cur) + Number(v.toFixed(2));
+}
+function currencySymbol(cur) { return cur === "USD" ? "$" : cur === "INR" ? "₹" : "¥"; }
+function priceCheckLabel(p, kind = "plan") {
+  const check = priceCheckOf(p, kind);
+  if (!check) return "未核实";
+  return { verified: "价格已核实", changed: "核价信息已校正", unverified: "历史价 · 待核实", retired: "已停售", custom: "需询价" }[check.status];
+}
+function priceCheckSources(p, kind = "plan") {
+  const check = priceCheckOf(p, kind);
+  return check ? check.sourceIds.map((id) => PRICE_CHECKS.sources[id] && PRICE_CHECKS.sources[id].url).filter(Boolean) : [];
+}
+function priceCheckHtml(p, kind = "plan") {
+  const check = priceCheckOf(p, kind);
+  const urls = priceCheckSources(p, kind);
+  const links = urls.map((url, i) => `<a href="${safeHref(url)}" target="_blank" rel="noopener">核价来源${urls.length > 1 ? i + 1 : ""}</a>`).join(" · ");
+  const explanation = check && check.status === "unverified" ? `<details class="price-check-details"><summary>核查说明</summary><p>${esc(check.reason)}</p></details>` : "";
+  return `${links || "—"}<span class="sub">${esc(priceCheckLabel(p, kind))}${check ? " · " + esc(check.checkedAt) : ""}</span>${explanation}`;
 }
 
 /* 所有表格/对比/导出共用计价单位，不能把充值或席位费用当作个人月费。 */
@@ -206,8 +231,8 @@ function planPriceLabel(p, billing = "M") {
 }
 
 /* 严格限制轴标签占宽，窄屏仍保留价格柱；完整名称在 tooltip 和数据表中查看。 */
-function chartAxisLabel(hostEl, fontSize = 12.5) {
-  const width = hostEl.getBoundingClientRect().width || window.innerWidth - 72;
+function chartAxisLabel(hostEl, fontSize = 12.5, measuredWidth = 0) {
+  const width = measuredWidth || hostEl.getBoundingClientRect().width || window.innerWidth - 72;
   return { color: PAL.catLabel, fontSize: width < 480 ? 10.5 : fontSize,
     width: Math.max(60, Math.min(width < 480 ? 110 : 260, width * 0.34)),
     overflow: "truncate", margin: 8 };
@@ -221,10 +246,41 @@ function makeChart(id) {
   return chartCache[id];
 }
 let resizeTimer;
+const pendingChartResizes = new Set();
+const CHART_AXIS_FONT_SIZE = { chartPersonal: 12.5, chartTeam: 12.5, chartTokens: 11.5, chartApi: 11, chartPower: 11, chartRank: 11.5 };
+/* 缩放只更新实际尺寸变化的可见画布，不重新筛数据或重建图例。
+   离屏画布保留待处理标记，滚入阅读区时再补齐尺寸和轴标签宽度。 */
+function resizeVisibleCharts() {
+  pendingChartResizes.forEach((id) => {
+    const chart = chartCache[id], el = byId(id);
+    if (!chart || !el) { pendingChartResizes.delete(id); return; }
+    if (el.hidden) return;
+    const rect = el.getBoundingClientRect();
+    if (rect.bottom < 0 || rect.top > window.innerHeight || rect.width <= 0 || rect.height <= 0) return;
+    pendingChartResizes.delete(id);
+    if (Math.abs(chart.getWidth() - rect.width) < 1 && Math.abs(chart.getHeight() - rect.height) < 1) return;
+    try {
+      chart.setOption({ yAxis: { axisLabel: chartAxisLabel(el, CHART_AXIS_FONT_SIZE[id], rect.width) } }, { lazyUpdate: true });
+      chart.resize();
+    } catch (err) {
+      pendingChartResizes.add(id);
+      console.error("[chart resize] " + id, err);
+    }
+  });
+}
 function bindChartResize() {
   window.addEventListener("resize", () => {
+    Object.keys(chartCache).forEach((id) => pendingChartResizes.add(id));
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(rerenderCharts, 150);
+    resizeTimer = setTimeout(resizeVisibleCharts, 150);
+  }, { passive: true });
+  let scrollQueued = false;
+  window.addEventListener("scroll", () => {
+    if (scrollQueued || pendingChartResizes.size === 0) return;
+    scrollQueued = true;
+    const update = () => { scrollQueued = false; resizeVisibleCharts(); };
+    if (typeof window.requestAnimationFrame === "function") window.requestAnimationFrame(update);
+    else update();
   }, { passive: true });
 }
 
@@ -315,6 +371,10 @@ function displayModelName(name) {
 function foldSearch(s) {
   return String(s || "").toLowerCase().replace(/[\s_\-./·]+/g, "");
 }
+/* 正则转义（windowSentence 的模型名片段、测试与校验共用的小工具） */
+function escRe(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 function planSearchBlob(p) {
   return foldSearch([p.vendor, p.plan, resolvedField(p, "models"), resolvedField(p, "tools"), resolvedField(p, "quota"), resolvedField(p, "note")].join(" "));
 }
@@ -360,7 +420,10 @@ function rerenderCharts() {
   const renderers = { chartPersonal: renderPersonalChart, chartTeam: renderTeamChart,
     chartTokens: renderTokensChart, chartApi: renderApiChart, chartRank: renderRankChart };
   Object.entries(renderers).forEach(([id, render]) => {
-    if (chartCache[id]) render();
+    if (!chartCache[id]) return;
+    /* 单图失败不中断其余图的重绘（主题切换/历史恢复会一次重画全部） */
+    try { render(); }
+    catch (err) { console.error("[chart] " + id, err); }
   });
 }
 /* 测量固定页头，供锚点间距和当前章节判断共用；不读取或渲染图表内容。 */
@@ -459,17 +522,29 @@ function planLabel(p) {
   return sv + " " + plan;
 }
 
+/* 每百万 tokens 成本的档位阈值：排行图配色、排行说明与额度表共用（≤0.3 低 / ≤1 中 / >1 高） */
+function cpmTier(v) {
+  return v == null ? "na" : v <= 0.3 ? "lo" : v <= 1 ? "mid" : "hi";
+}
+
 function renderStats() {
+  const summary = byId("priceAuditSummary");
+  if (summary) {
+    const checks = Object.values(PRICE_CHECKS.rows);
+    const pending = checks.filter((r) => r.status === "unverified").length;
+    const retired = checks.filter((r) => r.status === "retired").length;
+    summary.textContent = `价格逐条核查：${PRICE_CHECKS.checkedAt} · ${checks.length} 条记录，${checks.length - pending - retired} 条已确认（含询价），${pending} 条待核实，${retired} 条停售。待核实历史价仅保留作参考，不参与推荐与排行。`;
+  }
   const vendors = new Set(PLANS.map((p) => p.vendor));
   const freeCnt = PLANS.filter(isFreeCodingEntry).length;
-  const paid = PLANS.filter(isPersonalMonthly);
+  const paid = PLANS.filter((p) => isPriceConfirmed(p) && isPersonalMonthly(p));
   const minCny = paid.length ? Math.min(...paid.map((p) => cnyOf(p, "M"))) : null;
   const maxCny = paid.length ? Math.max(...paid.map((p) => cnyOf(p, "M"))) : null;
   const minP = minCny == null ? null : paid.find((p) => cnyOf(p, "M") === minCny);
   const maxP = maxCny == null ? null : paid.find((p) => cnyOf(p, "M") === maxCny);
   const items = [
     { icon: "globe", num: vendors.size, lbl: "覆盖厂商", sub: "官方 / 云厂商 / 第三方" },
-    { icon: "stack", num: PLANS.filter(isOnSalePlan).length, lbl: "在售订阅计划", sub: "有标价且未下架" },
+    { icon: "stack", num: PLANS.filter(isOnSalePlan).length, lbl: "公开标价记录", sub: "含待核实历史价，见来源栏" },
     { icon: "gift", num: freeCnt, lbl: "免费可用入口", sub: "见「免费 Coding 入口」" },
     { icon: "tag", num: API_PRICES.length, lbl: "API 模型单价", sub: "输入 / 输出对比" },
     minP && { icon: "arrow-down-circle", lbl: "最低月费", num: fmtCNY(minCny), sub: "/月 · " + planLabel(minP) },

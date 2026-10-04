@@ -24,7 +24,7 @@ async function openPersonal(page) {
 
 test("file直开保留本地脚本、真实图表与筛选操作", async ({ page }) => {
   const errors = trackErrors(page);
-  const url = pathToFileURL(path.resolve(__dirname, "..", "index.html")).href + "#s1";
+  const url = pathToFileURL(path.resolve(__dirname, "..", "..", "..", "index.html")).href + "#s1";
   await page.goto(url);
   await expect(page.locator("#showAllPersonal")).toBeVisible();
   await expect(page.locator("#chartPersonal canvas")).toHaveCount(1);
@@ -43,7 +43,7 @@ test("空白和被忽略的符号保持20档，展开与收起仍可操作", asy
     expect(oldToggle).not.toBeNull();
     await page.locator("#chartSearch").fill(value);
     /* 等待真实防抖渲染替换旧按钮，避免默认20档让断言在渲染前就通过。 */
-    await oldToggle.waitForElementState("hidden");
+    await oldToggle.evaluate((el) => new Promise((resolve) => { if (!el.isConnected) resolve(); else new MutationObserver((_m, obs) => { obs.disconnect(); resolve(); }).observe(el.parentNode, { childList: true }); }));
     await oldToggle.dispose();
     await expect(page.locator("#showAllPersonal")).toBeVisible();
     expect(await page.evaluate("chartCache.chartPersonal.getOption().series[0].data.length")).toBe(20);
@@ -74,6 +74,8 @@ test("真实ECharts同时隐藏两组区间，主题和resize重绘保留选择�
   await page.locator("#themeBtn").click();
   await expect.poll(filtered).toEqual([true, true, true, true]);
   await page.setViewportSize({ width: 375, height: 900 });
+  /* 上方区块在窄屏重排可能把图表移出视口；离屏尺寸在再次阅读时补齐。 */
+  await page.locator("#chartTokens").scrollIntoViewIfNeeded();
   await expect.poll(() => page.evaluate("chartCache.chartTokens.getWidth() === document.getElementById('chartTokens').clientWidth")).toBe(true);
   await expect.poll(filtered).toEqual([true, true, true, true]);
   for (const chip of await chips.all()) await expect(chip).toHaveAttribute("aria-pressed", "false");
@@ -96,6 +98,62 @@ test("个人图表空态清除后恢复20档和真实画布", async ({ page }) =
   expect(await page.evaluate("chartCache.chartPersonal.getOption().series[0].data.length")).toBe(20);
   expect(await page.evaluate("chartCache.chartPersonal.getWidth()")).toBeGreaterThan(100);
   expect(await page.evaluate("chartCache.chartPersonal.getHeight()")).toBeGreaterThan(400);
+  expect(errors).toEqual([]);
+});
+
+test("年付图表的读屏摘要报告当前人民币价格", async ({ page }) => {
+  await page.goto("/?pq=CursorPro&pbilling=Y#s1");
+  const summary = await page.locator("#chartPersonal").getAttribute("aria-label");
+  expect(summary).toContain("年付折月，人民币/月");
+  const rows = await page.evaluate("chartCache.chartPersonal.getOption().series[0].data.map(row => ({ plan: row._p.plan, value: row.value }))");
+  expect(rows).toHaveLength(2);
+  for (const row of rows) expect(summary).toContain(row.plan + " ¥" + row.value);
+  expect(summary).not.toMatch(/\$20|\$60/);
+});
+
+test("回到顶部在页首不能取得隐形键盘焦点，滚动后恢复操作", async ({ page }) => {
+  await page.goto("/");
+  const top = page.locator("#toTop");
+  await expect(top).toBeHidden();
+  await top.evaluate((element) => element.focus());
+  await expect(top).not.toBeFocused();
+  await page.locator('.topnav a[href="#s1"]').click();
+  await expect(top).toBeVisible();
+  await top.focus();
+  await expect(top).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  await expect(top).toBeHidden();
+  await expect(page.locator(".hero h1")).toBeFocused();
+});
+
+test("resize跳过同尺寸和离屏画布，滚入后更新尺寸且图例保持选择", async ({ page }) => {
+  const errors = trackErrors(page);
+  await page.goto("/#s4");
+  await page.evaluate(`(() => {
+    window.reviewResizeCounts = {};
+    for (const [id, chart] of Object.entries(chartCache)) {
+      const setOption = chart.setOption.bind(chart);
+      chart.setOption = (...args) => {
+        window.reviewResizeCounts[id] = (window.reviewResizeCounts[id] || 0) + 1;
+        return setOption(...args);
+      };
+    }
+  })()`);
+  await page.evaluate(() => window.dispatchEvent(new Event("resize")));
+  await page.waitForTimeout(220);
+  expect(await page.evaluate("window.reviewResizeCounts")).toEqual({});
+  await page.locator('#apiLegend [data-series="输入 / 1M tokens"]').click();
+  await page.setViewportSize({ width: 375, height: 900 });
+  await page.locator("#chartApi").scrollIntoViewIfNeeded();
+  await expect.poll(() => page.evaluate("chartCache.chartApi.getWidth() === document.getElementById('chartApi').clientWidth")).toBe(true);
+  expect(await page.evaluate("window.reviewResizeCounts.chartPersonal || 0")).toBe(0);
+  expect(await page.evaluate("chartCache.chartPersonal.getWidth() > document.getElementById('chartPersonal').clientWidth")).toBe(true);
+  await page.locator('.topnav a[href="#s1"]').click();
+  await expect.poll(() => page.evaluate("chartCache.chartPersonal.getWidth() === document.getElementById('chartPersonal').clientWidth")).toBe(true);
+  await page.locator('.topnav a[href="#s4"]').click();
+  await expect(page.locator('#apiLegend [data-series="输入 / 1M tokens"]')).toHaveAttribute("aria-pressed", "false");
+  expect(await page.evaluate("chartCache.chartApi.getModel().isSeriesFiltered(chartCache.chartApi.getModel().getSeries()[0])")).toBe(true);
   expect(errors).toEqual([]);
 });
 

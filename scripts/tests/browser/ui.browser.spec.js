@@ -1,5 +1,20 @@
 const { test, expect } = require("@playwright/test");
 
+test("搜索防抖未执行时的同查询串后退仍更新表格", async ({ page }) => {
+  await page.goto("/index.html#table");
+  await page.evaluate(() => {
+    const input = /** @type {HTMLInputElement} */ (document.getElementById("searchInput"));
+    input.value = "Cursor";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    window["navigateToSection"]("#s1");
+    history.back();
+  });
+  await expect(page).toHaveURL(/q=Cursor#table$/);
+  await expect.poll(() => page.evaluate(() => document.querySelectorAll("#tableBody tr").length)).toBe(
+    await page.evaluate("computeTableRows().length"));
+  await expect(page.locator("#searchInput")).toHaveValue("Cursor");
+});
+
 test("预算后退/前进同步按钮、推荐及分享URL", async ({ page }) => {
   await page.goto("/?budget=100");
   const budget = page.locator('#picker [data-pick="budget"]');

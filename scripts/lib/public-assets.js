@@ -2,6 +2,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
+const { insideRoot } = require("./paths");
 
 const hash = (bytes) => crypto.createHash("sha1").update(bytes).digest("hex").slice(0, 7);
 const slash = (file) => file.split(path.sep).join("/");
@@ -16,10 +17,7 @@ function localAsset(root, owner, raw) {
   try { decoded = decodeURIComponent(pathname); } catch { throw new Error(`资源路径编码非法：${raw}`); }
   if (!decoded || /[\\\0]/.test(decoded) || /^[a-z][a-z\d+.-]*:/i.test(decoded)) throw new Error(`资源路径不安全：${raw}`);
   const absolute = path.resolve(decoded.startsWith("/") ? root : path.dirname(owner), decoded.replace(/^\/+/, ""));
-  const within = (target) => {
-    const rel = path.relative(root, target);
-    return rel && rel !== ".." && !rel.startsWith(".." + path.sep) && !path.isAbsolute(rel);
-  };
+  const within = (target) => insideRoot(root, target);
   if (!within(absolute)) throw new Error(`资源越出项目目录：${raw}`);
   if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) throw new Error(`资源不存在或不是文件：${raw}`);
   const real = fs.realpathSync(absolute);

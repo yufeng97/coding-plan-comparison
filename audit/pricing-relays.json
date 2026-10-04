@@ -1,0 +1,1187 @@
+{
+  "checkedAt": "2026-10-04",
+  "sources": [
+    {
+      "id": "relays-opencode-zen",
+      "url": "https://opencode.ai/docs/zen",
+      "evidence": "官方文档为美元按 token 付费，无固定月订阅；充值手续费 4.4% 加每笔 $0.30，模型价无额外加价。"
+    },
+    {
+      "id": "relays-opencode-go",
+      "url": "https://opencode.ai/docs/go/",
+      "evidence": "官方月订阅表列 Go $10、Go Plus $40；每工作区仅一位成员可以订阅；未列年付价。"
+    },
+    {
+      "id": "relays-opencode-go-catalog",
+      "url": "https://opencode.ai/go",
+      "evidence": "官网再次列 Go $10/月、Go Plus $40/月；用量为各模型的估计 5 小时限额，Plus 与 Go 的倍率按模型不同。"
+    },
+    {
+      "id": "relays-opencode-enterprise",
+      "url": "https://opencode.ai/docs/enterprise",
+      "evidence": "企业版按席位联系销售定制报价；连接自有 LLM 网关的使用不另外按 token 计费。"
+    },
+    {
+      "id": "relays-r4",
+      "url": "https://r4.codes/",
+      "evidence": "直接打开现行官网：Code Lite 一次性 $10/$60 额度、Code Pro $20/$120、Code Max $50/$300，30 天有效；三档均显示 Sold out 和候补名单。官网未列旧 $5 Starter。"
+    },
+    {
+      "id": "relays-zenmux-subscription",
+      "url": "https://zenmux.ai/docs/guide/subscription.html",
+      "evidence": "官方 Individual Builder Plan 表：Free $0、Starter $20/月、Max $100/月、Ultra $200/月；Free 仅 Studio 聊天，无 API；未列年付价。"
+    },
+    {
+      "id": "relays-zenmux-payg",
+      "url": "https://zenmux.ai/docs/guide/pay-as-you-go.html",
+      "evidence": "官方 PAYG 文档：全部 Credit 以美元计，1 Credit 对应 $1 API 用量，充值 $5 至 $25,000；与订阅分开。"
+    },
+    {
+      "id": "relays-packy-codex",
+      "url": "https://codex.packycode.com/pricing",
+      "evidence": "Chrome 实际渲染官网定价页明确说明已停止销售，引导至 PackyAPI 按量使用；旧美元月档仍展示且购买按钮禁用。原 ¥60 社区券价无法对应现行官方档位。"
+    },
+    {
+      "id": "relays-packy-api-unreachable",
+      "url": "https://packyapi.com/",
+      "evidence": "该官网来自 Packy Codex 的官方跳转链接。本次浏览器实际访问返回 ERR_CONNECTION_CLOSED，未获取现行充值价格。"
+    },
+    {
+      "id": "relays-aicodemirror-unreachable",
+      "url": "https://www.aicodemirror.com/api/pricing",
+      "evidence": "官网定价端点和主站本次均无法获取；Chrome 实际访问定价端点返回 ERR_CONNECTION_CLOSED，无法确认月费或年费。"
+    },
+    {
+      "id": "relays-88code-unreachable",
+      "url": "https://www.88code.ai/",
+      "evidence": "官网本次请求 HTTP 403，未能打开下单或定价页。"
+    },
+    {
+      "id": "relays-88code-docs-unreachable",
+      "url": "https://docs.88code.org/88code/pricing.html",
+      "evidence": "官方定价文档本次直接访问连接失败或超时；搜索索引虽有旧价格内容，本次不将摘要作为确认依据。"
+    },
+    {
+      "id": "relays-duck-unavailable",
+      "url": "https://www.duckcoding.ai/pricing",
+      "evidence": "Chrome 实际打开官网显示 Service unavailable，并说明只在特定地区提供服务；本环境无法取得定价。"
+    },
+    {
+      "id": "relays-aigocode-en",
+      "url": "https://www.aigocode.com/en",
+      "evidence": "官网现行定价：Pro ¥399、Max ¥899、Ultra ¥1799，全部为 4 周订阅；额度每 7 天发放 110/260/530，总计 440/1040/2120。"
+    },
+    {
+      "id": "relays-aigocode-cn",
+      "url": "https://www.aigocode.net/",
+      "evidence": "直接打开中文官网，同样列 Pro/Max/Ultra 三个 4 周档，正常价格 ¥399/¥899/¥1799；没有年付定价。"
+    },
+    {
+      "id": "relays-devpass",
+      "url": "https://devpass.llmgateway.io/",
+      "evidence": "官方月订阅为 Lite $29、Pro $79、Max $179，目前分别 $87/$237/$537 用量；公告 2026-10-15 起新订阅及之后首次续费从 3 倍改为 2 倍，费用不变。"
+    },
+    {
+      "id": "relays-devpass-terms",
+      "url": "https://devpass.llmgateway.io/legal/terms",
+      "evidence": "官方条款为个人交互式 Coding 的自动月续订。2026-10-15 生效的新额度为 $58/$158/$358，并调整滚动日限制和 premium 周限制；尚未生效。"
+    },
+    {
+      "id": "relays-chutes-pricing",
+      "url": "https://chutes.ai/pricing",
+      "evidence": "现行官方 Optional monthly plans 只列 Plus $10/月、Pro $20/月；含每日额度，额度外 PAYG 分别优惠 6%/10%；未列 $3 Base 或年付价。"
+    },
+    {
+      "id": "relays-chutes-starter",
+      "url": "https://chutes.ai/docs/guides/starter-guide",
+      "evidence": "官方入门文档明确只有两种可选月订阅 Plus $10 和 Pro $20；也可以无订阅直接按 token 充值消费。"
+    },
+    {
+      "id": "relays-chutes-policy",
+      "url": "https://chutes.ai/news/community-announcement-february",
+      "evidence": "2026-02-27 官方公告将所有订阅月度价值上限改为相当于订阅价 5 倍的 PAYG 用量，并可设置更短滚动窗口。被明确退役的是免费 Early Access，不能据此断言 Base 永久退役。"
+    },
+    {
+      "id": "relays-command",
+      "url": "https://commandcode.ai/pricing",
+      "evidence": "现行官网月费 Go/GOAT/Pro/Max10x/Max20x/Provider 为 $1/$10/$20/$100/$200/$15，均另收 processing fee。Go 当前含 $10 credits、约 9K 请求、优惠后最高约 $15 用量；未列年付价。"
+    },
+    {
+      "id": "relays-kiro",
+      "url": "https://kiro.dev/pricing/",
+      "evidence": "官方 Free $0/月；Pro $20、Pro+ $40、Pro Max $100、Power $200 均按每用户每月计价，social login / AWS Builder ID 用户可自行购买；团队开发者须分别订阅。税另计，首次升级 $20 账单抵扣为一次性优惠，不抵减正常续费价。"
+    },
+    {
+      "id": "relays-factory",
+      "url": "https://factory.com/pricing",
+      "evidence": "官方个人订阅 Pro $20/月、Plus $100/月、Max $200/月；Plus/Max 约为 Pro 的 5 倍/10 倍用量，未列个人年付价。另有 Teams $60/月基础费加 $40/席位及企业定制，库存没有这些记录。"
+    },
+    {
+      "id": "relays-canopy",
+      "url": "https://canopywave.com/codingplan",
+      "evidence": "官网 Coding Plan Pro Bundle 为 $30，按月收费。当前页按模型给出相对用量和不同 token 消耗的估计，没有找到原 500 次/天、10000 次/月的固定限额。"
+    },
+    {
+      "id": "relays-kiro-subscription",
+      "url": "https://kiro.dev/docs/billing/subscription-portal/",
+      "evidence": "官方文档描述用户在 Account & Billing 自行管理和升降级订阅；团队成员管理功能明确注明仅适用于 team plans。定价页另明确 social login 或 AWS Builder ID 用户可以自行购买四个付费档。"
+    }
+  ],
+  "records": [
+    {
+      "kind": "plan",
+      "id": "plan-0039",
+      "vendor": "OpenCode (Anomaly/SST)",
+      "name": "OpenCode Zen（按量付费）",
+      "status": "verified",
+      "old": {
+        "priceM": null,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": null,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-opencode-zen"
+      ],
+      "reason": "确认美元 PAYG，无固定月订阅或年付月均价；本记录 null 不代表免费。充值手续费单列，未作为模型 token 价加价。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0040",
+      "vendor": "OpenCode (Anomaly/SST)",
+      "name": "OpenCode Go",
+      "status": "verified",
+      "old": {
+        "priceM": 10,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": 10,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-opencode-go"
+      ],
+      "reason": "确认正常续费 $10/月；官方现行表未列首月减价或年付价，保持年付为 null。每工作区一名订阅成员。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0041",
+      "vendor": "OpenCode (Anomaly/SST)",
+      "name": "OpenCode Enterprise",
+      "status": "custom",
+      "old": {
+        "priceM": null,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": null,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-opencode-enterprise"
+      ],
+      "reason": "官网仅提供按席位定制报价，没有可公开确认的月费或年费，保持两者 null。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0042",
+      "vendor": "R4 Coder（r4.codes）",
+      "name": "Starter 预付包（已下架）",
+      "status": "unverified",
+      "old": {
+        "priceM": 5,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": null,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-r4"
+      ],
+      "reason": "现行官网没有 $5 Starter，既有已下架说明保留；官网未给出旧档 $5 价格或明确永久退役公告，无法独立重新确认旧价与退役状态。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0043",
+      "vendor": "R4 Coder（r4.codes）",
+      "name": "Code Max 预付包",
+      "status": "changed",
+      "old": {
+        "priceM": 50,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": 50,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-r4"
+      ],
+      "reason": "确认一次性 $50 预付包，含 $300 额度，30 天有效；不是按月自动续费。价格未变，但当前已售罄，仅能加入候补名单。",
+      "patch": {
+        "note": "2026-10-04 官网 Code Max 标为 Sold out，仅提供候补名单；一次性 $50 预付含 $300 额度、30 天有效、最高 8 并发，不是自动月续订。"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0044",
+      "vendor": "R4 Coder（r4.codes）",
+      "name": "Standard 预付包",
+      "status": "changed",
+      "old": {
+        "priceM": 10,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": 10,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-r4"
+      ],
+      "reason": "确认一次性 $10 包含 $60 额度、30 天有效；官网当前名 Code Lite 而非 Standard，并显示售罄。",
+      "patch": {
+        "plan": "Code Lite 预付包",
+        "note": "2026-10-04 官网名称 Code Lite，标为 Sold out，仅提供候补名单；一次性 $10 预付含 $60 额度、30 天有效、最高 6 并发。"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0045",
+      "vendor": "R4 Coder（r4.codes）",
+      "name": "Pro 预付包（Code Pro）",
+      "status": "changed",
+      "old": {
+        "priceM": 20,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": 20,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-r4"
+      ],
+      "reason": "确认 Code Pro 一次性 $20 包含 $120 额度、30 天有效；价格未变，但当前售罄，仅提供候补名单。",
+      "patch": {
+        "plan": "Code Pro 预付包",
+        "note": "2026-10-04 官网 Code Pro 标为 Sold out，仅提供候补名单；一次性 $20 预付含 $120 额度、30 天有效、最高 6 并发。"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0046",
+      "vendor": "ZenMux",
+      "name": "Free",
+      "status": "verified",
+      "old": {
+        "priceM": 0,
+        "priceY": 0,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": 0,
+        "priceY": 0,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-zenmux-subscription"
+      ],
+      "reason": "确认免费 $0，仅限 Studio 聊天，没有 API；priceY=0 是免费口径，不代表提供年付订阅。",
+      "patch": {
+        "url": "https://zenmux.ai/docs/guide/subscription.html"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0047",
+      "vendor": "ZenMux",
+      "name": "Starter",
+      "status": "verified",
+      "old": {
+        "priceM": 20,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": 20,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-zenmux-subscription"
+      ],
+      "reason": "确认个人月付美元价格与库存相同；官方订阅表未列年付价，保持 priceY=null。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0048",
+      "vendor": "ZenMux",
+      "name": "Max",
+      "status": "verified",
+      "old": {
+        "priceM": 100,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": 100,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-zenmux-subscription"
+      ],
+      "reason": "确认个人月付美元价格与库存相同；官方订阅表未列年付价，保持 priceY=null。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0049",
+      "vendor": "ZenMux",
+      "name": "Ultra",
+      "status": "verified",
+      "old": {
+        "priceM": 200,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": 200,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-zenmux-subscription"
+      ],
+      "reason": "确认个人月付美元价格与库存相同；官方订阅表未列年付价，保持 priceY=null。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0050",
+      "vendor": "ZenMux",
+      "name": "按量充值（PAYG）",
+      "status": "verified",
+      "old": {
+        "priceM": null,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": null,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-zenmux-payg"
+      ],
+      "reason": "确认美元充值制：1 Credit=$1 API 用量，起充 $5，最高 $25,000；没有固定月订阅或年付月均价。此项仅确认计费与价格口径，未重新确认库存中的赠送比例。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0051",
+      "vendor": "PackyCode/PackyAPI",
+      "name": "主站按量充值（1元=1刀）",
+      "status": "unverified",
+      "old": {
+        "priceM": null,
+        "priceY": null,
+        "cur": "CNY"
+      },
+      "observed": {
+        "priceM": null,
+        "priceY": null,
+        "cur": "CNY"
+      },
+      "sourceIds": [
+        "relays-packy-api-unreachable",
+        "relays-packy-codex"
+      ],
+      "reason": "官网来自 Packy Codex 的官方跳转，但本次连接被关闭，无法确认当前人民币充值兑换比例、起充金额或促销；保留库存历史值，不用第三方榜单补价。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0052",
+      "vendor": "PackyCode (Codex 站)",
+      "name": "Codex 包月（限购）",
+      "status": "retired",
+      "old": {
+        "priceM": 60,
+        "priceY": null,
+        "cur": "CNY"
+      },
+      "observed": {
+        "priceM": null,
+        "priceY": null,
+        "cur": "CNY"
+      },
+      "sourceIds": [
+        "relays-packy-codex"
+      ],
+      "reason": "官网实际渲染明确已停售并引导 PackyAPI 按量使用。现存 ¥60 来自历史社区限购券，无法与页面残留的美元档对应，不换算或改写历史数字，也不作为当前可购买价格。",
+      "patch": {
+        "plan": "Codex 包月（已停售）",
+        "url": "https://codex.packycode.com/pricing",
+        "note": "2026-10-04 官网明确已停止销售，购买按钮禁用，建议转至 PackyAPI 按量使用。库存 ¥60 为历史社区券价，现行可购买价格无法确认。"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0053",
+      "vendor": "AICodeMirror",
+      "name": "PRO",
+      "status": "unverified",
+      "old": {
+        "priceM": 259,
+        "priceY": 220.1,
+        "cur": "CNY"
+      },
+      "observed": {
+        "priceM": null,
+        "priceY": null,
+        "cur": "CNY"
+      },
+      "sourceIds": [
+        "relays-aicodemirror-unreachable"
+      ],
+      "reason": "官方定价端点及主站本次均无法连接，浏览器显示 ERR_CONNECTION_CLOSED。月费、年付总额和年付月均价均无法确认；保留历史值，无价格 patch。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0054",
+      "vendor": "AICodeMirror",
+      "name": "MAX",
+      "status": "unverified",
+      "old": {
+        "priceM": 559,
+        "priceY": 475,
+        "cur": "CNY"
+      },
+      "observed": {
+        "priceM": null,
+        "priceY": null,
+        "cur": "CNY"
+      },
+      "sourceIds": [
+        "relays-aicodemirror-unreachable"
+      ],
+      "reason": "官方定价端点及主站本次均无法连接，浏览器显示 ERR_CONNECTION_CLOSED。月费、年付总额和年付月均价均无法确认；保留历史值，无价格 patch。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0055",
+      "vendor": "AICodeMirror",
+      "name": "ULTRA",
+      "status": "unverified",
+      "old": {
+        "priceM": 1259,
+        "priceY": 1079.5,
+        "cur": "CNY"
+      },
+      "observed": {
+        "priceM": null,
+        "priceY": null,
+        "cur": "CNY"
+      },
+      "sourceIds": [
+        "relays-aicodemirror-unreachable"
+      ],
+      "reason": "官方定价端点及主站本次均无法连接，浏览器显示 ERR_CONNECTION_CLOSED。月费、年付总额和年付月均价均无法确认；保留历史值，无价格 patch。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0056",
+      "vendor": "88code",
+      "name": "FREE（已下架）",
+      "status": "unverified",
+      "old": {
+        "priceM": 0,
+        "priceY": 0,
+        "cur": "CNY"
+      },
+      "observed": {
+        "priceM": null,
+        "priceY": null,
+        "cur": "CNY"
+      },
+      "sourceIds": [
+        "relays-88code-unreachable",
+        "relays-88code-docs-unreachable"
+      ],
+      "reason": "官网 403、官方文档无法连接。本次无法确认 FREE 当前发放或退役状态；历史已下架标记和零价格保留，不将搜索缓存当现行官方证据。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0057",
+      "vendor": "88code",
+      "name": "PayGo（¥66 一次性 200 刀）",
+      "status": "unverified",
+      "old": {
+        "priceM": 66,
+        "priceY": null,
+        "cur": "CNY"
+      },
+      "observed": {
+        "priceM": null,
+        "priceY": null,
+        "cur": "CNY"
+      },
+      "sourceIds": [
+        "relays-88code-unreachable",
+        "relays-88code-docs-unreachable"
+      ],
+      "reason": "官网 403、官方定价文档无法连接；当前价格、付款周期、年付及是否仍可下单都未得到直接官方确认，保留历史值。搜索索引中的旧价不作为本次已确认价格。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0058",
+      "vendor": "88code",
+      "name": "PLUS 包月",
+      "status": "unverified",
+      "old": {
+        "priceM": 198,
+        "priceY": null,
+        "cur": "CNY"
+      },
+      "observed": {
+        "priceM": null,
+        "priceY": null,
+        "cur": "CNY"
+      },
+      "sourceIds": [
+        "relays-88code-unreachable",
+        "relays-88code-docs-unreachable"
+      ],
+      "reason": "官网 403、官方定价文档无法连接；当前价格、付款周期、年付及是否仍可下单都未得到直接官方确认，保留历史值。搜索索引中的旧价不作为本次已确认价格。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0059",
+      "vendor": "88code",
+      "name": "PRO 包月",
+      "status": "unverified",
+      "old": {
+        "priceM": 398,
+        "priceY": null,
+        "cur": "CNY"
+      },
+      "observed": {
+        "priceM": null,
+        "priceY": null,
+        "cur": "CNY"
+      },
+      "sourceIds": [
+        "relays-88code-unreachable",
+        "relays-88code-docs-unreachable"
+      ],
+      "reason": "官网 403、官方定价文档无法连接；当前价格、付款周期、年付及是否仍可下单都未得到直接官方确认，保留历史值。搜索索引中的旧价不作为本次已确认价格。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0060",
+      "vendor": "88code",
+      "name": "MAX 包月",
+      "status": "unverified",
+      "old": {
+        "priceM": 698,
+        "priceY": null,
+        "cur": "CNY"
+      },
+      "observed": {
+        "priceM": null,
+        "priceY": null,
+        "cur": "CNY"
+      },
+      "sourceIds": [
+        "relays-88code-unreachable",
+        "relays-88code-docs-unreachable"
+      ],
+      "reason": "官网 403、官方定价文档无法连接；当前价格、付款周期、年付及是否仍可下单都未得到直接官方确认，保留历史值。搜索索引中的旧价不作为本次已确认价格。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0061",
+      "vendor": "88code",
+      "name": "PayGo（¥666 一次性 1988 刀）",
+      "status": "unverified",
+      "old": {
+        "priceM": 666,
+        "priceY": null,
+        "cur": "CNY"
+      },
+      "observed": {
+        "priceM": null,
+        "priceY": null,
+        "cur": "CNY"
+      },
+      "sourceIds": [
+        "relays-88code-unreachable",
+        "relays-88code-docs-unreachable"
+      ],
+      "reason": "官网 403、官方定价文档无法连接；当前价格、付款周期、年付及是否仍可下单都未得到直接官方确认，保留历史值。搜索索引中的旧价不作为本次已确认价格。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0062",
+      "vendor": "DuckCoding",
+      "name": "按量（分组倍率制）",
+      "status": "unverified",
+      "old": {
+        "priceM": null,
+        "priceY": null,
+        "cur": "CNY"
+      },
+      "observed": {
+        "priceM": null,
+        "priceY": null,
+        "cur": "CNY"
+      },
+      "sourceIds": [
+        "relays-duck-unavailable"
+      ],
+      "reason": "官网定价页在本环境显示地区限制 Service unavailable；无法确认兑换比例、分组倍率、充值方式或现行注册状态，保留历史信息，不用搜索摘要替代官网确认。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0063",
+      "vendor": "AIGoCode",
+      "name": "Standard（4 周订阅）",
+      "status": "changed",
+      "old": {
+        "priceM": 399,
+        "priceY": null,
+        "cur": "CNY"
+      },
+      "observed": {
+        "priceM": 399,
+        "priceY": null,
+        "cur": "CNY"
+      },
+      "sourceIds": [
+        "relays-aigocode-en",
+        "relays-aigocode-cn"
+      ],
+      "reason": "确认人民币正常包价与库存相同，但官方套餐名已变为 Pro；周期是 4 周而非自然月，官网未列年付价。",
+      "patch": {
+        "plan": "Pro（4 周订阅）",
+        "url": "https://www.aigocode.net/",
+        "quota": "4 周总额度 440，每 7 天发放 110；额度以官网 credits 口径计。",
+        "note": "2026-10-04 直接核对官网：Pro 正常价与库存相同，4 周订阅，不按自然月计算；官网称额度每 7 天发放，未列年付价。"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0064",
+      "vendor": "AIGoCode",
+      "name": "Premium（4 周订阅）",
+      "status": "changed",
+      "old": {
+        "priceM": 899,
+        "priceY": null,
+        "cur": "CNY"
+      },
+      "observed": {
+        "priceM": 899,
+        "priceY": null,
+        "cur": "CNY"
+      },
+      "sourceIds": [
+        "relays-aigocode-en",
+        "relays-aigocode-cn"
+      ],
+      "reason": "确认人民币正常包价与库存相同，但官方套餐名已变为 Max；周期是 4 周而非自然月，官网未列年付价。",
+      "patch": {
+        "plan": "Max（4 周订阅）",
+        "url": "https://www.aigocode.net/",
+        "quota": "4 周总额度 1040，每 7 天发放 260；额度以官网 credits 口径计。",
+        "note": "2026-10-04 直接核对官网：Max 正常价与库存相同，4 周订阅，不按自然月计算；官网称额度每 7 天发放，未列年付价。"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0065",
+      "vendor": "AIGoCode",
+      "name": "Professional（4 周订阅）",
+      "status": "changed",
+      "old": {
+        "priceM": 1799,
+        "priceY": null,
+        "cur": "CNY"
+      },
+      "observed": {
+        "priceM": 1799,
+        "priceY": null,
+        "cur": "CNY"
+      },
+      "sourceIds": [
+        "relays-aigocode-en",
+        "relays-aigocode-cn"
+      ],
+      "reason": "确认人民币正常包价与库存相同，但官方套餐名已变为 Ultra；周期是 4 周而非自然月，官网未列年付价。",
+      "patch": {
+        "plan": "Ultra（4 周订阅）",
+        "url": "https://www.aigocode.net/",
+        "quota": "4 周总额度 2120，每 7 天发放 530；额度以官网 credits 口径计。",
+        "note": "2026-10-04 直接核对官网：Ultra 正常价与库存相同，4 周订阅，不按自然月计算；官网称额度每 7 天发放，未列年付价。"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0066",
+      "vendor": "DevPass",
+      "name": "三档月订阅（$29/$79/$179）",
+      "status": "changed",
+      "old": {
+        "priceM": 29,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": 29,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-devpass",
+        "relays-devpass-terms"
+      ],
+      "reason": "确认三档正常月费 $29/$79/$179，年付未列。截至核对日仍为 3 倍用量；已公告 2026-10-15 新订阅及此后首次续费降为 2 倍，不能提前把未来规则视为当前额度。",
+      "patch": {
+        "url": "https://devpass.llmgateway.io/",
+        "note": "官方个人月订阅 Lite $29、Pro $79、Max $179；截至 2026-10-04 对应 $87/$237/$537 用量。官方已公告 2026-10-15 起新订阅及之后首次续费降为 2 倍，即 $58/$158/$358；订阅月费不变，排序按最低档 $29。"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0067",
+      "vendor": "Chutes (chutes.ai)",
+      "name": "Base / Plus / Pro（$3/$10/$20）",
+      "status": "unverified",
+      "old": {
+        "priceM": 3,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": null,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-chutes-pricing",
+        "relays-chutes-starter",
+        "relays-chutes-policy"
+      ],
+      "reason": "库存是 Base / Plus / Pro（$3/$10/$20）合并历史条目，不是单独的 Plus。当前官网仅确认 Plus $10/月、Pro $20/月；旧 $3 Base 在较早官方公告存在，但现行页未列，也没有找到明确迁移为 Plus 或永久停售的公告。因此不能把不同档位 $10 覆盖旧记录最低 $3；保留历史价格与名称，整条组合标为待核。官方 2026-02-27 公告已将订阅价值上限改为 5 倍 PAYG，用量原固定请求数也应等待当前额度页确认。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0068",
+      "vendor": "Command Code",
+      "name": "Go",
+      "status": "changed",
+      "old": {
+        "priceM": 1,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": 1,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-command"
+      ],
+      "reason": "正常月费仍 $1，另收 processing fee。官网当前含 $10 credits、估计约 9K 请求、优惠后最高约 $15 用量，与库存 15K / $20 不同；此变化是用量估计而非月费。",
+      "patch": {
+        "quota": "含 $10 credits/月；官网估计约 9K 请求，配合优惠最高约 $15 用量，实际随模型消耗变化。",
+        "note": "$1/月，另收 processing fee；这是收费月订阅。官方未列年付价。"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0069",
+      "vendor": "Command Code",
+      "name": "GOAT",
+      "status": "verified",
+      "old": {
+        "priceM": 10,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": 10,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-command"
+      ],
+      "reason": "确认美元正常月费与库存相同，官网额外收取 processing fee；没有将折扣模型用量面值当订阅费用，未列年付价。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0070",
+      "vendor": "Command Code",
+      "name": "Pro",
+      "status": "verified",
+      "old": {
+        "priceM": 20,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": 20,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-command"
+      ],
+      "reason": "确认美元正常月费与库存相同，官网额外收取 processing fee；没有将折扣模型用量面值当订阅费用，未列年付价。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0071",
+      "vendor": "Command Code",
+      "name": "Max 10×",
+      "status": "verified",
+      "old": {
+        "priceM": 100,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": 100,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-command"
+      ],
+      "reason": "确认美元正常月费与库存相同，官网额外收取 processing fee；没有将折扣模型用量面值当订阅费用，未列年付价。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0072",
+      "vendor": "Command Code",
+      "name": "Max 20×",
+      "status": "verified",
+      "old": {
+        "priceM": 200,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": 200,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-command"
+      ],
+      "reason": "确认美元正常月费与库存相同，官网额外收取 processing fee；没有将折扣模型用量面值当订阅费用，未列年付价。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0073",
+      "vendor": "Command Code",
+      "name": "Provider (API)",
+      "status": "verified",
+      "old": {
+        "priceM": 15,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": 15,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-command"
+      ],
+      "reason": "确认 Provider 为 $15/月加 processing fee，此外再按 API 用量付费；充值余额不过期。不是单纯零月费 PAYG，未列年付价。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0074",
+      "vendor": "AWS Kiro",
+      "name": "Free",
+      "status": "verified",
+      "old": {
+        "priceM": 0,
+        "priceY": 0,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": 0,
+        "priceY": 0,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-kiro"
+      ],
+      "reason": "确认免费 $0/月；priceY=0 是免费口径，不表示有年付订阅。首次升级送 $20 credits 是一次性奖励，不影响付费档正常续费价。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0075",
+      "vendor": "AWS Kiro",
+      "name": "Pro",
+      "status": "changed",
+      "old": {
+        "priceM": 20,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": 20,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-kiro",
+        "relays-kiro-subscription"
+      ],
+      "reason": "确认正常美元月费与库存相同，官网计价原文为每用户每月。social login / AWS Builder ID 用户可自行订阅，团队使用要求每位开发者拥有独立订阅；不能仅凭 per user 将个人档归为团队 seat=true。在本项目 seat 会使其退出 isPersonalMonthly 与 eligibleProfiles，因此保持库存个人分类；税另计，首次升级 $20 账单抵扣不改变正常续费价，现行页未列年付价。",
+      "patch": {
+        "note": "个人用户可通过 social login / AWS Builder ID 自行购买；官方计价原文为每用户每月，税另计，团队使用每位开发者须独立订阅。加购 $0.04/credit。首次升级 $20 账单抵扣属于一次性优惠，不能抵减正常续费价；官网现行页未列年付价。",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0076",
+      "vendor": "AWS Kiro",
+      "name": "Pro+",
+      "status": "changed",
+      "old": {
+        "priceM": 40,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": 40,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-kiro",
+        "relays-kiro-subscription"
+      ],
+      "reason": "确认正常美元月费与库存相同，官网计价原文为每用户每月。social login / AWS Builder ID 用户可自行订阅，团队使用要求每位开发者拥有独立订阅；不能仅凭 per user 将个人档归为团队 seat=true。在本项目 seat 会使其退出 isPersonalMonthly 与 eligibleProfiles，因此保持库存个人分类；税另计，首次升级 $20 账单抵扣不改变正常续费价，现行页未列年付价。",
+      "patch": {
+        "note": "个人用户可通过 social login / AWS Builder ID 自行购买；官方计价原文为每用户每月，税另计，团队使用每位开发者须独立订阅。加购 $0.04/credit。首次升级 $20 账单抵扣属于一次性优惠，不能抵减正常续费价；官网现行页未列年付价。",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0077",
+      "vendor": "AWS Kiro",
+      "name": "Pro Max",
+      "status": "changed",
+      "old": {
+        "priceM": 100,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": 100,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-kiro",
+        "relays-kiro-subscription"
+      ],
+      "reason": "确认正常美元月费与库存相同，官网计价原文为每用户每月。social login / AWS Builder ID 用户可自行订阅，团队使用要求每位开发者拥有独立订阅；不能仅凭 per user 将个人档归为团队 seat=true。在本项目 seat 会使其退出 isPersonalMonthly 与 eligibleProfiles，因此保持库存个人分类；税另计，首次升级 $20 账单抵扣不改变正常续费价，现行页未列年付价。",
+      "patch": {
+        "note": "个人用户可通过 social login / AWS Builder ID 自行购买；官方计价原文为每用户每月，税另计，团队使用每位开发者须独立订阅。加购 $0.04/credit。首次升级 $20 账单抵扣属于一次性优惠，不能抵减正常续费价；官网现行页未列年付价。",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0078",
+      "vendor": "AWS Kiro",
+      "name": "Power",
+      "status": "changed",
+      "old": {
+        "priceM": 200,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": 200,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-kiro",
+        "relays-kiro-subscription"
+      ],
+      "reason": "确认正常美元月费与库存相同，官网计价原文为每用户每月。social login / AWS Builder ID 用户可自行订阅，团队使用要求每位开发者拥有独立订阅；不能仅凭 per user 将个人档归为团队 seat=true。在本项目 seat 会使其退出 isPersonalMonthly 与 eligibleProfiles，因此保持库存个人分类；税另计，首次升级 $20 账单抵扣不改变正常续费价，现行页未列年付价。",
+      "patch": {
+        "note": "个人用户可通过 social login / AWS Builder ID 自行购买；官方计价原文为每用户每月，税另计，团队使用每位开发者须独立订阅。加购 $0.04/credit。首次升级 $20 账单抵扣属于一次性优惠，不能抵减正常续费价；官网现行页未列年付价。",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0079",
+      "vendor": "Factory (Droid)",
+      "name": "Droid Pro",
+      "status": "verified",
+      "old": {
+        "priceM": 20,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": 20,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-factory"
+      ],
+      "reason": "确认个人正常月付美元价格与库存相同，官网未列个人年付价；没有把独立 Teams 的基础月费和席位费误套到个人档。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0080",
+      "vendor": "Factory (Droid)",
+      "name": "Droid Plus",
+      "status": "verified",
+      "old": {
+        "priceM": 100,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": 100,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-factory"
+      ],
+      "reason": "确认个人正常月付美元价格与库存相同，官网未列个人年付价；没有把独立 Teams 的基础月费和席位费误套到个人档。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0081",
+      "vendor": "Factory (Droid)",
+      "name": "Droid Max",
+      "status": "verified",
+      "old": {
+        "priceM": 200,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": 200,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-factory"
+      ],
+      "reason": "确认个人正常月付美元价格与库存相同，官网未列个人年付价；没有把独立 Teams 的基础月费和席位费误套到个人档。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0088",
+      "vendor": "Canopy Wave",
+      "name": "Coding Plan Pro Bundle",
+      "status": "verified",
+      "old": {
+        "priceM": 30,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": 30,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-canopy"
+      ],
+      "reason": "确认 Pro Bundle $30，按月收费，未列年付价。此核对仅确认价格：现行页按模型展示相对用量，没有直接证实库存 500 请求/天、10000 请求/月的固定数字，不将这些数字标为此次已确认。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0089",
+      "vendor": "OpenCode (Anomaly/SST)",
+      "name": "OpenCode Go Plus",
+      "status": "verified",
+      "old": {
+        "priceM": 40,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "observed": {
+        "priceM": 40,
+        "priceY": null,
+        "cur": "USD"
+      },
+      "sourceIds": [
+        "relays-opencode-go",
+        "relays-opencode-go-catalog"
+      ],
+      "reason": "确认正常续费 $40/月，官网未列年付价；模型用量估计差异不能算作套餐折扣或订阅价变化。",
+      "patch": {}
+    }
+  ]
+}

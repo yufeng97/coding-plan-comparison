@@ -2,23 +2,24 @@
 "use strict";
 const fs = require("node:fs");
 const path = require("node:path");
-const { createAssetPlan } = require("./lib/public-assets");
+const { createAssetPlan } = require("../lib/public-assets");
+const { insideRoot } = require("../lib/paths");
+const { swapDirectory } = require("../lib/atomic-swap");
 
-function stageSite(workspace = path.resolve(__dirname, "..")) {
+function stageSite(workspace = path.resolve(__dirname, "..", "..")) {
   const plan = createAssetPlan(workspace);
   if (plan.changes.length) throw new Error("公共资源缓存版本过期，请先运行 npm run bump");
   const config = path.join(plan.root, "vercel.json");
-  const configPath = path.relative(plan.root, fs.realpathSync(config));
-  if (configPath === ".." || configPath.startsWith(".." + path.sep) || path.isAbsolute(configPath)) throw new Error("Vercel 配置越出项目目录");
+  if (!insideRoot(plan.root, fs.realpathSync(config))) throw new Error("Vercel 配置越出项目目录");
   JSON.parse(fs.readFileSync(config, "utf8"));
   const destination = path.join(plan.root, ".site-build");
   const stage = fs.mkdtempSync(path.join(plan.root, ".site-stage-"));
   const backup = fs.mkdtempSync(path.join(plan.root, ".site-backup-"));
-  let previous = false, committed = false;
-  const removeOwned = (dir, prefix) => {
-    if (path.dirname(dir) !== plan.root || !path.basename(dir).startsWith(prefix)) throw new Error("拒绝清理未知网站暂存路径");
+  const removeOwned = (dir) => {
+    if (path.dirname(dir) !== plan.root || !path.basename(dir).startsWith(".site-")) throw new Error("拒绝清理未知网站暂存路径");
     fs.rmSync(dir, { recursive: true, force: true });
   };
+  let swapStarted = false;
   try {
     for (const [file, bytes] of plan.outputs) {
       const next = path.join(stage, path.relative(plan.root, file));
@@ -26,14 +27,12 @@ function stageSite(workspace = path.resolve(__dirname, "..")) {
       fs.writeFileSync(next, bytes);
     }
     fs.copyFileSync(config, path.join(stage, "vercel.json"));
-    fs.rmdirSync(backup);
-    if (fs.existsSync(destination)) { fs.renameSync(destination, backup); previous = true; }
-    try { fs.renameSync(stage, destination); committed = true; }
-    catch (error) { if (previous) { fs.renameSync(backup, destination); previous = false; } throw error; }
+    swapStarted = true;
+    swapDirectory({ stage, backup, destination, removeOwned });
     return { directory: destination, files: [...plan.outputs.keys()].map((file) => path.relative(plan.root, file)).concat("vercel.json") };
   } finally {
-    if (!committed) removeOwned(stage, ".site-stage-");
-    if (!previous || committed) removeOwned(backup, ".site-backup-");
+    /* 进入交换后由 swapDirectory 清理；恢复失败的 backup 必须保留。 */
+    if (!swapStarted) { removeOwned(stage); removeOwned(backup); }
   }
 }
 if (require.main === module) {

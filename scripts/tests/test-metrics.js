@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* ============================================================
- * 额度换算与模型分类的单元测试：node scripts/test-metrics.js
+ * 额度换算与模型分类的单元测试：node scripts/tests/test-metrics.js
  * 零依赖（node:assert + vm），载入 js/data.js + js/metrics.js 后
  * 用手算基准值锁定公式。改动换算假设（缓存率、80/20、4.33 等）
  * 或旗舰正则后必须跑本脚本；退出码 0=通过 1=失败。
@@ -9,7 +9,7 @@ const vm = require("vm");
 const fs = require("fs");
 const path = require("path");
 const assert = require("assert");
-const root = path.join(__dirname, "..");
+const root = path.join(__dirname, "..", "..");
 
 const src = ["js/data.js", "js/metrics.js"]
   .map((f) => fs.readFileSync(path.join(root, f), "utf8"))
@@ -83,6 +83,27 @@ test("GLM V3 Lite（¥118、48–104M/周）→ 每 M ≈ ¥0.3586、月倍率 �
 });
 test("缺 api 牌价 → null（无法折算）", () => {
   assert.strictEqual(computeMetrics({ priceM: 118, cur: "CNY", wkLowM: 48 }), null);
+});
+test("未知周期的周参考不生成5h额度，明确官方5h周均摊仍保留", () => {
+  const base = { priceM: 118, cur: "CNY", wkLowM: 48, wkHighM: 104, apiIn: 8, apiOut: 28, apiCache: 2 };
+  const known = computeMetrics({ ...base, windowPeriod: "5h" });
+  const unknown = computeMetrics({ ...base, windowPeriod: "unknown" });
+  assert.ok(known && unknown);
+  assert.ok(near(known.fLow, 9.6) && near(known.fHigh, 20.8));
+  for (const field of ["fLow", "fHigh", "val5h", "val5hHi", "r5h", "r5hHi"]) assert.strictEqual(unknown[field], null, field);
+  for (const field of ["wkLowM", "moLow", "costPerM", "valMo", "rmo"]) assert.ok(near(unknown[field], known[field]), field);
+});
+test("仅月/周请求保留月成本，不推导5h；明确5h请求仍使用自身上限", () => {
+  const base = { priceM: 30, cur: "USD", reqPerMo: 10000, reqPerWk: 2310, apiIn: 0.65, apiOut: 3.41, apiCache: 0.15 };
+  const monthly = computeMetrics(base);
+  const windowed = computeMetrics({ ...base, reqPer5h: 500, windowPeriod: "unknown" });
+  assert.ok(monthly && windowed);
+  assert.strictEqual(monthly.fLow, null);
+  assert.strictEqual(monthly.val5h, null);
+  assert.strictEqual(monthly.r5h, null);
+  assert.ok(near(monthly.moLow, 200));
+  assert.ok(near(windowed.fLow, 10));
+  assert.ok(near(windowed.moLow, monthly.moLow) && near(windowed.costPerM, monthly.costPerM));
 });
 
 console.log("computeMetrics（credits 制）");

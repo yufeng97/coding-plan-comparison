@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 "use strict";
 const path = require("node:path");
-const { createAssetPlan, writeAssetPlan } = require("./lib/public-assets");
+const { createAssetPlan, writeAssetPlan } = require("../lib/public-assets");
 
-function main(args = process.argv.slice(2), workspace = path.resolve(__dirname, "..")) {
-  if (args.some((arg) => arg !== "--check")) throw new Error("用法：node scripts/bump-versions.js [--check]");
+function main(args = process.argv.slice(2), workspace = path.resolve(__dirname, "..", "..")) {
+  if (args.some((arg) => arg !== "--check")) throw new Error("用法：node scripts/build/bump-versions.js [--check]");
   const plan = createAssetPlan(workspace);
   if (args.includes("--check")) {
     if (plan.changes.length) throw new Error("缓存版本号过期，请运行 npm run bump：" + plan.changes.map(([file]) => path.relative(plan.root, file)).join("、"));

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* ============================================================
- * 数据校验：node scripts/validate-data.js
+ * 数据校验：node scripts/build/validate-data.js
  * 校验 js/data.js 的结构、类型与引用一致性。
  * 退出码：0 = 通过（可有警告）；1 = 存在错误。
  * 每日巡检任务在修改 data.js 后必须运行本脚本，
@@ -9,7 +9,7 @@
 const vm = require("vm");
 const fs = require("fs");
 const path = require("path");
-const root = path.join(__dirname, "..");
+const root = path.join(__dirname, "..", "..");
 
 const errors = [];
 const warns = [];
@@ -28,15 +28,44 @@ sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(
   fs.readFileSync(path.join(root, "js/data.js"), "utf8") +
-    "\n;globalThis.__D={RATE_USD_CNY,PLANS,METRICS_RAW,ESTIMATES,PLAN_TOKENS,DYNAMICS,API_PRICES,PAYG_REFERENCES,SOURCES,MODEL_ROLES,matchModelRoles,isRetiredPlan,isFreeCodingEntry,isOnSalePlan,isPersonalMonthly,resolvedField,hasOwnClient,offerable,findPlanReference};",
+    "\n;globalThis.__D={RATE_USD_CNY,RATE_INR_CNY,META,PRICE_CHECKS,PLANS,METRICS_RAW,ESTIMATES,PLAN_TOKENS,DYNAMICS,API_PRICES,PAYG_REFERENCES,SOURCES,MODEL_ROLES,matchModelRoles,isRetiredPlan,isFreeCodingEntry,isOnSalePlan,isPersonalMonthly,resolvedField,hasOwnClient,offerable,findPlanReference};",
   sandbox,
   { filename: "js/data.js" }
 );
-const { RATE_USD_CNY, PLANS, METRICS_RAW, ESTIMATES, PLAN_TOKENS, DYNAMICS, API_PRICES, PAYG_REFERENCES, SOURCES, MODEL_ROLES, matchModelRoles, isRetiredPlan, isFreeCodingEntry, isOnSalePlan, isPersonalMonthly, resolvedField, hasOwnClient, offerable, findPlanReference } = sandbox.__D;
+const { RATE_USD_CNY, RATE_INR_CNY, META, PRICE_CHECKS, PLANS, METRICS_RAW, ESTIMATES, PLAN_TOKENS, DYNAMICS, API_PRICES, PAYG_REFERENCES, SOURCES, MODEL_ROLES, matchModelRoles, isRetiredPlan, isFreeCodingEntry, isOnSalePlan, isPersonalMonthly, resolvedField, hasOwnClient, offerable, findPlanReference } = sandbox.__D;
 
 const CATS = ["official", "tool", "cloud", "team"];
 const REGIONS = ["cn", "intl"];
 check(finitePositive(RATE_USD_CNY), "RATE_USD_CNY 必须为有限正数");
+check(finitePositive(RATE_INR_CNY), "RATE_INR_CNY 必须为有限正数");
+check(META && /^\d{4}-\d{2}-\d{2}$/.test(META.updated || ""), "META.updated 缺失或格式非法");
+check(META && /^\d{4}-\d{2}-\d{2}$/.test(META.rateAsOf || ""), "META.rateAsOf 缺失或格式非法（页面汇率说明引用该字段）");
+check(META && /^https:\/\//.test(META.rateSource || ""), "META.rateSource 缺失或格式非法");
+
+/* ---- 每条价格的核查状态与来源 ---- */
+const priceKeys = [
+  ...PLANS.map((p) => "plan:" + p.id),
+  ...API_PRICES.map((p) => "api:" + p.vendor + "|" + p.model),
+  ...PAYG_REFERENCES.map((p) => "payg:" + p.vendor + "|" + p.model),
+];
+check(PRICE_CHECKS && /^\d{4}-\d{2}-\d{2}$/.test(PRICE_CHECKS.checkedAt || ""), "PRICE_CHECKS.checkedAt 缺失或格式非法");
+check(PRICE_CHECKS.checkedAt <= META.updated, "核价日期不能晚于数据版本日期");
+check(Object.keys(PRICE_CHECKS.rows).length === priceKeys.length, "价格核查记录数与库存不一致");
+for (const key of priceKeys) {
+  const row = PRICE_CHECKS.rows[key];
+  check(!!row, "缺少价格核查记录: " + key);
+  if (!row) continue;
+  check(["verified", "changed", "unverified", "retired", "custom"].includes(row.status), "核价状态非法: " + key);
+  check(/^\d{4}-\d{2}-\d{2}$/.test(row.checkedAt || "") && row.checkedAt <= PRICE_CHECKS.checkedAt, "核价日期非法: " + key);
+  check(typeof row.reason === "string" && !!row.reason.trim(), "缺少核价说明: " + key);
+  check(Array.isArray(row.sourceIds) && !!row.sourceIds.length, "缺少核价来源: " + key);
+  for (const id of row.sourceIds || []) check(!!PRICE_CHECKS.sources[id], "核价来源无法解析: " + key + " / " + id);
+}
+for (const key of Object.keys(PRICE_CHECKS.rows)) check(priceKeys.includes(key), "残留核价记录: " + key);
+for (const [id, source] of Object.entries(PRICE_CHECKS.sources)) {
+  check(/^https:\/\//.test(source.url || ""), "核价来源 URL 非法: " + id);
+  check(typeof source.evidence === "string" && !!source.evidence.trim(), "核价来源缺少证据: " + id);
+}
 
 /* ---- PLANS ---- */
 const planKeys = new Set();
@@ -52,7 +81,7 @@ for (const p of PLANS) {
   check(typeof p.plan === "string" && !!p.plan, `PLANS 缺 plan: ${key}`);
   check(CATS.includes(p.cat), `PLANS cat 非法(${p.cat}): ${key}`);
   check(REGIONS.includes(p.region), `PLANS region 非法(${p.region}): ${key}`);
-  check(p.cur === "USD" || p.cur === "CNY", `PLANS cur 非法(${p.cur}): ${key}`);
+  check(["USD", "CNY", "INR"].includes(p.cur), `PLANS cur 非法(${p.cur}): ${key}`);
   check(p.priceM == null || finiteNonnegative(p.priceM), `PLANS priceM 必须为有限非负数或 null: ${key}`);
   check(p.priceY == null || finiteNonnegative(p.priceY), `PLANS priceY 必须为有限非负数或 null: ${key}`);
   check(p.priceM !== undefined, `PLANS 缺 priceM 字段(应为数字或 null): ${key}`);
@@ -65,6 +94,9 @@ for (const p of PLANS) {
   check(p.modelAccess == null || ["included", "byok", "metered"].includes(p.modelAccess), `PLANS modelAccess 非法: ${key}`);
   check(p.purchaseCountries == null || (Array.isArray(p.purchaseCountries) && p.purchaseCountries.length > 0 && p.purchaseCountries.every((c) => /^[A-Z]{2}$/.test(c))), `PLANS purchaseCountries 必须为非空 ISO 国别数组: ${key}`);
   if (p.priceM != null && p.priceM > 0 && p.priceY != null) warn(p.priceY <= p.priceM, `PLANS 年付折月高于月付: ${key}`);
+  /* 定制档不应只填年付价（复制残留的典型信号）。plan-0007 的年付席位费在 quota 里有官方依据，显式豁免。 */
+  check(p.priceM != null || p.priceY == null || p.id === "plan-0007",
+    `PLANS 无月付价却有年付折月价（如为定制报价请改 priceY: null）: ${key}`);
   if (p.priceM == null) note(`PLANS 无标价（按量/定制）: ${key}`);
   if (!isRetiredPlan(p) && typeof p.url === "string" && /web\.archive\.org/i.test(p.url)) {
     errors.push(`在售计划来源不能用网页存档: ${key}`);
@@ -84,7 +116,9 @@ for (const [vendor, plan] of NOT_CODING_FREE) {
   const p = PLANS.find((x) => x.vendor === vendor && x.plan === plan);
   if (!p) continue;
   const noted = (p.note || "").includes("不列入");
-  check(p.priceM === 0 && (isRetiredPlan(p) || noted), `不能当 Coding Agent 的免费档须标明不列入或已下架: ${vendor}|${plan}`);
+  /* 排除逻辑单源：data.js 的 isFreeCodingEntry 必须已经排除这些档（而不是靠校验器自己复制一份名单） */
+  check(p.priceM === 0 && (isRetiredPlan(p) || noted) && !isFreeCodingEntry(p),
+    `不能当 Coding Agent 的免费档须标明不列入（或已下架）且被 isFreeCodingEntry 排除: ${vendor}|${plan}`);
 }
 const freeCoding = PLANS.filter(isFreeCodingEntry);
 check(!PLANS.some((p) => isOnSalePlan(p) && !(p.priceM > 0)), "无月费的档不应计入在售有标价");
@@ -175,6 +209,8 @@ for (const m of allMetrics) {
     const p = findPlanReference(m.ref);
     check(!!p, `ref 无法解析(PLANS 中不存在): ${JSON.stringify(m.ref)}`);
     if (p) check(finitePositive(p.priceM), `ref 必须指向有有效正月费的计划: ${key}`);
+    /* 指向已停售档通常意味着该更新到现售档；V2 老用户等有意引用需人工确认，故为警告 */
+    if (p && isRetiredPlan(p)) warn(false, `ref 指向已停售/已下架计划（若为有意引用请忽略）: ${key} → ${JSON.stringify(m.ref)}`);
     if (p && typeof m.priceM === "number" && typeof p.priceM === "number") {
       warn(Math.abs(m.priceM - p.priceM) < 0.01, `ref 已解析但价格与 PLANS 不一致(条目 ${m.priceM} vs ${p.priceM}): ${key}`);
     }
@@ -189,9 +225,41 @@ for (const m of allMetrics) {
 const noRef = allMetrics.filter((m) => m.ref == null).length;
 if (noRef > 0) note(`${noRef} 个指标条目未设 ref（价格未与 PLANS 单一数据源对齐）`);
 
+/* 币种锚点交叉校验：同厂商、同型号的牌价在 API_PRICES 里有正式条目时，指标行的牌价必须同币种
+   （metrics.js 的 blendPrice 假定 apiIn/apiOut 与 ref 计划同币种，填错币种会静默算出错误成本）。
+   跨厂商引用（如 DevPass 按官方/挂牌价折算）与 API_PRICES 未单列的型号不在此检查范围。 */
+const foldModel = (x) => String(x || "").toLowerCase().replace(/[^a-z0-9.]+/g, "");
+for (const m of allMetrics) {
+  /* 与浏览器 resolvePlan 一致：ref 可解析时，币种和厂商来自计划单一数据源。 */
+  const p = m.ref != null ? findPlanReference(m.ref) : null;
+  const cur = p ? p.cur : m.cur;
+  const vendor = p ? p.vendor : m.vendor;
+  if (cur !== "USD" && cur !== "CNY") continue;
+  const key = (vendor || "?") + "|" + (m.model || "?");
+  const sameVendor = API_PRICES.filter((a) => a.vendor === vendor &&
+    (foldModel(a.model) === foldModel(m.model) || foldModel(a.label) === foldModel(m.model)));
+  if (!sameVendor.length) continue;
+  check(sameVendor.some((a) => a.cur === cur),
+    `指标行牌价币种与 API_PRICES 同厂商同型号条目不一致（解析币种=${cur}）: ${key}`);
+  const sameCur = sameVendor.filter((a) => a.cur === cur);
+  const priceOfA = (a) => a.cur === "USD" ? [a.inUSD, a.outUSD] : [a.inCNY, a.outCNY];
+  if (sameCur.length && m.apiIn != null && m.apiOut != null) {
+    const matched = sameCur.some((a) => {
+      const [pin, pout] = priceOfA(a);
+      return Math.abs(pin - m.apiIn) < 1e-9 && Math.abs(pout - m.apiOut) < 1e-9;
+    });
+    warn(matched, `指标行牌价与 API_PRICES 同厂商同型号条目数值不同（如档位/促销差异请人工确认）: ${key}`);
+  }
+}
+
 /* ---- API_PRICES ---- */
+const apiPriceKeys = new Set();
 for (const a of API_PRICES) {
   const key = (a.vendor || "?") + " " + (a.model || "?");
+  /* 同厂商同型号不重复上架；聚合平台后缀（[硅基]）属于 label，不影响此判定 */
+  const dedupKey = (a.vendor || "?") + "|" + String(a.model || "").toLowerCase().replace(/\s+/g, "");
+  check(!apiPriceKeys.has(dedupKey), `API_PRICES 重复条目: ${key}`);
+  apiPriceKeys.add(dedupKey);
   check(a.cur === "USD" || a.cur === "CNY", `API_PRICES cur 非法: ${key}`);
   if (a.cur === "USD") check(finiteNonnegative(a.inUSD) && finitePositive(a.outUSD), `缺有限非负 inUSD/正 outUSD: ${key}`);
   if (a.cur === "CNY") check(finiteNonnegative(a.inCNY) && finitePositive(a.outCNY), `缺有限非负 inCNY/正 outCNY: ${key}`);

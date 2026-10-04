@@ -1,0 +1,264 @@
+{
+  "checkedAt": "2026-10-04",
+  "url": "file:///D:/workbuddy/coding-plan-comparison/index.html",
+  "browser": "Chromium / Playwright",
+  "checks": [
+    {
+      "name": "1440px file landing + audit summary + hidden toTop",
+      "status": "passed",
+      "evidence": {
+        "counts": {
+          "total": 258,
+          "unverified": 24,
+          "retired": 7,
+          "sources": 105,
+          "table": 164
+        },
+        "size": {
+          "document": 1440,
+          "body": 1440,
+          "viewport": 1440
+        },
+        "summary": "价格逐条核查：2026-10-04 · 258 条记录，227 条已确认（含询价），24 条待核实，7 条停售。待核实历史价仅保留作参考，不参与推荐与排行。"
+      }
+    },
+    {
+      "name": "1440px keyboard table navigation + INR original amount + CSV and Markdown export",
+      "status": "passed",
+      "evidence": {
+        "row": "Cursor\tStart（印度专属）\n仅限印度\nCursor\n＋对比\t第三方工具订阅\t国际\t₹649/月\n≈¥45.5/月\t未列年付价\t仅 Cursor Models 池（月度重置）；无 Other Models 池、Bugbot、Auto 与按需加购\tGrok 4.5–4.7（含 Fast/500K 变体）、Composer 2.5（含 Fast）\tCursor IDE\t印度专属；₹649/月含税，按 INR 原币记录，不能把近似美元换算当官方报价\t核价来源\n价格已校正 · 2026-10-04",
+        "csvFilename": "coding-plans-Cursor Start-20261004.csv",
+        "csvLength": 670,
+        "markdownLength": 750,
+        "size": {
+          "document": 1440,
+          "body": 1440,
+          "viewport": 1440
+        }
+      }
+    },
+    {
+      "name": "1440px historical unverified details + keyboard source link",
+      "status": "passed",
+      "evidence": {
+        "reason": "官方文档直接确认月价与旧值一致；国际购买页在本环境跳转中国联系销售页，未直接核实现售年费。保留旧年价，不用搜索缓存代替确认。",
+        "focused": {
+          "tag": "A",
+          "href": "https://www.jetbrains.com/ai-ides/buy/",
+          "rel": "noopener",
+          "target": "_blank"
+        },
+        "size": {
+          "document": 1440,
+          "body": 1440,
+          "viewport": 1440
+        }
+      }
+    },
+    {
+      "name": "1440px unverified personal chart exclusion + table handoff",
+      "status": "passed",
+      "evidence": {
+        "explanation": "当前筛选：0 个档位（显示 0） ｜ 汇率 1 USD ≈ 6.71 CNY，1 INR ≈ 0.070058 CNY（2026-09-23，汇率来源） ｜ 红色是中转站，不和官方订阅、工具订阅放在同一类颜色里 ｜ 搜索会忽略大小写、空格和连字符，并展开「同某档」\n这张图只画已核实价格的个人月付。同名模型还有 4 档不在图上：JetBrains AI AI Pro（个人）（价格待核实）、JetBrains AI AI Ultimate（个人）（价格待核实）、JetBrains AI AI Pro（商业）（价格待核实）、JetBrains AI AI Ultimate（商业）（价格待核实）。在完整表里看",
+        "location": "file:///D:/workbuddy/coding-plan-comparison/index.html?pq=JetBrains+AI&q=JetBrains+AI#table"
+      }
+    },
+    {
+      "name": "1440px annual chart ARIA + INR chart fallback",
+      "status": "passed",
+      "evidence": {
+        "aria": "个人订阅价格全景（年付折月，人民币/月）2 档，最低三档：Cursor Pro ¥107.4、Cursor Pro Plus ¥322.1",
+        "prices": [
+          {
+            "plan": "Pro",
+            "value": 107.4
+          },
+          {
+            "plan": "Pro Plus",
+            "value": 322.1
+          }
+        ],
+        "inrAria": "个人订阅价格全景（年付折月，人民币/月）1 档，最低三档：Cursor Start（印度专属） ¥45.5（未列年付价，按月付）"
+      }
+    },
+    {
+      "name": "1440px pending debounce history restore",
+      "status": "passed",
+      "evidence": {
+        "rows": 30,
+        "url": "file:///D:/workbuddy/coding-plan-comparison/index.html?q=Cursor#table"
+      }
+    },
+    {
+      "name": "1440px toTop keyboard + dark viewport",
+      "status": "passed",
+      "evidence": {
+        "size": {
+          "document": 1440,
+          "body": 1440,
+          "viewport": 1440
+        }
+      }
+    },
+    {
+      "name": "1440px footer audit sources and full pending reasons keyboard details",
+      "status": "passed",
+      "evidence": {
+        "sourcesCount": 105,
+        "summary": "展开全部不确定性说明（24 条价格待核实，另 29 条口径说明）",
+        "size": {
+          "document": 1440,
+          "body": 1440,
+          "viewport": 1440
+        }
+      }
+    },
+    {
+      "name": "375px file landing + audit summary + hidden toTop",
+      "status": "passed",
+      "evidence": {
+        "counts": {
+          "total": 258,
+          "unverified": 24,
+          "retired": 7,
+          "sources": 105,
+          "table": 164
+        },
+        "size": {
+          "document": 375,
+          "body": 375,
+          "viewport": 375
+        },
+        "summary": "价格逐条核查：2026-10-04 · 258 条记录，227 条已确认（含询价），24 条待核实，7 条停售。待核实历史价仅保留作参考，不参与推荐与排行。"
+      }
+    },
+    {
+      "name": "375px keyboard table navigation + INR original amount + CSV and Markdown export",
+      "status": "passed",
+      "evidence": {
+        "row": "Cursor\tStart（印度专属）\n仅限印度\nCursor\n＋对比\t第三方工具订阅\t国际\t₹649/月\n≈¥45.5/月\t未列年付价\t仅 Cursor Models 池（月度重置）；无 Other Models 池、Bugbot、Auto 与按需加购\t核价来源\n价格已校正 · 2026-10-04",
+        "csvFilename": "coding-plans-Cursor Start-20261004.csv",
+        "csvLength": 670,
+        "markdownLength": 750,
+        "size": {
+          "document": 375,
+          "body": 375,
+          "viewport": 375
+        }
+      }
+    },
+    {
+      "name": "375px historical unverified details + keyboard source link",
+      "status": "passed",
+      "evidence": {
+        "reason": "官方文档直接确认月价与旧值一致；国际购买页在本环境跳转中国联系销售页，未直接核实现售年费。保留旧年价，不用搜索缓存代替确认。",
+        "focused": {
+          "tag": "A",
+          "href": "https://www.jetbrains.com/ai-ides/buy/",
+          "rel": "noopener",
+          "target": "_blank"
+        },
+        "size": {
+          "document": 375,
+          "body": 375,
+          "viewport": 375
+        }
+      }
+    },
+    {
+      "name": "375px unverified personal chart exclusion + table handoff",
+      "status": "passed",
+      "evidence": {
+        "explanation": "当前筛选：0 个档位（显示 0） ｜ 汇率 1 USD ≈ 6.71 CNY，1 INR ≈ 0.070058 CNY（2026-09-23，汇率来源） ｜ 红色是中转站，不和官方订阅、工具订阅放在同一类颜色里 ｜ 搜索会忽略大小写、空格和连字符，并展开「同某档」\n这张图只画已核实价格的个人月付。同名模型还有 4 档不在图上：JetBrains AI AI Pro（个人）（价格待核实）、JetBrains AI AI Ultimate（个人）（价格待核实）、JetBrains AI AI Pro（商业）（价格待核实）、JetBrains AI AI Ultimate（商业）（价格待核实）。在完整表里看",
+        "location": "file:///D:/workbuddy/coding-plan-comparison/index.html?pq=JetBrains+AI&q=JetBrains+AI#table"
+      }
+    },
+    {
+      "name": "375px annual chart ARIA + INR chart fallback",
+      "status": "passed",
+      "evidence": {
+        "aria": "个人订阅价格全景（年付折月，人民币/月）2 档，最低三档：Cursor Pro ¥107.4、Cursor Pro Plus ¥322.1",
+        "prices": [
+          {
+            "plan": "Pro",
+            "value": 107.4
+          },
+          {
+            "plan": "Pro Plus",
+            "value": 322.1
+          }
+        ],
+        "inrAria": "个人订阅价格全景（年付折月，人民币/月）1 档，最低三档：Cursor Start（印度专属） ¥45.5（未列年付价，按月付）"
+      }
+    },
+    {
+      "name": "375px pending debounce history restore",
+      "status": "passed",
+      "evidence": {
+        "rows": 30,
+        "url": "file:///D:/workbuddy/coding-plan-comparison/index.html?q=Cursor#table"
+      }
+    },
+    {
+      "name": "375px toTop keyboard + dark viewport",
+      "status": "passed",
+      "evidence": {
+        "size": {
+          "document": 375,
+          "body": 375,
+          "viewport": 375
+        }
+      }
+    },
+    {
+      "name": "375px footer audit sources and full pending reasons keyboard details",
+      "status": "passed",
+      "evidence": {
+        "sourcesCount": 105,
+        "summary": "展开全部不确定性说明（24 条价格待核实，另 29 条口径说明）",
+        "size": {
+          "document": 375,
+          "body": 375,
+          "viewport": 375
+        }
+      }
+    }
+  ],
+  "errors": [],
+  "screenshots": [
+    "D:\\workbuddy\\coding-plan-comparison\\audit\\ui-1440-hero-pricing-audit.png",
+    "D:\\workbuddy\\coding-plan-comparison\\audit\\ui-1440-cursor-inr-table.png",
+    "D:\\workbuddy\\coding-plan-comparison\\audit\\ui-1440-historical-price-details.png",
+    "D:\\workbuddy\\coding-plan-comparison\\audit\\ui-1440-annual-chart.png",
+    "D:\\workbuddy\\coding-plan-comparison\\audit\\ui-1440-dark-hero.png",
+    "D:\\workbuddy\\coding-plan-comparison\\audit\\ui-1440-footer-source-audit.png",
+    "D:\\workbuddy\\coding-plan-comparison\\audit\\ui-375-hero-pricing-audit.png",
+    "D:\\workbuddy\\coding-plan-comparison\\audit\\ui-375-cursor-inr-table.png",
+    "D:\\workbuddy\\coding-plan-comparison\\audit\\ui-375-historical-price-details.png",
+    "D:\\workbuddy\\coding-plan-comparison\\audit\\ui-375-annual-chart.png",
+    "D:\\workbuddy\\coding-plan-comparison\\audit\\ui-375-dark-hero.png",
+    "D:\\workbuddy\\coding-plan-comparison\\audit\\ui-375-footer-source-audit.png",
+    "D:/workbuddy/coding-plan-comparison/audit/ui-1440-source-list-expanded.png",
+    "D:/workbuddy/coding-plan-comparison/audit/ui-375-source-list-expanded.png"
+  ],
+  "version": "153.0.8010.12",
+  "regression": {
+    "fixed": "新增逐条核价来源列表展开后，375px 页面被长网址撑宽至 518px；已加 overflow-wrap:anywhere 并控制列表缩进，修后 document/body scrollWidth 均 375px。",
+    "files": [
+      "css/style.css:527",
+      "scripts/tests/browser/pricing-ui.browser.spec.js:8"
+    ],
+    "tests": {
+      "isolatedBrowser": "2/2 passed (375px + 1280px file://)",
+      "typecheck": "passed",
+      "reviewFlows": "16/16 passed (1440px + 375px)"
+    },
+    "beforeScreenshot": "D:/workbuddy/coding-plan-comparison/audit/ui-375-footer-source-overflow-before.png"
+  },
+  "limitations": [
+    "实机验证范围为 Windows 上隔离 Chromium 153，未运行 iOS Safari、Firefox 或屏幕阅读器；可访问性检查为真实键盘操作与 DOM 的 ARIA 文本。",
+    "CSV 通过真实下载验证；Markdown 按钮调用的文本用临时浏览器内剪贴板替身捕获，未覆盖系统剪贴板权限与实际粘贴。",
+    "来源验证包含 URL、target/rel、键盘焦点和折叠可操作性；此轮没有逐个重新联网访问 105 个官网页面，逐条价格核实见各 pricing 审计记录。",
+    "本轮未重新测量真实网络首屏和低端移动设备性能；此前 CPU4x 的布局优化测量在新增核价来源合并前进行。"
+  ]
+}
