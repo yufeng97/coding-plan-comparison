@@ -11,7 +11,7 @@ const RATE_USD_CNY = 6.71;
 const RATE_INR_CNY = 6.7074 / 95.74;
 
 const META = {
-  updated: "2026-10-04",
+  updated: "2026-10-05",
   rate: RATE_USD_CNY,
   rateAsOf: "2026-09-23",
   rateSource: "https://api.frankfurter.dev/v1/2026-09-23?base=USD&symbols=CNY,INR",
@@ -1660,7 +1660,7 @@ const API_PRICES = [
     note: "缓存输入 $0.175；Fast 模式 $3.50/$28",
     url: "https://developers.openai.com/api/docs/pricing" },
   { vendor: "Google", model: "Gemini 3.1 Pro Preview", label: "Gemini 3.1 Pro", region: "intl", cur: "USD", inUSD: 2, outUSD: 12,
-    note: "prompt ≤200K 档；缓存 $0.20 + 存储 $4.50/1M/小时；Batch/Flex $1/$6；参考 Gemini 3.8 Flash $0.75/$3.75（2026-12-31 前）",
+    note: "prompt ≤200K 档；缓存 $0.20 + 存储 $4.50/1M/小时；Batch/Flex $1/$6；参考 Gemini 3.8 Flash $0.75/$3.75 介绍价至 2026-12-31，2027-01-01 起 $1.50/$7.50",
     url: "https://ai.google.dev/gemini-api/docs/pricing" },
   { vendor: "Z.ai", model: "GLM-5.3", label: "GLM-5.3 (Z.ai)", region: "intl", cur: "USD", inUSD: 1.4, outUSD: 4.4,
     note: "缓存输入 $0.26；GLM-5.3-Flash $0.15/$0.50、缓存 $0.03；FlashX $0.37/$1.25",
@@ -2429,6 +2429,10 @@ const DYNAMICS = [
   { date: "2026-10-03", checked: true, text: "OpenAI Codex 定价页核对：与 10-01 口径一致（Plus 各模型 5 小时条数、Pro $100/$200/$500 目前无 5 小时上限、GPT-5.5 确认 10-14 全线退役）。新增确认：GPT-5.6 Sol 促销 credits 价（输入 100 / 缓存 10 / 输出 500 每百万 tokens）官方写明至少延续至 2026-11-21；Speed 档倍率 Fast 2.5×、Astra Ultrafast 订阅内 8×。第三方「Plus 用量 10-30 起 20×降为 10×」传闻在官方页无对应倍率标注，未入库。", source: "OpenAI Codex 定价文档", url: "https://learn.chatgpt.com/docs/pricing" },
   { date: "2026-10-03", checked: true, text: "Anthropic API 定价页核对：与库内一致，无 10 月调价——Opus 5.5 $4/$20（缓存读 $0.20 = 输入价 0.05×，5m 写 $5 / 1h 写 $8）、Sonnet 5.5 与 Sonnet 5 $2/$10 标准价、Haiku 4.5 $1/$5；Opus 5.5 Fast 模式 $8/$40，inference_geo us 区 1.1×。第三方「API 10-01 调价」说法与官方页不符（所列数字即现行价）。", source: "Anthropic 定价文档", url: "https://platform.claude.com/docs/en/about-claude/pricing" },
   { date: "2026-10-03", checked: true, text: "智谱 / Z.ai 核对：官方渠道无新调价公告，双节非高峰 5 折（09-25~10-07）与夜间畅用仍在进行；第三方报道确认 2 月结构性调价（涨幅 30% 起）与 9 月天猫 ¥118/538/1078 三档均已在库。", source: "Z.ai / BigModel 官方文档", url: "https://docs.z.ai/devpack/overview.md" },
+  { date: "2026-10-05", checked: true, text: "OpenAI Codex 定价页核对：订阅档位、Plus 额度表、Pro $100/$200/$500（目前无 5 小时上限）、GPT-5.5 确认 10-14 退役与 GPT-5.6 Sol 促销 credits 价（至少至 2026-11-21）均与库内一致。新增观察：定价页导航出现 Codex Security（IDE 插件 / CLI / Codex Security Cloud，Cloud 为 research preview 扫描 GitHub 仓库），官方页无公开定价——第三方「Code Security $30/活跃提交者/月」无官方对应条目，未入库；Speed 倍率官方区分两口径：订阅内额度 Fast 2.5× / Astra Ultrafast 8×，购买 credits 与企业按量 Fast 2× / Ultrafast 6×。", source: "OpenAI Codex 定价文档", url: "https://learn.chatgpt.com/docs/pricing" },
+  { date: "2026-10-05", checked: true, text: "Anthropic 核对：API 与订阅页均与库内一致，无 10 月调价——Opus 5.5 $4/$20（Fast $8/$40、缓存读 $0.20）、Sonnet 5.5 与 5 $2/$10、Haiku 4.5 $1/$5；订阅 Pro $17（年付）/$20（月付）、Max $100 起 5x/20x、Team 标准 $20–25 / Premium $100–125 每席。官方横幅公告「Claude Cowork is now just Claude」正向 Pro/Max 滚动，不涉及价格。", source: "Anthropic 定价文档", url: "https://platform.claude.com/docs/en/about-claude/pricing" },
+  { date: "2026-10-05", checked: true, text: "国内与工具核对：智谱 / Z.ai 无新调价，双节非高峰 5 折与夜间畅用（均至 10-07）进行中，V3 三档 5h 积分 2,000/12,000/28,000、周上限 10,000/60,000/140,000 与库内一致；Kimi API K3 ¥20/¥100、K2.7-Code ¥6.5/¥27（缓存命中 ¥1.30）与库内一致；Cursor Hobby 免费 / Individual $20 / Teams $40 每席无变化。", source: "Z.ai / BigModel / Kimi / Cursor 官方定价页", url: "https://docs.z.ai/devpack/overview.md" },
+  { date: "2026-10-05", checked: true, text: "Google 核对：AI Plus $4.99 / AI Pro $19.99 / AI Ultra $99.99（5x 与 20x 分层）与 10-04 校正值一致；Gemini API 定价页（10-01 更新）确认 Gemini 3.8 Flash 介绍价 $0.75/$3.75 只到 2026-12-31、2027-01-01 起涨至 $1.50/$7.50，已补进 API 表备注。第三方「Gemini 4 Argon 9-30 发布、介绍价 $2/$10」在官方 API 定价页无 Gemini 4 系列对应，未入库。", source: "Google AI Plans / Gemini API 定价", url: "https://ai.google.dev/gemini-api/docs/pricing" },
 ];
 
 /* 数据来源（按厂商分组） */
