@@ -2,6 +2,14 @@
 
 > 按数据核查和代码修复批次记录。
 
+## 2026-10-06：每日巡检——官方页核对日
+
+- OpenAI Codex 定价页：与 10-05 完全一致（档位 Free/Go $8/Plus $20/Pro $100–500/Business $20–25、Plus 5h 条数、GPT-5.5 10-14 退役、GPT-5.6 Sol 促销至 11-21、Speed 两口径倍率、Codex Security 仅 Business/Enterprise 无公开定价）。官方周报（9-28~10-02）无新价格条目；第三方「Pro 200 于 9-29 重新开放订阅」与官方页三档 Pro 均在售一致，无需改库。
+- Anthropic：API 定价页与库内一致，无 10 月调价（Opus 5.5 $4/$20、Sonnet 5.5/5 $2/$10、Haiku 4.5 $1/$5）。新增观察：Claude Managed Agents 新增会话运行时费 $0.08/会话小时（按 token 之外的独立计量），不折入每百万 tokens 牌价表，暂不单列 API 行。
+- 国内与工具：智谱/Z.ai 无新调价，双节非高峰 5 折与夜间畅用进行至 10-07（最后一天）；BigModel API 牌价 GLM-5.3 ¥8/¥28、Flash ¥0.8/¥2.8、FlashX ¥2/¥7 与库一致；Kimi K3 ¥20/¥100（缓存命中 ¥2）、K2.7-Code ¥6.5/¥27 一致；Cursor 免费/$20/$40（Ultra $200、Teams Premium $120 已在库）一致。
+- Google：Gemini API 定价页（10-01 更新）与库一致（3.8 Flash 介绍价 $0.75/$3.75 至 2026-12-31，2027-01-01 起 $1.50/$7.50）；官方页仍无 Gemini 4 系列，「Gemini 4 Argon $2/$10」传闻（社交平台二次传播）继续未入库。新增弃用公告：Gemini 2.5 Flash Image（Nano Banana）10-02 停用，属图像模型不影响编程额度。订阅消费页价格为 JS 渲染，本日未复核（10-05 真实浏览器核对仍有效）。
+- META.updated → 2026-10-06；本轮未改任何价格数值，仅新增 4 条核对记录。
+
 ## 2026-10-05：每日巡检——官方页核对日
 
 - OpenAI Codex 定价页：订阅档位、Plus 额度表、Pro $100/$200/$500（无 5 小时上限）、GPT-5.5（10-14 退役）与 GPT-5.6 Sol 促销（至少至 11-21）均与库内一致。定价页新增 Codex Security（插件/CLI/Security Cloud，Cloud 为 research preview），官方无公开定价，第三方「$30/活跃提交者/月」无官方对应，未入库；Speed 倍率官方区分两口径——订阅内额度 Fast 2.5×/Astra Ultrafast 8×，购买 credits/企业按量 Fast 2×/Ultrafast 6×（补全 10-03 只记的订阅内口径）。
