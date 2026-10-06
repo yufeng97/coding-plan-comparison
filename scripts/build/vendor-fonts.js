@@ -60,19 +60,22 @@ async function updateFonts(options = {}) {
     let css = (await fetcher(FONT_CSS_URL, headers)).toString("utf8");
     const urls = [...new Set([...css.matchAll(/url\((https:\/\/[^)]+)\)/g)].map((match) => match[1]))];
     if (!urls.length) throw new Error("Google Fonts 响应不含字体文件");
-    let index = 0;
+    const byDigest = new Map();
     for (const url of urls) {
       const bytes = await fetcher(url);
       if (bytes.subarray(0, 4).toString() !== "wOF2") throw new Error("字体响应不是 WOFF2：" + url);
-      const digest = crypto.createHash("sha1").update(bytes).digest("hex").slice(0, 10);
-      const name = "gf-" + index++ + "-" + digest + ".woff2";
-      fs.writeFileSync(path.join(stage, name), bytes);
+      const digest = crypto.createHash("sha256").update(bytes).digest("hex");
+      const name = "gf-" + digest + ".woff2";
+      if (!byDigest.has(digest)) {
+        byDigest.set(digest, name);
+        fs.writeFileSync(path.join(stage, name), bytes);
+      }
       css = css.split(url).join(name);
     }
     fs.writeFileSync(path.join(stage, "fonts.css"), css);
     swapStarted = true;
     swapDirectory({ stage, backup, destination: dir, rename: options.rename, removeOwned });
-    return { count: urls.length, dir };
+    return { count: byDigest.size, sources: urls.length, dir };
   } finally {
     /* 交换失败且无法恢复时保留唯一旧备份，交由报错中的路径手动恢复。 */
     if (!swapStarted) { removeOwned(stage); removeOwned(backup); }

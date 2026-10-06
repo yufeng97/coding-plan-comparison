@@ -613,6 +613,72 @@ table.is-empty thead { display: none; }
 /* ---------- 页脚 ---------- */
 .footer { border-top: 1px solid var(--line); margin-top: 60px; padding: 26px 24px 40px; text-align: center; color: var(--faint); font-size: 12.5px; }
 
+/* 决策入口与完整权益：动作和详细依据按需展开，手机优先露出主方案。 */
+.hero-start { display: inline-block; margin-top: 12px; font-weight: 700; }
+.hero-details { margin-top: 14px; }
+.hero-details summary, .picker-advanced summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
+.picker-advanced { min-width: 0; grid-column: 1 / -1; }
+.picker-advanced-grid { display: grid; gap: 10px; margin-top: 10px; }
+.service-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+.qc-actions {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px;
+  align-items: stretch; flex-shrink: 0; margin-top: 14px;
+}
+.qc-action {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  width: 100%; min-width: 0; height: 36px; margin: 0; padding: 6px 4px;
+  border: 1px solid var(--line-strong); border-radius: 5px; background: transparent;
+  color: var(--muted); font: 600 12px/1 var(--sans); text-align: center;
+  white-space: nowrap; text-decoration: none; cursor: pointer;
+  transition: border-color .18s, color .18s, background-color .18s;
+}
+.qc-action:not(.on):not(:disabled):hover { border-color: var(--accent-2); color: var(--ink); background: var(--hover); text-decoration: none; }
+.qc-action:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+.qc-action-icon { display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+.picker-alternatives { grid-column: 1 / -1; }
+.picker-alternatives-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); gap: 14px; margin-top: 12px; }
+.qc-payment-note, .qc-verification { margin-top: 10px; font-size: 12px; }
+.qc-payment-note summary, .qc-verification summary { cursor: pointer; color: var(--accent); }
+.qc-verification p { overflow-wrap: anywhere; }
+.cost-form { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+.cost-form label { display: flex; flex-direction: column; gap: 6px; color: var(--text); font-size: 12.5px; }
+.cost-model { grid-column: span 2; }
+.cost-form input, .cost-form select { width: 100%; min-width: 0; min-height: 38px; padding: 8px 10px; font: inherit; border: 1px solid var(--line-strong); border-radius: var(--radius-s); color: var(--ink); background: var(--panel); }
+.cost-form button { align-self: end; }
+.cost-result { margin-top: 14px; padding: 14px; border-radius: var(--radius); background: var(--panel-2); overflow-wrap: anywhere; }
+.cost-result p + p { margin-top: 8px; }
+.cost-result strong { color: var(--ink); font-size: 15px; }
+.plan-detail-fields { display: grid; gap: 12px; margin: 14px 0; }
+.plan-detail-fields > div { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; }
+.plan-detail-fields dt { font-weight: 700; color: var(--muted); }
+.plan-detail-fields dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.has-plan-details { overflow: hidden; }
+.load-failure { position: sticky; top: 0; z-index: 400; margin: 0; padding: 16px 24px; border-bottom: 1px solid var(--red); background: var(--panel); color: var(--red); }
+.load-failure .chip { margin-top: 8px; }
+.chart-loading { padding: 24px; color: var(--muted); }
+#rankDetailTable { min-width: 640px; }
+@media (min-width: 701px) {
+  .hero-details > summary { color: var(--faint); }
+}
+@media (min-width: 1181px) {
+  .picker-advanced-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px; }
+}
+@media (max-width: 700px) {
+  #quick { display: flex; flex-direction: column; }
+  #quick { padding-top: 24px !important; }
+  .hero .prompt-mark { display: none; }
+  #quick > .section-head { order: 0; }
+  #picker { order: 1; }
+  #quickGrid { order: 2; }
+  #quick > .service-actions { order: 3; }
+  #serviceFeedback, #pickerNote { order: 4; }
+  .cost-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cost-model { grid-column: 1 / -1; }
+  .plan-detail-fields > div { grid-template-columns: 1fr; gap: 4px; }
+  .qc-action { height: 40px; }
+  .cmp-head-actions { flex-wrap: wrap; }
+}
+
 /* ---------- 移动端适配（≤700px） ---------- */
 /* 列开关按钮只在移动端出现：默认隐藏「模型/支持工具/备注」三列 */
 #tableColsToggle { display: none; }

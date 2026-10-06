@@ -14,7 +14,7 @@ function load() {
   const box = { console };
   vm.createContext(box);
   vm.runInContext(dataSource + "\n;\n" + metricsSource +
-    "\n;globalThis.__D={PLANS,METRICS_RAW,ESTIMATES,UNCERTAIN,RATE_USD_CNY,resolvedField,matchModelRoles,windowTokens,computeMetrics,isFlagshipModelName,hasIncludedModelQuota,isPurchaseCountryAllowed,isPersonalMonthly,isOnSalePlan,isFourWeekPlan,findPlanReference};", box);
+    "\n;globalThis.__D={PLANS,METRICS_RAW,ESTIMATES,UNCERTAIN,RATE_USD_CNY,resolvedField,matchModelRoles,windowTokens,computeMetrics,isFlagshipModelName,hasIncludedModelQuota,isPurchaseCountryAllowed,isPersonalMonthly,isOnSalePlan,isFourWeekPlan,findPlanReference,hasOwnClient};", box);
   return box.__D;
 }
 const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-8, `${actual} != ${expected}`);
@@ -43,9 +43,10 @@ function validateFixture(mutation) {
     },
   };
   try {
-    vm.runInNewContext(validatorSource, {
+    vm.runInNewContext(validatorSource + "\n;if (!printReport(module.exports.validateData())) process.exit(1);", {
       __dirname: path.join(root, "scripts", "build"),
       require(name) { return name === "fs" ? fakeFs : require(name); },
+      module: { exports: {} },
       console: Object.fromEntries(["log", "warn", "error"].map((name) => [name, (...args) => output.push(args.join(" "))])),
       process: { exit(code) { exitCode = code; throw stopped; } },
     }, { filename: "validate-data.fixture.js", timeout: 5000 });
@@ -253,6 +254,24 @@ test("明确附赠编码工具的计划保持编程入口资格", () => {
   assert.match(canopy.tools, /Kilo Code.*OpenCode.*Cline.*Roo Code/);
   assert.equal(d.hasIncludedModelQuota(canopy), true);
   assert.notEqual(plan(d, "xAI", "SuperGrok Lite").codingSurface, true);
+});
+
+test("模型继承展开可检索，局部排除不混淆模型可用性", () => {
+  const d = load();
+  for (const name of ["Pro+", "Max"]) {
+    const text = d.resolvedField(plan(d, "GitHub Copilot", name), "models");
+    assert.match(text, /Luna/);
+    assert.match(text, /Grok/);
+    assert.match(text, /Opus/);
+  }
+  const small = plan(d, "火山引擎方舟（字节）", "方舟 Agent Plan（Small）");
+  assert.ok(!d.matchModelRoles(small.models).some((r) => r.id === "kimi-k3"));
+  assert.deepEqual(Array.from(small.modelExcludes), ["Kimi-K3"]);
+  for (const name of ["SuperGrok", "SuperGrok Plus"]) assert.ok(d.hasOwnClient(plan(d, "xAI", name)));
+  const a = { vendor: "Model Cycle", plan: "A", id: "model-cycle-a", models: "A", modelBaseRef: "model-cycle-b" };
+  const b = { vendor: "Model Cycle", plan: "B", id: "model-cycle-b", models: "B", modelBaseRef: "model-cycle-a" };
+  d.PLANS.push(a, b);
+  assert.equal(d.resolvedField(a, "models"), "");
 });
 
 test("永久 ID 在改名和重排后保持引用与权益继承", () => {

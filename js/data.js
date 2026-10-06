@@ -68,9 +68,11 @@ const MODEL_ROLES = [
 function matchModelRoles(text) {
   const raw = String(text || "");
   const blockedA = /不含旗舰/.test(raw);
+  const denied = [...raw.matchAll(/不(?:含|支持|包含|提供)\s*([^。；;，,（）]+)/g)].map((m) => m[1]);
   return MODEL_ROLES.filter((role) => {
     if (!role.re.test(raw)) return false;
     if (blockedA && role.band === "A") return false;
+    if (denied.some((part) => role.re.test(part))) return false;
     if (role.id === "claude-opus" && /不含[^。；;]{0,16}opus/i.test(raw)) return false;
     if (role.id === "claude-fable" && /fable[^。；;]{0,48}需\s*usage\s*credits/i.test(raw)) return false;
     return true;
@@ -130,6 +132,19 @@ function findPlanReference(ref) {
 }
 function resolvedField(p, key, seen) {
   const raw = String((p && p[key]) || "");
+  if (p && key === "models" && (p.modelBaseRef != null || p.modelIncludes || p.modelExcludes)) {
+    if (seen && seen.has(p)) return "";
+    const stack = new Set(seen || []);
+    stack.add(p);
+    const base = p.modelBaseRef != null ? findPlanReference(p.modelBaseRef) : null;
+    const inherited = base && resolvedField(base, key, stack);
+    if (p.modelBaseRef != null && !inherited) return "";
+    const parts = [raw];
+    if (inherited) parts.push("继承模型：" + inherited);
+    if (p.modelIncludes && p.modelIncludes.length) parts.push("本档模型：" + p.modelIncludes.join("、"));
+    if (p.modelExcludes && p.modelExcludes.length) parts.push("本档不支持：" + p.modelExcludes.join("、"));
+    return parts.filter(Boolean).join("；");
+  }
   if (!p || !/^同/.test(raw)) return raw;
   if (seen && seen.has(p)) return "";
   const stack = new Set(seen || []);
@@ -169,6 +184,7 @@ function resolvedField(p, key, seen) {
   return base ? base + (tail ? " " + tail : "") : "";
 }
 function hasOwnClient(p) {
+  if (p && typeof p.ownClient === "boolean") return p.ownClient;
   const tools = resolvedField(p, "tools");
   return OWN_CLIENT_RE.test(tools) && !OWN_CLIENT_EXCLUDE_RE.test(tools);
 }
@@ -343,6 +359,7 @@ const PLANS = [
     url: "https://x.ai/pricing" },
   { id: "plan-0025", vendor: "xAI", plan: "SuperGrok", cat: "official", region: "intl", priceM: 30, priceY: null, cur: "USD", seat: false,
     codingSurface: true,
+    ownClient: true,
     quota: "5× Free 对话时长；含 Grok Build 编码工具",
     models: "Grok 4.3、grok-build-0.1（256K 上下文）",
     tools: "Grok Build、grok.com、X app",
@@ -350,6 +367,7 @@ const PLANS = [
     url: "https://x.ai/pricing" },
   { id: "plan-0026", vendor: "xAI", plan: "SuperGrok Plus", cat: "official", region: "intl", priceM: 100, priceY: null, cur: "USD", seat: false,
     codingSurface: true,
+    ownClient: true,
     quota: "Chat/Imagine/Voice/Build 全线更高用量；高峰优先",
     models: "Grok 4.3",
     tools: "Grok Build、grok.com、X app",
@@ -357,6 +375,7 @@ const PLANS = [
     url: "https://x.ai/pricing" },
   { id: "plan-0027", vendor: "xAI", plan: "SuperGrok Heavy", cat: "official", region: "intl", priceM: 300, priceY: null, cur: "USD", seat: false,
     codingSurface: true,
+    ownClient: true,
     quota: "最大限额；多 agent 模式最高 16 个并行；最新旗舰确认全量访问",
     models: "Grok 4.3",
     tools: "Grok Build、多 agent Heavy 模式",
@@ -796,6 +815,8 @@ const PLANS = [
     note: "$10 基础 + $5 弹性 credits；仅月付",
     url: "https://docs.github.com/en/copilot/get-started/plans" },
   { id: "plan-0092", fieldRefs: {"tools":"plan-0091"}, vendor: "GitHub Copilot", plan: "Pro+", cat: "tool", region: "intl", priceM: 39, priceY: null, cur: "USD", seat: false,
+    modelBaseRef: "plan-0091",
+    modelIncludes: ["Claude Opus 4.7–5.5", "Fable 5/5.1", "GPT-6 Astra/Sol", "GPT-6.1 Sol"],
     windowPeriod: "month",
     quota: "7,000 AI credits/月（约 $70 用量）",
     models: "Pro 全部 + Claude Opus 4.7–5.5、Fable 5/5.1、GPT-6 Astra/Sol、GPT-6.1 Sol 等旗舰",
@@ -803,6 +824,7 @@ const PLANS = [
     note: "4x+ Pro 用量；含审计日志",
     url: "https://docs.github.com/en/copilot/get-started/plans" },
   { id: "plan-0093", fieldRefs: {"tools":"plan-0091"}, vendor: "GitHub Copilot", plan: "Max", cat: "tool", region: "intl", priceM: 100, priceY: null, cur: "USD", seat: false,
+    modelBaseRef: "plan-0092", modelIncludes: [],
     windowPeriod: "month",
     quota: "20,000 AI credits/月（约 $200 用量）",
     models: "旗舰模型优先访问（Pro+ 同级模型池）",
@@ -1614,6 +1636,8 @@ const PLANS = [
     note: "官网常规价 ¥200/月；2026-06-08 至 2026-11-08 活动期内，每账号新购、续费、升配共享最多两个月 ¥49.9 优惠资格，第三个月起恢复原价；名额有限。",
     url: "https://docs.volcengine.com/docs/ark/coding-plan-personal-universal-promotion?lang=zh" },
   { id: "plan-0212", vendor: "火山引擎方舟（字节）", plan: "方舟 Agent Plan（Small）", cat: "cloud", region: "cn", priceM: 40, priceY: null, cur: "CNY", seat: false,
+    modelIncludes: ["Doubao-Seed", "GLM-5.3", "Flash", "DeepSeek-V4", "MiniMax-M3", "Kimi-K2.7-Code", "Kimi-K2.8-Preview"],
+    modelExcludes: ["Kimi-K3"],
     quota: "AFP 积分制（扩展图像/视频/语音/联网搜索及 Harness 消耗）；Small ¥40 / Medium ¥200 / Large ¥500 / Max ¥1,000 四档",
     models: "Doubao-Seed 系列、GLM-5.3/Flash、DeepSeek-V4/Flash、MiniMax-M3、Kimi-K2.7-Code/K2.8-Preview（Small 不支持 Kimi-K3）",
     tools: "Claude Code、Cursor、Cline、Codex CLI、OpenClaw、TRAE 等",

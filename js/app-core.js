@@ -239,9 +239,65 @@ function chartAxisLabel(hostEl, fontSize = 12.5, measuredWidth = 0) {
 }
 
 const chartCache = {};
+let chartLibraryPromise = null;
+const queuedChartRenders = new Map();
+function chartLibraryReady() { return typeof echarts !== "undefined" && typeof echarts.init === "function"; }
+function ensureChartLibrary() {
+  if (chartLibraryReady()) return Promise.resolve();
+  if (chartLibraryPromise) return chartLibraryPromise;
+  chartLibraryPromise = new Promise((resolve,reject) => {
+    const template = byId("chartLibraryTemplate");
+    const asset = template && template.content && template.content.querySelector("script[src]");
+    if (!asset) { reject(new Error("图表资源地址缺失")); return; }
+    const script = document.createElement("script");
+    script.src = asset.getAttribute("src");
+    let done = false;
+    const finish = (error) => {
+      if (done) return;
+      done = true; clearTimeout(timer);
+      script.onload = script.onerror = null;
+      if (error) { script.remove(); reject(error); }
+      else resolve();
+    };
+    const timer = setTimeout(() => finish(new Error("图表资源加载超时")),15000);
+    script.onload = () => finish(chartLibraryReady() ? null : new Error("图表资源未正确初始化"));
+    script.onerror = () => finish(new Error("图表资源加载失败"));
+    document.body.appendChild(script);
+  }).catch((err) => { chartLibraryPromise = null; throw err; });
+  return chartLibraryPromise;
+}
+function showChartError(id, err) {
+  const ids = id === "chartApi" ? [id,"chartPower"] : [id];
+  ids.forEach((chartId) => {
+    if (chartCache[chartId]) { chartCache[chartId].dispose(); delete chartCache[chartId]; }
+    const el = byId(chartId);
+    if (el) {
+      el.removeAttribute("aria-busy");
+      el.innerHTML = `<p class="render-error" role="alert">图表暂时无法显示，文字明细仍可查看。<button type="button" class="chip" data-retry-chart="${esc(id)}">重试</button></p>`;
+    }
+  });
+  console.error("[chart] " + id,err);
+}
+function deferChartRender(id, render) {
+  if (chartLibraryReady()) return false;
+  const scheduled = queuedChartRenders.has(id);
+  queuedChartRenders.set(id,render);
+  const el = byId(id);
+  if (el) { el.setAttribute("aria-busy","true"); el.innerHTML = '<p class="chart-loading" role="status">正在加载图表…</p>'; }
+  if (!scheduled) ensureChartLibrary().then(() => {
+    const latest = queuedChartRenders.get(id); queuedChartRenders.delete(id);
+    if (el) { el.removeAttribute("aria-busy"); el.innerHTML = ""; }
+    try { if (latest) latest(); }
+    catch (err) { showChartError(id,err); }
+  }, (err) => { queuedChartRenders.delete(id); showChartError(id,err); });
+  return true;
+}
 function makeChart(id) {
   if (!chartCache[id]) {
-    chartCache[id] = echarts.init(byId(id), null, { renderer: "canvas" });
+    const el = byId(id);
+    el.innerHTML = "";
+    el.removeAttribute("aria-busy");
+    chartCache[id] = echarts.init(el, null, { renderer: "canvas" });
   }
   return chartCache[id];
 }
@@ -472,23 +528,40 @@ function updateActiveNav() {
 function initPageNavigation() {
   if (navigationInitialized) return;
   navigationInitialized = true;
-  const refreshHeader = () => { syncHeaderHeight(); updateActiveNav(); };
+  let readingPosition = null;
+  const rememberReadingPosition = () => {
+    const active = qs('.topnav a[aria-current="location"]');
+    const target = active && byId((active.getAttribute("href") || "").slice(1));
+    const padding = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("scroll-padding-top")) || headerHeight;
+    readingPosition = target ? { target, offset:target.getBoundingClientRect().top - padding } : null;
+  };
+  const refreshHeader = () => { syncHeaderHeight(); updateActiveNav(); rememberReadingPosition(); };
+  const refreshLayout = () => {
+    const previous = readingPosition;
+    syncHeaderHeight();
+    if (previous && previous.target.isConnected !== false && window.scrollY > 0) {
+      const padding = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("scroll-padding-top")) || headerHeight;
+      const delta = previous.target.getBoundingClientRect().top - padding - previous.offset;
+      if (Math.abs(delta) > 1) window.scrollTo({ top:window.scrollY + delta, behavior:"instant" });
+    }
+    updateActiveNav(); rememberReadingPosition();
+  };
   refreshHeader();
   const header = qs(".topbar");
-  if (header && typeof ResizeObserver === "function") new ResizeObserver(refreshHeader).observe(header);
-  window.addEventListener("resize", refreshHeader, { passive: true });
+  if (header && typeof ResizeObserver === "function") new ResizeObserver(refreshLayout).observe(header);
+  window.addEventListener("resize", refreshLayout, { passive: true });
   let pending = false;
   window.addEventListener("scroll", () => {
     if (pending) return;
     pending = true;
-    const update = () => { pending = false; updateActiveNav(); };
+    const update = () => { pending = false; updateActiveNav(); rememberReadingPosition(); };
     if (typeof window.requestAnimationFrame === "function") window.requestAnimationFrame(update);
     else update();
   }, { passive: true });
   window.addEventListener("hashchange", updateActiveNav);
   /* 加载完成后只更新当前位置；用户已滚动时不重新跳到原分享锚点。 */
   window.addEventListener("load", refreshHeader, { once: true });
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(refreshHeader, refreshHeader);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(refreshLayout, refreshHeader);
 }
 function initTheme() {
   applyTheme(readThemeMode());

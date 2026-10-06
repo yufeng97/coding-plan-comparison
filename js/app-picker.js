@@ -37,6 +37,7 @@ function matchesTool(p, tool) {
   if (tool === "codex") return /Codex/i.test(tools);
   if (tool === "cursor") return p.vendor === "Cursor" || /\bCursor\b/i.test(tools);
   if (tool === "own") {
+    if (typeof p.ownClient === "boolean") return p.ownClient;
     if (/Claude Code/i.test(tools) || /Codex/i.test(tools) || p.vendor === "Cursor" || /\bCursor\b/i.test(tools)) return false;
     return hasOwnClient(p);
   }
@@ -94,6 +95,22 @@ function modelTextForRoles(p) {
   }
   return own;
 }
+/* 每层先应用自己的排除，再合并上层增补；Pro 的“不含旗舰”不会否定 Pro+ 新增 Opus。 */
+function modelRoleAccess(p, seen = new Set()) {
+  if (!p || seen.has(p)) return { included: [], metered: [] };
+  const stack = new Set(seen);
+  stack.add(p);
+  const base = p.modelBaseRef != null ? findPlanReference(p.modelBaseRef) : null;
+  if (p.modelBaseRef != null && !base) return { included: [], metered: [] };
+  const inherited = base ? modelRoleAccess(base, stack) : { included: [], metered: [] };
+  const local = Array.isArray(p.modelIncludes) ? p.modelIncludes.join("、")
+    : p.modelBaseRef != null ? p.models : modelTextForRoles(p);
+  const access = splitModelAccess(local);
+  const excluded = p.modelExcludes || [];
+  const merge = (previous, text) => [...new Map(previous.concat(matchModelRoles(text)).map((r) => [r.id, r])).values()]
+    .filter((r) => !excluded.some((name) => r.re.test(name)));
+  return { included: merge(inherited.included, access.included), metered: merge(inherited.metered, access.metered) };
+}
 /* 重置周期和模型之间的共享关系是两个独立事实。
    不同模型的条数区间并不能证明它们拥有独立额度池；未公开时保留 unknown。 */
 function quotaWindowPeriod(p) { return p.windowPeriod || "unknown"; }
@@ -126,10 +143,10 @@ function knownTokens(p, role) {
   return met.c.moLow;
 }
 function planProfile(p) {
-  const access = splitModelAccess(modelTextForRoles(p));
+  const access = modelRoleAccess(p);
   const hasQuota = hasIncludedModelQuota(p);
-  const included = hasQuota ? matchModelRoles(access.included) : [];
-  const metered = matchModelRoles(hasQuota ? access.metered : modelTextForRoles(p));
+  const included = hasQuota ? access.included : [];
+  const metered = hasQuota ? access.metered : access.included.concat(access.metered);
   const hard = included.filter((r) => r.task === "hard" && !r.ceiling);
   const ceilings = included.filter((r) => r.task === "hard" && r.ceiling);
   hard.sort((a, b) => bandRank(b.band) - bandRank(a.band));
@@ -389,19 +406,56 @@ function meteredText(profile) {
   if (!profile.metered.some((r) => r.id === "claude-opus")) return "";
   return "Claude Opus 在另一池，按百万 tokens 计价，不在这档送的慢烧额度里。";
 }
+function pickerMoney(amount, cur) {
+  const symbol = { USD: "$", CNY: "¥", INR: "₹" }[cur] || cur + " ";
+  return symbol + Number(amount.toFixed(2)).toLocaleString("zh-CN", { maximumFractionDigits: 2 });
+}
+/* 年付折月价可能已四舍五入；备注有全年原价时先用原文，避免 $200 被算成 $200.04。 */
+function annualPaymentText(p) {
+  if (!p || !(p.priceY > 0)) return "未列公开年付价。";
+  const match = String(p.note || "").match(/(?:连续包年|年付|包年)\s*([$¥₹])\s*([\d,]+(?:\.\d+)?)\s*(?:\/年|[（(；;]|$)/);
+  const expected = { USD: "$", CNY: "¥", INR: "₹" }[p.cur];
+  const exact = match && match[1] === expected ? Number(match[2].replace(/,/g, "")) : null;
+  const total = exact != null ? exact : p.priceY * 12;
+  return `${exact == null ? "约 " : ""}${pickerMoney(total, p.cur)}/年${p.seat ? "，每席位" : ""}，需按年支付；折月 ${priceText(p, "priceY")}/月${exact == null ? "（全年金额按折月价×12估算）" : ""}。`;
+}
+function pickerPaymentHtml(p) {
+  if (!p || !(p.priceM > 0)) return "";
+  const bits = [lineHtml("月付原价", `${priceText(p, "priceM")}/月${p.seat ? "，每席位" : ""}；按原币支付。`)];
+  if (p.priceY > 0) {
+    bits.push(lineHtml("年付全年", annualPaymentText(p)));
+  }
+  if (/首购|新购|活动|优惠|续费|连续包|试用|折|限时|原价/.test(p.note || "")) {
+    bits.push(`<details class="qc-payment-note"><summary>优惠与续费原文</summary><p>${esc(p.note)}</p></details>`);
+  }
+  return bits.join("");
+}
+function pickerVerificationHtml(p) {
+  const check = priceCheckOf(p);
+  if (!check) return lineHtml("本档核查", "暂无逐条核查记录，请在官网核对价格与权益。");
+  const sources = check.sourceIds.map((id) => PRICE_CHECKS.sources[id]).filter(Boolean);
+  const date = lineHtml("本档核查", `${check.checkedAt} · ${priceCheckLabel(p)}${check.reason ? "。" + check.reason : ""}`);
+  const evidence = sources.map((s) => `<li>${esc(s.evidence || "来源页面记录")} ${safeHref(s.url) ? `<a href="${safeHref(s.url)}" target="_blank" rel="noopener">核查来源 ↗</a>` : ""}</li>`).join("");
+  return date + (evidence ? `<details class="qc-verification"><summary>查看核查依据（${sources.length} 项）</summary><ul>${evidence}</ul></details>` : "");
+}
+function pickerPlanActions(p) {
+  if (!p) return "";
+  const href = safeHref(p.url);
+  return `<div class="qc-actions"><button type="button" class="qc-action cmp-add" data-plan-id="${esc(p.id)}" data-vendor="${esc(p.vendor)}" data-plan="${esc(p.plan)}">＋对比</button><button type="button" class="qc-action" data-view-plan="${esc(p.id)}" aria-label="查看 ${esc(planTitle(p))} 完整权益">完整权益</button>${href ? `<a class="qc-action" href="${href}" target="_blank" rel="noopener" tabindex="0"><span>官网</span><span class="qc-action-icon" aria-hidden="true">↗</span></a>` : ""}</div>`;
+}
 function quickCard(accent, title, value, body, plan) {
-  const href = plan ? safeHref(plan.url) : "";
   return `<div class="quick-card" style="--qc-accent:${accent}">
     <div class="qc-title">${esc(title)}</div>
     <div class="qc-value">${value}</div>
-    <div class="qc-sub">${body}</div>
-    ${href ? `<a class="qc-tag" href="${href}" target="_blank" rel="noopener">官网 ↗</a>` : ""}
+    <div class="qc-sub">${body}${pickerPaymentHtml(plan)}</div>
+    ${pickerPlanActions(plan)}
   </div>`;
 }
 function mainCard(main, pool) {
   const p = main.p;
   const dailyLead = pickerState.task === "daily" && main.loose.length;
   const bits = [`<b>${esc(planTitle(p))}</b><div class="badge-row">${badgeHtml(p)}</div>`];
+  bits.push(lineHtml("选取理由", pickerChoiceReason(main)));
   if (dailyLead) {
     const names = main.loose.map((r) => r.name).join("、");
     bits.push(lineHtml("日常", `${names}。${roleUseText(main.loose[0])}。`));
@@ -427,7 +481,7 @@ function mainCard(main, pool) {
     const list = cheaper.slice(0, 2).map((x) => `${x.p.plan}（${priceLine(x.p)}）`).join("、");
     bits.push(lineHtml("省钱档", `同一个 ${main.headline.name} 还有更便宜的 ${list}，具体额度差请核对官网。`));
   }
-  bits.push(lineHtml("核对信息", `页面数据更新于 ${META.updated}；下单前点击官网核对价格、购买资格与额度规则。`));
+  bits.push(pickerVerificationHtml(p));
   if (p.region === "intl" && pickerState.region !== "cn") bits.push(`<div class="qc-avoid">需要外币或国际账号支付。</div>`);
   const title = dailyLead || !main.headline ? "主计划 · 日常" : "主计划 · 复杂任务";
   return quickCard(PICK_ACCENT[0], title, moneyHtml(p), bits.join(""), p);
@@ -576,7 +630,48 @@ function pickerEmptyReason(pool) {
   if (!tool.length) return "所选地区没有匹配这个工具的通用个人档。可以改选工具或地区；自备 Key 的免费平台不等于免费推理。";
   return "当前预算没有匹配的通用套餐。可以提高预算或查看免费入口；国家限定套餐可在完整数据表查看。";
 }
+function pickerChoiceReason(profile) {
+  const daily = pickerState.task === "daily" || !profile.headline;
+  const role = daily ? profile.loose[0] : profile.headline;
+  const parts = [`${role ? role.name : "附赠模型"} 符合所选任务，月费 ${priceLine(profile.p)}，满足当前预算、地区与工具条件`];
+  if (daily && hasSeparateDaily(profile)) parts.push("日常模型与复杂任务模型明确分池，日常选择优先考虑这类额度");
+  const tokens = knownTokens(profile.p, role);
+  if (tokens > 0) parts.push(`有高置信的公开额度，按页面假设每月约 ${fmtTok(tokens)} tokens，可核对用量`);
+  else parts.push("可用 token 总量尚缺少高置信依据，主要按模型用途、公开额度规则和月费比较");
+  return parts.join("；") + "。";
+}
+/* 先给省钱候选，再给排序中的另一选择；尽量来自不同厂商，单厂商筛选仍可比较不同档位。 */
+function alternativeProfiles(pool, main) {
+  if (!main) return [];
+  const suitable = pool.filter((x) => x.p !== main.p && (pickerState.task === "daily" ? x.loose.length
+    : pickerState.task === "hard" ? x.headline : x.headline || x.loose.length));
+  const selected = [];
+  const cheapest = suitable.slice().sort((a, b) => (cnyOf(a.p, "M") || 0) - (cnyOf(b.p, "M") || 0));
+  const first = cheapest.find((x) => x.p.vendor !== main.p.vendor) || cheapest[0];
+  if (first) selected.push(first);
+  const remaining = suitable.filter((x) => !selected.includes(x));
+  const vendors = new Set([main.p.vendor, ...selected.map((x) => x.p.vendor)]);
+  const different = remaining.filter((x) => !vendors.has(x.p.vendor));
+  const second = chooseMain(different.length ? different : remaining);
+  if (second) selected.push(second);
+  return selected;
+}
+function alternativeCards(main, pool) {
+  const alternatives = alternativeProfiles(pool, main);
+  if (!alternatives.length) return "";
+  const mainPrice = cnyOf(main.p, "M") || 0;
+  const cards = alternatives.map((x) => {
+    const difference = mainPrice - (cnyOf(x.p, "M") || 0);
+    const tradeoff = difference > BUDGET_EPS ? `每月比主计划少 ${fmtCNY(difference)}；请同时比较模型与额度。`
+      : x.p.vendor !== main.p.vendor ? "来自另一厂商，可以比较模型、服务权益与额度规则。" : "同厂商另一档位，可比较月费和额度规则。";
+    const role = pickerState.task === "daily" ? x.loose[0] : x.headline || x.loose[0];
+    const body = `<b>${esc(planTitle(x.p))}</b><div class="badge-row">${badgeHtml(x.p)}</div>${lineHtml("比较理由", tradeoff)}${lineHtml("模型与额度", `${role.name}。${windowSentence(x.p, role)}`)}${pickerVerificationHtml(x.p)}`;
+    return quickCard(PICK_ACCENT[3], "预算内候选", moneyHtml(x.p), body, x.p);
+  }).join("");
+  return `<details class="picker-alternatives method-box"><summary>其他候选（${alternatives.length} 档，均在预算内）</summary><div class="picker-alternatives-grid">${cards}</div></details>`;
+}
 function renderPicker() {
+  const previousFocus = document.activeElement;
   syncPickerChips();
   const pool = eligibleProfiles();
   const grid = byId("quickGrid");
@@ -588,10 +683,14 @@ function renderPicker() {
     note.textContent = own
       ? "上面是所选工具的自家订阅，供参考；请结合预算、地区和所选任务查看，参考卡不等于当前条件下的推荐。中转站不参与。"
       : "平台免费但推理另付费的工具不作为免费模型套餐推荐；国家限定套餐保留在完整数据表，不参与通用推荐。中转站不参与。";
+    syncTableCmpButtons(previousFocus);
+    if (typeof syncServiceControls === "function") syncServiceControls();
     return;
   }
-  grid.innerHTML = [mainCard(main, pool), dailyCard(main, pool), upgradeCard(main), own].filter(Boolean).join("");
-  note.textContent = `符合条件 ${pool.length} 档。${own ? "最后一张是所选工具的自家订阅，供对照，不参与主计划排序。" : "三张卡是一套用法："}复杂任务按模型用途和已公开额度选择；日常额度共享情况未公开时，不据此建议加购。已包含的覆盖无需重复付费，补充订阅会列出合计月费。预算再往上可以高于当前筛选。模型角色按 ${MODEL_ROLES_ASOF} 的用法归类，不是跑分。中转站不参与。每百万 tokens 排行仍然只比价格。`;
+  grid.innerHTML = [mainCard(main, pool), dailyCard(main, pool), upgradeCard(main), own, alternativeCards(main, pool)].filter(Boolean).join("");
+  note.textContent = `符合条件 ${pool.length} 档。${own ? "所选工具的自家订阅卡供对照，不参与主计划排序。" : "前三张卡是一套用法："}其他候选是预算内的替代选择，无需同时购买。复杂任务按模型用途和已公开额度选择；日常额度共享情况未公开时，不据此建议加购。已包含的覆盖无需重复付费，补充订阅会列出合计月费。预算再往上可以高于当前筛选。模型角色按 ${MODEL_ROLES_ASOF} 的用法归类，不是跑分。中转站不参与。每百万 tokens 排行仍然只比价格。`;
+  syncTableCmpButtons(previousFocus);
+  if (typeof syncServiceControls === "function") syncServiceControls();
 }
 function auditProfiles() {
   /* 断言隐含「国内 + 不限预算 + 不限工具」的筛选前提（如智谱省钱档），先锁定状态，

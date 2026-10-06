@@ -20,6 +20,12 @@ interface Plan {
   windowPeriod?: "5h" | "month" | "none" | "unknown";
   quotaSharing?: "shared" | "separate" | "unknown";
   codingSurface?: boolean;
+  /** 明确自带编程入口；不依赖工具文案匹配。 */
+  ownClient?: boolean;
+  /** 模型继承和增补分开描述，排除仅作用于本档，避免低档限制传播到新增模型。 */
+  modelBaseRef?: string | [string, string];
+  modelIncludes?: string[];
+  modelExcludes?: string[];
   includedModelQuota?: boolean;
   modelAccess?: "included" | "byok" | "metered";
   purchaseCountries?: string[];

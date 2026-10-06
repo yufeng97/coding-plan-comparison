@@ -131,8 +131,18 @@ async function main() {
     assert.equal(result.count, 2);
     const files = fs.readdirSync(dir);
     assert.equal(files.includes("gf-0.woff2"), false);
-    assert.equal(files.filter((file) => /^gf-\d+-[a-f0-9]{10}\.woff2$/.test(file)).length, 2);
+    assert.equal(files.filter((file) => /^gf-[a-f0-9]{64}\.woff2$/.test(file)).length, 2);
     assert.doesNotMatch(fs.readFileSync(path.join(dir, "fonts.css"), "utf8"), /https:/);
+  }));
+  await test("不同字体URL返回同一字节时只保存一份内容哈希资产", () => fixture(async (root) => {
+    const dir = path.join(root, "libs/fonts");
+    const result = await updateFonts({ dir, fetcher: async (url) => url.includes("googleapis") ? fontCss : Buffer.from("wOF2same-font") });
+    assert.equal(result.count, 1);
+    assert.equal(result.sources, 2);
+    const files = fs.readdirSync(dir).filter((file) => file.endsWith(".woff2"));
+    assert.equal(files.length, 1);
+    const refs = [...fs.readFileSync(path.join(dir, "fonts.css"), "utf8").matchAll(/url\(([^)]+)\)/g)].map((match) => match[1]);
+    assert.deepEqual(refs, [files[0], files[0]]);
   }));
   await test("字体 CSS 为空或响应非 WOFF2 拒绝替换旧目录", () => fixture(async (root) => {
     const dir = path.join(root, "libs/fonts"), before = snapshot(dir);

@@ -31,7 +31,7 @@ function planMonthlyPriceCell(p) {
 }
 function planAnnualPriceCell(p) {
   if (p.priceY == null) return isOneTimePlan(p) ? "—" : '<span class="sub">未列年付价</span>';
-  return esc(planPriceLabel(p, "Y")) + `<br><span class="sub">≈${fmtCNY(cnyOf(p, "Y"))}/${p.seat ? "席位/月" : "月"}</span>`;
+  return esc(planPriceLabel(p, "Y")) + `<br><span class="sub">≈${fmtCNY(cnyOf(p, "Y"))}/${p.seat ? "席位/月" : "月"}</span><br><span class="sub">${esc(annualPaymentText(p))}</span>`;
 }
 
 /* 数据表与两种导出的列定义同源；单位及更新元数据只在导出里单列。 */
@@ -46,6 +46,7 @@ const PLAN_COLUMNS = [
   { id: "priceUnit", label: "计价单位", table: false, value: priceUnit },
   { id: "priceY", label: "年付折月", cls: "td-price", value: (p) => p.priceY == null ? "" : planPriceLabel(p, "Y"),
     markdownValue: (p) => p.priceY == null ? "—" : planPriceLabel(p, "Y"), cell: planAnnualPriceCell },
+  { id: "annualTotal", label: "年付全年金额", table: false, value: annualPaymentText },
   { id: "quota", label: "额度（官方口径）", cls: "td-quota", value: (p) => resolvedField(p, "quota") },
   { id: "models", label: "模型", cls: "td-models col-opt", value: (p) => resolvedField(p, "models") },
   { id: "tools", label: "支持工具", cls: "col-opt", value: (p) => resolvedField(p, "tools") },
@@ -129,8 +130,8 @@ function resetTableFilters() {
 }
 
 /* ---------- 导出：当前筛选 + 排序结果 ---------- */
-function tableExportName(ext) {
-  const desc = [tableState.search.trim(), tableState.cat, tableState.region].filter((x) => x && x !== "all").join("-");
+function tableExportName(ext, description = null) {
+  const desc = description == null ? [tableState.search.trim(), tableState.cat, tableState.region].filter((x) => x && x !== "all").join("-") : description;
   const safe = (desc || "all").replace(/[\\/:*?"<>|]+/g, "");
   const d = new Date();
   const day = d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0");
@@ -147,18 +148,21 @@ function tableRowsCsv(rows) {
     .concat(rows.map((p) => PLAN_COLUMNS.map((c) => cell(c.value(p))).join(",")));
   return lines.join("\r\n");
 }
-function exportTableCsv() {
-  const rows = computeTableRows();
-  if (!rows.length) { tableFeedback("没有可导出的方案，请先调整筛选。"); return; }
+function downloadCsvText(csv, filename) {
   /* \uFEFF 让 Excel 正确识别 UTF-8 */
-  const blob = new Blob(["\uFEFF" + tableRowsCsv(rows)], { type: "text/csv;charset=utf-8" });
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = tableExportName("csv");
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+}
+function exportTableCsv() {
+  const rows = computeTableRows();
+  if (!rows.length) { tableFeedback("没有可导出的方案，请先调整筛选。"); return; }
+  downloadCsvText(tableRowsCsv(rows), tableExportName("csv"));
   flashBtn("exportCsvBtn", `✓ 已导出 ${rows.length} 档`);
   tableFeedback(`已生成包含 ${rows.length} 档方案的 CSV，计价单位、数据日期和汇率已保留。`);
 }
@@ -171,25 +175,32 @@ function tableRowsMarkdown(rows) {
   const meta = `数据更新日期：${META.updated}；参考汇率：1 USD ≈ ${RATE} CNY，1 INR ≈ ${RATE_INR_CNY} CNY（${META.rateAsOf}；来源：${META.rateSource || "未提供"}）。金额包含计价单位；一次性、席位及每 4 周价格不能直接视为个人月费。`;
   return [meta, "", head, sep].concat(body).join("\n");
 }
-async function copyTableMarkdown() {
-  const rows = computeTableRows();
-  if (!rows.length) { tableFeedback("没有可复制的方案，请先调整筛选。"); return; }
-  const md = tableRowsMarkdown(rows);
+async function copyTextToClipboard(text) {
   let ok = false;
-  try { await navigator.clipboard.writeText(md); ok = true; }
+  try { await navigator.clipboard.writeText(text); ok = true; }
   catch (e) {
     /* file:// 或旧浏览器降级：隐藏 textarea + execCommand */
     const previousFocus = document.activeElement;
     const ta = document.createElement("textarea");
-    ta.value = md;
+    ta.value = text;
     ta.style.position = "fixed";
     ta.style.opacity = "0";
-    document.body.appendChild(ta);
+    /* 原生模态窗口会让 body 内其它节点 inert；权益和比较窗口都在当前窗口内选择文本。 */
+    const dialogs = [...qsa("dialog")].filter((dlg) => dlg.open === true || dlg.getAttribute("open") != null);
+    const focusedDialog = previousFocus && previousFocus.closest ? previousFocus.closest("dialog") : null;
+    const host = dialogs.includes(focusedDialog) ? focusedDialog : dialogs[dialogs.length - 1] || document.body;
+    host.appendChild(ta);
     ta.select();
     try { ok = document.execCommand("copy"); } catch (e2) { ok = false; }
     ta.remove();
     focusTableControl(previousFocus);
   }
+  return ok;
+}
+async function copyTableMarkdown() {
+  const rows = computeTableRows();
+  if (!rows.length) { tableFeedback("没有可复制的方案，请先调整筛选。"); return; }
+  const ok = await copyTextToClipboard(tableRowsMarkdown(rows));
   flashBtn("copyMdBtn", ok ? `✓ 已复制 ${rows.length} 档` : "复制失败");
   tableFeedback(ok ? `已复制 ${rows.length} 档方案的 Markdown 表格。` : "浏览器限制了剪贴板访问，可以使用 CSV 下载当前结果。");
 }
@@ -286,11 +297,15 @@ function cmpRemove(vendor, plan) {
 }
 function cmpClear() {
   if (!cmpState.items.length) return;
+  const focused = document.activeElement;
+  const focusInBar = focused && byId("cmpBar").contains(focused);
   cmpState.items = [];
   renderCmpBar();
   syncTableCmpButtons();
   syncUrl();
   closeCmpModal();
+  /* 比较条清空后消失；弹窗未打开时也要给键盘用户保留一个可继续操作的位置。 */
+  if (focusInBar) focusTableControl(byId("searchInput"));
   tableFeedback("已清空对比选择。");
 }
 function renderCmpBar() {
@@ -309,9 +324,19 @@ function renderCmpBar() {
   openBtn.disabled = n < 2;
   openBtn.title = n < 2 ? "至少选择 2 档" : "并排查看已选档";
   byId("cmpBarText").title = n ? cmpState.items.map((p) => shortVendor(p.vendor) + " " + p.plan).join("、") : "";
+  ["copyCmpMdBtn", "exportCmpCsvBtn"].forEach((id) => {
+    const btn = byId(id);
+    if (!btn) return;
+    btn.disabled = n < 2;
+    btn.title = n < 2 ? "至少选择 2 档后导出对比" : id === "copyCmpMdBtn" ? "复制已选方案的完整对比与核价元数据" : "下载已选方案的完整对比与核价元数据";
+  });
+  cmpFeedback("");
 }
-function syncTableCmpButtons() {
-  qsa("#tableBody .cmp-add").forEach((btn) => {
+function syncTableCmpButtons(previousFocus = null) {
+  const buttons = [...qsa(".cmp-add[data-plan-id]")];
+  buttons.forEach((btn) => {
+    const scope = btn.closest("[id]");
+    btn.dataset.cmpScope = scope ? scope.id : "";
     const on = cmpState.items.some((x) => x.id === btn.dataset.planId);
     btn.textContent = on ? "✓ 对比中" : "＋对比";
     const full = !on && cmpState.items.length >= CMP_MAX;
@@ -319,10 +344,35 @@ function syncTableCmpButtons() {
     btn.disabled = full;
     btn.classList.toggle("on", on);
     btn.setAttribute("aria-pressed", on ? "true" : "false");
-    const action = on ? "移出并排对比" : full ? `已满 ${CMP_MAX} 档，请先移出一档` : "加入并排对比，选满 2 档后底部出现";
+    const action = on ? "移出并排对比" : full ? `已满 ${CMP_MAX} 档，请先移出一档` : "加入并排对比，选满 2 档后可比较";
     btn.title = action;
     btn.setAttribute("aria-label", `${shortVendor(btn.dataset.vendor)} ${btn.dataset.plan}，${action}`);
   });
+  if (previousFocus && previousFocus.isConnected === false && previousFocus.classList.contains("cmp-add")) {
+    const replacement = buttons.find((btn) => btn.dataset.planId === previousFocus.dataset.planId && btn.dataset.cmpScope === previousFocus.dataset.cmpScope);
+    if (!focusTableControl(replacement)) {
+      const nearby = buttons.find((btn) => btn.dataset.cmpScope === previousFocus.dataset.cmpScope && !btn.disabled);
+      if (!focusTableControl(nearby)) focusTableControl(byId("searchInput"));
+    }
+  }
+}
+function cmpFeedback(message) {
+  const el = byId("cmpFeedback");
+  if (el) el.textContent = message;
+}
+function exportCmpCsv() {
+  const rows = cmpState.items.slice();
+  if (rows.length < 2) { cmpFeedback("请至少选择 2 档方案后导出对比。"); return; }
+  downloadCsvText(tableRowsCsv(rows), tableExportName("csv", "compare"));
+  flashBtn("exportCmpCsvBtn", `✓ 已导出 ${rows.length} 档`);
+  cmpFeedback(`已导出 ${rows.length} 档对比方案，完整权益、计价单位、核价来源、数据日期和汇率已保留。`);
+}
+async function copyCmpMarkdown() {
+  const rows = cmpState.items.slice();
+  if (rows.length < 2) { cmpFeedback("请至少选择 2 档方案后复制对比。"); return; }
+  const ok = await copyTextToClipboard(`并排对比（${rows.length} 档方案）\n\n` + tableRowsMarkdown(rows));
+  flashBtn("copyCmpMdBtn", ok ? `✓ 已复制 ${rows.length} 档` : "复制失败");
+  cmpFeedback(ok ? `已复制 ${rows.length} 档方案的完整对比与核价元数据。` : "浏览器限制了剪贴板访问，可以导出对比 CSV。");
 }
 function renderCmpModal() {
   const items = cmpState.items;
@@ -347,6 +397,7 @@ function renderCmpModal() {
       const best = lowest != null && cnyOf(p, "M") === lowest;
       return `<td${best ? ' class="cmp-best-price"' : ""}>${priceCell(p)}${best ? '<span class="cmp-price-label">同周期最低价</span>' : ""}</td>`;
     }).join(""), items.map((p) => planPriceLabel(p) + "|" + (p.priceY == null ? "" : planPriceLabel(p, "Y")))),
+    row("年付全年金额", items.map((p) => `<td>${esc(annualPaymentText(p))}</td>`).join(""), items.map(annualPaymentText)),
     row("额度（官方口径）", items.map((p) => `<td>${esc(resolvedField(p, "quota"))}</td>`).join(""), items.map((p) => resolvedField(p, "quota"))),
     row("模型", items.map((p) => `<td>${esc(resolvedField(p, "models"))}</td>`).join(""), items.map((p) => resolvedField(p, "models"))),
     row("支持工具", items.map((p) => `<td>${esc(resolvedField(p, "tools"))}</td>`).join(""), items.map((p) => resolvedField(p, "tools"))),
@@ -403,12 +454,12 @@ function renderMisc() {
     SOURCES.map(
       (g) => `<div class="source-group"><b>${esc(g.group)}</b><ul>${g.urls.map((u) => {
         const href = safeHref(u);
-        return href ? `<li><a href="${href}" target="_blank" rel="noopener">${esc(u)}</a></li>` : "";
+        return href ? `<li><a href="${href}" tabindex="0" target="_blank" rel="noopener">${esc(u)}</a></li>` : "";
       }).join("")}</ul></div>`
     ).join("") + `<details class="method-box"><summary>本次逐条核价来源（${Object.keys(PRICE_CHECKS.sources).length} 页）</summary><ul>` +
     Object.values(PRICE_CHECKS.sources).map((s) => {
       const href = safeHref(s.url);
-      return href ? `<li><a href="${href}" target="_blank" rel="noopener">${esc(s.url)}</a> — ${esc(s.evidence)}</li>` : "";
+      return href ? `<li><a href="${href}" tabindex="0" target="_blank" rel="noopener">${esc(s.url)}</a> — ${esc(s.evidence)}</li>` : "";
     }).join("") + `</ul></details>`;
   const pendingPrices = [
     ...PLANS.map((p) => ({ p, kind: "plan" })),

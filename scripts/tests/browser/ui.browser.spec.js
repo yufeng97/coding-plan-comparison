@@ -217,6 +217,8 @@ test("搜索延迟重绘时保留快速进入的对比按钮，筛掉方案则�
 for (const fallback of [false, true]) {
   const kind = fallback ? "降级dialog" : "原生dialog";
   test(`${kind}历史重绘保留方案移出焦点，缺失项和关闭后可安全继续操作`, async ({ page }) => {
+    /* 多次历史往返的完整场景需容纳 Windows WebKit 绘制时间；单步断言仍限 10 秒。 */
+    test.setTimeout(90000);
     if (fallback) await page.addInitScript(() => {
       Object.defineProperty(HTMLDialogElement.prototype, "showModal", { value: undefined, configurable: true });
       Object.defineProperty(HTMLDialogElement.prototype, "close", { value: undefined, configurable: true });

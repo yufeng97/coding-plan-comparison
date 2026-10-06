@@ -52,6 +52,13 @@ test("225组四维推荐满足资格、预算、工具和地区；升级/补充�
       if (!main) continue;
       check(pool.includes(main), "主计划超出候选池");
       check(task === "hard" ? !!main.headline : task === "daily" ? !!main.loose.length : !!(main.headline || main.loose.length), "主计划模型不符任务");
+      const alternatives = alternativeProfiles(pool, main);
+      check(alternatives.length <= 2 && new Set(alternatives.map(x => x.p.id)).size === alternatives.length, "替代候选数量或去重错误");
+      for (const x of alternatives) {
+        allowed(x.p, "替代 " + x.p.plan);
+        check(pool.includes(x) && x.p !== main.p && cnyOf(x.p, "M") <= cap + 0.05, "替代候选超出预算或重复主计划");
+        check(task === "hard" ? !!x.headline : task === "daily" ? !!x.loose.length : !!(x.headline || x.loose.length), "替代候选任务不符");
+      }
       const next = nextTier(main);
       if (next) {
         allowed(next.p, "升级 " + next.p.plan);
@@ -215,6 +222,81 @@ test("讯飞异版本牌价估算在真实页面保留低置信，排除官方�
   assert.equal(result.official, false);
   assert.equal(result.credits, false);
   assert.equal(result.all, true);
+  healthy(app);
+});
+
+test("继承模型保留日常与新增旗舰，明确否定K3和自家入口保持正确", () => {
+  const app = createApp();
+  const result = app.run(`(() => {
+    const pro = PLANS.find(p => p.id === "plan-0091");
+    const higher = ["plan-0092", "plan-0093"].map(id => planProfile(PLANS.find(p => p.id === id)));
+    const small = planProfile(PLANS.find(p => p.id === "plan-0212"));
+    tableState.search = "Luna";
+    const search = computeTableRows().filter(p => p.vendor === "GitHub Copilot").map(p => p.plan);
+    Object.assign(pickerState, { budget: "any", region: "intl", tool: "own", task: "daily" });
+    const xai = eligibleProfiles().filter(x => x.p.vendor === "xAI").map(x => x.p.plan);
+    const next = nextTier(planProfile(pro));
+    const base = { id: "role-base", vendor: "Role Fixture", plan: "Base", models: "Claude Sonnet / Haiku（不含 Opus）" };
+    const added = { id: "role-added", vendor: "Role Fixture", plan: "Added", models: "新增 Opus", modelBaseRef: base.id, modelIncludes: ["Claude Opus"] };
+    const excluded = { ...added, id: "role-excluded", modelExcludes: ["Claude Opus"] };
+    PLANS.push(base, added, excluded);
+    return { higher: higher.map(x => ({ headline: x.headline.id, daily: x.loose.map(r => r.id) })),
+      smallRoles: small.included.map(r => r.id), search, xai, next: next && next.p.plan,
+      base: planProfile(base).headline, added: planProfile(added).headline.id, excluded: planProfile(excluded).headline };
+  })()`);
+  for (const x of result.higher) { assert.equal(x.headline, "claude-opus"); assert.ok(x.daily.includes("luna")); assert.ok(x.daily.includes("grok")); }
+  assert.ok(!result.smallRoles.includes("kimi-k3"));
+  assert.ok(result.smallRoles.includes("glm-5"));
+  assert.ok(result.search.includes("Pro+") && result.search.includes("Max"));
+  assert.deepEqual(Array.from(result.xai), ["SuperGrok", "SuperGrok Plus"]);
+  assert.equal(result.next, "Pro+");
+  assert.equal(result.base, null);
+  assert.equal(result.added, "claude-opus");
+  assert.equal(result.excluded, null);
+  healthy(app);
+});
+
+test("推荐卡可直接对比和查看权益，展示本档核查及准确全年年费", () => {
+  const app = createApp();
+  const result = app.run(`(() => {
+    const claude = PLANS.find(p => p.id === "plan-0002"), google = PLANS.find(p => p.id === "plan-0017");
+    const check = priceCheckOf(claude); check.checkedAt = "2020-01-02";
+    Object.assign(pickerState, { budget: "500", region: "all", tool: "any", task: "both" });
+    const card = mainCard(planProfile(claude), eligibleProfiles());
+    renderPicker();
+    return { card, annual: pickerPaymentHtml(google),
+      alternatives: alternativeProfiles(eligibleProfiles(), chooseMain(eligibleProfiles())).length,
+      grid: document.getElementById("quickGrid").innerHTML };
+  })()`);
+  assert.match(result.card, /2020-01-02/);
+  assert.match(result.card, /查看核查依据/);
+  assert.doesNotMatch(result.card, /页面数据更新于/);
+  assert.match(result.card, /\$200\/年/);
+  assert.doesNotMatch(result.card, /200\.04/);
+  assert.match(result.annual, /\$199\.99\/年/);
+  assert.match(result.card, /data-plan-id="plan-0002"/);
+  assert.match(result.card, /data-view-plan="plan-0002"/);
+  assert.equal(result.alternatives, 2);
+  assert.match(result.grid, /其他候选（2 档，均在预算内）/);
+  assert.match(result.grid, /选取理由/);
+  healthy(app);
+});
+
+test("真实推荐卡的对比按钮可操作且重绘后保留选择与自身焦点", () => {
+  const app = createApp();
+  app.run('Object.assign(pickerState, { budget: "500", region: "cn", tool: "any", task: "both" }); renderPicker();');
+  const grid = app.elements.get("quickGrid");
+  const button = grid.querySelector(".cmp-add");
+  const id = button.dataset.planId;
+  app.fire(button, "click");
+  assert.equal(app.run(`cmpState.items.some(p => p.id === ${JSON.stringify(id)})`), true);
+  assert.equal(button.getAttribute("aria-pressed"), "true");
+  button.focus();
+  app.run("renderPicker();");
+  const replacement = grid.querySelector('.cmp-add[data-plan-id="' + id + '"]');
+  assert.equal(button.isConnected, false);
+  assert.equal(replacement.getAttribute("aria-pressed"), "true");
+  assert.equal(app.run("document.activeElement"), replacement);
   healthy(app);
 });
 

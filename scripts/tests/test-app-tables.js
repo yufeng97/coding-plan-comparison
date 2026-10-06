@@ -252,4 +252,142 @@ test("表格排序键盘操作与aria说明一致，明细开关同步展开状�
   healthy(app);
 });
 
+test("个人图展开与收起保留同一操作焦点，清空比较条回到可用搜索入口", () => {
+  const app = createApp();
+  app.run("renderPersonalChart();");
+  for (const limit of [null, 20]) {
+    const previous = app.elements.get("showAllPersonal");
+    previous.focus();
+    app.fire(previous, "click");
+    assert.equal(previous.isConnected, false, "说明文字重绘确实移除了旧按钮");
+    assert.equal(app.run("personalState.limit"), limit);
+    assert.equal(app.run("document.activeElement"), app.elements.get("showAllPersonal"));
+  }
+  app.run('cmpAdd("plan-0002");');
+  app.elements.get("cmpClearBtn").focus();
+  app.fire(app.elements.get("cmpClearBtn"), "click");
+  assert.equal(app.elements.get("cmpBar").hidden, true);
+  assert.equal(app.run("document.activeElement.id"), "searchInput");
+  app.run('cmpAdd("plan-0002"); cmpAdd("plan-0003");');
+  const search = app.elements.get("searchInput");
+  search.focus();
+  app.run("cmpClear();");
+  assert.equal(app.run("document.activeElement"), search, "从其它控件程序性清空不抢焦点");
+  healthy(app);
+});
+
+test("推荐和数据表同步同一方案的选择、上限与重绘焦点", () => {
+  const app = createApp();
+  const markup = '<button type="button" class="cmp-add" data-plan-id="plan-0002" data-vendor="Anthropic" data-plan="Claude Pro">＋对比</button>';
+  const grid = app.elements.get("quickGrid");
+  grid.innerHTML = markup;
+  app.run("syncTableCmpButtons();");
+  const getCardButton = () => grid.querySelector(".cmp-add");
+  const tableButton = app.elements.get("tableBody").querySelector('.cmp-add[data-plan-id="plan-0002"]');
+  app.fire(getCardButton(), "click");
+  assert.equal(tableButton.getAttribute("aria-pressed"), "true");
+  assert.equal(getCardButton().getAttribute("aria-pressed"), "true");
+  const previous = getCardButton();
+  previous.focus();
+  grid.innerHTML = markup;
+  app.run("syncTableCmpButtons(document.activeElement);");
+  assert.equal(app.run("document.activeElement"), getCardButton(), "推荐重绘恢复自身容器的方案按钮，不能跳到表格重复项");
+  app.run('cmpAdd("plan-0003"); cmpAdd("plan-0004"); cmpAdd("plan-0005");');
+  assert.equal(getCardButton().disabled, false, "已选项仍能移出");
+  assert.ok(app.elements.get("tableBody").querySelectorAll(".cmp-add").some((button) => button.disabled));
+  app.fire(tableButton, "click");
+  assert.equal(getCardButton().getAttribute("aria-pressed"), "false");
+  assert.equal(getCardButton().disabled, false);
+  healthy(app);
+});
+
+test("独立对比导出仅包含已选方案并保留完整元数据，窗口内复制降级可恢复焦点", async () => {
+  const app = createApp();
+  app.run(`
+    const selectedOnce = PLANS.find(p => p.vendor === "88code" && p.priceM === 66);
+    const selectedSeat = PLANS.find(p => p.seat && isOnSalePlan(p));
+    cmpState.items = [selectedOnce, selectedSeat]; renderCmpBar();
+    tableState.search = "Cursor"; renderTable(); openCmpModal();
+  `);
+  assert.equal(app.elements.get("copyCmpMdBtn").disabled, false);
+  assert.equal(app.elements.get("exportCmpCsvBtn").disabled, false);
+  app.fire(app.elements.get("exportCmpCsvBtn"), "click");
+  assert.equal(app.downloads.length, 1);
+  assert.match(app.downloads[0].filename, /^coding-plans-compare-\d{8}\.csv$/);
+  const csvBytes = Buffer.from(await app.downloads[0].blob.arrayBuffer());
+  assert.equal(csvBytes.toString("utf8"), "\uFEFF" + app.run("tableRowsCsv(cmpState.items)"));
+  await app.run("copyCmpMarkdown();");
+  assert.equal(app.run("copiedText"), "并排对比（2 档方案）\n\n" + app.run("tableRowsMarkdown(cmpState.items)"));
+  for (const value of ["一次性", "席位/月", "价格核查来源", app.run("META.updated"), app.run("META.rateAsOf")]) {
+    assert.ok(app.run("copiedText").includes(value), "对比副本缺少 " + value);
+  }
+  const copyButton = app.elements.get("copyCmpMdBtn");
+  copyButton.focus();
+  app.run(`
+    navigator.clipboard.writeText = async () => { throw new Error("clipboard denied"); };
+    document.execCommand = () => {
+      const text = byId("cmpModal").querySelector("textarea");
+      globalThis.fallbackInsideDialog = !!text;
+      globalThis.fallbackCopied = text && text.value;
+      return !!text;
+    };
+  `);
+  await app.run("copyCmpMarkdown();");
+  assert.equal(app.run("fallbackInsideDialog"), true);
+  assert.equal(app.run("fallbackCopied"), app.run("copiedText"));
+  assert.equal(app.run("document.activeElement"), copyButton);
+  app.run("cmpClear();");
+  assert.equal(app.elements.get("copyCmpMdBtn").disabled, true);
+  assert.equal(app.elements.get("exportCmpCsvBtn").disabled, true);
+  app.run("exportCmpCsv();");
+  await app.run("copyCmpMarkdown();");
+  assert.equal(app.downloads.length, 1, "不足两档时不导出空对比");
+  assert.match(app.elements.get("cmpFeedback").textContent, /至少选择 2 档/);
+  healthy(app);
+});
+
+test("年付表格、比较和导出优先保留官方全年金额及席位单位", () => {
+  const app = createApp();
+  app.run(`
+    globalThis.exactAnnualPlan = findPlanReference("plan-0002");
+    globalThis.annualSeatPlan = findPlanReference("plan-0005");
+    cmpState.items = [exactAnnualPlan, annualSeatPlan]; renderCmpModal();
+  `);
+  assert.match(app.run("planAnnualPriceCell(exactAnnualPlan)"), /\$200\/年/);
+  assert.doesNotMatch(app.run("planAnnualPriceCell(exactAnnualPlan)"), /200\.04/);
+  assert.match(app.run("planAnnualPriceCell(annualSeatPlan)"), /每席位/);
+  const comparison = app.elements.get("cmpTable").innerHTML;
+  assert.match(comparison, /年付全年金额/);
+  assert.match(comparison, /\$200\/年/);
+  assert.doesNotMatch(comparison, /200\.04/);
+  for (const format of ["tableRowsCsv", "tableRowsMarkdown"]) {
+    const result = app.run(`${format}([exactAnnualPlan, annualSeatPlan])`);
+    assert.match(result, /年付全年金额/);
+    assert.match(result, /\$200\/年/);
+    assert.match(result, /每席位/);
+    assert.doesNotMatch(result, /200\.04/);
+  }
+  healthy(app);
+});
+
+test("完整权益窗口也能使用剪贴板降级且复制后恢复窗口内焦点", async () => {
+  const app = createApp();
+  app.run(`
+    showPlanDetails("plan-0002");
+    navigator.clipboard.writeText = async () => { throw new Error("clipboard denied"); };
+    document.execCommand = () => {
+      const text = byId("planDetailsModal").querySelector("textarea");
+      globalThis.detailFallbackText = text && text.value;
+      return !!text;
+    };
+  `);
+  const close = app.elements.get("planDetailsCloseBtn");
+  close.focus();
+  assert.equal(await app.run('copyTextToClipboard("权益复制回归")'), true);
+  assert.equal(app.run("detailFallbackText"), "权益复制回归");
+  assert.equal(app.run("document.activeElement"), close);
+  assert.equal(app.elements.get("planDetailsModal").querySelectorAll("textarea").length, 0);
+  healthy(app);
+});
+
 if (require.main === module) main();

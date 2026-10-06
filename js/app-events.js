@@ -63,7 +63,16 @@ function bindEvents() {
     if (!target) return;
     const hit = (sel) => !!(target.closest && target.closest(sel));
     /* 委托统一走 closest：按钮内嵌套元素（图标/换行 span）也不会让点击落空 */
-    if (hit("#showAllPersonal")) { updateAppState(() => { personalState.limit = personalState.limit == null ? PERSONAL_DEFAULT_LIMIT : null; renderPersonalChart(); }); return; }
+    if (hit("#showAllPersonal")) {
+      const button = target.closest("#showAllPersonal");
+      const restoreFocus = document.activeElement === button;
+      updateAppState(() => {
+        personalState.limit = personalState.limit == null ? PERSONAL_DEFAULT_LIMIT : null;
+        renderPersonalChart();
+        if (restoreFocus) focusTableControl(byId("showAllPersonal"));
+      });
+      return;
+    }
     if (hit("#personalResetBtn")) { updateAppState(() => { cancelPersonalSearch(); resetPersonalFilters(); focusTableControl(byId("chartSearch")); }); return; }
     if (hit("[data-reset-table]")) { updateAppState(() => { cancelTableSearch(); resetTableFilters(); }); return; }
     if (hit("[data-reset-metrics]")) { updateAppState(resetMetricsFilters); return; }
@@ -135,6 +144,10 @@ function bindEvents() {
   if (cmpClearBtn) onState(cmpClearBtn, "click", cmpClear);
   const cmpClearInModal = byId("cmpClearInModal");
   if (cmpClearInModal) onState(cmpClearInModal, "click", cmpClear);
+  const copyCmpBtn = byId("copyCmpMdBtn");
+  if (copyCmpBtn) copyCmpBtn.addEventListener("click", copyCmpMarkdown);
+  const exportCmpBtn = byId("exportCmpCsvBtn");
+  if (exportCmpBtn) exportCmpBtn.addEventListener("click", exportCmpCsv);
   const cmpCloseBtn = byId("cmpCloseBtn");
   if (cmpCloseBtn) cmpCloseBtn.addEventListener("click", closeCmpModal);
   const cmpModal = byId("cmpModal");

@@ -8,8 +8,11 @@ module.exports = defineConfig({
   workers: 2,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
+  projects: ["chromium", "firefox", "webkit"].map((browserName) => ({
+    name: browserName,
+    use: { browserName: /** @type {"chromium"|"firefox"|"webkit"} */ (browserName) },
+  })),
   use: {
-    browserName: "chromium",
     baseURL: "http://127.0.0.1:18461",
     viewport: { width: 1280, height: 900 },
     reducedMotion: "reduce",

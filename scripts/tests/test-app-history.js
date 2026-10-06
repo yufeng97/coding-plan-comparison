@@ -432,4 +432,24 @@ test("相同查询串的历史恢复仍完成被取消的搜索防抖", () => {
   healthy(app);
 });
 
+test("历史事件前原生fragment清空焦点仍找回方案按钮，主动离开则不抢回", () => {
+  const app = createApp({ url:"http://127.0.0.1:8123/index.html#table" });
+  const button = () => app.elements.get("tableBody").querySelectorAll(".cmp-add").find((e) => e.dataset.planId === "plan-0002");
+  button().focus();
+  app.history.pushState(null,"","?q=Anthropic#s4");
+  app.run("document.activeElement = document.body;");
+  app.fireWindow("popstate");
+  assert.equal(app.run("document.activeElement"),button());
+  app.history.pushState(null,"","?q=Anthropic#table");
+  app.elements.get("table").focus();
+  app.fireWindow("popstate");
+  assert.equal(app.run("document.activeElement"),button(),"原生锚点提前取得焦点也保留方案身份");
+  app.fire(app.elements.get("shareResultsBtn"),"pointerdown");
+  app.history.pushState(null,"","?q=Anthropic#s4");
+  app.run("document.activeElement = document.body;");
+  app.fireWindow("popstate");
+  assert.equal(app.run("document.activeElement"),app.run("document.body"));
+  healthy(app);
+});
+
 if (require.main === module) main();

@@ -11,7 +11,17 @@ const tableState = { search:"", cat:"all", region:"all", sortKey:"priceM", sortD
 /** @type {{items: typeof PLANS}} */
 const cmpState = { items:[] };
 const metricsState = { model:"all", ver:"all", sortKey:"cpm", sortDir:1 };
-const APP_DEFAULTS = { personal:{...personalState}, rank:{...rankState}, picker:{...pickerState}, table:{...tableState}, metrics:{...metricsState} };
+const CALC_MODELS = new Set(API_PRICES.filter((a) => isPriceConfirmed(a, "api")).map((a) => a.vendor + "|" + a.model));
+const calcState = { model:[...CALC_MODELS][0] || "", requests:"100", tokens:"20000", days:"22", input:"80", cache:"95", cachePrice:"", budget:"200" };
+const CALC_LIMITS = { requests:[0,100000,true], tokens:[1,10000000,true], days:[1,31,true], input:[0,100,false], cache:[0,100,false], cachePrice:[0,1000000,false], budget:[0,1000000000,false] };
+function validCalcValue(key, value) {
+  if (key === "model") return CALC_MODELS.has(value);
+  if (key === "cachePrice" && value === "") return true;
+  if (!CALC_LIMITS[key] || !/^\d+(?:\.\d+)?$/.test(String(value))) return false;
+  const n = Number(value), [min,max,integer] = CALC_LIMITS[key];
+  return Number.isFinite(n) && n >= min && n <= max && (!integer || Number.isInteger(n));
+}
+const APP_DEFAULTS = { personal:{...personalState}, rank:{...rankState}, picker:{...pickerState}, table:{...tableState}, metrics:{...metricsState}, calc:{...calcState} };
 /* 额度表模型筛选的合法取值（与 populateModelFilter 的数据源一致），供 URL 白名单校验 */
 const MODEL_FILTER_VALUES = new Set([
   ...METRICS_RAW.map((m) => m.model),
@@ -61,6 +71,14 @@ const URL_KEYS = {
   msort: () => metricsState.sortKey + ":" + metricsState.sortDir,
   /* 并排对比（数据表勾选；空集不写入） */
   cmp: () => cmpState.items.map((p) => p.id).join(";"),
+  cmodel: () => calcState.model,
+  crequests: () => calcState.requests,
+  ctokens: () => calcState.tokens,
+  cdays: () => calcState.days,
+  cinput: () => calcState.input,
+  ccache: () => calcState.cache,
+  ccacheprice: () => calcState.cachePrice,
+  cbudget: () => calcState.budget,
 };
 const URL_DEFAULTS = Object.fromEntries(Object.entries(URL_KEYS).map(([k,get])=>[k,get()]));
 const URL_VALID = {
@@ -81,14 +99,19 @@ const URL_VALID = {
   msortKeys: new Set(["price", "cpm", "t5h", "r5h", "twk", "rwk", "tmo", "rmo"]),
 };
 
-function applyUrlState() {
+function applyUrlState(search = location.search) {
   Object.assign(personalState, APP_DEFAULTS.personal);
   Object.assign(rankState, APP_DEFAULTS.rank);
   Object.assign(pickerState, APP_DEFAULTS.picker);
   Object.assign(tableState, APP_DEFAULTS.table);
   Object.assign(metricsState, APP_DEFAULTS.metrics);
+  Object.assign(calcState, APP_DEFAULTS.calc);
   cmpState.items = [];
-  const p = new URLSearchParams(location.search);
+  const p = new URLSearchParams(search);
+  for (const key of Object.keys(calcState)) {
+    const v = p.get("c" + key.toLowerCase());
+    if (v != null && validCalcValue(key, v)) calcState[key] = v;
+  }
   const pick = (k, valid, target, key) => {
     const v = p.get(k);
     if (v != null && (!valid || valid.has(v))) target[key] = v;
@@ -133,8 +156,7 @@ function applyUrlState() {
   }
 }
 
-function syncUrl() {
-  if (URL_RESTORING) return;
+function appQueryString() {
   /* 仅写入仍受支持的状态，旧链接中的 country 等退役参数会在首次渲染时清除。 */
   const p = new URLSearchParams();
   if (DEBUG_MODE) p.set("debug", "1");
@@ -142,7 +164,11 @@ function syncUrl() {
     const v = String(get());
     if (v !== String(URL_DEFAULTS[k]) && v !== "") p.set(k, v);
   }
-  const qs = p.toString();
+  return p.toString();
+}
+function syncUrl() {
+  if (URL_RESTORING) return;
+  const qs = appQueryString();
   const hash = location.hash || "";
   const next = location.pathname + (qs ? "?" + qs : "") + hash;
   if (next === location.pathname + location.search + hash) return;
@@ -164,4 +190,5 @@ function syncControlsFromState() {
   setVal("metricsModel", metricsState.model);
   setVal("metricsVer", metricsState.ver); /* 模型下拉在 populateModelFilter 填充后再设值 */
   syncRankChips();
+  if (typeof syncServiceControls === "function") syncServiceControls();
 }

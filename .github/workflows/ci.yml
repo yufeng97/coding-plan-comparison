@@ -29,11 +29,11 @@ jobs:
           cache: npm
       - name: 按 lockfile 安装固定开发依赖
         run: npm ci
-      - name: 缓存 Playwright Chromium
+      - name: 缓存 Playwright 浏览器
         uses: actions/cache@v4
         with:
           path: ${{ runner.os == 'Windows' && '~\AppData\Local\ms-playwright' || '~/.cache/ms-playwright' }}
-          key: playwright-${{ runner.os }}-chromium
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - name: 语法检查
         run: npm run check
       - name: 类型检查（checkJs）
@@ -44,9 +44,9 @@ jobs:
         run: npm run test
       - name: 缓存版本号与文件一致（改动资产后须跑 npm run bump）
         run: npm run cache:check
-      - name: 安装浏览器回归所需 Chromium
-        run: npx playwright install --with-deps chromium
-      - name: 真实浏览器回归
+      - name: 安装 Chromium、Firefox 与 WebKit
+        run: npx playwright install --with-deps chromium firefox webkit
+      - name: 三种浏览器回归
         run: npm run test:browser
       - name: 上传失败截图与 trace
         if: failure()

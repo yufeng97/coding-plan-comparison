@@ -57,6 +57,7 @@ function personalTooltip(p) {
 }
 
 function renderPersonalChart() {
+  if (deferChartRender("chartPersonal",renderPersonalChart)) return;
   renderLegend();
   const q1 = foldSearch(personalState.q);
   const rows = PLANS.filter(
@@ -143,6 +144,7 @@ function renderPersonalChart() {
 
 /* ---------- 团队 / 企业 / 云厂商（席位价 + 整包价） ---------- */
 function renderTeamChart() {
+  if (deferChartRender("chartTeam",renderTeamChart)) return;
   const rows = PLANS.filter(
     (p) => isPriceConfirmed(p) && !isRetiredPlan(p) && (p.cat === "team" || p.seat) && p.priceM != null && p.priceM > 0
   ).sort((a, b) => cnyOf(a, "M") - cnyOf(b, "M"));
@@ -192,6 +194,7 @@ const TOKEN_OFFICIAL_COLOR = "#34d399";
 const TOKEN_EST_COLOR = "#fbbf24";
 
 function renderTokensChart() {
+  if (deferChartRender("chartTokens",renderTokensChart)) return;
   const chart = makeChart("chartTokens");
   const el = byId("chartTokens");
 
@@ -346,6 +349,7 @@ function renderTokensChart() {
 
 /* ---------- API 按量价格 ---------- */
 function renderApiChart() {
+  if (deferChartRender("chartApi",renderApiChart)) return;
   const apiEl = byId("chartApi");
   const chart = makeChart("chartApi");
   const detailRows = API_PRICES.map((a) => {
@@ -507,14 +511,29 @@ function syncRankChips() {
     chip.setAttribute("aria-pressed", on ? "true" : "false");
   });
 }
-function renderRankChart() {
-  const all = METRICS_ALL
+function rankRows() {
+  return METRICS_ALL
     .filter(rankScopeOk)
     .filter(metricOfferOk)
     .map((m) => ({ m, c: computeMetrics(m) }))
     .filter((r) => r.c && r.c.costPerM != null)
     .filter((r) => rankState.tier !== "flagship" || isFlagshipModelName(r.m.model))
     .sort((a, b) => a.c.costPerM - b.c.costPerM);
+}
+function renderRankDetails() {
+  const body = byId("rankDetailBody");
+  if (!body) return;
+  const rows = rankRows();
+  body.innerHTML = rows.length ? rows.map((r) => {
+    const prov = provenance(r.m), c = r.c;
+    return `<tr><th scope="row">${esc(r.m.vendor + " · " + r.m.plan)}<br>${esc(displayModelName(r.m.model))}</th>` +
+      `<td>${esc(fmtCNY(c.priceCNY))}/月</td><td>¥${c.costPerM.toFixed(3)}</td><td>${esc(tokSpan(c,"moLow","moHigh"))}</td><td>${esc(prov.text)} · 置信${esc(prov.conf)}</td></tr>`;
+  }).join("") : '<tr><td colspan="5" class="table-empty">当前口径没有可比较的套餐，请调整模型档或排行口径。</td></tr>';
+}
+function renderRankChart() {
+  renderRankDetails();
+  if (deferChartRender("chartRank",renderRankChart)) return;
+  const all = rankRows();
   const rows = all.slice(0, 20); /* 图高有限，最多展示前 20 档 */
   describeChart("chartRank", "每百万 tokens 成本排行（¥，越低越划算）前三：" +
     rows.slice(0, 3).map((r) => shortVendor(r.m.vendor) + " " + r.m.plan + " ¥" + r.c.costPerM.toFixed(3)).join("、"));
@@ -585,4 +604,16 @@ function renderRankChart() {
   byId("rankNote").textContent =
     `共 ${all.length} 档${all.length > rows.length ? `，此处显示前 ${rows.length} 档` : ""}。${tierText}${scopeText}绿色 ≤¥0.30 · 黄色 ≤¥1 · 红色 >¥1。`;
   syncRankChips();
+}
+
+/* 文字明细独立于 ECharts；图表库加载失败也能查完整牌价与核查来源。 */
+function renderApiDetails() {
+  const body = byId("apiDetailBody");
+  if (!body) return;
+  const rows = API_PRICES.map((a) => ({ ...a,
+    input:a.cur === "CNY" ? a.inCNY / RATE : a.inUSD,
+    output:a.cur === "CNY" ? a.outCNY / RATE : a.outUSD,
+  })).filter((a) => Number.isFinite(a.input) && Number.isFinite(a.output)).sort((a,b) => a.output-b.output);
+  body.innerHTML = rows.map((a) => `<tr><th scope="row">${esc(shortVendor(a.vendor) + " · " + displayModelName(a.label || a.model))}</th><td>${esc(REGION_LABEL[a.region] || "—")}</td>` +
+    `<td>$${Number(a.input.toFixed(4))}</td><td>$${Number(a.output.toFixed(4))}</td><td>${a.output > 0 ? Number((10/a.output).toFixed(1)) + "M" : "—"}</td><td>${priceCheckHtml(a,"api")}</td></tr>`).join("");
 }
