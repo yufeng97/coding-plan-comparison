@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "tasks": [
+    {"id":"cached-cost","version":1,"title":"修复缓存输入计费","description":"修复缓存命中 tokens 重复计费，校验非法输入，保留纯函数接口。只编辑 solution.cjs。","acceptance":"固定公开验收：缓存/非缓存、全命中、零用量，以及每个数量/价格的负数、非有限与缺失值。","fixture":"cached-cost"},
+    {"id":"csv-export","version":1,"title":"实现可靠的 CSV 导出","description":"实现 encodeCSV(rows)，正确处理引号、逗号、换行和空值；防止以公式字符开头的单元格被电子表格执行。只编辑 solution.cjs。","acceptance":"6 项验收：标准 CSV 转义、空值、换行、公式前缀及二维输入检查。","fixture":"csv-export"},
+    {"id":"url-state","version":1,"title":"实现 URL 筛选状态往返","description":"实现 encode/decode：budget 为 any/50/100，region 为 all/cn/intl；未知值回退 any/all，忽略额外参数并支持中文 search。只编辑 solution.cjs。","acceptance":"5 项验收：默认值、有效筛选、中文往返、无效输入及未知参数。","fixture":"url-state"}
+  ]
+}

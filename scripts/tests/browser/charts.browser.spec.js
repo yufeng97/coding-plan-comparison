@@ -168,8 +168,14 @@ for (const width of [375, 768, 1280]) {
       await expect.poll(() => page.evaluate("echarts.version")).toBe("6.1.0");
       await expect(page.locator("#apiDetailBody tr")).toHaveCount(36);
       for (const id of ["chartPersonal", "chartTokens", "chartApi", "chartPower"]) {
-        expect(await page.locator("#" + id + " canvas").count()).toBeGreaterThan(0);
-        const size = await page.evaluate("({ width: chartCache." + id + ".getWidth(), height: chartCache." + id + ".getHeight(), containerWidth: document.getElementById(" + JSON.stringify(id) + ").clientWidth })");
+        // 库和画布节点出现后，异步锚点布局/resize 仍可能正在完成。
+        await expect.poll(() => page.locator("#" + id + " canvas").count()).toBeGreaterThan(0);
+        const readSize = () => page.evaluate("({ width: chartCache." + id + ".getWidth(), height: chartCache." + id + ".getHeight(), containerWidth: document.getElementById(" + JSON.stringify(id) + ").clientWidth })");
+        await expect.poll(async () => {
+          const size = await readSize();
+          return size.width > 100 && size.height > 400 && Math.abs(size.width - size.containerWidth) <= 1;
+        }, { message: id + " 完成真实画布布局" }).toBe(true);
+        const size = await readSize();
         expect(size.width).toBeGreaterThan(100);
         expect(size.height).toBeGreaterThan(400);
         expect(Math.abs(size.width - size.containerWidth)).toBeLessThanOrEqual(1);
@@ -179,12 +185,15 @@ for (const width of [375, 768, 1280]) {
       expect(viewport.body).toBeLessThanOrEqual(viewport.viewport + 1);
       for (const selector of [".api-detail-wrap", "#table .table-wrap"]) {
         const wrapper = page.locator(selector);
+        // 离屏表格使用 content-visibility，进入阅读区后才有真实滚动宽度。
+        await wrapper.scrollIntoViewIfNeeded();
+        if (width < 768) await expect.poll(() => wrapper.evaluate(el => el.scrollWidth > el.clientWidth), { message: selector + " 可见后完成表格布局" }).toBe(true);
         const before = await wrapper.evaluate(el => ({ width: el.clientWidth, scrollWidth: el.scrollWidth, left: el.scrollLeft }));
         expect(before.width).toBeGreaterThan(100);
         if (width < 768) {
           expect(before.scrollWidth).toBeGreaterThan(before.width);
           await wrapper.evaluate(el => { el.scrollLeft = el.scrollWidth; });
-          expect(await wrapper.evaluate(el => el.scrollLeft)).toBeGreaterThan(0);
+          await expect.poll(() => wrapper.evaluate(el => el.scrollLeft)).toBeGreaterThan(0);
         }
       }
       expect(errors).toEqual([]);

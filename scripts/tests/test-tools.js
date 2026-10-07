@@ -32,6 +32,18 @@ let passed = 0;
 async function test(name, fn) { await fn(); passed++; console.log("  ✓ " + name); }
 
 async function main() {
+  await test("RSS 进入部署且其他根目录文件仍被拒绝", () => fixture((root, write) => {
+    write("changes.xml", '<rss version="2.0"><channel><title>Changes</title></channel></rss>');
+    write("index.html", '<link rel="alternate" type="application/rss+xml" href="changes.xml">');
+    const plan = createAssetPlan(root);
+    assert.equal(plan.assets.size, 2);
+    writeAssetPlan(plan);
+    stageSite(root);
+    assert.deepEqual(fs.readFileSync(path.join(root, ".site-build/changes.xml")), fs.readFileSync(path.join(root, "changes.xml")));
+    write("private.xml", "PRIVATE");
+    write("index.html", '<link href="private.xml">');
+    assert.throws(() => createAssetPlan(root), /白名单/);
+  }));
   await test("--check 缓存过期失败且完全只读，更新后可通过", () => fixture((root) => {
     const beforeHtml = fs.readFileSync(path.join(root, "index.html"));
     const beforeCss = fs.readFileSync(path.join(root, "libs/fonts/fonts.css"));

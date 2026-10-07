@@ -1,0 +1,25 @@
+name: 提交任务测评记录
+description: 提交可复现的实际模型 / 编程工具解答与验收结果
+title: "[测评] "
+body:
+  - type: textarea
+    id: environment
+    attributes:
+      label: 固定任务 ID / 版本、模型、工具及环境
+      description: 请注明任务 fixtureHash、工具版本、提示词、生成时间、独立尝试次数；重复验收同一解答不等于多次模型尝试。
+    validations:
+      required: true
+  - type: textarea
+    id: record
+    attributes:
+      label: benchmark:run 记录与可复现证据
+      description: 提供解答、命令及公开 HTTPS 证据；不可包含密钥或私人代码。
+    validations:
+      required: true
+  - type: textarea
+    id: cost
+    attributes:
+      label: 实际生成费用与耗时
+      description: API 使用真实账单原币金额；订阅内或未知写 null，不折算为免费。生成耗时与验收耗时分别记录。
+    validations:
+      required: true

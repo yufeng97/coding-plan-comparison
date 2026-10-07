@@ -12,10 +12,11 @@
 <meta property="og:title" content="Coding Plan 全球比价中心 · 逐条核价">
 <meta property="og:description" content="一次看全市面上在售的 AI 编程订阅计划：模型官方 / 云厂商 / 第三方工具与中转站的每月价格、可用 token 额度、每百万 tokens 实际成本与免费入口对比。">
 <meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="Coding Plan 已确认变更" href="changes.xml?v=f7ef1e7">
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%23b9ff00'/%3E%3Ctext%20x='16'%20y='22'%20font-family='monospace'%20font-size='15'%20font-weight='bold'%20text-anchor='middle'%20fill='%2310110f'%3E%26lt;/%26gt;%3C/text%3E%3C/svg%3E">
   <script>try{var __m=localStorage.getItem("cp-theme")||"system";var __d=matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.dataset.theme=__m==="system"?(__d?"dark":"light"):__m;}catch(e){}</script>
   <link rel="stylesheet" href="libs/fonts/fonts.css?v=17da4b4">
-  <link rel="stylesheet" href="css/style.css?v=4057ace">
+  <link rel="stylesheet" href="css/style.css?v=f9bb674">
 </head>
 <body>
 <div id="loadFailure" class="load-failure" role="alert" hidden>
@@ -38,6 +39,8 @@
       <a href="#s4">API 按量</a>
       <a href="#free">免费入口</a>
       <a href="#table">数据表</a>
+      <a href="#updates">关注与变更</a>
+      <a href="#benchmarks">真实任务测评</a>
     </nav>
     <button id="themeBtn" class="theme-btn" title="切换主题：暗色 → 亮色 → 跟随系统"><i class="ric" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z"/></svg></i></button>
   </div>
@@ -376,6 +379,56 @@
     </details>
   </section>
 
+  <section class="section" id="updates">
+    <div class="section-head"><h2><span class="sec-no">↻</span>数据可信与关注变更</h2><p>查看逐条核查、复查安排与已确认历史。<a href="changes.xml">订阅变更 RSS ↗</a></p></div>
+    <div class="maintenance-panel" id="maintenanceSummary"></div>
+    <div class="maintenance-toolbar"><button type="button" class="chip" id="downloadPublicDataBtn">下载公开数据 JSON</button><span class="maintenance-meta">schemaVersion 1 · 价格、核查、已确认历史与测评规范</span></div>
+    <p id="publicDataFeedback" class="table-feedback" role="status" aria-live="polite"></p>
+    <div class="maintenance-grid">
+      <div class="maintenance-panel">
+        <h3>我关注的套餐</h3>
+        <p id="followStorageNote"></p>
+        <div class="maintenance-toolbar"><strong id="followUnreadCount"></strong><button type="button" class="chip" id="markFollowReadBtn" disabled>将当前变更标为已读</button></div>
+        <p id="followFeedback" class="table-feedback" role="status" aria-live="polite"></p>
+        <div id="followedPlans"></div><div id="followedChanges"></div>
+      </div>
+      <div class="maintenance-panel">
+        <h3>查看套餐历史</h3>
+        <label class="maintenance-select" for="maintenancePlan">选择套餐<select id="maintenancePlan"><option value="">选择套餐</option></select></label>
+        <div id="maintenanceHistory"></div>
+        <details class="method-box"><summary>到期复查提示</summary><div id="maintenanceReviews"></div></details>
+      </div>
+    </div>
+    <details class="method-box"><summary>逐条维护状态与来源</summary><label class="maintenance-select" for="maintenanceRecordFilter">记录范围<select id="maintenanceRecordFilter"><option value="all">全部记录</option><option value="unverified">待核实</option><option value="stale">超过复查间隔</option></select></label><div id="maintenanceRecords"></div></details>
+    <p class="maintenance-meta">核查快照与已确认变更由维护脚本整理。变价候选、资讯与到期提示需复核；没有证据时不自动更新官方价格。</p>
+  </section>
+
+  <section class="section" id="benchmarks">
+    <div class="section-head"><h2><span class="sec-no">⌘</span>可复现真实任务测评</h2><p>从相同任务与验收条件出发，展示有公开证据的实测记录。</p></div>
+    <div class="maintenance-panel">
+      <div class="benchmark-filters">
+        <label class="maintenance-select" for="benchmarkTask">任务<select id="benchmarkTask"><option value="all">全部任务</option></select></label>
+        <label class="maintenance-select" for="benchmarkTool">工具<select id="benchmarkTool"><option value="all">全部工具</option></select></label>
+        <label class="maintenance-select" for="benchmarkModel">模型<select id="benchmarkModel"><option value="all">全部模型</option></select></label>
+      </div>
+      <div id="benchmarkResults" aria-live="polite"></div>
+      <p class="maintenance-meta">生成费用取自真实 API 账单；订阅内使用不分摊单次费用。生成时间与验收运行时间分别记录；验收次数指同一解答的重复检查，不能当成模型独立尝试次数或成功率。</p>
+    </div>
+    <div id="benchmarkTasks"></div>
+    <details class="method-box"><summary>测评方法与记录导入说明</summary><p id="benchmarkMethodology"></p><p>贡献记录包含 taskId、model、tool、measuredAt、cost、currency、costBasis、generationSeconds、durationSeconds、passed、repeats、evidence 与 environment。evidence 须为可公开的 HTTPS 证据；costBasis 为 api-receipt 时填写实际账单，included-subscription 或 unknown 时 cost=null。</p><p>请在本地任务框架运行同一解答的验收，保存原始提示、解答与日志，再将记录交由维护者核对导入。本站不会在浏览器上传文件或自动发布结果。</p><a href="#contribute">复制或下载测评贡献模板 ↓</a></details>
+  </section>
+
+  <section class="section" id="contribute">
+    <div class="section-head"><h2><span class="sec-no">＋</span>帮助补全与纠错</h2><p>提交新厂商、官方变更证据或可复现测评，帮助其他人做选择。</p></div>
+    <div class="maintenance-panel">
+      <label class="maintenance-select" for="contributionType">贡献类型<select id="contributionType"><option value="correction">套餐纠错与更新</option><option value="vendor">收录新厂商 / 套餐</option><option value="benchmark">真实任务测评</option></select></label>
+      <p id="contributionProjectNote"></p>
+      <div class="maintenance-toolbar"><button type="button" class="chip" id="copyContributionBtn">复制证据模板</button><button type="button" class="chip" id="downloadContributionBtn">下载模板</button><a class="chip" id="contributionIssueLink" target="_blank" rel="noopener" hidden>前往项目 Issues ↗</a></div>
+      <p id="contributionFeedback" class="table-feedback" role="status" aria-live="polite"></p>
+      <label class="contribution-preview" for="contributionTemplate">证据模板（选中后可手动复制）<textarea id="contributionTemplate" rows="12" readonly spellcheck="false"></textarea></label>
+    </div>
+  </section>
+
   <!-- ======== 11 数据来源与说明 ======== -->
   <section class="section" id="sources">
     <div class="section-head"><h2><span class="sec-no">11</span>数据来源与说明</h2></div>
@@ -433,20 +486,24 @@
 </dialog>
 
 <footer class="footer">
-  <p>Coding Plan 全球比价中心 · 数据调研与核实日期 <span id="footDate">2026-10-01</span> · 仅供参考，以各厂商官方页面为准 · 纯静态页面：无统计、无跟踪，主题与常用条件仅存于本机</p>
+  <p>Coding Plan 全球比价中心 · 数据调研与核实日期 <span id="footDate">2026-10-01</span> · 仅供参考，以各厂商官方页面为准 · 纯静态页面：无统计、无跟踪，主题、常用条件与关注记录仅存于本机</p>
 </footer>
 
 <template id="chartLibraryTemplate"><script src="libs/echarts.min.js?v=14c5497"></script></template>
 <script src="js/app-loader.js?v=dcdaf05"></script>
 <script src="js/data.js?v=7656a9e"></script>
+<script src="js/maintenance-data.js?v=9cad292"></script>
+<script src="js/benchmark-data.js?v=9d80587"></script>
+<script src="js/project-data.js?v=1ce1b74"></script>
 <script src="js/metrics.js?v=436b915"></script>
 <script src="js/app-core.js?v=483f84d"></script>
 <script src="js/app-state.js?v=bf00610"></script>
 <script src="js/app-charts.js?v=bca4828"></script>
-<script src="js/app-picker.js?v=4eacb30"></script>
-<script src="js/app-tables.js?v=81a9332"></script>
-<script src="js/app-service.js?v=cd6d017"></script>
+<script src="js/app-picker.js?v=3ff4aa3"></script>
+<script src="js/app-tables.js?v=2b46fe1"></script>
+<script src="js/app-service.js?v=29b2964"></script>
+<script src="js/app-maintenance.js?v=c5d301e"></script>
 <script src="js/app-events.js?v=c3c6f7f"></script>
-<script src="js/app-init.js?v=182e097"></script>
+<script src="js/app-init.js?v=e16df2f"></script>
 </body>
 </html>

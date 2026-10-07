@@ -38,3 +38,22 @@ interface PriceVerification {
   sourceIds: string[];
   reason: string;
 }
+
+interface MaintenanceChange {
+  changeId: string; id: string; kind: string; vendor: string; name: string;
+  checkedAt: string; fields: string[]; before: Record<string, unknown>; after: Record<string, unknown>; sourceUrls: string[];
+}
+interface MaintenanceSnapshot {
+  schemaVersion: number; generatedAt: string; checkedThrough: string; staleAfterDays?: number;
+  summary: { total: number; verified: number; unverified: number; stale: number };
+  records: { id: string; kind: string; vendor: string; name: string; checkedAt: string; status: string; sourceUrls: string[]; ageDays: number | null; stale: boolean }[];
+  reviews: { id: string; title: string; planIds?: string[]; vendor?: string; reviewOn: string; source: string; note?: string }[];
+  changes: MaintenanceChange[];
+}
+interface BenchmarkTask { id: string; title: string; description: string; acceptance: string | string[]; }
+interface BenchmarkRun {
+  id: string; taskId: string; model: string; tool: string; measuredAt: string;
+  cost: number | null; currency: string; costBasis: string; durationSeconds: number;
+  generationSeconds: number | null; passed: boolean; repeats: number; evidence: string; environment: string;
+}
+interface BenchmarkSnapshot { schemaVersion: number; generatedAt: string; tasks: BenchmarkTask[]; runs: BenchmarkRun[]; methodology: string | string[]; }

@@ -445,11 +445,18 @@ function pickerPlanActions(p) {
 }
 function quickCard(accent, title, value, body, plan) {
   return `<div class="quick-card" style="--qc-accent:${accent}">
-    <div class="qc-title">${esc(title)}</div>
+    <div class="qc-title"><span class="qc-title-label">${esc(title)}</span>${typeof watchButtonHtml === "function" ? watchButtonHtml(plan, "qc-watch") : ""}</div>
     <div class="qc-value">${value}</div>
     <div class="qc-sub">${body}${pickerPaymentHtml(plan)}</div>
     ${pickerPlanActions(plan)}
   </div>`;
+}
+function pickerUsageGuide(p) {
+  const qualification = p.purchaseCountries && p.purchaseCountries.length
+    ? `仅限 ${p.purchaseCountries.join("、")}，购买前核对账号与支付资格。`
+    : p.region === "intl" ? "国际档需自行核对所在地、账号和支付资格；地区筛选不保证每个国家可购买。" : "国内档仍需核对购买账号、活动资格与续费条件。";
+  const window = p.windowPeriod === "unknown" || !p.windowPeriod ? "重置窗口尚未确认，不能按固定时间估计恢复。" : `公开窗口：${resolvedField(p, "quota")}；实际恢复以账户页面和官方规则为准。`;
+  return `<details class="qc-usage-guide"><summary>模型、工具与额度用完后的做法</summary>${lineHtml("支持模型", resolvedField(p, "models"))}${lineHtml("支持工具", resolvedField(p, "tools"))}${lineHtml("购买资格", qualification)}${lineHtml("打满后", `${window} 先暂停可延后任务并查看剩余额度；使用其他已确认套餐时先核对共享池与费用。自备 Key、工具订阅或按量加购可能另收费，未知推理费用不计作免费。`)}</details>`;
 }
 function mainCard(main, pool) {
   const p = main.p;
@@ -482,6 +489,7 @@ function mainCard(main, pool) {
     bits.push(lineHtml("省钱档", `同一个 ${main.headline.name} 还有更便宜的 ${list}，具体额度差请核对官网。`));
   }
   bits.push(pickerVerificationHtml(p));
+  bits.push(pickerUsageGuide(p));
   if (p.region === "intl" && pickerState.region !== "cn") bits.push(`<div class="qc-avoid">需要外币或国际账号支付。</div>`);
   const title = dailyLead || !main.headline ? "主计划 · 日常" : "主计划 · 复杂任务";
   return quickCard(PICK_ACCENT[0], title, moneyHtml(p), bits.join(""), p);

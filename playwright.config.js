@@ -16,7 +16,8 @@ module.exports = defineConfig({
     baseURL: "http://127.0.0.1:18461",
     viewport: { width: 1280, height: 900 },
     reducedMotion: "reduce",
-    trace: "retain-on-failure",
+    // 全页每步追踪会放大 WebKit 的操作开销；CI 首次失败重试时再采集。
+    trace: "on-first-retry",
     screenshot: "only-on-failure",
   },
   webServer: {

@@ -1,0 +1,56 @@
+name: 新增厂商或 Coding Plan
+description: 提交尚未收录的编程订阅、工具或模型入口，附官方证据
+title: "[收录] "
+body:
+  - type: input
+    id: product
+    attributes:
+      label: 厂商与产品名称
+    validations:
+      required: true
+  - type: input
+    id: official
+    attributes:
+      label: 官方产品与定价链接
+      placeholder: https://...
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 服务类型
+      options:
+        - 模型调用订阅
+        - 编程工具订阅（包含推理）
+        - 编程工具 BYOK（推理另付）
+        - API 按量
+        - 免费入口
+        - 企业询价
+    validations:
+      required: true
+  - type: textarea
+    id: pricing
+    attributes:
+      label: 价格与权益
+      description: 请注明原币金额、月付/年付总额或折月、续费价、计费单位、购买国家、可用模型与工具、额度重置及共享规则；未知请写未知。
+    validations:
+      required: true
+  - type: input
+    id: checked
+    attributes:
+      label: 官网核查日期
+      placeholder: YYYY-MM-DD
+    validations:
+      required: true
+  - type: textarea
+    id: proof
+    attributes:
+      label: 证据与补充说明
+      description: 可附公开截图或公告，避免上传账号、密钥和支付信息。
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: 证据口径
+      options:
+        - label: 我提供的是官方页面证据；未知信息未猜测为免费或无限量。
+          required: true

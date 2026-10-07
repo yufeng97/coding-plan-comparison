@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "sspai-discovery",
+      "name": "少数派：中文工具与产品发现",
+      "kind": "rss",
+      "url": "https://sspai.com/feed",
+      "authority": "discovery",
+      "keywords": ["编程", "代码助手", "代码编辑器", "开发工具"]
+    },
+    {
+      "id": "infoq-cn-discovery",
+      "name": "InfoQ 中文：开发与智能体发现",
+      "kind": "rss",
+      "url": "https://www.infoq.cn/feed",
+      "authority": "discovery",
+      "keywords": ["编程", "代码助手", "智能体", "开发工具"]
+    },
+    {
+      "id": "oschina-discovery",
+      "name": "开源中国：中文开发工具发现",
+      "kind": "rss",
+      "url": "https://www.oschina.net/news/rss",
+      "authority": "discovery",
+      "keywords": ["编程", "代码助手", "代码编辑器", "智能体"]
+    },
+    {
+      "id": "github-changelog",
+      "name": "GitHub 官方更新日志",
+      "kind": "rss",
+      "url": "https://github.blog/changelog/feed/",
+      "authority": "official"
+    },
+    {
+      "id": "google-developers",
+      "name": "Google Developers 官方博客",
+      "kind": "rss",
+      "url": "https://developers.googleblog.com/feeds/posts/default/?alt=rss",
+      "authority": "official"
+    },
+    {
+      "id": "google-ai",
+      "name": "Google AI 官方博客",
+      "kind": "rss",
+      "url": "https://blog.google/innovation-and-ai/technology/ai/rss/",
+      "authority": "official"
+    },
+    {
+      "id": "hn-coding-plan",
+      "name": "Hacker News：Coding Plan 开放发现",
+      "kind": "hn-search",
+      "url": "https://hn.algolia.com/api/v1/search_by_date?query=%22coding%20plan%22&tags=story&hitsPerPage=100",
+      "authority": "discovery"
+    },
+    {
+      "id": "hn-coding-agent",
+      "name": "Hacker News：Coding Agent 开放发现",
+      "kind": "hn-search",
+      "url": "https://hn.algolia.com/api/v1/search_by_date?query=%22coding%20agent%22&tags=story&hitsPerPage=100",
+      "authority": "discovery"
+    },
+    {
+      "id": "hn-code-assistant",
+      "name": "Hacker News：Code Assistant 开放发现",
+      "kind": "hn-search",
+      "url": "https://hn.algolia.com/api/v1/search_by_date?query=%22code%20assistant%22&tags=story&hitsPerPage=100",
+      "authority": "discovery"
+    },
+    {
+      "id": "cursor-changelog",
+      "name": "Cursor 更新日志",
+      "kind": "page",
+      "url": "https://cursor.com/changelog",
+      "authority": "official"
+    },
+    {
+      "id": "cursor-pricing",
+      "name": "Cursor 定价页",
+      "kind": "page",
+      "url": "https://cursor.com/pricing",
+      "authority": "official"
+    },
+    {
+      "id": "anthropic-news",
+      "name": "Anthropic 官方新闻页",
+      "kind": "page",
+      "url": "https://www.anthropic.com/news",
+      "authority": "official"
+    },
+    {
+      "id": "bigmodel-coding-plan",
+      "name": "智谱 GLM Coding Plan 官方文档",
+      "kind": "page",
+      "url": "https://docs.bigmodel.cn/cn/coding-plan/overview.md",
+      "authority": "official"
+    },
+    {
+      "id": "zai-coding-plan",
+      "name": "Z.ai GLM Coding Plan 官方文档",
+      "kind": "page",
+      "url": "https://docs.z.ai/devpack/overview.md",
+      "authority": "official"
+    },
+    {
+      "id": "minimax-token-plan",
+      "name": "MiniMax Token Plan 官方文档",
+      "kind": "page",
+      "url": "https://platform.minimax.cn/docs/guides/pricing-token-plan.md",
+      "authority": "official"
+    },
+    {
+      "id": "kimi-code",
+      "name": "Kimi Code 官方产品页",
+      "kind": "page",
+      "url": "https://www.kimi.com/code",
+      "authority": "official"
+    },
+    {
+      "id": "kiro-pricing",
+      "name": "Kiro 官方定价页",
+      "kind": "page",
+      "url": "https://kiro.dev/pricing/",
+      "authority": "official"
+    }
+  ]
+}

@@ -11,10 +11,14 @@ const suite = [
   "test-app-charts.js",
   "test-app-tables.js",
   "test-app-service.js",
+  "test-app-maintenance.js",
   "test-server.js",
   "test-tools.js",
   "test-pricing.js",
   "test-pricing-sync.js",
+  "test-news.js",
+  "../maintenance/test-maintenance.js",
+  "test-benchmarks.js",
   "test-runners.js",
 ];
 

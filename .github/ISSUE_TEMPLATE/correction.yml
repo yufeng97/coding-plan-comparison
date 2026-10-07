@@ -1,0 +1,29 @@
+name: 价格或权益纠错
+description: 指出已有条目错误并提供当前官方依据
+title: "[纠错] "
+body:
+  - type: input
+    id: record
+    attributes:
+      label: 套餐永久 ID 或厂商 / 模型名称
+    validations:
+      required: true
+  - type: textarea
+    id: change
+    attributes:
+      label: 当前值、正确值及原因
+      description: 区分促销与续费、年付折月与总额、席位与整包。
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: 官方证据链接
+    validations:
+      required: true
+  - type: input
+    id: checked
+    attributes:
+      label: 核查日期与购买地区
+    validations:
+      required: true

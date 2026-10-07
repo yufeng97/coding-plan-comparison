@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "events": [
+    {
+      "id": "glm-holiday-20261007",
+      "title": "复核智谱 / Z.ai 双节与夜间活动结束后的权益",
+      "planIds": [
+        "plan-0031",
+        "plan-0032",
+        "plan-0033",
+        "plan-0157",
+        "plan-0158",
+        "plan-0159"
+      ],
+      "reviewOn": "2026-10-08",
+      "source": "https://docs.bigmodel.cn/cn/coding-plan/overview.md",
+      "note": "原公告活动截至 10-07；这是复核提醒，不代表已确认新的消耗规则。"
+    },
+    {
+      "id": "openai-gpt55-20261014",
+      "title": "复核 GPT-5.5 退役与套餐可用模型",
+      "vendor": "OpenAI",
+      "reviewOn": "2026-10-14",
+      "source": "https://learn.chatgpt.com/docs/pricing",
+      "note": "按已记录公告安排复核，官网核实后再修改模型与权益。"
+    },
+    {
+      "id": "volc-promotion-20261108",
+      "title": "复核方舟 Coding Plan 两个月优惠活动",
+      "planIds": [
+        "plan-0210",
+        "plan-0211"
+      ],
+      "reviewOn": "2026-11-09",
+      "source": "https://docs.volcengine.com/docs/ark/coding-plan-personal-universal-promotion?lang=zh",
+      "note": "原活动截至 11-08；常规续费价与个人资格需重新检查。"
+    },
+    {
+      "id": "sol-promotion-20261121",
+      "title": "复核 GPT-5.6 Sol credits 促销是否延续",
+      "vendor": "OpenAI",
+      "reviewOn": "2026-11-22",
+      "source": "https://learn.chatgpt.com/docs/pricing",
+      "note": "原公告为至少延续至 11-21，不能推断次日一定涨价。"
+    },
+    {
+      "id": "gemini-intro-20261231",
+      "title": "复核 Gemini Flash 介绍价与生效时间",
+      "vendor": "Google",
+      "reviewOn": "2027-01-01",
+      "source": "https://ai.google.dev/gemini-api/docs/pricing",
+      "note": "按库内记录的介绍价截止日安排复核；发布新价格前需重新核实。"
+    }
+  ]
+}

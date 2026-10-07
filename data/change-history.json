@@ -1,0 +1,485 @@
+{
+  "schemaVersion": 1,
+  "changes": [
+    {
+      "changeId": "change-0029c9700fd6b55344765dec",
+      "id": "硅基流动 SiliconFlow|zai-org/GLM-5.3",
+      "kind": "api",
+      "vendor": "硅基流动 SiliconFlow",
+      "name": "zai-org/GLM-5.3",
+      "checkedAt": "2026-10-04",
+      "sourceUrls": [
+        "https://cloud-rd.siliconflow.cn/pricing"
+      ],
+      "fields": [
+        "inCNY"
+      ],
+      "before": {
+        "inCNY": 6
+      },
+      "after": {
+        "inCNY": 8
+      },
+      "model": "zai-org/GLM-5.3"
+    },
+    {
+      "changeId": "change-1ddd2f26b385ca4cce5c0889",
+      "id": "plan-0135",
+      "kind": "plan",
+      "vendor": "Lovable",
+      "name": "Business（100 credits）",
+      "checkedAt": "2026-10-04",
+      "sourceUrls": [
+        "https://docs.lovable.dev/introduction/subscription-plans"
+      ],
+      "fields": [
+        "priceY"
+      ],
+      "before": {
+        "priceY": 42
+      },
+      "after": {
+        "priceY": 41.67
+      },
+      "plan": "Business（100 credits）"
+    },
+    {
+      "changeId": "change-255d9ace38e030ac418c588e",
+      "id": "plan-0101",
+      "kind": "plan",
+      "vendor": "Cursor",
+      "name": "Teams（Standard 席位）",
+      "checkedAt": "2026-10-04",
+      "sourceUrls": [
+        "https://cursor.com/docs/models-and-pricing",
+        "https://cursor.com/pricing"
+      ],
+      "fields": [
+        "priceY"
+      ],
+      "before": {
+        "priceY": null
+      },
+      "after": {
+        "priceY": 32
+      },
+      "plan": "Teams（Standard 席位）"
+    },
+    {
+      "changeId": "change-3182b6de09f4ddd7c58e06f0",
+      "id": "plan-0033",
+      "kind": "plan",
+      "vendor": "Z.ai",
+      "name": "GLM Coding V3 Max",
+      "checkedAt": "2026-10-04",
+      "sourceUrls": [
+        "https://z.ai/subscribe"
+      ],
+      "fields": [
+        "priceM",
+        "priceY"
+      ],
+      "before": {
+        "priceM": 160,
+        "priceY": 128
+      },
+      "after": {
+        "priceM": 168,
+        "priceY": 117.6
+      },
+      "plan": "GLM Coding V3 Max"
+    },
+    {
+      "changeId": "change-3f6953b4667c1dd71f3a9ec6",
+      "id": "plan-0134",
+      "kind": "plan",
+      "vendor": "Lovable",
+      "name": "Pro（100 credits）",
+      "checkedAt": "2026-10-04",
+      "sourceUrls": [
+        "https://docs.lovable.dev/introduction/subscription-plans"
+      ],
+      "fields": [
+        "priceY"
+      ],
+      "before": {
+        "priceY": 21
+      },
+      "after": {
+        "priceY": 20.83
+      },
+      "plan": "Pro（100 credits）"
+    },
+    {
+      "changeId": "change-480f09d4107d62f910374368",
+      "id": "plan-0026",
+      "kind": "plan",
+      "vendor": "xAI",
+      "name": "SuperGrok Plus",
+      "checkedAt": "2026-10-04",
+      "sourceUrls": [
+        "https://x.ai/pricing"
+      ],
+      "fields": [
+        "priceY"
+      ],
+      "before": {
+        "priceY": 83.33
+      },
+      "after": {
+        "priceY": null
+      },
+      "plan": "SuperGrok Plus"
+    },
+    {
+      "changeId": "change-503b4179a50e7cf33d46eab1",
+      "id": "plan-0197",
+      "kind": "plan",
+      "vendor": "字节跳动 Trae（国际版）",
+      "name": "Trae Pro",
+      "checkedAt": "2026-10-04",
+      "sourceUrls": [
+        "https://www.trae.ai/pricing"
+      ],
+      "fields": [
+        "priceY"
+      ],
+      "before": {
+        "priceY": null
+      },
+      "after": {
+        "priceY": 7.5
+      },
+      "plan": "Trae Pro"
+    },
+    {
+      "changeId": "change-5dd6fd47e0331163af1b6c6e",
+      "id": "plan-0102",
+      "kind": "plan",
+      "vendor": "Cursor",
+      "name": "Teams（Premium 席位）",
+      "checkedAt": "2026-10-04",
+      "sourceUrls": [
+        "https://cursor.com/docs/models-and-pricing",
+        "https://cursor.com/pricing"
+      ],
+      "fields": [
+        "priceY"
+      ],
+      "before": {
+        "priceY": null
+      },
+      "after": {
+        "priceY": 96
+      },
+      "plan": "Teams（Premium 席位）"
+    },
+    {
+      "changeId": "change-5e5a0320dc4615f448119a35",
+      "id": "plan-0017",
+      "kind": "plan",
+      "vendor": "Google",
+      "name": "Google AI Pro",
+      "checkedAt": "2026-10-04",
+      "sourceUrls": [
+        "https://one.google.com/about/google-ai-plans/"
+      ],
+      "fields": [
+        "priceY"
+      ],
+      "before": {
+        "priceY": null
+      },
+      "after": {
+        "priceY": 16.67
+      },
+      "plan": "Google AI Pro"
+    },
+    {
+      "changeId": "change-67a89830e048c3cc060aa4b8",
+      "id": "plan-0139",
+      "kind": "plan",
+      "vendor": "Bolt.new",
+      "name": "Teams",
+      "checkedAt": "2026-10-04",
+      "sourceUrls": [
+        "https://bolt.new/pricing"
+      ],
+      "fields": [
+        "priceY"
+      ],
+      "before": {
+        "priceY": null
+      },
+      "after": {
+        "priceY": 27
+      },
+      "plan": "Teams"
+    },
+    {
+      "changeId": "change-717c2777ffebf7b15a65edc9",
+      "id": "plan-0154",
+      "kind": "plan",
+      "vendor": "智谱 BigModel",
+      "name": "GLM Coding V2 Lite（老用户续费）",
+      "checkedAt": "2026-10-04",
+      "sourceUrls": [
+        "https://docs.bigmodel.cn/cn/coding-plan/notice/usage-revision"
+      ],
+      "fields": [
+        "priceY"
+      ],
+      "before": {
+        "priceY": null
+      },
+      "after": {
+        "priceY": 39.2
+      },
+      "plan": "GLM Coding V2 Lite（老用户续费）"
+    },
+    {
+      "changeId": "change-72dda49670b16f04542dc0e8",
+      "id": "plan-0025",
+      "kind": "plan",
+      "vendor": "xAI",
+      "name": "SuperGrok",
+      "checkedAt": "2026-10-04",
+      "sourceUrls": [
+        "https://x.ai/pricing"
+      ],
+      "fields": [
+        "priceY"
+      ],
+      "before": {
+        "priceY": 25
+      },
+      "after": {
+        "priceY": null
+      },
+      "plan": "SuperGrok"
+    },
+    {
+      "changeId": "change-7f021aeddba731b72a8bc19a",
+      "id": "plan-0156",
+      "kind": "plan",
+      "vendor": "智谱 BigModel",
+      "name": "GLM Coding V2 Max（老用户续费）",
+      "checkedAt": "2026-10-04",
+      "sourceUrls": [
+        "https://docs.bigmodel.cn/cn/coding-plan/notice/usage-revision"
+      ],
+      "fields": [
+        "priceY"
+      ],
+      "before": {
+        "priceY": null
+      },
+      "after": {
+        "priceY": 375.2
+      },
+      "plan": "GLM Coding V2 Max（老用户续费）"
+    },
+    {
+      "changeId": "change-91702b0165a550bf34053640",
+      "id": "plan-0097",
+      "kind": "plan",
+      "vendor": "Cursor",
+      "name": "Start（印度专属）",
+      "checkedAt": "2026-10-04",
+      "sourceUrls": [
+        "https://cursor.com/docs/models-and-pricing"
+      ],
+      "fields": [
+        "cur",
+        "priceM"
+      ],
+      "before": {
+        "cur": "USD",
+        "priceM": 8
+      },
+      "after": {
+        "cur": "INR",
+        "priceM": 649
+      },
+      "plan": "Start（印度专属）"
+    },
+    {
+      "changeId": "change-925841d5dc56d189fb387575",
+      "id": "plan-0138",
+      "kind": "plan",
+      "vendor": "Bolt.new",
+      "name": "Pro",
+      "checkedAt": "2026-10-04",
+      "sourceUrls": [
+        "https://bolt.new/pricing"
+      ],
+      "fields": [
+        "priceY"
+      ],
+      "before": {
+        "priceY": null
+      },
+      "after": {
+        "priceY": 18
+      },
+      "plan": "Pro"
+    },
+    {
+      "changeId": "change-a34ee27e1bc9661f445d3d90",
+      "id": "plan-0032",
+      "kind": "plan",
+      "vendor": "Z.ai",
+      "name": "GLM Coding V3 Pro",
+      "checkedAt": "2026-10-04",
+      "sourceUrls": [
+        "https://z.ai/subscribe"
+      ],
+      "fields": [
+        "priceM",
+        "priceY"
+      ],
+      "before": {
+        "priceM": 72,
+        "priceY": 57.6
+      },
+      "after": {
+        "priceM": 80,
+        "priceY": 56
+      },
+      "plan": "GLM Coding V3 Pro"
+    },
+    {
+      "changeId": "change-af5937b7992a03e140d43f17",
+      "id": "硅基流动 SiliconFlow|Qwen/Qwen3.8-27B",
+      "kind": "api",
+      "vendor": "硅基流动 SiliconFlow",
+      "name": "Qwen/Qwen3.8-27B",
+      "checkedAt": "2026-10-04",
+      "sourceUrls": [
+        "https://cloud-rd.siliconflow.cn/pricing"
+      ],
+      "fields": [
+        "inCNY",
+        "outCNY"
+      ],
+      "before": {
+        "inCNY": 1.8,
+        "outCNY": 14.4
+      },
+      "after": {
+        "inCNY": 3,
+        "outCNY": 12
+      },
+      "model": "Qwen/Qwen3.8-27B"
+    },
+    {
+      "changeId": "change-c54acaae59581333114da30f",
+      "id": "plan-0160",
+      "kind": "plan",
+      "vendor": "智谱 BigModel",
+      "name": "GLM Coding Plan 团队标准版",
+      "checkedAt": "2026-10-04",
+      "sourceUrls": [
+        "https://bigmodel.cn/glm-coding"
+      ],
+      "fields": [
+        "priceY"
+      ],
+      "before": {
+        "priceY": null
+      },
+      "after": {
+        "priceY": 538.2
+      },
+      "plan": "GLM Coding Plan 团队标准版"
+    },
+    {
+      "changeId": "change-d0e2173924d84dc157d0522d",
+      "id": "plan-0016",
+      "kind": "plan",
+      "vendor": "Google",
+      "name": "Google AI Plus",
+      "checkedAt": "2026-10-04",
+      "sourceUrls": [
+        "https://blog.google/products-and-platforms/products/google-one/google-ai-plus-availability/",
+        "https://one.google.com/about/google-ai-plans/"
+      ],
+      "fields": [
+        "priceM"
+      ],
+      "before": {
+        "priceM": 7.99
+      },
+      "after": {
+        "priceM": 4.99
+      },
+      "plan": "Google AI Plus"
+    },
+    {
+      "changeId": "change-d4c060d1224d283a18e43f10",
+      "id": "plan-0149",
+      "kind": "plan",
+      "vendor": "腾讯云 CodeBuddy",
+      "name": "企业旗舰版",
+      "checkedAt": "2026-10-04",
+      "sourceUrls": [
+        "https://www.codebuddy.cn/pricing/"
+      ],
+      "fields": [
+        "plan",
+        "priceM"
+      ],
+      "before": {
+        "plan": "CodeBuddy 企业版",
+        "priceM": null
+      },
+      "after": {
+        "plan": "企业旗舰版",
+        "priceM": 198
+      },
+      "plan": "企业旗舰版"
+    },
+    {
+      "changeId": "change-feeb742795ef7f3f0970bf39",
+      "id": "plan-0155",
+      "kind": "plan",
+      "vendor": "智谱 BigModel",
+      "name": "GLM Coding V2 Pro（老用户续费）",
+      "checkedAt": "2026-10-04",
+      "sourceUrls": [
+        "https://docs.bigmodel.cn/cn/coding-plan/notice/usage-revision"
+      ],
+      "fields": [
+        "priceY"
+      ],
+      "before": {
+        "priceY": null
+      },
+      "after": {
+        "priceY": 119.2
+      },
+      "plan": "GLM Coding V2 Pro（老用户续费）"
+    },
+    {
+      "changeId": "change-ff4c63f9bac95e9d5c32726f",
+      "id": "plan-0031",
+      "kind": "plan",
+      "vendor": "Z.ai",
+      "name": "GLM Coding V3 Lite",
+      "checkedAt": "2026-10-04",
+      "sourceUrls": [
+        "https://z.ai/subscribe"
+      ],
+      "fields": [
+        "priceY"
+      ],
+      "before": {
+        "priceY": 14.4
+      },
+      "after": {
+        "priceY": 12.6
+      },
+      "plan": "GLM Coding V3 Lite"
+    }
+  ]
+}

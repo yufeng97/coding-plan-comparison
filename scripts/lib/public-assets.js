@@ -24,7 +24,7 @@ function localAsset(root, owner, raw) {
   if (!within(real)) throw new Error(`资源链接越出项目目录：${raw}`);
   const assertPublic = (target) => {
     const rel = slash(path.relative(root, target));
-    if (rel !== "index.html" && !/^(?:css|js|libs)\//.test(rel)) throw new Error(`资源不在公共目录白名单：${rel}`);
+    if (!["index.html", "changes.xml"].includes(rel) && !/^(?:css|js|libs)\//.test(rel)) throw new Error(`资源不在公共目录白名单：${rel}`);
     if (rel.split("/").some((part) => part.startsWith("."))) throw new Error(`资源包含隐藏目录：${rel}`);
   };
   assertPublic(absolute);

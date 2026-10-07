@@ -40,6 +40,10 @@ jobs:
         run: npm run typecheck
       - name: 数据校验
         run: npm run validate
+      - name: 生成的维护与测评公共数据匹配原始事实
+        run: |
+          npm run maintenance:check
+          npm run benchmark:check
       - name: 额度换算、用户流程与 HTTP 服务回归
         run: npm run test
       - name: 缓存版本号与文件一致（改动资产后须跑 npm run bump）

@@ -108,6 +108,8 @@ function renderCostCalculator() {
   }
   el.innerHTML = `<p><strong>预计月费 ${esc(currency + Number(result.costNative.toFixed(2)))} ≈ ${esc(fmtCNY(result.costCNY))}</strong> · ${esc(fmtTok(result.monthlyM))} 总 tokens/月</p>` +
     `<p>${esc(cap)}。${result.costCNY > Number(calcState.budget) ? "当前工作量超出月预算。" : "当前工作量在月预算内。"}</p><p>${esc(cache)}</p>` +
+    `<p>按 ${esc(calcState.days)} 个工作日、每天 ${esc(calcState.requests)} 次请求，每个工作日约 ${esc(fmtCNY(result.costCNY / Number(calcState.days)))}${Number(calcState.requests) > 0 ? `，每次约 ${esc(fmtCNY(result.costCNY / Number(calcState.days) / Number(calcState.requests)))}` : ""}。${result.costCNY <= Number(calcState.budget) ? `月预算剩余约 ${esc(fmtCNY(Number(calcState.budget) - result.costCNY))}` : `月预算需补约 ${esc(fmtCNY(result.costCNY - Number(calcState.budget)))}`}。</p>` +
+    `<p>工具与地区沿用「帮我选」：${esc(pickerState.tool === "any" ? "不限工具" : pickerState.tool)} · ${esc(REGION_LABEL[pickerState.region] || "不限地区")}。这里估算所选模型的 API 推理账单，工具订阅、税费和支付手续费需另行核对；套餐内额度不能直接抵扣 API 账单。</p>` +
     `<p>工作量上下浮动 20% 时约 ${esc(fmtCNY(result.costCNY * 0.8))}–${esc(fmtCNY(result.costCNY * 1.2))}/月（情景范围）。牌价核查 ${esc(check ? check.checkedAt : "未核实")} · <a href="${safeHref(api.url)}" target="_blank" rel="noopener">官网计费规则</a></p>` + quota;
 }
 
@@ -142,7 +144,9 @@ function showPlanDetails(id, trigger = null) {
   planDetailsReturnFocus = trigger || document.activeElement;
   byId("planDetailsTitle").textContent = planTitle(p);
   byId("planDetailsBody").innerHTML = `<dl class="plan-detail-fields">` + PLAN_COLUMNS.filter((c) => c.markdown !== false).map((c) => `<div><dt>${esc(c.label)}</dt><dd>${esc(c.value(p) || "—")}</dd></div>`).join("") + `</dl>` +
-    `<a href="${safeHref(p.url)}" target="_blank" rel="noopener">官网购买与权益规则 ↗</a>`;
+    `<div class="maintenance-plan-actions">${typeof watchButtonHtml === "function" ? watchButtonHtml(p) : ""}<a href="${safeHref(p.url)}" target="_blank" rel="noopener">官网购买与权益规则 ↗</a></div>` +
+    `<p id="planFollowFeedback" class="table-feedback" role="status" aria-live="polite">${typeof followStorageMessage === "string" ? esc(followStorageMessage) : ""}</p>` +
+    (typeof planHistoryHtml === "function" ? planHistoryHtml(p.id) : "");
   dlg.setAttribute("aria-modal", "true");
   if (typeof dlg.showModal === "function") dlg.showModal();
   else {

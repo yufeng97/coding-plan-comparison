@@ -1,0 +1,53 @@
+name: 手动采集 Coding Plan 资讯
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 最近多少天（1–365）
+        type: number
+        default: 14
+permissions:
+  contents: read
+concurrency:
+  group: news-inbox
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: 恢复已审队列与页面基线
+        uses: actions/cache/restore@v4
+        with:
+          path: audit/news/*.json
+          key: news-inbox-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: news-inbox-${{ github.ref_name }}-
+      - name: 采集候选（不修改价格、不提交或部署）
+        id: collect
+        continue-on-error: true
+        env:
+          NEWS_WINDOW_DAYS: ${{ inputs.days }}
+        run: node scripts/news/collect-news.js --days "$NEWS_WINDOW_DAYS"
+      - name: 保留本次队列与缓存
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: audit/news/*.json
+          key: news-inbox-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: 下载待审队列、来源健康与报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coding-plan-news-${{ github.run_id }}-${{ github.run_attempt }}
+          path: audit/news/*.json
+          retention-days: 30
+          if-no-files-found: error
+      - name: 来源部分失败时仍明确标记失败
+        if: steps.collect.outcome == 'failure'
+        run: exit 1

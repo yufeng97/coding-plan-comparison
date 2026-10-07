@@ -79,6 +79,9 @@ test("字体晚载和resize仅刷新手动滚动后的章节，不重新跳回�
   try {
     await page.goto("/#s3b", { waitUntil: "domcontentloaded" });
     await expect.poll(() => blockedFontRequests).toBeGreaterThan(0);
+    // 保持字体阻塞，先完成初始图表锚点；此用例独立验证后续字体/resize。
+    await expect(page.locator("#chartRank canvas")).toHaveCount(1);
+    await expect.poll(() => page.locator("#s3b").evaluate(el => Math.abs(el.getBoundingClientRect().top - parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop)))).toBeLessThanOrEqual(2);
     expect(await page.evaluate(() => document.fonts.status)).toBe("loading");
     const tracker = await page.evaluateHandle(() => {
       const state = { calls: 0 };

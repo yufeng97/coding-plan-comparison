@@ -348,6 +348,7 @@ function onScrollFrame(fn) {
 
 boot("events", bindEvents);
 boot("services", bindServiceEvents);
+if (typeof bindMaintenanceEvents === "function") boot("maintenance", bindMaintenanceEvents);
 boot("metricsEvents", bindMetricsEvents);
 boot("chartResize", bindChartResize);
 boot("syncUrl", syncUrl);

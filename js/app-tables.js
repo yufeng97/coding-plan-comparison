@@ -38,7 +38,7 @@ function planAnnualPriceCell(p) {
 const PLAN_COLUMNS = [
   { id: "vendor", label: "厂商", cls: "td-vendor", value: (p) => p.vendor },
   { id: "plan", label: "计划", cls: "td-plan", value: (p) => p.plan,
-    cell: (p) => `<span class="plan-name">${esc(p.plan)}</span><div class="badge-row">${badgeHtml(p)}</div><button type="button" class="cmp-add" data-plan-id="${esc(p.id || "")}" data-vendor="${esc(p.vendor)}" data-plan="${esc(p.plan)}">＋对比</button>` },
+    cell: (p) => `<span class="plan-name">${esc(p.plan)}</span><div class="badge-row">${badgeHtml(p)}</div><button type="button" class="cmp-add" data-plan-id="${esc(p.id || "")}" data-vendor="${esc(p.vendor)}" data-plan="${esc(p.plan)}">＋对比</button>${typeof watchButtonHtml === "function" ? watchButtonHtml(p) : ""}` },
   { id: "cat", label: "类别", value: (p) => CAT_LABEL[p.cat] || p.cat,
     cell: (p) => `<span class="tag tag-${esc(p.cat)}">${esc(CAT_LABEL[p.cat] || p.cat)}</span>` },
   { id: "region", label: "地区", value: (p) => REGION_LABEL[p.region] || "", tdClass: (p) => "region-" + esc(p.region) },
@@ -150,7 +150,10 @@ function tableRowsCsv(rows) {
 }
 function downloadCsvText(csv, filename) {
   /* \uFEFF 让 Excel 正确识别 UTF-8 */
-  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+  downloadTextFile("\uFEFF" + csv, filename, "text/csv;charset=utf-8");
+}
+function downloadTextFile(text, filename, mime = "text/plain;charset=utf-8") {
+  const blob = new Blob([text], { type: mime });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = filename;
