@@ -12,7 +12,7 @@
   if (reload) reload.addEventListener("click", () => location.reload());
   window.addEventListener("error", (event) => {
     const script = /** @type {HTMLScriptElement | null} */ (event.target);
-    if (script && script.tagName === "SCRIPT" && /\/js\//.test(script.src || "")) {
+    if (script && script.tagName === "SCRIPT" && !script.dataset.optionalData && /\/js\//.test(script.src || "")) {
       report("页面数据或功能未能加载。请检查连接后重新加载；当前显示的日期和内容可能不完整。");
     }
   }, true);

@@ -210,6 +210,18 @@ function bindEvents() {
 function bindMetricsEvents() {
   onState(byId("metricsModel"), "change", (e) => { metricsState.model = e.target.value; renderMetricsTable(); });
   onState(byId("metricsVer"), "change", (e) => { metricsState.ver = e.target.value; renderMetricsTable(); });
+  onState(byId("metricsTier"), "change", (e) => { metricsState.tier = e.target.value; renderMetricsTable(); });
+  onState(byId("metricsOffer"), "change", (e) => { metricsState.offer = e.target.value; renderMetricsTable(); });
+  onState(byId("rankVendor"), "change", (e) => { rankState.vendor = e.target.value; renderRankChart(); });
+  byId("tableMoreBtn").addEventListener("click", () => showMoreTableRows());
+  byId("metricsMoreBtn").addEventListener("click", () => showMoreMetricsRows());
+  let mobileTables = window.innerWidth < 768;
+  window.addEventListener("resize", () => {
+    const mobile = window.innerWidth < 768;
+    if (mobile === mobileTables) return;
+    mobileTables = mobile;
+    renderTable(); renderMetricsTable();
+  }, { passive:true });
   const resetBtn = byId("metricsResetBtn");
   if (resetBtn) onState(resetBtn, "click", resetMetricsFilters);
   qsa("#metricsTable th.sortable").forEach((th) => {

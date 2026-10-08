@@ -5,12 +5,12 @@ const PERSONAL_DEFAULT_LIMIT = 20;
 const CMP_MAX = 4;
 /** @type {{cat:string, region:string, billing:string, q:string, limit:number|null}} */
 const personalState = { cat:"all", region:"all", billing:"M", q:"", limit:PERSONAL_DEFAULT_LIMIT };
-const rankState = { tier:"flagship", scope:"official" };
+const rankState = { tier:"flagship", scope:"all", vendor:"all" };
 const pickerState = { budget:"200", region:"cn", tool:"any", task:"both" };
 const tableState = { search:"", cat:"all", region:"all", sortKey:"priceM", sortDir:1 };
 /** @type {{items: typeof PLANS}} */
 const cmpState = { items:[] };
-const metricsState = { model:"all", ver:"all", sortKey:"cpm", sortDir:1 };
+const metricsState = { model:"all", ver:"all", tier:"flagship", offer:"current", sortKey:"cpm", sortDir:1 };
 const CALC_MODELS = new Set(API_PRICES.filter((a) => isPriceConfirmed(a, "api")).map((a) => a.vendor + "|" + a.model));
 const calcState = { model:[...CALC_MODELS][0] || "", requests:"100", tokens:"20000", days:"22", input:"80", cache:"95", cachePrice:"", budget:"200" };
 const CALC_LIMITS = { requests:[0,100000,true], tokens:[1,10000000,true], days:[1,31,true], input:[0,100,false], cache:[0,100,false], cachePrice:[0,1000000,false], budget:[0,1000000000,false] };
@@ -60,6 +60,7 @@ const URL_KEYS = {
   /* 性价比排行 */
   rank: () => rankState.tier,
   rscope: () => rankState.scope,
+  rvendor: () => rankState.vendor,
   /* 数据表 */
   q: () => tableState.search,
   tcat: () => tableState.cat,
@@ -68,6 +69,8 @@ const URL_KEYS = {
   /* 额度深度对比表 */
   mmodel: () => metricsState.model,
   mver: () => metricsState.ver,
+  mtier: () => metricsState.tier,
+  moffer: () => metricsState.offer,
   msort: () => metricsState.sortKey + ":" + metricsState.sortDir,
   /* 并排对比（数据表勾选；空集不写入） */
   cmp: () => cmpState.items.map((p) => p.id).join(";"),
@@ -92,10 +95,13 @@ const URL_VALID = {
   plimit: new Set([String(PERSONAL_DEFAULT_LIMIT), "all"]),
   rank: new Set(["flagship", "all"]),
   rscope: new Set(["official", "credits", "all"]),
+  rvendor: new Set(["all", ...METRICS_ALL.map((m) => m.vendor)]),
   tcat: new Set(["all", "official", "tool", "cloud", "team"]),
   tregion: new Set(["all", "cn", "intl"]),
   tsortKeys: new Set(["priceM", "priceY"]),
   mver: new Set(["all", "V3", "V2"]),
+  mtier: new Set(["flagship", "all"]),
+  moffer: new Set(["current", "all"]),
   msortKeys: new Set(["price", "cpm", "t5h", "r5h", "twk", "rwk", "tmo", "rmo"]),
 };
 
@@ -127,6 +133,7 @@ function applyUrlState(search = location.search) {
   if (URL_VALID.plimit.has(p.get("plimit"))) personalState.limit = p.get("plimit") === "all" ? null : PERSONAL_DEFAULT_LIMIT;
   pick("rank", URL_VALID.rank, rankState, "tier");
   pick("rscope", URL_VALID.rscope, rankState, "scope");
+  pick("rvendor", URL_VALID.rvendor, rankState, "vendor");
   if (p.get("q") != null) tableState.search = p.get("q");
   pick("tcat", URL_VALID.tcat, tableState, "cat");
   pick("tregion", URL_VALID.tregion, tableState, "region");
@@ -141,6 +148,8 @@ function applyUrlState(search = location.search) {
     if (MODEL_FILTER_VALUES.has(v)) metricsState.model = v;
   }
   pick("mver", URL_VALID.mver, metricsState, "ver");
+  pick("mtier", URL_VALID.mtier, metricsState, "tier");
+  pick("moffer", URL_VALID.moffer, metricsState, "offer");
   const ms = p.get("msort");
   if (ms) {
     const [key, dir] = ms.split(":");
@@ -189,6 +198,9 @@ function syncControlsFromState() {
   setVal("selectRegion", tableState.region);
   setVal("metricsModel", metricsState.model);
   setVal("metricsVer", metricsState.ver); /* 模型下拉在 populateModelFilter 填充后再设值 */
+  setVal("metricsTier", metricsState.tier);
+  setVal("metricsOffer", metricsState.offer);
   syncRankChips();
+  setVal("rankVendor", rankState.vendor);
   if (typeof syncServiceControls === "function") syncServiceControls();
 }

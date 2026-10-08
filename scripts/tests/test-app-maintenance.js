@@ -10,8 +10,11 @@ test("维护快照、真实变更与贡献者任务规范能完整启动", () =>
   assert.match(app.elements.get("benchmarkResults").innerHTML, /尚未收录贡献者任务记录/);
   assert.match(app.elements.get("benchmarkTasks").innerHTML, /cached-cost/);
   assert.match(app.elements.get("benchmarkMethodology").textContent, /同一解答/);
-  assert.match(app.elements.get("contributionProjectNote").textContent, /未配置公开仓库/);
-  assert.equal(app.elements.get("contributionIssueLink").hidden, true);
+  assert.match(app.elements.get("contributionProjectNote").textContent, /项目 Issues/);
+  assert.equal(app.elements.get("contributionIssueLink").hidden, false);
+  assert.match(app.elements.get("contributionIssueLink").getAttribute("href"), /^https:\/\/github.com\/yufeng97\/coding-plan-comparison\/issues\/new\?/);
+  const issue = new URL(app.elements.get("contributionIssueLink").getAttribute("href"));
+  assert.equal(issue.searchParams.get("body"), app.elements.get("contributionTemplate").value);
   healthy(app);
 });
 
@@ -63,13 +66,13 @@ test("推荐与完整权益的关注按钮同步，并保留对比三按钮布�
   app.run(`toggleFollowPlan(${JSON.stringify(id)}); showPlanDetails(${JSON.stringify(id)})`);
   assert.equal(app.run(`document.querySelector('#quickGrid [data-watch-plan="${id}"]').getAttribute('aria-pressed')`), "true");
   assert.equal(app.run(`document.querySelector('#planDetailsBody [data-watch-plan="${id}"]').getAttribute('aria-pressed')`), "true");
-  assert.equal(app.run("document.querySelector('#quickGrid .qc-actions').children.length"), 3);
+  assert.equal(app.run("document.querySelector('#quickGrid .qc-actions').children.length"), 2);
   assert.match(app.elements.get("quickGrid").innerHTML, /重置窗口|公开窗口/);
   healthy(app);
 });
 
 test("历史面板关注后保留原按钮焦点，列表取消关注后的焦点有可见去处", () => {
-  const app = createApp();
+  const app = createApp({url:"http://127.0.0.1:8123/#updates"});
   app.run("maintenancePlanId = PLANS[0].id; renderMaintenanceHistory(); document.querySelector('#maintenanceHistory [data-watch-plan]').focus()");
   const original = app.run("document.activeElement");
   app.run("toggleFollowPlan(PLANS[0].id)");
@@ -181,7 +184,7 @@ test("用途选择只列同类协议，HLE和OSWorld默认公开当前配置而�
 });
 
 test("公开模型搜索空态可清除，下载按钮状态与结果一致且焦点返回搜索", () => {
-  const app = createApp(); fixturePublicBenchmarks(app);
+  const app = createApp({url:"http://127.0.0.1:8123/#benchmarks"}); fixturePublicBenchmarks(app);
   const input = app.elements.get("publicModelSearch"); input.value = "missing fixture model";
   app.fire(input, "input");
   assert.equal(app.elements.get("publicBenchmarkWrap").hidden, true);
@@ -202,6 +205,53 @@ test("评测CSV保留独立协议、配置与缺失成本，JSON仅导出公共�
   assert.match(csv, /deepswe-1-1/); assert.match(csv, /固定测试配置/);
   assert.match(csv, /"80","%","",""/); assert.doesNotMatch(csv, /Other Protocol/);
   assert.deepEqual(JSON.parse(await app.downloads[1].blob.text()), data);
+  healthy(app);
+});
+
+test("评测套餐映射保留精确版本，不把Flash或按量入口当成包含模型的订阅", () => {
+  const app = createApp();
+  assert.equal(app.run("publicModelPlans('glm-5.3').some(p=>['plan-0174','plan-0175','plan-0176','plan-0177','plan-0039'].includes(p.id))"), false);
+  assert.equal(app.run("publicModelPlans('glm-5.3-flash').some(p=>p.id==='plan-0174')"), true);
+  app.run("PLANS.find(p=>p.id==='plan-0174').models='GLM-5.3 Flash';");
+  assert.equal(app.run("publicModelPlans('glm-5.3').some(p=>p.id==='plan-0174')"), false);
+  assert.equal(app.run("publicCostText(0.004)"), "小于 $0.01");
+  assert.equal(app.run("publicCostText(0)"), "$0");
+  healthy(app);
+});
+
+test("切换辅助标签后贡献者任务控件与筛选结果保持一致", () => {
+  const app = createApp();
+  app.run("benchmarkFilter.task='csv-export'; refreshOptionalViews('benchmark');");
+  assert.equal(app.elements.get("benchmarkTask").value, "csv-export");
+  assert.equal((app.elements.get("benchmarkTasks").innerHTML.match(/<details/g) || []).length, 1);
+  app.run("benchmarkFilter.tool='unknown-tool'; benchmarkFilter.model='unknown-model'; refreshBenchmarkTaskChoices();");
+  assert.equal(app.run("benchmarkFilter.tool"), "all");
+  assert.equal(app.elements.get("benchmarkTool").value, "all");
+  assert.equal(app.elements.get("benchmarkModel").value, "all");
+  healthy(app);
+});
+
+test("评测与套餐的Claude共享品牌、GPT全系简称保留精确版本和包含资格", () => {
+  const app = createApp();
+  assert.deepEqual(plain(app.run("publicModelPlans('claude-opus-5').map(p=>p.id)")), plain(app.run("publicModelPlans('Opus 5').map(p=>p.id)")));
+  assert.equal(app.run("publicModelPlans('claude-opus-5').some(p=>p.id==='plan-0075')"), true);
+  assert.equal(app.run("publicModelDisplayName('Opus 5')"), "Claude Opus 5");
+  assert.deepEqual(plain(app.run("publicModelPlans('claude-fable-5.1').filter(p=>p.vendor==='Anthropic').map(p=>p.id)")), ["plan-0003", "plan-0004", "plan-0006"]);
+  assert.deepEqual(plain(app.run("publicModelPlans('GPT-6.1 Sol').filter(p=>p.vendor==='OpenAI').map(p=>p.id)")), ["plan-0010", "plan-0011", "plan-0012", "plan-0013"]);
+  assert.equal(app.run("publicModelPlans('GPT-6.2 Sol').some(p=>p.vendor==='OpenAI')"), false);
+  assert.equal(app.run("publicModelPlans('claude-fable-5').some(p=>p.vendor==='Anthropic')"), false);
+  assert.equal(app.run("publicModelIncluded(PLANS.find(p=>p.id==='plan-0001'), 'Claude Haiku 4.5')"), true);
+  assert.equal(app.run("publicModelPlans('GPT-6 Luna').some(p=>p.id==='plan-0010')"), true);
+  assert.equal(app.run("publicModelPlans('GPT-6 Astra').some(p=>p.id==='plan-0010')"), true);
+  app.run("PLANS.find(p=>p.id==='plan-0010').models='GPT-6 Sol / Luna / GPT-5.6 系列 / Astra';");
+  assert.equal(app.run("publicModelPlans('GPT-6 Astra').some(p=>p.id==='plan-0010')"), false);
+  app.run("PLANS.find(p=>p.id==='plan-0010').models='GPT-6 Sol / 未明确的模型 / Astra';");
+  assert.equal(app.run("publicModelPlans('GPT-6 Astra').some(p=>p.id==='plan-0010')"), false);
+  app.run("PLANS.find(p=>p.id==='plan-0010').models='GPT-6 Sol、Astra';");
+  assert.equal(app.run("publicModelPlans('GPT-6 Astra').some(p=>p.id==='plan-0010')"), false);
+  app.run("PLANS.find(p=>p.id==='plan-0002').models='Claude Sonnet 5.5（不含Claude Opus 5.5）';");
+  assert.equal(app.run("publicModelPlans('claude-opus-5.5').some(p=>p.id==='plan-0002')"), false);
+  assert.equal(app.run("publicModelPlans('claude-sonnet-5.5').some(p=>p.id==='plan-0002')"), true);
   healthy(app);
 });
 

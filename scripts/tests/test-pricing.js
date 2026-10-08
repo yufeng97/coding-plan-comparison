@@ -111,6 +111,7 @@ test("待核个人价格保留在完整表和导出，退出推荐与个人价�
     PRICE_CHECKS.rows['plan:' + p.id] = { ...priceCheckOf(p), status: 'unverified', reason: '官网本次无法确认' };
     Object.assign(personalState, { cat: 'all', region: 'all', q: '', limit: null });
     Object.assign(pickerState, { region: 'all', budget: 'any', task: 'daily', tool: 'any' });
+    tableState.search = 'Cursor Pro';
     renderPersonalChart(); renderTable();
   })()`);
   assert.equal(app.run("computeTableRows().includes(findPlanReference('plan-0098'))"), true);
@@ -138,7 +139,7 @@ test("待核个人价格保留在完整表和导出，退出推荐与个人价�
   healthy(app);
 });
 
-test("待核官方和推算额度退出周 tokens 及成本排行，额度表仍标历史折算", () => {
+test("待核官方和推算额度退出周 tokens、成本排行和默认额度表；历史范围保留核查说明", () => {
   const app = createApp();
   app.run(`(() => {
     for (const id of ['plan-0031', 'plan-0002']) {
@@ -150,6 +151,8 @@ test("待核官方和推算额度退出周 tokens 及成本排行，额度表仍
   })()`);
   assert.equal(app.run("chartCache.chartTokens.option.series.flatMap(s => s.data).filter(Boolean).some(d => /Z\\.ai Lite|Anthropic Claude Pro/.test(d._r.label))"), false);
   assert.equal(app.run("chartCache.chartRank.option.series[0].data.some(d => ['plan-0031', 'plan-0002'].includes(findPlanReference(d._r.m.ref)?.id))"), false);
+  assert.equal(app.run("metricsTableRows().rows.some(r => ['plan-0031', 'plan-0002'].includes(findPlanReference(r.m.ref)?.id))"), false);
+  app.run('metricsState.offer = "all"; metricsState.model = METRICS_ALL.find(m => findPlanReference(m.ref)?.id === "plan-0002").model; renderMetricsTable();');
   assert.match(app.elements.get("metricsBody").innerHTML, /历史价折算 · 价格待核/);
   healthy(app);
 });
@@ -178,6 +181,7 @@ test("待核 PAYG 映射沿用 vendor/model，额度表按历史牌价降低置�
   app.run(`(() => {
     const p = PAYG_REFERENCES[0];
     PRICE_CHECKS.rows['payg:' + p.vendor + '|' + p.model] = { ...priceCheckOf(p, 'payg'), status: 'unverified', reason: '仅内存模拟 PAYG 未确认' };
+    Object.assign(metricsState, { tier: "all", offer: "all", model: p.model });
     renderMetricsTable();
   })()`);
   assert.equal(app.run("isPriceConfirmed(paygReferenceRows()[0].m, 'payg')"), false);

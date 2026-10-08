@@ -4,6 +4,10 @@
 
 正式网站：[Coding Plan 全球比价中心](https://coding-plan-comparison-tau.vercel.app/)。面向用户提供预算推荐、完整权益、并排对比、免费入口、API 工作量费用估算及有来源的模型公开评测；面向维护者保留逐条核价证据和回归检查。
 
+页面按「选购对比 / 模型评测 / 数据维护 / 来源说明 / 提交纠错」标签浏览，原有锚点链接和历史前进后退仍有效。评测与维护数据在访问相应标签或展开套餐历史时下载，失败可单独重试；本机关注和已读记录在下载前保留。手机价格与额度表使用卡片，每批显示 5 条，桌面每批显示 20 条；CSV/Markdown 导出保留全部筛选结果。排行默认包含估算，以实心与斜纹区分依据，并可直接筛选 Claude、ChatGPT、Kimi 等厂商。
+
+纠错入口：[项目 Issues](https://github.com/yufeng97/coding-plan-comparison/issues)。网站按贡献类型预填标题与证据模板，用户在 GitHub 补充证据后提交。公开评测的套餐链接仅匹配明确列出的精确模型版本，原始模型 ID、来源区间与导出数值保持完整。核价同步采用覆盖读改写全流程的互斥锁；维护历史的事件 ID 按内容重算校验。
+
 ## 数据覆盖
 
 - **模型官方订阅**：Anthropic Claude、OpenAI Codex（ChatGPT）、Google Gemini/Antigravity、xAI Grok、Mistral、智谱 BigModel 与 Z.ai 的 GLM Coding Plan（V1/V2/V3）、月之暗面 Kimi、MiniMax、小米 MiMo、阶跃 Step Plan 等
@@ -78,11 +82,11 @@ npm run test:news
 
 来源和重定向目标须为公开 HTTPS 地址。系统代理 DNS 若只返回 `198.18.0.0/15` 的 Fake-IP，采集器通过固定的 [Cloudflare DNS over HTTPS 接口](https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-https/make-api-requests/dns-json/)复核域名的公网地址，只发送待抓取域名，实际抓取仍走本机网络；复核失败会记录错误。这里做的是 DNS 预检，未将 DNS 结果固定到实际连接，不应当作面向任意不可信来源的网络隔离服务。
 
-已配置北京时间每日 08:30 在 Codex 当前聊天自动巡检（任务名：Coding Plan 每日资讯与数据巡检），保存待审报告与来源健康；无可行动变化时保持安静，发现值得复核的产品、连续来源失败或到期事件才通知。需电脑开机、应用运行且项目可访问；自动化状态和时间在 Codex 中管理（[官方说明](https://learn.chatgpt.com/docs/automations?surface=app)）。仓库另提供可手动触发的 [GitHub Actions 采集工作流](.github/workflows/news-collect.yml)：恢复队列/基线缓存、上传报告 artifact，部分失败仍保留报告并标记失败。当前没有 Git 远程地址，因此 GitHub 工作流与 Issue 表单需推送到仓库后才能启用；本机命令可直接运行。CI 缓存与本机队列是各自工作副本，不自动双向同步；选定一个审核主副本，下载 artifact 后在该副本审核并保持后续采集使用同一队列。缓存可能被平台清除，重要待审决策须自行备份。
+已配置北京时间每日 08:30 在 Codex 当前聊天自动巡检（任务名：Coding Plan 每日资讯与数据巡检），保存待审报告与来源健康；无可行动变化时保持安静，发现值得复核的产品、连续来源失败或到期事件才通知。需电脑开机、应用运行且项目可访问；自动化状态和时间在 Codex 中管理（[官方说明](https://learn.chatgpt.com/docs/automations?surface=app)）。仓库另提供可手动触发的 [GitHub Actions 采集工作流](.github/workflows/news-collect.yml)：恢复队列/基线缓存、上传报告 artifact，部分失败仍保留报告并标记失败。代码仓库为 [yufeng97/coding-plan-comparison](https://github.com/yufeng97/coding-plan-comparison)，网站纠错模板连接该仓库的 Issues。CI 缓存与本机队列是各自工作副本，不自动双向同步；选定一个审核主副本，下载 artifact 后在该副本审核并保持后续采集使用同一队列。缓存可能被平台清除，重要待审决策须自行备份。
 
 ### 如何让新厂商进来
 
-没有有限来源和关键词规则能保证全网零遗漏。应把“监测已收录厂商”和“发现新厂商”作为两条持续维护的入口。当前脚本不会以厂商列表过滤候选；`needsVendorReview` 只是关联提示，域名或名称匹配也可能把一个新产品关联到旧厂商，所有候选仍要检查产品身份。Hacker News 偏英文技术社区，中文新品覆盖有限；建议每周用「编程套餐 / 编程订阅 / Coding Plan / Token Plan / AI 编程助手 / coding agent」做一轮不限厂商的中文和英文搜索，并将结果导入脚本。已加入中文发现订阅源和网站的“新增厂商 / 纠错 / 提交测评”模板入口；未配置远程仓库时可复制或下载，接入 GitHub 后可切换 Issue 入口。来源清单可继续扩展，但不能承诺全网零遗漏。
+没有有限来源和关键词规则能保证全网零遗漏。应把“监测已收录厂商”和“发现新厂商”作为两条持续维护的入口。当前脚本不会以厂商列表过滤候选；`needsVendorReview` 只是关联提示，域名或名称匹配也可能把一个新产品关联到旧厂商，所有候选仍要检查产品身份。Hacker News 偏英文技术社区，中文新品覆盖有限；建议每周用「编程套餐 / 编程订阅 / Coding Plan / Token Plan / AI 编程助手 / coding agent」做一轮不限厂商的中文和英文搜索，并将结果导入脚本。已加入中文发现订阅源和网站的“新增厂商 / 纠错 / 提交测评”模板入口，可复制或下载，也可使用预填模板的 GitHub Issues 链接提交。来源清单可继续扩展，但不能承诺全网零遗漏。
 
 新产品收录按以下流程执行：
 
@@ -93,6 +97,8 @@ npm run test:news
 5. 更新版本日期与 `CHANGES.md`，执行 `npm run check`、`npm run typecheck`、`npm run validate`、`npm test`、`npm run bump`、`npm run cache:check`。修改页面交互或推荐逻辑时再执行相关浏览器回归；检查构建产物后发布。
 
 **全量与增量分开运行**：默认同步仍要求四份全量审计输入日期一致、覆盖全部记录。日常使用增量模式，只更新此次有新证据的行，保留其他行的核查日期；拒绝日期倒退、旧 patch 覆盖新值、来源 ID 的证据冲突及无证据修改。新增套餐通过 record.new 提交完整 Plan，并分配从未使用过的永久 ID。同步会原子更新数据、审计台账与变更历史，失败整组回滚；不会更新动态、来源目录或额度指标。输入字段及完整步骤见 [贡献指南](CONTRIBUTING.md)。
+
+核价同步的互斥锁覆盖读取、校验到提交全过程。异常退出后如果遗留 `audit/.pricing.lock`，先检查其中的主机与进程信息，确认没有同步进程，再人工删除该锁；脚本不会自动删除旧锁，避免并发恢复时误删另一进程的新锁。
 
 ```bash
 # 列出持久待审队列；accepted 只表示值得继续核实，并非自动收录
@@ -155,7 +161,7 @@ npm run bump
 npm run cache:check
 ```
 
-`collect` 只写忽略目录 `audit/benchmark-sources/`，保留原始下载 SHA-256、完整历史候选和来源连续失败；变化比较按协议/精确模型/推理/Agent 的稳定 ID，日期刷新不会冒充成绩变化。任何必需来源失败或格式改变均返回非零码，保留正式数据与上一份完整候选。`publish` 要求审核者、理由及哈希匹配的原始证据，然后原子替换 `benchmarks/public-results.json`；`benchmark:build` 生成浏览器可离线读取的 `BENCHMARKS.public`，`benchmark:check` 在 CI 只读核对产物。采集不直接提交或部署；[手动采集工作流](.github/workflows/benchmark-collect.yml) 可在配置远程仓库后下载待审材料。
+`collect` 只写忽略目录 `audit/benchmark-sources/`，保留原始下载 SHA-256、完整历史候选和来源连续失败；变化比较按协议/精确模型/推理/Agent 的稳定 ID，日期刷新不会冒充成绩变化。任何必需来源失败或格式改变均返回非零码，保留正式数据与上一份完整候选。`publish` 要求审核者、理由及哈希匹配的原始证据，然后原子替换 `benchmarks/public-results.json`；`benchmark:build` 生成浏览器可离线读取的 `BENCHMARKS.public`，`benchmark:check` 在 CI 只读核对产物。采集不直接提交或部署；可从 [手动采集工作流](.github/workflows/benchmark-collect.yml) 下载待审材料。
 
 核查日期是本站本次下载/核对时间，官方更新日另记；未公布的运行日、工具、费用或样本数保留未知。费用列属于评测任务或 rollout 的官方成本，DeepSWE 的部分模型按官网当前价格修正表折算，CursorBench 按公布的 token 价格计算；不把原始费用、折算费用或未知费用混为真实账单，不等同订阅月费。不跨模型/协议推断未公布的成绩，也不把空值补成零。
 
@@ -274,6 +280,10 @@ npm run deploy -- --dry-run
 实际部署使用 Node 原生 `fetch` 调用 [Vercel REST API](https://vercel.com/docs/rest-api/deployments/create-a-new-deployment)，不需要将 Vercel CLI 的框架依赖带进项目。项目关联读取根目录 `.vercel/project.json`；认证优先级依次为环境变量 `VERCEL_TOKEN`、部署函数调用者的临时 `options.token`、Windows 标准路径 `%APPDATA%/com.vercel.cli/Data/auth.json` 中的现有 CLI 登录 token。回退只读取这一个明确位置，不递归搜索其他凭据；`--dry-run` 不读取认证或请求网络。凭据只用于授权头，响应或错误中回显的 token 会脱敏，不写入产物或日志。`npm run deploy` 创建预览部署，`npm run deploy -- --prod` 发布生产；仅在部署达到 READY 后报告成功。
 
 此部署脚本读取现有 token，不自动刷新 CLI 的 OAuth 登录会话。返回 401/403 时先检查账号的项目权限和凭据有效期；必要时使用[官方 CLI 登录](https://vercel.com/docs/cli/login)（`npx vercel login`）更新会话，或在运行环境提供有效 `VERCEL_TOKEN` 后重试。不要把 token 写进仓库、README 或公开产物。发布后访问正式域名，核对资源版本和桌面/手机核心操作；Vercel 的部署专属网址可能受登录保护。
+
+GitHub Pages 作为第二个公开部署入口：[coding-plan-comparison](https://yufeng97.github.io/coding-plan-comparison/)。仓库的 Settings → Pages → Build and deployment → Source 使用 **GitHub Actions**。新增的 [Pages 工作流](.github/workflows/pages.yml) 在 `main` 推送或手动触发时安装 lockfile 依赖，完成代码、类型、数据、维护/评测一致性、Node 回归与缓存检查，再运行 `npm run build:site`；上传并发布的仅为 `.site-build/`。构建作业只读代码与 Pages 配置，发布作业通过 `GITHUB_TOKEN` 和 OIDC 获得 `pages: write` / `id-token: write`，无需新增个人 token 或 Vercel 凭据。详见 [GitHub 官方自定义 Pages 工作流说明](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)。
+
+页面资源、字体、按需数据和站内链接使用相对路径，支持 `/coding-plan-comparison/` 项目子目录。Vercel 继续作为主站，公开项目配置与 RSS 内的正式地址保持其现有域名。Pages 的 `github-pages` 环境链接指向该次实际发布地址；在仓库 Actions 中确认工作流成功后，再核对 Pages 首页、模型评测按需下载和手机价格卡片。
 
 浏览器测试首次使用前运行 `npx playwright install chromium firefox webkit`；Linux 若缺系统依赖，可使用 `npx playwright install --with-deps chromium firefox webkit`。CI 自动安装三种浏览器和所需依赖。仅检查一个引擎可运行 `npm run test:browser -- --project=chromium`（也可指定 `firefox` 或 `webkit`）。生成的站点、Playwright 报告和测试截图均已加入 `.gitignore`。
 

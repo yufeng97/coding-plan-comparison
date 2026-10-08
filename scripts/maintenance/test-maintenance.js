@@ -6,7 +6,7 @@ const os = require("node:os");
 const path = require("node:path");
 const vm = require("node:vm");
 const { buildMaintenance, parseArgs, rssOf } = require("./build-maintenance");
-const { seededHistory, canonical, changeOf } = require("./history");
+const { seededHistory, canonical, changeOf, validateHistory } = require("./history");
 const workspace = path.resolve(__dirname, "../..");
 const outputs = ["data/change-history.json", "data/maintenance.json", "js/maintenance-data.js", "changes.xml"];
 
@@ -64,6 +64,35 @@ test("Oct8摘要统计真实逐行年龄，待核与过期独立，生成不改�
   const at14 = buildMaintenance(root, { asOf: "2026-10-18" }).maintenance;
   assert.equal(at14.summary.stale, 258);
   assert.equal(at14.summary.unverified, 24);
+});
+
+test("变更事实被改动不能沿用旧ID，JSON键顺序不影响身份，生成前拒绝篡改历史", ({ root, snapshot }) => {
+  const original = seededHistory(root);
+  assert.doesNotThrow(() => validateHistory(original));
+  const reordered = structuredClone(original);
+  reordered.changes[0].before = Object.fromEntries(Object.entries(reordered.changes[0].before).reverse());
+  reordered.changes[0].after = Object.fromEntries(Object.entries(reordered.changes[0].after).reverse());
+  assert.doesNotThrow(() => validateHistory(reordered), "只改变JSON键顺序不代表已确认事实变化");
+  for (const mutate of [
+    (c) => { c.after[c.fields[0]] = "改动的事实"; },
+    (c) => { c.before[c.fields[0]] = "改动的历史基值"; },
+    (c) => { c.name += " 修改名称"; },
+    (c) => { c.sourceUrls = ["https://example.com/different-evidence"]; },
+    (c) => { c.checkedAt = "2026-10-05"; },
+  ]) {
+    const altered = structuredClone(original);
+    mutate(altered.changes[0]);
+    assert.throws(() => validateHistory(altered), /哈希不一致/, "变更身份涵盖事实、名称、来源及确认日期");
+  }
+  buildMaintenance(root, { asOf: "2026-10-08" });
+  const file = path.join(root, "data/change-history.json");
+  const altered = structuredClone(original);
+  altered.changes[0].after[altered.changes[0].fields[0]] = "改动的事实";
+  fs.writeFileSync(file, JSON.stringify(altered));
+  const before = snapshot();
+  assert.throws(() => buildMaintenance(root, { asOf: "2026-10-08" }), /哈希不一致/);
+  assert.throws(() => buildMaintenance(root, { check: true }), /哈希不一致/);
+  assert.deepEqual(snapshot(), before, "不能把改动后的事实重新导出到旧RSS GUID和已读ID");
 });
 
 test("人工促销到期/生效日历仅生成复查提醒，未知事实不抬核查日期", ({ root, calendar }) => {

@@ -43,6 +43,11 @@ function validateHistory(history) {
     if (!["plan", "api", "payg"].includes(change.kind) || !isISODate(change.checkedAt) || !change.id || !change.vendor || !change.name) throw new Error("变更历史身份或日期非法");
     if (!Array.isArray(change.sourceUrls) || !change.sourceUrls.length || change.sourceUrls.some((url) => typeof url !== "string" || !/^https:\/\//.test(url))) throw new Error("变更历史缺少官网来源");
     if (!Array.isArray(change.fields) || !change.fields.length || new Set(change.fields).size !== change.fields.length || !change.before || !change.after || change.fields.some((field) => !Object.hasOwn(change.before, field) || !Object.hasOwn(change.after, field) || canonical(change.before[field]) === canonical(change.after[field]))) throw new Error("变更历史没有实际差异");
+    const recomputed = changeOf(change.before, change.after, {
+      id: change.id, kind: change.kind, vendor: change.vendor, name: change.name,
+      checkedAt: change.checkedAt, sourceUrls: change.sourceUrls,
+    }, true);
+    if (!recomputed || recomputed.changeId !== change.changeId || canonical(recomputed.fields) !== canonical(change.fields)) throw new Error("变更历史事实与 changeId 哈希不一致；请重新生成已确认变更");
   }
   return history;
 }

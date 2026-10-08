@@ -19,7 +19,7 @@ for (const width of [375, 1280]) {
     await expect(page.locator("#heroDate")).toHaveText(updated);
     await expect(page.locator("#footDate")).toHaveText(updated);
 
-    const details = page.locator("#sourceList details");
+    const details = page.locator("#sourceList > details.audit-sources");
     const summary = details.locator("summary");
     const count = await page.evaluate("Object.keys(PRICE_CHECKS.sources).length");
     await expect(summary).toContainText(count + " 页");

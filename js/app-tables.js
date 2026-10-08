@@ -57,7 +57,7 @@ const PLAN_COLUMNS = [
   { id: "priceStatus", label: "价格核实状态", table: false, value: (p) => priceCheckLabel(p) },
   { id: "priceCheckedAt", label: "价格核查日期", table: false, value: (p) => (priceCheckOf(p) || {}).checkedAt || "" },
   { id: "priceSources", label: "价格核查来源", table: false, value: (p) => priceCheckSources(p).join(" ; ") },
-  { id: "priceCheckReason", label: "价格核查说明", table: false, value: (p) => (priceCheckOf(p) || {}).reason || "" },
+  { id: "priceCheckReason", label: "价格核查说明", table: false, value: (p) => displayPriceReason((priceCheckOf(p) || {}).reason || "") },
   { id: "updated", label: "数据更新日期", table: false, markdown: false, value: () => META.updated },
   { id: "rate", label: "参考汇率（USD/CNY）", table: false, markdown: false, value: () => RATE },
   { id: "rateInr", label: "参考汇率（INR/CNY）", table: false, markdown: false, value: () => RATE_INR_CNY },
@@ -65,6 +65,9 @@ const PLAN_COLUMNS = [
   { id: "rateSource", label: "汇率来源", table: false, markdown: false, value: () => META.rateSource || "" },
 ];
 const PLAN_TABLE_COLUMNS = PLAN_COLUMNS.filter((c) => c.table !== false);
+function responsivePageSize() { return window.innerWidth < 768 ? 5 : 20; }
+let tableVisibleLimit = responsivePageSize();
+let tableViewFingerprint = "";
 
 /* 筛选 + 排序集中在这里：渲染与 CSV/Markdown 导出共用同一份结果 */
 function computeTableRows() {
@@ -89,19 +92,37 @@ function renderTable() {
   const focused = /** @type {HTMLElement | null} */ (document.activeElement);
   const focusedPlanId = focused && byId("tableBody").contains(focused) && focused.classList.contains("cmp-add") ? focused.dataset.planId : "";
   const rows = computeTableRows();
+  const pageSize = responsivePageSize();
+  const fingerprint = JSON.stringify([tableState, pageSize]);
+  if (fingerprint !== tableViewFingerprint) {
+    tableVisibleLimit = pageSize;
+    tableViewFingerprint = fingerprint;
+  }
+  /* 筛选/历史恢复仍包含当前键盘操作项时，展开到它所在页，保持稳定 ID 的焦点恢复。 */
+  if (focusedPlanId) {
+    const index = rows.findIndex((p) => p.id === focusedPlanId);
+    if (index >= tableVisibleLimit) tableVisibleLimit = Math.ceil((index + 1) / pageSize) * pageSize;
+  }
+  const visibleRows = rows.slice(0, tableVisibleLimit);
   byId("planTable").classList.toggle("is-empty", rows.length === 0);
   const onSale = PLANS.filter(isOnSalePlan);
   const k = tableState.sortKey;
-  byId("tableCount").textContent = `${rows.length} / ${onSale.length} 档`;
+  byId("tableCount").textContent = `已显示 ${visibleRows.length} / ${rows.length} 条匹配记录 · 共 ${onSale.length} 档`;
+  const more = byId("tableMoreBtn");
+  if (more) {
+    more.hidden = visibleRows.length >= rows.length;
+    more.textContent = `显示更多记录（还有 ${rows.length - visibleRows.length} 条）`;
+    more.setAttribute("aria-controls", "tableBody");
+  }
   qsa("#planTable thead th.sortable").forEach((th) => {
     const col = PLAN_COLUMNS.find((c) => c.id === th.dataset.sort);
     if (col) syncSortHeader(th, col.label, k, tableState.sortDir);
   });
   const filters = [tableState.search.trim() ? `关键词「${tableState.search.trim()}」` : "",
     tableState.cat === "all" ? "" : CAT_LABEL[tableState.cat], tableState.region === "all" ? "" : REGION_LABEL[tableState.region]].filter(Boolean).join(" · ");
-  byId("tableBody").innerHTML = rows.length ? rows.map((p) => `<tr>${PLAN_TABLE_COLUMNS.map((col) => {
+  byId("tableBody").innerHTML = rows.length ? visibleRows.map((p) => `<tr>${PLAN_TABLE_COLUMNS.map((col) => {
     const cls = col.tdClass ? col.tdClass(p) : col.cls || "";
-    return `<td${cls ? ` class="${cls}"` : ""}>${col.cell ? col.cell(p) : esc(col.value(p))}</td>`;
+    return `<td data-column="${esc(col.id)}" data-label="${esc(col.label)}"${cls ? ` class="${cls}"` : ""}>${col.cell ? col.cell(p) : esc(col.value(p))}</td>`;
   }).join("")}</tr>`).join("") : `<tr><td colspan="${PLAN_TABLE_COLUMNS.length}" class="table-empty"><b>没有匹配的公开标价记录</b><p>${esc(filters || "当前筛选")}没有结果。可以调整关键词或清除筛选。${cmpState.items.length ? "已选的对比方案仍保留。" : ""}</p><button type="button" class="chip" id="tableEmptyResetBtn" data-reset-table>清除筛选</button></td></tr>`;
   ["exportCsvBtn", "copyMdBtn"].forEach((id) => {
     const btn = byId(id);
@@ -118,6 +139,27 @@ function renderTable() {
     const replacement = [...qsa("#tableBody .cmp-add")].find((btn) => btn.dataset.planId === focusedPlanId);
     if (!focusTableControl(replacement)) focusTableControl(byId("searchInput"));
   }
+}
+
+function showMoreTableRows() {
+  const previousCount = Math.min(tableVisibleLimit, computeTableRows().length);
+  tableVisibleLimit += responsivePageSize();
+  renderTable();
+  /* 新增记录的第一项是继续浏览的位置；最后一页也不把焦点丢给已隐藏的按钮。 */
+  const firstNew = [...qsa("#tableBody .cmp-add")][previousCount];
+  if (!focusTableControl(firstNew)) focusTableControl(byId("tableMoreBtn"));
+}
+
+function revealTablePlan(planId) {
+  const index = computeTableRows().findIndex((plan) => plan.id === planId);
+  if (index < 0) return false;
+  if (index >= tableVisibleLimit) {
+    const pageSize = responsivePageSize();
+    tableVisibleLimit = Math.ceil((index + 1) / pageSize) * pageSize;
+    tableViewFingerprint = JSON.stringify([tableState, pageSize]);
+    renderTable();
+  }
+  return true;
 }
 
 function resetTableFilters() {
@@ -440,26 +482,50 @@ function closeCmpModal() {
 }
 
 /* ---------- 动态 / 来源 / 说明 ---------- */
-function dynItem(d) {
+function chinaCalendarDay(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(now);
+  const value = (type) => parts.find((part) => part.type === type).value;
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
+function dynamicEndDate(d) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(d.endDate || "")) return d.endDate;
+  /* 旧记录只有文字范围；仅识别活动期限，核对日志保持其当日原文。 */
+  if (d.checked || !/活动|促销|畅用/.test(d.text || "")) return "";
+  const range = String(d.text || "").match(/(\d{2})-(\d{2})\s*[~～–—]\s*(\d{2})-(\d{2})/);
+  if (!range || !/^\d{4}-/.test(d.date || "")) return "";
+  const year = Number(d.date.slice(0, 4)) + (range[3] + range[4] < range[1] + range[2] ? 1 : 0);
+  return `${year}-${range[3]}-${range[4]}`;
+}
+function dynamicStatus(d, today = chinaCalendarDay()) {
+  if (!d.checked && /^\d{4}-\d{2}-\d{2}$/.test(d.date || "") && d.date > today) return { key: "upcoming", label: "计划中 · 尚未发生" };
+  const endDate = dynamicEndDate(d);
+  if (endDate && endDate < today) return { key: "ended", label: "已结束 · " + endDate };
+  return { key: "", label: "" };
+}
+function dynItem(d, today = chinaCalendarDay()) {
   const href = safeHref(d.url);
   const link = href ? ` <a class="dyn-src" href="${href}" target="_blank" rel="noopener" title="打开来源：${esc(d.url)}">${esc(d.source || "来源")} ↗</a>` : "";
   const when = d.checked ? "核实 " + d.date : d.date;
   const tip = d.checked ? "本站这一天核对到该状态，不是厂商公告日" : "来源写明的发生日期";
-  return `<li><span class="dyn-date${d.checked ? " is-checked" : ""}" title="${tip}">${esc(when)}</span><div class="dyn-body">${esc(d.text)}${link}</div></li>`;
+  const status = dynamicStatus(d, today);
+  const badge = status.label ? `<span class="dyn-status dyn-${status.key}">${esc(status.label)}</span> ` : "";
+  const text = status.key === "upcoming" ? String(d.text).replace(/于 (\d{4}-\d{2}-\d{2}) 退役/, "计划于 $1 退役") : d.text;
+  return `<li${status.key ? ` class="dyn-${status.key}"` : ""}><span class="dyn-date${d.checked ? " is-checked" : ""}" title="${tip}">${esc(when)}</span><div class="dyn-body">${badge}${esc(text)}${link}</div></li>`;
 }
 function renderMisc() {
   const sorted = DYNAMICS.slice().sort((a, b) => (b.date || "").localeCompare(a.date || ""));
-  byId("dynamicsList").innerHTML = sorted.filter((d) => !d.checked).map(dynItem).join("");
+  const today = chinaCalendarDay();
+  byId("dynamicsList").innerHTML = sorted.filter((d) => !d.checked).map((d) => dynItem(d, today)).join("");
   const checkList = byId("checkList");
-  if (checkList) checkList.innerHTML = sorted.filter((d) => d.checked).map(dynItem).join("");
+  if (checkList) checkList.innerHTML = sorted.filter((d) => d.checked).map((d) => dynItem(d, today)).join("");
   byId("sourceList").innerHTML =
     `<h3>📖 全部来源（官方定价页 / 权威报道）</h3>` +
     SOURCES.map(
-      (g) => `<div class="source-group"><b>${esc(g.group)}</b><ul>${g.urls.map((u) => {
+      (g) => `<details class="source-group"><summary>${esc(g.group)} <span class="sub">${g.urls.length} 个来源</span></summary><ul>${g.urls.map((u) => {
         const href = safeHref(u);
         return href ? `<li><a href="${href}" tabindex="0" target="_blank" rel="noopener">${esc(u)}</a></li>` : "";
-      }).join("")}</ul></div>`
-    ).join("") + `<details class="method-box"><summary>本次逐条核价来源（${Object.keys(PRICE_CHECKS.sources).length} 页）</summary><ul>` +
+      }).join("")}</ul></details>`
+    ).join("") + `<details class="method-box audit-sources"><summary>本次逐条核价来源（${Object.keys(PRICE_CHECKS.sources).length} 页）</summary><ul>` +
     Object.values(PRICE_CHECKS.sources).map((s) => {
       const href = safeHref(s.url);
       return href ? `<li><a href="${href}" tabindex="0" target="_blank" rel="noopener">${esc(s.url)}</a> — ${esc(s.evidence)}</li>` : "";
@@ -469,7 +535,7 @@ function renderMisc() {
     ...API_PRICES.map((p) => ({ p, kind: "api" })),
     ...PAYG_REFERENCES.map((p) => ({ p, kind: "payg" })),
   ].filter(({ p, kind }) => (priceCheckOf(p, kind) || {}).status === "unverified");
-  byId("uncertainList").innerHTML = pendingPrices.map(({ p, kind }) => `<li><b>${esc(p.vendor)} · ${esc("plan" in p ? p.plan : p.model)}</b>：${esc(priceCheckOf(p, kind).reason)} ${priceCheckHtml(p, kind)}</li>`).join("") +
+  byId("uncertainList").innerHTML = pendingPrices.map(({ p, kind }) => `<li><b>${esc(p.vendor)} · ${esc("plan" in p ? p.plan : p.model)}</b>：${esc(displayPriceReason(priceCheckOf(p, kind).reason))} ${priceCheckHtml(p, kind)}</li>`).join("") +
     UNCERTAIN.map((u) => `<li>${esc(u)}</li>`).join("");
   const uncertainSummary = qs("#uncertainWrap summary");
   if (uncertainSummary) uncertainSummary.textContent = `展开全部不确定性说明（${pendingPrices.length} 条价格待核实，另 ${UNCERTAIN.length} 条口径说明）`;
@@ -484,9 +550,11 @@ function renderMisc() {
 /* 额度换算的常量与纯函数（WEEKS_PER_MONTH、blendPrice、computeMetrics 等）在 js/metrics.js */
 
 function resetMetricsFilters() {
-  Object.assign(metricsState, { model: "all", ver: "all", sortKey: "cpm", sortDir: 1 });
+  Object.assign(metricsState, { model: "all", ver: "all", tier: "flagship", offer: "current", sortKey: "cpm", sortDir: 1 });
   byId("metricsModel").value = "all";
   byId("metricsVer").value = "all";
+  if (byId("metricsTier")) byId("metricsTier").value = "flagship";
+  if (byId("metricsOffer")) byId("metricsOffer").value = "current";
   renderMetricsTable();
   focusTableControl(byId("metricsModel"));
 }
@@ -566,8 +634,9 @@ const METRICS_SORT_GET = {
    上下限差 ≤5% 时只显上限值，避免「100–103M」这类噪音区间。 */
 function fTokCell(lo, hi, emptyLabel = "credits制") {
   if (lo == null) return `<span style="color:var(--faint)">${esc(emptyLabel)}</span>`;
-  if (hi == null || !(hi > lo * 1.05)) return fmtTok(lo);
-  return `${fmtTok(lo)}–${fmtTok(hi)}`;
+  const lowText = fmtTok(lo), highText = hi == null ? lowText : fmtTok(hi);
+  if (hi == null || !(hi > lo * 1.05) || lowText === highText) return lowText;
+  return `${lowText}–${highText}`;
 }
 function fmtRate(v) { return v == null ? "—" : `${v.toFixed(1)}×`; }
 
@@ -586,7 +655,7 @@ function fmtUnit(n) {
 function listPriceHint(m) {
   if (typeof m.apiIn !== "number") return "";
   const sym = m.cur === "USD" ? "$" : "¥";
-  return `<span class="model-price" title="模型牌价：输入 / 输出 / 缓存命中，每百万 tokens"><span>${sym}${fmtUnit(m.apiIn)}</span> / <span>${sym}${fmtUnit(m.apiOut)}</span> / <span>缓存 ${sym}${fmtUnit(m.apiCache)}</span></span>`;
+  return `<span class="model-price" title="模型牌价，每百万 tokens"><span>输入 ${sym}${fmtUnit(m.apiIn)}</span> / <span>输出 ${sym}${fmtUnit(m.apiOut)}</span> / <span>缓存 ${sym}${fmtUnit(m.apiCache)}</span></span>`;
 }
 function cpmColor(v) {
   const tier = cpmTier(v);
@@ -632,16 +701,20 @@ const METRICS_NOTE_LEGEND =
   `<b>💵每M tokens</b> = 月费÷月 tokens 中值（统一折算¥，越低越便宜；绿色≤¥0.30、黄色≤¥1、红色&gt;¥1）。标「官方 API 按量」的行没有月费，这一列用同一套 80/20、95% 缓存假设把低峰牌价折成人民币，所以能和套餐排在一起；模型名下方仍是原始输入 / 输出 / 缓存命中。套餐行模型名下方的牌价也不是套餐的每 M 成本。同一请求额度下，牌价更高的模型「额度价值 / 倍率」更高，每 M 成本不变。带牌价的 credits 按这套单价把面值折成 tokens；没有逐模型牌价的美元 credits 仍按假设均价 ¥10/M，且不进入「真实单价」排行。标「官方系数」的行用厂商公布的积分系数、按同一套假设摊成 tokens，置信度为中，不进入每周 tokens 图。<br>` +
   `计算假设：输入/输出=80/20、缓存命中率 95%、每周 5 个 5h 窗口、每月 4.33 周。官方周 tokens：Tokens/5h=周÷5，Tokens/月=周×4.33。请求数制若同时写了每 5 小时、每周、每月上限，三列各自用该窗口的次数，不按「周÷5、周×4.33」互相换算，因此 Tokens/5h×5 可以不等于 Tokens/周。⏫额度倍率 = 该时段额度价值 ÷ 该时段分摊月费（5h=月费/21.65，周=月费/4.33，月=月费）。<b>「依据」列</b>标注出处与置信度（<span class="conf conf-hi">高</span>官方/credits · <span class="conf conf-mid">中</span>实测/区间/牌价折算 · <span class="conf conf-lo">低</span>毛利/第三方/请求折算）。`;
 
-function renderMetricsTable() {
+function metricsTierOk(m) {
+  return metricsState.tier === "all" || isFlagshipModelName(m.model);
+}
+let metricsVisibleLimit = responsivePageSize();
+let metricsViewFingerprint = "";
+function metricsTableRows() {
   let rows = METRICS_ALL.map((m) => ({ m, c: computeMetrics(m), payg: false })).filter((r) => r.c);
+  rows = rows.filter((r) => metricsTierOk(r.m) && (metricsState.offer === "all" || metricOfferOk(r.m)));
   if (metricsState.model !== "all") rows = rows.filter((r) => r.m.model === metricsState.model);
   if (metricsState.ver !== "all") rows = rows.filter((r) => r.m.ver === metricsState.ver);
   const payg = metricsState.ver === "all"
-    ? paygReferenceRows().filter((r) => metricsState.model === "all" || r.m.model === metricsState.model)
+    ? paygReferenceRows().filter((r) => metricsTierOk(r.m) && (metricsState.offer === "all" || isPriceConfirmed(r.m, "payg")) && (metricsState.model === "all" || r.m.model === metricsState.model))
     : [];
-
   const shownRows = [...payg, ...rows];
-  byId("metricsTable").classList.toggle("is-empty", shownRows.length === 0);
   const sv = METRICS_SORT_GET[metricsState.sortKey];
   shownRows.sort((a, b) => {
     const va = sv ? sv(a) : 0, vb = sv ? sv(b) : 0;
@@ -649,32 +722,62 @@ function renderMetricsTable() {
     if (aN || bN) { if (aN && bN) return 0; return aN ? 1 : -1; } /* 无对应额度（按量无月费、credits 制等）恒排末尾 */
     return (va - vb) * metricsState.sortDir;
   });
-  byId("metricsCount").textContent = `${shownRows.length} 行`;
-  byId("metricsBody").innerHTML = shownRows.length ? shownRows.map((r) => {
+  return { rows, payg, shownRows };
+}
+function renderMetricsTable() {
+  const { rows, payg, shownRows } = metricsTableRows();
+  const pageSize = responsivePageSize();
+  const fingerprint = JSON.stringify([metricsState, pageSize]);
+  if (fingerprint !== metricsViewFingerprint) {
+    metricsVisibleLimit = pageSize;
+    metricsViewFingerprint = fingerprint;
+  }
+  const visibleRows = shownRows.slice(0, metricsVisibleLimit);
+  byId("metricsTable").classList.toggle("is-empty", shownRows.length === 0);
+  byId("metricsCount").textContent = visibleRows.length === shownRows.length ? `${shownRows.length} 行` : `已显示 ${visibleRows.length} / ${shownRows.length} 行`;
+  const more = byId("metricsMoreBtn");
+  if (more) {
+    more.hidden = visibleRows.length >= shownRows.length;
+    more.textContent = `显示更多额度记录（还有 ${shownRows.length - visibleRows.length} 行）`;
+    more.setAttribute("aria-controls", "metricsBody");
+  }
+  byId("metricsBody").innerHTML = shownRows.length ? visibleRows.map((r) => {
     const m = r.m, c = r.c, isPayg = !!r.payg;
     const prov = isPayg ? (isPriceConfirmed(m, "payg") ? { text: "官方按量", conf: "高" } : { text: "历史牌价 · 待核实", conf: "低" }) : provenance(m);
     const ctx = { m, c, isPayg, cur: m.cur, prov };
     const tds = METRICS_COLUMNS.map((col) => {
       const cls = (col.cls || "") + (col.tdClass ? col.tdClass(ctx) : "");
       const title = col.title ? ` title="${esc(col.title(ctx))}"` : "";
-      return `<td class="${cls}"${title}>${col.cell(ctx)}</td>`;
+      return `<td data-column="${esc(col.id)}" data-label="${esc(col.label)}" class="${cls}"${title}>${col.cell(ctx)}</td>`;
     }).join("");
     return `<tr class="${m.isEst ? "est-row" : ""}${isPayg ? " payg-row" : ""}">${tds}</tr>`;
-  }).join("") : `<tr><td colspan="${METRICS_COLUMNS.length}" class="table-empty"><b>当前模型与版本没有可展示的额度</b><p>可以选择其他模型或版本，或清除筛选查看全部额度。</p><button type="button" class="chip" id="metricsEmptyResetBtn" data-reset-metrics>清除筛选</button></td></tr>`;
+  }).join("") : `<tr><td colspan="${METRICS_COLUMNS.length}" class="table-empty"><b>当前模型与版本没有可展示的额度</b><p>可以调整模型、版本或购买范围；查看轻量模型时选择「全部模型档」。</p><button type="button" class="chip" id="metricsEmptyResetBtn" data-reset-metrics>清除筛选</button></td></tr>`;
 
   qsa("#metricsTable th.sortable").forEach((th) => {
     const col = METRICS_COLUMNS.find((c) => c.sortKey === th.dataset.sort);
     if (col) syncSortHeader(th, col.label, metricsState.sortKey, metricsState.sortDir, col.asc ? 1 : -1);
   });
   const reset = byId("metricsResetBtn");
-  if (reset) reset.disabled = metricsState.model === "all" && metricsState.ver === "all" && metricsState.sortKey === "cpm" && metricsState.sortDir === 1;
+  if (reset) reset.disabled = metricsState.model === "all" && metricsState.ver === "all" && metricsState.tier === "flagship" && metricsState.offer === "current" && metricsState.sortKey === "cpm" && metricsState.sortDir === 1;
   const sortColumn = METRICS_COLUMNS.find((c) => c.sortKey === metricsState.sortKey);
   const sortDescription = sortColumn ? `${esc(sortColumn.label)}${metricsState.sortDir === 1 ? "从低到高" : "从高到低"}` : "当前列";
   renderMetricsSortHint();
 
   byId("metricsNote").innerHTML =
+    `<b>当前范围：</b>${metricsState.tier === "all" ? "含轻量模型" : "只看旗舰模型"}；${metricsState.offer === "all" ? "含历史与仅老用户续费档，购买前请核对来源" : "仅新用户当前可购买的套餐，与排行使用相同购买筛选"}。API 按量是参照行，不进入套餐排行。<br>` +
     METRICS_NOTE_LEGEND +
     `当前 ${shownRows.length} 行（含 <b>${payg.length}</b> 行官方按量、<b>${rows.filter((r) => r.m.isEst).length}</b> 行「≈估」），按${sortDescription}排序。`;
+}
+
+function showMoreMetricsRows() {
+  const previousCount = Math.min(metricsVisibleLimit, metricsTableRows().shownRows.length);
+  metricsVisibleLimit += responsivePageSize();
+  renderMetricsTable();
+  const firstNew = [...qsa("#metricsBody tr")][previousCount];
+  if (firstNew) {
+    firstNew.setAttribute("tabindex", "-1");
+    focusTableControl(firstNew);
+  } else focusTableControl(byId("metricsMoreBtn"));
 }
 
 function renderMetricsSortHint() {

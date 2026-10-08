@@ -246,14 +246,120 @@ test("tokens图使用稳定套餐引用取得价格，稳定ID与旧数组都能
   const rows = [...new Map(app.charts.get("chartTokens").option.series.flatMap((s) => s.data.filter(Boolean).map((d) => [d._r.label, d._r]))).values()];
   assert.equal(rows.some((r) => ["ID重复回归", "旧数组重复回归"].includes(r.model)), false, "同套餐的官方tokens和估算行不重复展示");
   const expectedPrice = app.run("tokenReferencePlan.priceM * (tokenReferencePlan.cur === 'USD' ? RATE : 1)");
-  const label = app.run("PLAN_TOKENS[0].plan");
-  const official = rows.find((r) => r.isOfficial && r.label.startsWith(label + "·"));
+  const label = app.run("planLabel(tokenReferencePlan)");
+  const official = rows.find((r) => r.isOfficial && r.label.startsWith(label + " · "));
   assert.ok(official);
   assert.equal(official.priceCNY, expectedPrice, "官方图表价格直接从当前套餐身份取得");
   app.run("PLAN_TOKENS[0].ref = [tokenReferencePlan.vendor, tokenReferencePlan.plan]; renderTokensChart();");
-  const after = app.charts.get("chartTokens").option.series.flatMap((s) => s.data.filter(Boolean)).find((d) => d._r.isOfficial && d._r.label.startsWith(label + "·"));
+  const after = app.charts.get("chartTokens").option.series.flatMap((s) => s.data.filter(Boolean)).find((d) => d._r.isOfficial && d._r.label.startsWith(label + " · "));
   assert.equal(after._r.priceCNY, expectedPrice, "旧数组引用仍兼容");
   healthy(app);
+});
+
+test("极值图使用明确标注的对数轴，团队价格按席位/整包分组", () => {
+  const app = createApp({ url: "http://127.0.0.1:8123/index.html#s4" });
+  for (const id of ["chartTeam", "chartTokens", "chartApi", "chartPower"]) {
+    const option = app.charts.get(id).option;
+    assert.equal(option.xAxis.type, "log", id);
+    assert.equal(option.xAxis.logBase, 10, id);
+    assert.ok(option.xAxis.min > 0, id);
+    assert.equal(option.xAxis.startValue, option.xAxis.min, "log柱形从最小刻度起画，不能以默认1为基线反向画小数");
+    assert.match(option.xAxis.name, /对数刻度/, id);
+    assert.match(app.elements.get(id).getAttribute("aria-label"), /对数刻度/, id);
+  }
+  const team = app.charts.get("chartTeam").option;
+  let packageStarted = false;
+  let prior = 0;
+  for (const [i, row] of team.series[0].data.entries()) {
+    const isPackage = !row._p.seat;
+    if (isPackage && !packageStarted) { packageStarted = true; prior = 0; }
+    assert.ok(!packageStarted || isPackage, "席位价不能夹在整包价格中间");
+    assert.ok(row.value >= prior, "只在同一计价单位内排序");
+    prior = row.value;
+    assert.match(team.yAxis.data[i], isPackage ? /^整包\/月 · / : /^每席\/月 · /);
+    assert.match(team.tooltip.formatter({ data: row }), isPackage ? /整包价\/月/ : /每席位\/用户\/月/);
+  }
+  healthy(app);
+});
+
+test("周tokens图按真实区间端点叠画，定额仅显示一个值且图例颜色可辨", () => {
+  const app = createApp({ url: "http://127.0.0.1:8123/index.html#s4" });
+  const option = app.charts.get("chartTokens").option;
+  for (const series of option.series) {
+    assert.equal(series.stack, undefined, "对数区间不能把 high-low 差值作为堆叠段");
+    for (const point of series.data.filter(Boolean)) {
+      assert.ok([point._r.lowM, point._r.highM].includes(point.value));
+      if (series.label) {
+        const label = series.label.formatter({ data: point });
+        assert.equal(label.includes("–"), point._r.lowM !== point._r.highM);
+      }
+    }
+  }
+  assert.equal(app.run("weeklyTokenRange(416,416)"), "416M");
+  const fixed = { label: "测试定额", lowM: 416, highM: 416, model: "GLM-5.3", priceCNY: 100, isOfficial: true, url: "https://example.test/" };
+  assert.match(option.tooltip.formatter({ data: { _r: fixed } }), /每周可用：416M tokens/);
+  assert.doesNotMatch(option.tooltip.formatter({ data: { _r: fixed } }), /416–416/);
+  for (const legend of ["tokensLegend", "apiLegend", "powerLegend"]) {
+    const chips = app.elements.get(legend).querySelectorAll("[data-series]");
+    for (const chip of chips) {
+      const swatch = chip.querySelector(".legend-swatch");
+      assert.ok(swatch, legend + " 色块");
+      assert.equal(swatch.getAttribute("aria-hidden"), "true");
+      assert.match(swatch.getAttribute("style"), /background:#[0-9a-f]{6}/i);
+    }
+  }
+  const panel = app.elements.get("tokenInsight");
+  assert.ok(panel.querySelector(".token-insight-list"));
+  assert.ok(panel.querySelector(".token-insight-note"), "说明放在滚动列表外，能独立保留间距");
+  healthy(app);
+});
+
+test("排行套餐名读取主表，估算柱用斜纹并保留原始精确成本", () => {
+  const app = createApp();
+  app.run(`
+    rankState.scope = "all";
+    rankState.tier = "all";
+    globalThis.canonicalRankPlan = findPlanReference(METRICS_ALL[0].ref);
+    canonicalRankPlan.plan = "统一名称回归";
+    renderRankChart();
+  `);
+  const chart = app.charts.get("chartRank").option;
+  for (const [i, point] of chart.series[0].data.entries()) {
+    const approx = app.run(`provenance(METRICS_ALL.find(m => m.ref === ${JSON.stringify(point._r.m.ref)} && m.model === ${JSON.stringify(point._r.m.model)})).conf !== "高"`) || point._r.m.isEst;
+    assert.equal(Boolean(point.itemStyle.decal), Boolean(approx));
+    assert.equal(point.value, point._r.c.costPerM, "绘制原值，标签负责小数显示");
+    assert.ok(chart.yAxis.data[i].includes(point._r.m.plan));
+  }
+  assert.ok(app.elements.get("rankDetailBody").innerHTML.includes("统一名称回归"));
+  assert.doesNotMatch(chart.yAxis.data.join(" "), / · Coding (?:Lite|Pro|Max)/);
+  assert.match(app.elements.get("rankNote").innerHTML, /实色柱.*斜纹柱/);
+  healthy(app);
+});
+
+test("默认排行含估算，Claude/ChatGPT/Kimi可按厂商定位并分享，完整明细按钮可展开", () => {
+  const app = createApp();
+  assert.equal(app.run("rankState.scope"), "all");
+  const select = app.elements.get("rankVendor");
+  assert.match(select.innerHTML, /Claude（Anthropic）/);
+  assert.match(select.innerHTML, /ChatGPT（OpenAI）/);
+  assert.match(select.innerHTML, /Kimi（月之暗面）/);
+  for (const vendor of ["Anthropic", "OpenAI", "月之暗面 Kimi"]) {
+    select.value = vendor;
+    app.fire(select, "change");
+    const chart = app.charts.get("chartRank").option;
+    assert.ok(chart.series[0].data.length > 0, vendor);
+    assert.ok(chart.series[0].data.every((p) => p._r.m.vendor === vendor));
+    assert.equal(select.value, vendor);
+    assert.equal(new URLSearchParams(app.location.search).get("rvendor"), vendor);
+    assert.match(app.elements.get("rankNote").innerHTML, /当前口径全厂商共/);
+  }
+  app.fire(app.elements.get("openRankDetails"), "click");
+  assert.equal(app.elements.get("rankDetails").open, true);
+  assert.equal(app.run("document.activeElement.id"), "rankDetailsSummary");
+  const restored = createApp({ url: "http://127.0.0.1:8123/index.html?rvendor=OpenAI#rank" });
+  assert.equal(restored.elements.get("rankVendor").value, "OpenAI");
+  assert.ok(restored.charts.get("chartRank").option.series[0].data.every((p) => p._r.m.vendor === "OpenAI"));
+  healthy(app); healthy(restored);
 });
 
 test("亮暗主题的图表tooltip读取当前语义配色，切换后已加载图表同步", () => {

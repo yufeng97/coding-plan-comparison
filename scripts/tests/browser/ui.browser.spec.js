@@ -11,7 +11,7 @@ test("搜索防抖未执行时的同查询串后退仍更新表格", async ({ pa
   });
   await expect(page).toHaveURL(/q=Cursor#table$/);
   await expect.poll(() => page.evaluate(() => document.querySelectorAll("#tableBody tr").length)).toBe(
-    await page.evaluate("computeTableRows().length"));
+    await page.evaluate("Math.min(responsivePageSize(), computeTableRows().length)"));
   await expect(page.locator("#searchInput")).toHaveValue("Cursor");
 });
 
@@ -105,7 +105,39 @@ test("字体晚载和resize仅刷新手动滚动后的章节，不重新跳回�
   } finally { releaseFonts(); }
 });
 
-for (const width of [375, 768]) {
+for (const colorScheme of /** @type {("light"|"dark")[]} */ (["light", "dark"])) {
+  test(`375px ${colorScheme} 手机卡片直接展示套餐价格和每百万成本`, async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 900 });
+    await page.emulateMedia({ colorScheme });
+    await page.goto("/?q=Claude+Pro#table");
+    const price = page.locator('#tableBody tr [data-column="priceM"]').first();
+    await expect(price).toBeVisible();
+    await expect(price).toHaveAttribute("data-label", "价格 / 周期");
+    await expect(price).toContainText("$20/月");
+    for (const field of [price, page.locator('#tableBody tr [data-column="plan"]').first()]) {
+      const bounds = await field.boundingBox();
+      expect(bounds.x).toBeGreaterThanOrEqual(0);
+      expect(bounds.x + bounds.width).toBeLessThanOrEqual(375);
+    }
+    expect(await page.locator("#planTable").evaluate(el => getComputedStyle(el).display)).toBe("block");
+    expect(await page.locator("#planTable").evaluate(el => el.closest(".table-wrap").scrollWidth <= el.closest(".table-wrap").clientWidth)).toBe(true);
+    await page.goto("/?mmodel=deepseek-v4-pro#s3b");
+    await expect(page.locator("#metricsCount")).toHaveText("1 行");
+    const cpm = page.locator('#metricsBody tr [data-column="cpm"]');
+    await expect(cpm).toBeVisible();
+    await expect(cpm).toHaveAttribute("data-label", "💵每M tokens");
+    const bounds = await cpm.boundingBox();
+    expect(bounds.x).toBeGreaterThanOrEqual(0);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(375);
+    const rates = page.locator('#metricsBody tr [data-column="model"]');
+    await expect(rates).toContainText("输入");
+    await expect(rates).toContainText("输出");
+    await expect(rates).toContainText("缓存");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  });
+}
+
+for (const width of [768]) {
   for (const colorScheme of /** @type {("light"|"dark")[]} */ (["light", "dark"])) {
     test(`${width}px ${colorScheme} 冻结表头与悬停身份列不遮挡或透底`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
@@ -148,6 +180,42 @@ test("隐藏明细的当前排序在工具栏可见", async ({ page }) => {
   await expect(hint).not.toContainText("展开查看");
   await page.locator("#metricsToggle").click();
   await expect(hint).toContainText("展开查看");
+});
+
+test("手机价格表分批展开并保持完整导出，排序后回到首批记录", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 900 });
+  await page.goto("/#table");
+  await expect(page.locator("#tableBody tr")).toHaveCount(5);
+  const total = await page.evaluate("computeTableRows().length");
+  const more = page.locator("#tableMoreBtn");
+  await expect(more).toBeVisible();
+  await more.click();
+  await expect(page.locator("#tableBody tr")).toHaveCount(10);
+  await expect(page.locator("#tableBody .cmp-add").nth(5)).toBeFocused();
+  await expect(page.locator("#tableCount")).toContainText(`已显示 10 / ${total}`);
+  expect(await page.evaluate('tableRowsCsv(computeTableRows()).split("\\r\\n").length')).toBe(total + 1);
+  await page.locator('#planTable thead [data-sort="priceM"]').click();
+  await expect(page.locator("#tableBody tr")).toHaveCount(5);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  const geometry = await page.locator("#tableBody tr").last().evaluate(el => ({ card: el.getBoundingClientRect().bottom, wrap: el.closest(".table-wrap").getBoundingClientRect().bottom, next: document.getElementById("tableMoreBtn").getBoundingClientRect().top }));
+  expect(geometry.card).toBeLessThanOrEqual(geometry.wrap + 1);
+  expect(geometry.card).toBeLessThanOrEqual(geometry.next + 1);
+});
+
+test("手机额度表分批卡片被容器完整包住，后续章节不会盖住额度记录", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 900 });
+  await page.goto("/#s3b");
+  await expect(page.locator("#metricsBody tr")).toHaveCount(5);
+  const total = await page.evaluate("metricsTableRows().shownRows.length");
+  await expect(page.locator("#metricsCount")).toHaveText(`已显示 5 / ${total} 行`);
+  await page.locator("#metricsMoreBtn").click();
+  await expect(page.locator("#metricsBody tr")).toHaveCount(10);
+  const geometry = await page.locator("#metricsBody tr").last().evaluate(el => ({ card: el.getBoundingClientRect().bottom, wrap: el.closest(".table-wrap").getBoundingClientRect().bottom, next: document.getElementById("s1").getBoundingClientRect().top }));
+  expect(geometry.card).toBeLessThanOrEqual(geometry.wrap + 1);
+  expect(geometry.card).toBeLessThanOrEqual(geometry.next + 1);
+  await page.locator('#metricsTable thead [data-sort="price"]').click();
+  await expect(page.locator("#metricsBody tr")).toHaveCount(5);
+  expect(await page.evaluate("metricsTableRows().shownRows.length")).toBe(total);
 });
 
 test("稳定ID链接和无原生dialog降级可关闭、循环焦点和移出", async ({ page }) => {

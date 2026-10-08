@@ -46,7 +46,7 @@ function commitOutputs(outputs, options = {}) {
 
 /** @param {string} workspace
  * @param {{incremental?:boolean,input?:string,rename?:(from:string,to:string)=>void,writeBytes?:(file:string,bytes:Buffer)=>void}} options */
-function syncPricingAudit(workspace = path.join(__dirname, "..", ".."), options = {}) {
+function syncPricingAuditUnlocked(workspace, options = {}) {
   const root = path.resolve(workspace);
   const auditDir = path.join(root, "audit");
   if (!!options.incremental !== !!options.input) throw new Error("增量同步必须同时提供 --incremental 和 --input");
@@ -221,6 +221,27 @@ function syncPricingAudit(workspace = path.join(__dirname, "..", ".."), options 
     [path.join(root, "data/change-history.json"), Buffer.from(JSON.stringify(history, null, 2) + "\n")],
   ]), options);
   return { records: records.length, sources: sources.length, filesChanged, updated, checkedAt, historyChanges: history.changes.length };
+}
+
+/* 锁覆盖读取、校验与四份输出交换。只锁落盘仍会让另一批更新从旧快照覆盖新数据。 */
+function syncPricingAudit(workspace = path.join(__dirname, "..", ".."), options = {}) {
+  const root = path.resolve(workspace), auditDir = path.join(root, "audit");
+  fs.mkdirSync(auditDir, { recursive: true });
+  const lock = path.join(auditDir, ".pricing.lock");
+  let handle;
+  try { handle = fs.openSync(lock, "wx"); }
+  catch (error) {
+    if (error.code !== "EEXIST") throw error;
+    /* 自动删除旧锁存在 TOCTOU：另一进程可能已在同一路径取得新锁。 */
+    throw new Error("核价正在同步或存在遗留锁（audit/.pricing.lock）；请稍后重试。遗留锁须人工检查，确认没有同步进程后再清理");
+  }
+  try {
+    fs.writeFileSync(handle, JSON.stringify({ pid: process.pid, hostname: require("node:os").hostname(), startedAt: new Date().toISOString() }));
+    return syncPricingAuditUnlocked(root, options);
+  } finally {
+    fs.closeSync(handle);
+    fs.unlinkSync(lock);
+  }
 }
 
 /** @param {string[]} args */

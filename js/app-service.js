@@ -2,6 +2,7 @@
 "use strict";
 const PRESET_KEY = "cp-filter-preset-v1";
 const COST_CONTROLS = { model:"costModel", requests:"costRequests", tokens:"costTokens", days:"costDays", input:"costInput", cache:"costCache", cachePrice:"costCachePrice", budget:"costBudget" };
+const SERVICE_TOOL_LABELS = { any:"不限工具", claude:"Claude Code", codex:"Codex", cursor:"Cursor", own:"自家客户端" };
 function serviceFeedback(message) {
   const el = byId("serviceFeedback");
   if (el) el.textContent = message;
@@ -18,10 +19,9 @@ function syncPresetButtons() {
 }
 function syncServiceControls() {
   for (const [key,id] of Object.entries(COST_CONTROLS)) { const el = byId(id); if (el) el.value = calcState[key]; }
-  const tools = { any:"不限", claude:"Claude Code", codex:"Codex", cursor:"Cursor", own:"自家客户端" };
   const tasks = { hard:"复杂任务为主", daily:"日常为主", both:"复杂和日常都有" };
   const summary = byId("pickerAdvancedSummary");
-  if (summary) summary.textContent = "工具与任务：" + tools[pickerState.tool] + " · " + tasks[pickerState.task];
+  if (summary) summary.textContent = "工具与任务：" + SERVICE_TOOL_LABELS[pickerState.tool] + " · " + tasks[pickerState.task];
 }
 async function shareCurrentResults() {
   const query = appQueryString();
@@ -103,13 +103,13 @@ function renderCostCalculator() {
         ? "按相同基准，你的总量" + (result.monthlyM <= c.moLow ? "低于参考区间下限" : result.monthlyM > c.moHigh ? "高于参考区间上限" : "落在参考区间内") + "；这不能保证实际额度够用。"
         : "";
       const context = !specific ? "所选 API 模型未匹配到该套餐的逐模型额度，无法判断是否够用。" : !baseline ? "你修改了折算假设，参考月量不能直接用于判断是否够用。" : "";
-      quota = `<p>当前推荐 ${esc(planTitle(main.p))} · ${esc(metric.m.model)}：参考月量 ${esc(tokSpan(c,"moLow","moHigh"))}（置信${esc(metric.conf)}；表内基准：80% 输入、95% 输入缓存、请求折算 20K tokens/次）。${condition}${context}跨模型 token 不代表等效产出；仍需核对窗口、共享池与工具费用。</p>`;
+      quota = `<p>当前推荐 ${esc(planTitle(main.p))} · ${esc(displayModelName(metric.m.model))}：参考月量 ${esc(tokSpan(c,"moLow","moHigh"))}（置信${esc(metric.conf)}；表内基准：80% 输入、95% 输入缓存、请求折算 20K tokens/次）。${condition}${context}跨模型 token 不代表等效产出；仍需核对窗口、共享池与工具费用。</p>`;
     } else quota = `<p>当前推荐 ${esc(planTitle(main.p))} 未公开可对照的月 tokens，无法据此保证额度够用。</p>`;
   }
   el.innerHTML = `<p><strong>预计月费 ${esc(currency + Number(result.costNative.toFixed(2)))} ≈ ${esc(fmtCNY(result.costCNY))}</strong> · ${esc(fmtTok(result.monthlyM))} 总 tokens/月</p>` +
     `<p>${esc(cap)}。${result.costCNY > Number(calcState.budget) ? "当前工作量超出月预算。" : "当前工作量在月预算内。"}</p><p>${esc(cache)}</p>` +
     `<p>按 ${esc(calcState.days)} 个工作日、每天 ${esc(calcState.requests)} 次请求，每个工作日约 ${esc(fmtCNY(result.costCNY / Number(calcState.days)))}${Number(calcState.requests) > 0 ? `，每次约 ${esc(fmtCNY(result.costCNY / Number(calcState.days) / Number(calcState.requests)))}` : ""}。${result.costCNY <= Number(calcState.budget) ? `月预算剩余约 ${esc(fmtCNY(Number(calcState.budget) - result.costCNY))}` : `月预算需补约 ${esc(fmtCNY(result.costCNY - Number(calcState.budget)))}`}。</p>` +
-    `<p>工具与地区沿用「帮我选」：${esc(pickerState.tool === "any" ? "不限工具" : pickerState.tool)} · ${esc(REGION_LABEL[pickerState.region] || "不限地区")}。这里估算所选模型的 API 推理账单，工具订阅、税费和支付手续费需另行核对；套餐内额度不能直接抵扣 API 账单。</p>` +
+    `<p>工具与地区沿用「帮我选」：${esc(SERVICE_TOOL_LABELS[pickerState.tool] || "不限工具")} · ${esc(REGION_LABEL[pickerState.region] || "不限地区")}。这里估算所选模型的 API 推理账单，工具订阅、税费和支付手续费需另行核对；套餐内额度不能直接抵扣 API 账单。</p>` +
     `<p>工作量上下浮动 20% 时约 ${esc(fmtCNY(result.costCNY * 0.8))}–${esc(fmtCNY(result.costCNY * 1.2))}/月（情景范围）。牌价核查 ${esc(check ? check.checkedAt : "未核实")} · <a href="${safeHref(api.url)}" target="_blank" rel="noopener">官网计费规则</a></p>` + quota;
 }
 

@@ -6,6 +6,32 @@ function chartHeight(n, per, base, min) {
   return Math.max(min, n * per + base);
 }
 
+/* 相差多个数量级的数值用真正的对数轴；留出低于最小值的刻度，让最低项也有可点击柱形。
+   柱长不代表线性比例，轴标题、读屏摘要及精确 tooltip 均明确这一点。 */
+function chartLogAxis(values, name) {
+  const positive = values.filter((v) => Number.isFinite(v) && v > 0);
+  const lowest = positive.length ? Math.min(...positive) : 1;
+  const min = Math.pow(10, Math.floor(Math.log10(lowest) - 0.01));
+  return {
+    type: "log", logBase: 10,
+    min, startValue: min,
+    name: name + "（对数刻度）", nameLocation: "middle", nameGap: 30,
+    nameTextStyle: { color: PAL.dim, fontSize: 11 }, ...axisStyle(),
+    axisLabel: { ...axisStyle().axisLabel, formatter: (v) => Number(v.toPrecision(5)).toLocaleString("zh-CN", { maximumFractionDigits: 6 }) },
+  };
+}
+
+function weeklyTokenRange(low, high) {
+  const fmt = (n) => Number(n.toFixed(2)).toLocaleString("zh-CN");
+  return fmt(low) + (low === high ? "" : "–" + fmt(high)) + "M";
+}
+
+/* 套餐身份和名称取自主表，额度行只追加模型名称；不再为图表单独缩写套餐名。 */
+function metricChartLabel(m) {
+  const p = resolvePlan(m) || m;
+  return planLabel(p) + " · " + displayModelName(m.model);
+}
+
 /* ---------- 个人订阅价格全景 ---------- */
 function resetPersonalFilters() {
   Object.assign(personalState, { cat: "all", region: "all", billing: "M", q: "", limit: PERSONAL_DEFAULT_LIMIT });
@@ -17,8 +43,13 @@ function resetPersonalFilters() {
 }
 
 /* DOM 图例可用键盘操作；同一名称的区间基柱和上限段一起切换。 */
-function bindChartLegend(chart, id) {
+function bindChartLegend(chart, id, colors) {
   const chips = qsa("#" + id + " [data-series]");
+  chips.forEach((chip) => {
+    const color = colors[chip.dataset.series];
+    if (!color) return;
+    chip.innerHTML = `<i class="legend-swatch" style="background:${esc(color)}" aria-hidden="true"></i>${esc(chip.dataset.series)}`;
+  });
   setChipPressed(chips, (chip) => chip.getAttribute("aria-pressed") !== "false");
   chips.forEach((chip) => {
     if (chip.getAttribute("aria-pressed") === "false") chart.dispatchAction({ type: "legendUnSelect", name: chip.dataset.series });
@@ -147,14 +178,14 @@ function renderTeamChart() {
   if (deferChartRender("chartTeam",renderTeamChart)) return;
   const rows = PLANS.filter(
     (p) => isPriceConfirmed(p) && !isRetiredPlan(p) && (p.cat === "team" || p.seat) && p.priceM != null && p.priceM > 0
-  ).sort((a, b) => cnyOf(a, "M") - cnyOf(b, "M"));
+  ).sort((a, b) => Number(!a.seat) - Number(!b.seat) || cnyOf(a, "M") - cnyOf(b, "M"));
   const el = byId("chartTeam");
   el.style.height = chartHeight(rows.length, 30, 130, 380) + "px";
   const chart = makeChart("chartTeam");
 
   const data = rows.map((p) => ({
     value: Math.round(cnyOf(p, "M") * 10) / 10,
-    itemStyle: { color: CAT_COLOR.team, borderRadius: [0, 4, 4, 0] },
+    itemStyle: { color: p.seat ? CAT_COLOR.team : PAL.info, borderRadius: [0, 4, 4, 0] },
     _p: p,
   }));
   chart.setOption(
@@ -174,10 +205,10 @@ function renderTeamChart() {
         },
       },
       grid: { left: 12, right: 64, top: 20, bottom: 44, containLabel: true },
-      xAxis: { type: "value", name: "人民币（元/月）", nameLocation: "middle", nameGap: 30, nameTextStyle: { color: PAL.dim, fontSize: 11 }, ...axisStyle() },
+      xAxis: chartLogAxis(data.map((d) => d.value), "人民币 · 元/月"),
       yAxis: {
         type: "category", inverse: true,
-        data: rows.map((p) => shortVendor(p.vendor) + " · " + p.plan + (p.region === "cn" ? "·国内" : "") + (!p.seat ? "·整包" : "")),
+        data: rows.map((p) => (p.seat ? "每席/月 · " : "整包/月 · ") + planLabel(p)),
         ...axisStyle(), axisLabel: chartAxisLabel(el),
         axisLine: { lineStyle: { color: PAL.axisLine } },
       },
@@ -186,7 +217,7 @@ function renderTeamChart() {
     true
   );
   chart.resize();
-  describeChart("chartTeam", "团队/企业档席位价与整包价 " + rows.length + " 项，按折算人民币月费从低到高。");
+  describeChart("chartTeam", "团队/企业档 " + rows.length + " 项，先列每席月价，再列整包月价，各组内按价格升序。价格采用对数刻度，相邻主刻度为十倍；不同计价单位不作排名比较。");
 }
 
 /* ---------- 每周可用 tokens 对比（官方公布 + 社区推算，厂商中立） ---------- */
@@ -198,28 +229,6 @@ function renderTokensChart() {
   const chart = makeChart("chartTokens");
   const el = byId("chartTokens");
 
-  const modelShort = (m) =>
-    m.includes("Flash") ? "Flash" :
-    m.includes("GLM-5.3") ? "GLM-5.3" :
-    m.includes("MiniMax") ? "M3" :
-    m.includes("Sonnet") ? "Sonnet 5" :
-    m.includes("GPT-6.1") ? "GPT-6.1 Sol" :
-    m.includes("GPT-6") ? "GPT-6 Sol" :
-    m.includes("K3") ? "K3" :
-    m.includes("Gemini") ? "Gemini" :
-    m.includes("hy4") ? "Hy4" :
-    m.includes("hy3") ? "Hy3" :
-    (m.length > 14 ? m.slice(0, 14) : m);
-
-  const tokPlanLabel = (v, p) => {
-    let s = p.replace("Kimi Code Plan ", "Kimi ").replace(/[（）]/g, " ").replace(/\s+/g, " ").trim();
-    const vendor = shortVendor(v);
-    const tokens = vendor.split(/[\s（(]/).filter((w) => w.length >= 2);
-    const named = tokens.some((w) => s.toLowerCase().includes(w.toLowerCase()));
-    if (!named) s = vendor + " " + s;
-    return s;
-  };
-
   const official = PLAN_TOKENS.flatMap((t) => {
     const p = findPlanReference(t.ref);
     if (!p) {
@@ -228,7 +237,7 @@ function renderTokensChart() {
     }
     if (!isPriceConfirmed(p) || isRetiredPlan(p)) return [];
     return [{
-      label: t.plan + "·" + modelShort(t.model),
+      label: planLabel(p) + " · " + displayModelName(t.model),
       model: t.model,
       lowM: t.lowM, highM: t.highM,
       priceCNY: toCNY(p.priceM, p.cur),
@@ -250,14 +259,15 @@ function renderTokensChart() {
     if (coveredPlan.has(findPlanReference(m.ref)?.id)) return false;
     return true;
   }).flatMap((e) => {
-    const computed = computeMetrics(e);
+    const current = resolvePlan(e) || e;
+    const computed = computeMetrics(current);
     if (!computed || computed.wkLowM == null || computed.wkHighM == null) return [];
     const prov = provenance(e);
     return [{
-      label: tokPlanLabel(e.vendor, e.plan) + "·" + modelShort(e.model),
+      label: metricChartLabel(e),
       model: e.model,
       lowM: computed.wkLowM, highM: computed.wkHighM,
-      priceCNY: toCNY(e.priceM, e.cur),
+      priceCNY: toCNY(current.priceM, current.cur),
       isOfficial: !e.isEst && prov.conf === "高",
       url: e.source, note: e.note,
       method: e.method || prov.text,
@@ -273,24 +283,22 @@ function renderTokensChart() {
   el.style.height = chartHeight(rows.length, 30, 150, 420) + "px";
 
   const cats = rows.map((r) => r.label);
-  const series = [
-    { name: "官方公布", type: "bar", stack: "o", barWidth: 14,
-      data: rows.map((r) => r.isOfficial ? { value: r.lowM, _r: r } : null),
-      itemStyle: { color: TOKEN_OFFICIAL_COLOR } },
-    { name: "官方公布", type: "bar", stack: "o", barWidth: 14,
-      data: rows.map((r) => r.isOfficial ? { value: r.highM - r.lowM, _r: r } : null),
-      itemStyle: { color: "rgba(52,211,153,.32)", borderRadius: [0, 4, 4, 0] },
-      label: { show: true, position: "right", color: PAL.catLabel, fontSize: 11,
-        formatter: (d) => (d.data && d.data._r ? d.data._r.lowM + "–" + d.data._r.highM + "M" : "") } },
-    { name: "折算 / 社区推算", type: "bar", stack: "c", barWidth: 14,
-      data: rows.map((r) => !r.isOfficial ? { value: r.lowM, _r: r } : null),
-      itemStyle: { color: TOKEN_EST_COLOR } },
-    { name: "折算 / 社区推算", type: "bar", stack: "c", barWidth: 14,
-      data: rows.map((r) => !r.isOfficial ? { value: r.highM - r.lowM, _r: r } : null),
-      itemStyle: { color: "rgba(251,191,36,.30)", borderRadius: [0, 4, 4, 0] },
-      label: { show: true, position: "right", color: PAL.catLabel, fontSize: 11,
-        formatter: (d) => (d.data && d.data._r ? d.data._r.lowM + "–" + d.data._r.highM + "M" : "") } },
-  ];
+  /* 对数轴不堆叠 high-low（差值不能当作单独的 log 值）。先画到上限的淡色柱，
+     再叠到下限的实色柱；每段直接使用真实端点，定额的 high=low 也能显示标签。 */
+  const series = [true, false].flatMap((isOfficial) => {
+    const name = isOfficial ? "官方公布" : "折算 / 社区推算";
+    const color = isOfficial ? TOKEN_OFFICIAL_COLOR : TOKEN_EST_COLOR;
+    const data = (upper) => rows.map((r) => r.isOfficial === isOfficial && (upper ? r.highM : r.lowM) > 0
+      ? { value: upper ? r.highM : r.lowM, _r: r } : null);
+    return [
+      { name, type: "bar", barWidth: 14, barGap: "-100%", data: data(true),
+        itemStyle: { color, opacity: 0.32, borderRadius: [0, 4, 4, 0] },
+        label: { show: true, position: "right", opacity: 1, color: PAL.catLabel, fontSize: 11,
+          formatter: (d) => d.data && d.data._r ? weeklyTokenRange(d.data._r.lowM, d.data._r.highM) : "" } },
+      { name, type: "bar", barWidth: 14, barGap: "-100%", data: data(false),
+        itemStyle: { color, borderRadius: [0, 4, 4, 0] } },
+    ];
+  });
 
   chart.setOption(
     {
@@ -305,7 +313,7 @@ function renderTokensChart() {
             : `<span class="conf conf-${r.conf === "低" ? "lo" : "mid"}">折算/推算·${esc(r.conf || "低")}</span>`;
           const per100 = r.priceCNY > 0 ? (r.midM / r.priceCNY * 100).toFixed(1) : "—";
           return `<b>${esc(r.label)}</b> ${prov}<br/>
-            每周可用：${r.lowM}–${r.highM}M tokens（${esc(r.model)}）<br/>
+            每周可用：${weeklyTokenRange(r.lowM, r.highM)} tokens（${esc(displayModelName(r.model))}）<br/>
             月费：${fmtCNY(r.priceCNY)} ｜ 每 ¥100/月 ≈ <b>${per100}${per100 === "—" ? "" : "M"}</b> tokens/周<br/>
             ${r.note ? `<span style="color:${PAL.dim}">${esc(trunc(r.note, 120))}</span><br/>` : ""}
             ${safeHref(r.url) ? `<span style="color:${PAL.dim};font-size:11.5px">来源：${safeHref(r.url)}</span>` : ""}`;
@@ -313,7 +321,7 @@ function renderTokensChart() {
       },
       grid: { left: 12, right: 88, top: 20, bottom: 44, containLabel: true },
       legend: { data: ["官方公布", "折算 / 社区推算"], show: false },
-      xAxis: { type: "value", name: "tokens / 周（百万）", nameLocation: "middle", nameGap: 30, nameTextStyle: { color: PAL.dim, fontSize: 11 }, ...axisStyle() },
+      xAxis: chartLogAxis(rows.flatMap((r) => [r.lowM, r.highM]), "百万 tokens/周"),
       yAxis: { type: "category", data: cats, inverse: true, ...axisStyle(),
         axisLabel: chartAxisLabel(el, 11.5),
         axisLine: { lineStyle: { color: PAL.axisLine } } },
@@ -322,14 +330,14 @@ function renderTokensChart() {
     true
   );
   chart.resize();
-  bindChartLegend(chart, "tokensLegend");
-  describeChart("chartTokens", "每周可用 tokens 对比 " + rows.length + " 行：官方公布 " + officialBars.length + " 行、社区推算 " + community.length + " 行。");
+  bindChartLegend(chart, "tokensLegend", { "官方公布": TOKEN_OFFICIAL_COLOR, "折算 / 社区推算": TOKEN_EST_COLOR });
+  describeChart("chartTokens", "每周可用 tokens 对比 " + rows.length + " 行：官方公布 " + officialBars.length + " 行、社区推算 " + community.length + " 行。采用对数刻度，相邻主刻度为十倍，淡色段表示区间上限，数值见柱尾和提示。");
 
   /* 洞察卡：全厂商性价比排行（厂商中立） */
   const valueOf = (r) => (r.priceCNY > 0 ? r.midM / r.priceCNY : -1);
   const byValue = rows.slice().sort((a, b) => valueOf(b) - valueOf(a));
   byId("tokenInsight").innerHTML = `
-    <div style="max-height:600px;overflow:auto">
+    <div class="token-insight-list" tabindex="0" role="region" aria-label="全部厂商的每周 tokens 性价比明细">
     <h3>💡 性价比：每 ¥100/月 能买到多少每周 tokens（全部厂商）</h3>
     <table class="mini-table">
       ${byValue.map((r) => {
@@ -344,7 +352,7 @@ function renderTokensChart() {
       }).join("")}
     </table>
     </div>
-    <p>公平比较提示：不同模型的 token 数不能代表产出质量。<span class="text-green">绿色柱</span>为官方公布的每周 tokens 区间，<span class="text-gold">黄色柱</span>为折算或社区推算。估算受单次用量、缓存率和动态限流影响，仅供量级参考；完整方法与置信度见「额度深度对比」。</p>`;
+    <p class="token-insight-note">公平比较提示：不同模型的 token 数不能代表产出质量。<span class="text-green">绿色柱</span>为官方公布的每周 tokens 区间，<span class="text-gold">黄色柱</span>为折算或社区推算。横轴为对数刻度，相邻主刻度为十倍。估算受单次用量、缓存率和动态限流影响，仅供量级参考；完整方法与置信度见「额度深度对比」。</p>`;
 }
 
 /* ---------- API 按量价格 ---------- */
@@ -394,7 +402,7 @@ function renderApiChart() {
       },
       grid: { left: 8, right: 28, top: 20, bottom: 44, containLabel: true },
       legend: { data: ["输入 / 1M tokens", "输出 / 1M tokens"], show: false },
-      xAxis: { type: "value", name: "USD / 1M tokens", nameLocation: "middle", nameGap: 30, nameTextStyle: { color: PAL.dim, fontSize: 11 }, ...axisStyle() },
+      xAxis: chartLogAxis(rows.flatMap((a) => [a.inUSD, a.outUSD]), "USD / 百万 tokens"),
       yAxis: {
         type: "category", data: cats, inverse: true, ...axisStyle(),
         axisLabel: chartAxisLabel(apiEl, 11),
@@ -407,7 +415,7 @@ function renderApiChart() {
     true
   );
   chart.resize();
-  bindChartLegend(chart, "apiLegend");
+  bindChartLegend(chart, "apiLegend", { "输入 / 1M tokens": "#6366f1", "输出 / 1M tokens": "#f472b6" });
 
   /* 购买力：$10 按输出价可购 token 量。按地区拆双系列（barGap -100% 重叠），
      图例可点击过滤国际/国内；axis 触发 + 阴影指示器与左图一致。 */
@@ -418,10 +426,10 @@ function renderApiChart() {
   power.sort((x, y) => y.m - x.m);
   const POWER_COLORS = { intl: "#22d3ee", cn: "#34d399" };
   const powerSeriesData = power.map((p) => {
-    const item = { value: Math.round(p.m * 10) / 10, a: p.a };
+    const item = { value: p.m, a: p.a };
     return p.a.region === "cn" ? [null, item] : [item, null];
   });
-  const powerLabel = { show: true, position: "right", color: PAL.text, fontSize: 11, formatter: (d) => (d.value != null ? d.value + "M" : "") };
+  const powerLabel = { show: true, position: "right", color: PAL.text, fontSize: 11, formatter: (d) => (d.value != null ? Number(d.value.toFixed(1)) + "M" : "") };
   chart2.setOption(
     {
       backgroundColor: "transparent",
@@ -436,8 +444,8 @@ function renderApiChart() {
         },
       },
       legend: { data: ["国际模型", "国内模型"], show: false },
-      grid: { left: 12, right: 56, top: 36, bottom: 24, containLabel: true },
-      xAxis: { type: "value", ...axisStyle() },
+      grid: { left: 12, right: 56, top: 36, bottom: 44, containLabel: true },
+      xAxis: chartLogAxis(power.map((p) => p.m), "百万输出 tokens"),
       yAxis: { type: "category", inverse: true, data: power.map((p) => p.name), ...axisStyle(), axisLabel: chartAxisLabel(el2, 11) },
       series: [
         { name: "国际模型", type: "bar", barWidth: 12, barGap: "-100%",
@@ -453,7 +461,7 @@ function renderApiChart() {
     true
   );
   chart2.resize();
-  bindChartLegend(chart2, "powerLegend");
+  bindChartLegend(chart2, "powerLegend", { "国际模型": POWER_COLORS.intl, "国内模型": POWER_COLORS.cn });
   byId("apiDetailBody").innerHTML = detailRows.map((a) => {
     const usd = (n) => "$" + Number(n.toFixed(4));
     return `<tr><th scope="row">${esc(apiLabel(a))}</th><td>${esc(REGION_LABEL[a.region] || "—")}</td>` +
@@ -461,8 +469,8 @@ function renderApiChart() {
       `<td>${a.outUSD > 0 ? Number((10 / a.outUSD).toFixed(1)) + "M" : "—"}</td>` +
       `<td>${priceCheckHtml(a, "api")}</td></tr>`;
   }).join("");
-  describeChart("chartApi", "API 按量单价对比 " + rows.length + " 款模型（左图）；$10 预算输出 token 购买力 " + power.length + " 行（右图）。");
-  describeChart("chartPower", "$10 预算输出 token 购买力 " + power.length + " 行；使用图例按钮筛选国内或国际模型，完整数值见下方明细。");
+  describeChart("chartApi", "API 按量单价对比 " + rows.length + " 款模型（左图）；$10 预算输出 token 购买力 " + power.length + " 行（右图）。两图采用对数刻度，相邻主刻度为十倍，完整价格见提示和下方明细。");
+  describeChart("chartPower", "$10 预算输出 token 购买力 " + power.length + " 行；采用对数刻度，相邻主刻度为十倍。使用图例按钮筛选国内或国际模型，完整数值见下方明细。");
 }
 
 /* ---------- 免费入口 ---------- */
@@ -511,8 +519,27 @@ function syncRankChips() {
     chip.setAttribute("aria-pressed", on ? "true" : "false");
   });
 }
-function rankRows() {
+function rankVendorLabel(vendor) {
+  return { Anthropic: "Claude（Anthropic）", OpenAI: "ChatGPT（OpenAI）", "月之暗面 Kimi": "Kimi（月之暗面）" }[vendor] || shortVendor(vendor);
+}
+function populateRankVendor() {
+  const select = byId("rankVendor");
+  if (!select) return;
+  const priority = ["Anthropic", "OpenAI", "月之暗面 Kimi"];
+  const vendors = [...new Set(METRICS_ALL.map((m) => (resolvePlan(m) || m).vendor))];
+  /* 兼容分享链接选中尚无可折算额度的在售厂商，空态会明确说明。 */
+  if (rankState.vendor && rankState.vendor !== "all" && PLANS.some((p) => p.vendor === rankState.vendor) && !vendors.includes(rankState.vendor)) vendors.push(rankState.vendor);
+  vendors.sort((a, b) => {
+    const ai = priority.indexOf(a), bi = priority.indexOf(b);
+    return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi) || rankVendorLabel(a).localeCompare(rankVendorLabel(b), "zh-CN");
+  });
+  select.innerHTML = '<option value="all">全部厂商</option>' + vendors.map((v) => `<option value="${esc(v)}">${esc(rankVendorLabel(v))}</option>`).join("");
+  select.value = rankState.vendor || "all";
+}
+function rankRows(vendor = rankState.vendor || "all") {
   return METRICS_ALL
+    .flatMap((m) => { const p = resolvePlan(m); return p ? [p] : []; })
+    .filter((m) => vendor === "all" || m.vendor === vendor)
     .filter(rankScopeOk)
     .filter(metricOfferOk)
     .map((m) => ({ m, c: computeMetrics(m) }))
@@ -526,34 +553,36 @@ function renderRankDetails() {
   const rows = rankRows();
   body.innerHTML = rows.length ? rows.map((r) => {
     const prov = provenance(r.m), c = r.c;
-    return `<tr><th scope="row">${esc(r.m.vendor + " · " + r.m.plan)}<br>${esc(displayModelName(r.m.model))}</th>` +
+    return `<tr><th scope="row">${esc(planLabel(r.m))}<br>${esc(displayModelName(r.m.model))}</th>` +
       `<td>${esc(fmtCNY(c.priceCNY))}/月</td><td>¥${c.costPerM.toFixed(3)}</td><td>${esc(tokSpan(c,"moLow","moHigh"))}</td><td>${esc(prov.text)} · 置信${esc(prov.conf)}</td></tr>`;
   }).join("") : '<tr><td colspan="5" class="table-empty">当前口径没有可比较的套餐，请调整模型档或排行口径。</td></tr>';
 }
 function renderRankChart() {
+  populateRankVendor();
   renderRankDetails();
   if (deferChartRender("chartRank",renderRankChart)) return;
   const all = rankRows();
   const rows = all.slice(0, 20); /* 图高有限，最多展示前 20 档 */
   describeChart("chartRank", "每百万 tokens 成本排行（¥，越低越划算）前三：" +
-    rows.slice(0, 3).map((r) => shortVendor(r.m.vendor) + " " + r.m.plan + " ¥" + r.c.costPerM.toFixed(3)).join("、"));
+    rows.slice(0, 3).map((r) => planLabel(r.m) + " ¥" + r.c.costPerM.toFixed(3)).join("、") + "。实色柱为高置信官方口径，斜纹柱为折算或估算，不确定区间见提示及完整明细。");
 
   const el = byId("chartRank");
   el.style.height = chartHeight(rows.length, 30, 130, 420) + "px";
   const chart = makeChart("chartRank");
 
   const labels = rows.map((r) => {
-    const plan = r.m.plan.replace(/GLM Coding V\d+ /, "Coding ");
-    const model = r.m.model.includes("Flash") ? "Flash" : displayModelName(r.m.model);
     /* 非「官方每周 tokens」口径的行加 ≈ 前缀，提示 tokens 为折算/估算值 */
     const approx = provenance(r.m).conf !== "高" || r.m.isEst;
-    return (approx ? "≈" : "") + shortVendor(r.m.vendor) + " · " + plan + " · " + model;
+    return (approx ? "≈" : "") + metricChartLabel(r.m);
   });
   const data = rows.map((r) => {
     const cp = r.c.costPerM;
     const tier = cpmTier(cp);
     const color = tier === "lo" ? "#34d399" : tier === "mid" ? "#f59e0b" : "#f87171";
-    return { value: Math.round(cp * 1000) / 1000, itemStyle: { color, borderRadius: [0, 4, 4, 0] }, _r: r };
+    const approx = provenance(r.m).conf !== "高" || r.m.isEst;
+    return { value: cp, itemStyle: { color, borderRadius: [0, 4, 4, 0],
+      ...(approx ? { decal: { symbol: "rect", symbolSize: 1, dashArrayX: [1, 0], dashArrayY: [2, 5], rotation: -Math.PI / 4,
+        color: "rgba(255,255,255,.65)", backgroundColor: "transparent" } } : {}) }, _r: r };
   });
 
   chart.setOption(
@@ -571,7 +600,7 @@ function renderRankChart() {
             ? "—"
             : `约 ${fmtTok(r.c.moLow)}${r.c.moHigh > r.c.moLow ? "–" + fmtTok(r.c.moHigh) : ""}`;
           const rate = r.c.rmo == null ? "—" : `${r.c.rmo.toFixed(1)}×`;
-          return `<b>${esc(r.m.vendor)} · ${esc(r.m.plan)}</b>（${esc(displayModelName(r.m.model))}）<br/>
+          return `<b>${esc(planLabel(r.m))}</b>（${esc(displayModelName(r.m.model))}）<br/>
             💵每 M tokens：<b style="color:${cpColor}">¥${cp.toFixed(3)}</b><br/>
             月费：${fmtCNY(r.c.priceCNY)} ｜ 月倍率：<b>${rate}</b><br/>
             月 tokens：${mo}<br/>
@@ -601,8 +630,19 @@ function renderRankChart() {
     credits: "口径：在官方每周 tokens 之外，纳入按官方 credits 面值/系数/官方区间折算的档位（≈标记，置信中：tokens = 面值 ÷ 牌价混合价，按 80/20 与 95% 缓存假设）。" + excluded,
     all: "口径：含全部估算档位（≈标记，置信低：第三方毛利反推、请求次数按 20K tokens/次折算等），仅供量级参考。" + excluded,
   }[rankState.scope];
-  byId("rankNote").textContent =
-    `共 ${all.length} 档${all.length > rows.length ? `，此处显示前 ${rows.length} 档` : ""}。${tierText}${scopeText}绿色 ≤¥0.30 · 黄色 ≤¥1 · 红色 >¥1。`;
+  const total = rankRows("all").length;
+  const countText = rankState.vendor && rankState.vendor !== "all"
+    ? `当前口径全厂商共 ${total} 档，${rankVendorLabel(rankState.vendor)} ${all.length} 档`
+    : `共 ${all.length} 档`;
+  const note = `${countText}${all.length > rows.length ? `，图中显示前 ${rows.length} 档` : ""}。可按厂商查看 Claude、ChatGPT、Kimi 等套餐。${tierText}${scopeText}实色柱：高置信官方口径；斜纹柱：折算或估算。绿色 ≤¥0.30 · 黄色 ≤¥1 · 红色 >¥1。`;
+  byId("rankNote").innerHTML = esc(note) + ' <button type="button" class="linkish" id="openRankDetails">查看完整排行明细</button>';
+  byId("openRankDetails").onclick = () => {
+    const details = /** @type {HTMLDetailsElement | null} */ (byId("rankDetails"));
+    if (!details) return;
+    details.open = true;
+    details.querySelector("summary").focus();
+    details.scrollIntoView({ block: "start", behavior: "smooth" });
+  };
   syncRankChips();
 }
 

@@ -242,7 +242,7 @@ test("表格排序键盘操作与aria说明一致，明细开关同步展开状�
   app.fire(version, "change");
   assert.match(app.elements.get("metricsBody").innerHTML, /当前模型与版本没有可展示的额度/);
   app.fire(app.elements.get("metricsEmptyResetBtn"), "click");
-  assert.equal(app.run('JSON.stringify(metricsState)'), JSON.stringify({ model: "all", ver: "all", sortKey: "cpm", sortDir: 1 }));
+  assert.deepEqual(JSON.parse(app.run('JSON.stringify(metricsState)')), { model: "all", ver: "all", tier: "flagship", offer: "current", sortKey: "cpm", sortDir: 1 });
   assert.equal(model.value, "all");
   assert.equal(version.value, "all");
   assert.equal(app.run("document.activeElement.id"), "metricsModel");
@@ -278,6 +278,7 @@ test("个人图展开与收起保留同一操作焦点，清空比较条回到�
 
 test("推荐和数据表同步同一方案的选择、上限与重绘焦点", () => {
   const app = createApp();
+  app.run('tableState.search = "Anthropic"; renderTable();');
   const markup = '<button type="button" class="cmp-add" data-plan-id="plan-0002" data-vendor="Anthropic" data-plan="Claude Pro">＋对比</button>';
   const grid = app.elements.get("quickGrid");
   grid.innerHTML = markup;
@@ -387,6 +388,118 @@ test("完整权益窗口也能使用剪贴板降级且复制后恢复窗口内�
   assert.equal(app.run("detailFallbackText"), "权益复制回归");
   assert.equal(app.run("document.activeElement"), close);
   assert.equal(app.elements.get("planDetailsModal").querySelectorAll("textarea").length, 0);
+  healthy(app);
+});
+
+test("价格表与额度表给手机卡片提供字段标签，单价明确区分输入输出和缓存", () => {
+  const app = createApp({ width: 375 });
+  const plan = app.elements.get("tableBody").querySelector("tr");
+  assert.equal(plan.querySelector('[data-column="priceM"]').dataset.label, "价格 / 周期");
+  assert.match(plan.querySelector('[data-column="priceM"]').textContent, /免费|¥|\$/);
+  const row = app.elements.get("metricsBody").querySelector("tr");
+  assert.equal(row.querySelector('[data-column="cpm"]').dataset.label, "💵每M tokens");
+  assert.equal(row.querySelector('[data-column="tmo"]').dataset.label, "每月 tokens");
+  const hint = app.run('listPriceHint({ apiIn: 1.35, apiOut: 8.1, apiCache: 0.27, cur: "CNY" })');
+  assert.match(hint, /输入 ¥1\.35/);
+  assert.match(hint, /输出 ¥8\.1/);
+  assert.match(hint, /缓存 ¥0\.27/);
+  assert.equal(app.run("fTokCell(416, 416)"), "416M");
+  healthy(app);
+});
+
+test("额度默认范围与排行同样排除轻量和续费档，可明确切换查看历史数据", () => {
+  const app = createApp();
+  app.run('resetMetricsFilters(); globalThis.currentMetricRows = metricsTableRows().rows;');
+  assert.equal(app.run("currentMetricRows.every(r => metricOfferOk(r.m) && isFlagshipModelName(r.m.model))"), true);
+  assert.equal(app.run('currentMetricRows.some(r => /老用户|续费/.test(r.m.plan))'), false);
+  app.run('Object.assign(metricsState, { tier: "all", offer: "all" }); renderMetricsTable();');
+  assert.equal(app.run('metricsTableRows().rows.some(r => /Flash/.test(r.m.model))'), true);
+  assert.equal(app.run('metricsTableRows().rows.some(r => /老用户|续费/.test(r.m.plan))'), true);
+  assert.match(app.elements.get("metricsNote").innerHTML, /含历史与仅老用户续费档/);
+  assert.equal(app.elements.get("metricsResetBtn").disabled, false);
+  app.run('resetMetricsFilters();');
+  assert.equal(app.run('metricsState.tier + ":" + metricsState.offer'), "flagship:current");
+  healthy(app);
+});
+
+test("动态按上海日期标明计划和结束状态，来源分组默认折叠", () => {
+  const app = createApp();
+  assert.equal(app.run('chinaCalendarDay(new Date("2026-10-07T16:01:00Z"))'), "2026-10-08");
+  assert.equal(app.run('chinaCalendarDay(new Date("2026-10-07T15:59:00Z"))'), "2026-10-07");
+  const future = app.run('dynItem(DYNAMICS.find(d => d.date === "2026-10-14" && !d.checked), "2026-10-08")');
+  assert.match(future, /计划中 · 尚未发生/);
+  assert.match(future, /计划于 2026-10-14 退役/);
+  assert.doesNotMatch(app.run('dynItem(DYNAMICS.find(d => d.date === "2026-10-14" && !d.checked), "2026-10-14")'), /尚未发生/);
+  const activity = app.run('dynItem(DYNAMICS.find(d => d.date === "2026-09-25" && !d.checked), "2026-10-08")');
+  assert.match(activity, /已结束 · 2026-10-07/);
+  assert.doesNotMatch(app.run('dynItem(DYNAMICS.find(d => d.date === "2026-09-25" && !d.checked), "2026-10-07")'), /已结束/);
+  assert.deepEqual(JSON.parse(app.run('JSON.stringify(dynamicStatus({date:"2026-10-03",checked:true,text:"双节活动（09-25~10-07）仍在进行"},"2026-10-08"))')), { key: "", label: "" });
+  const groups = app.elements.get("sourceList").querySelectorAll("details.source-group");
+  assert.equal(groups.length, app.run("SOURCES.length"));
+  assert.ok(groups.every((group) => group.getAttribute("open") == null));
+  assert.ok(groups.every((group) => group.querySelector("summary") && group.querySelectorAll("a").length));
+  healthy(app);
+});
+
+test("完整价格表分批显示，筛选排序重置页数；导出和对比始终保留全部匹配记录", async () => {
+  const app = createApp();
+  const total = app.run("computeTableRows().length");
+  assert.ok(total > 40);
+  assert.equal(app.elements.get("tableBody").querySelectorAll("tr").length, 20);
+  assert.match(app.elements.get("tableCount").textContent, new RegExp("已显示 20 / " + total));
+  assert.equal(app.elements.get("tableMoreBtn").hidden, false);
+  app.run("showMoreTableRows();");
+  assert.equal(app.elements.get("tableBody").querySelectorAll("tr").length, 40);
+  assert.equal(app.run("document.activeElement.dataset.planId"), app.run("computeTableRows()[20].id"));
+  app.run("exportTableCsv();");
+  assert.equal((await app.downloads[0].blob.text()).split("\r\n").length, total + 1);
+  const selected = app.run("computeTableRows().at(-1).id");
+  app.run('cmpAdd(' + JSON.stringify(selected) + ');');
+  assert.equal(app.run("cmpState.items[0].id"), selected, "不可见页的方案仍可通过推荐或稳定 ID 加入比较");
+  assert.equal(app.run('revealTablePlan(' + JSON.stringify(selected) + ')'), true);
+  assert.ok(app.elements.get("tableBody").querySelector('.cmp-add[data-plan-id="' + selected + '"]'));
+  assert.equal(app.run('revealTablePlan("missing-plan-id")'), false);
+  app.elements.get("searchInput").focus();
+  app.run('tableState.sortDir = -1; renderTable();');
+  assert.equal(app.elements.get("tableBody").querySelectorAll("tr").length, 20);
+  app.run('tableState.search = "Cursor Start"; renderTable();');
+  assert.equal(app.elements.get("tableBody").querySelectorAll("tr").length, app.run("computeTableRows().length"));
+  assert.equal(app.elements.get("tableMoreBtn").hidden, true);
+  assert.equal(app.run("cmpState.items[0].id"), selected);
+  healthy(app);
+});
+
+test("额度表分批展示完整排序结果，更多记录不改变筛选结果；排序与筛选重置页数", () => {
+  const app = createApp();
+  const total = app.run("metricsTableRows().shownRows.length");
+  assert.ok(total > 40);
+  const sorted = app.run('JSON.stringify(metricsTableRows().shownRows.map(r => [r.m.plan, r.m.model, r.c.costPerM]))');
+  assert.equal(app.elements.get("metricsBody").querySelectorAll("tr").length, 20);
+  assert.equal(app.elements.get("metricsMoreBtn").hidden, false);
+  assert.equal(app.elements.get("metricsCount").textContent, `已显示 20 / ${total} 行`);
+  app.run("showMoreMetricsRows();");
+  assert.equal(app.elements.get("metricsBody").querySelectorAll("tr").length, 40);
+  assert.equal(app.run("document.activeElement"), app.elements.get("metricsBody").querySelectorAll("tr")[20]);
+  assert.equal(app.run('JSON.stringify(metricsTableRows().shownRows.map(r => [r.m.plan, r.m.model, r.c.costPerM]))'), sorted);
+  app.run('metricsState.sortDir = -1; renderMetricsTable();');
+  assert.equal(app.elements.get("metricsBody").querySelectorAll("tr").length, 20);
+  app.run('metricsState.model = "deepseek-v4-pro"; renderMetricsTable();');
+  assert.equal(app.elements.get("metricsBody").querySelectorAll("tr").length, app.run("metricsTableRows().shownRows.length"));
+  assert.equal(app.elements.get("metricsCount").textContent, "1 行");
+  assert.equal(app.elements.get("metricsMoreBtn").hidden, true);
+  healthy(app);
+});
+
+test("两张表手机每批5行、桌面每批20行，跨断点重绘重新应用首批记录", () => {
+  const app = createApp({ width: 375 });
+  const counts = () => ["tableBody", "metricsBody"].map(id => app.elements.get(id).querySelectorAll("tr").length);
+  assert.deepEqual(counts(), [5, 5]);
+  app.run("showMoreTableRows(); showMoreMetricsRows();");
+  assert.deepEqual(counts(), [10, 10]);
+  app.run("window.innerWidth = 1280; renderTable(); renderMetricsTable();");
+  assert.deepEqual(counts(), [20, 20]);
+  app.run("window.innerWidth = 375; renderTable(); renderMetricsTable();");
+  assert.deepEqual(counts(), [5, 5]);
   healthy(app);
 });
 

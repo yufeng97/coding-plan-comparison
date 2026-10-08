@@ -228,6 +228,56 @@ test("增量重放不生成新历史或台账，完全无写入", ({ root, incre
   assert.deepEqual(allOutputs(), before);
 });
 
+test("核价锁覆盖读取到提交，交错增量不能覆盖另一批已接受的数据", ({ root, incremental, writeIncremental }) => {
+  const first = incremental({ priceM: 21 }, "2026-10-08");
+  const firstOptions = writeIncremental(first);
+  const second = incremental({ priceM: 101 }, "2026-10-08");
+  Object.assign(second.sources[0], { id: "max-update-test" });
+  Object.assign(second.records[0], { id: "plan-0003", name: "Claude Max 5x", old: { priceM: 100 }, sourceIds: ["max-update-test"] });
+  fs.writeFileSync(path.join(root, "audit/second.json"), JSON.stringify(second));
+  const secondOptions = { incremental: true, input: "audit/second.json" };
+  let blocked = false;
+  syncPricingAudit(root, { ...firstOptions, rename(from, to) {
+    if (!blocked) {
+      assert.throws(() => syncPricingAudit(root, secondOptions), /核价正在同步/);
+      blocked = true;
+    }
+    fs.renameSync(from, to);
+  } });
+  assert.equal(blocked, true);
+  assert.equal(fs.existsSync(path.join(root, "audit/.pricing.lock")), false);
+  syncPricingAudit(root, secondOptions);
+  const data = dataOf(fs.readFileSync(path.join(root, "js/data.js"), "utf8"));
+  assert.equal(data.PLANS.find(plan => plan.id === "plan-0002").priceM, 21);
+  assert.equal(data.PLANS.find(plan => plan.id === "plan-0003").priceM, 101);
+  assert.deepEqual(Array.from(data.PRICE_CHECKS.rows["plan:plan-0002"].sourceIds), ["claude-update-test"]);
+  assert.deepEqual(Array.from(data.PRICE_CHECKS.rows["plan:plan-0003"].sourceIds), ["max-update-test"]);
+});
+
+test("核价失败释放锁，损坏的既有锁保留且不修改数据", ({ root, incremental, writeIncremental, allOutputs }) => {
+  const bad = incremental({ priceM: -1 });
+  assert.throws(() => syncPricingAudit(root, writeIncremental(bad)), /校验失败/);
+  const lock = path.join(root, "audit/.pricing.lock");
+  assert.equal(fs.existsSync(lock), false);
+  fs.writeFileSync(lock, "corrupt lock retained");
+  const before = allOutputs();
+  assert.throws(() => syncPricingAudit(root), /人工检查/);
+  assert.deepEqual(allOutputs(), before);
+  assert.equal(fs.readFileSync(lock, "utf8"), "corrupt lock retained");
+});
+
+test("已退出进程的遗留锁也不自动删除，避免并发恢复误删新锁", ({ root, allOutputs }) => {
+  const lock = path.join(root, "audit/.pricing.lock");
+  const child = require("node:child_process").spawnSync(process.execPath, ["-e", "process.stdout.write(String(process.pid))"], { encoding:"utf8" });
+  assert.equal(child.status, 0);
+  const previous = JSON.stringify({ pid:Number(child.stdout), hostname:os.hostname(), startedAt:"2026-10-08T00:00:00Z" });
+  fs.writeFileSync(lock, previous);
+  const before = allOutputs();
+  assert.throws(() => syncPricingAudit(root), /确认没有同步进程/);
+  assert.deepEqual(allOutputs(), before);
+  assert.equal(fs.readFileSync(lock, "utf8"), previous);
+});
+
 test("API与按量对照以原币一致增量更新，型号更名清理旧核查键且可幂等重放", ({ root, writeIncremental, allOutputs }) => {
   const dataFile = path.join(root, "js/data.js");
   const before = dataOf(fs.readFileSync(dataFile, "utf8"));

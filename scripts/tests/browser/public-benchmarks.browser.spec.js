@@ -4,6 +4,8 @@ const fs = require("node:fs/promises");
 
 test("公开榜默认DeepSWE，搜索保留原榜名次且空态可键盘清除", async ({ page }) => {
   await page.goto("/#benchmarks"); await page.waitForFunction(() => window["codingPlanReady"] === true);
+  await expect(page.locator('[data-site-view="benchmarks"]')).toHaveAttribute("aria-current", "page");
+  await page.waitForFunction("typeof BENCHMARKS !== 'undefined'");
   const select = page.locator("#publicBenchmarkSelect");
   await expect(select).toHaveValue(/deepswe/);
   await expect(page.locator("#publicBenchmarkMode")).toHaveValue("best");
@@ -15,11 +17,12 @@ test("公开榜默认DeepSWE，搜索保留原榜名次且空态可键盘清除"
   await expect(page.locator("#publicBenchmarkMeta")).toContainText("配置");
   await expect(page.locator("#publicBenchmarkMeta")).toContainText("核查");
   const target = await page.evaluate("publicBenchmarkRows().at(-1)");
+  const displayName = await page.evaluate("publicModelDisplayName(" + JSON.stringify(target.model) + ")");
   const search = page.locator("#publicModelSearch");
   await search.fill(target.model);
   await expect(search).toBeFocused();
-  await expect(page.locator("#publicBenchmarkBody")).toContainText(target.model);
-  const row = page.locator("#publicBenchmarkBody tr").filter({ has: page.locator("th strong", { hasText: target.model }) }).last();
+  await expect(page.locator("#publicBenchmarkBody")).toContainText(displayName);
+  const row = page.locator("#publicBenchmarkBody tr").filter({ has: page.locator("th strong", { hasText: displayName }) }).last();
   await expect(row.locator("td").first()).toHaveText(String(target.rank));
   await search.fill("__没有匹配的公开模型__");
   await expect(page.locator("#publicBenchmarkEmpty")).toBeVisible();
@@ -33,6 +36,8 @@ test("公开榜默认DeepSWE，搜索保留原榜名次且空态可键盘清除"
 test("手机切换独立协议且CSV和JSON保留公开来源与费用口径", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto("/#benchmarks"); await page.waitForFunction(() => window["codingPlanReady"] === true);
+  await expect(page.locator('[data-site-view="benchmarks"]')).toHaveAttribute("aria-current", "page");
+  await page.waitForFunction("typeof BENCHMARKS !== 'undefined'");
   const family = page.locator("#publicBenchmarkFamily"); await family.focus(); await family.selectOption("OSWorld");
   await expect(family).toBeFocused();
   const select = page.locator("#publicBenchmarkSelect");

@@ -1,0 +1,65 @@
+name: 部署 GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: npm
+      - name: 按 lockfile 安装开发依赖
+        run: npm ci
+      - name: 检查代码、数据与回归
+        run: |
+          npm run check
+          npm run typecheck
+          npm run validate
+          npm run maintenance:check
+          npm run benchmark:check
+          npm test
+          npm run cache:check
+      - name: 生成白名单公共站点
+        run: npm run build:site
+      - name: 读取 GitHub Pages 配置
+        uses: actions/configure-pages@v5
+      - name: 上传公共站点产物
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: .site-build
+          retention-days: 1
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 发布到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

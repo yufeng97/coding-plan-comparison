@@ -527,6 +527,7 @@ html[data-theme="dark"] .method-box summary:hover { color: var(--brand); }
 #sourceList .method-box ul { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
 #sourceList .method-box li { overflow-wrap: anywhere; }
 .source-group { margin-bottom: 12px; }
+.source-group summary { cursor: pointer; color: var(--ink); font-weight: 600; padding: 8px 0; }
 .source-group b { color: var(--ink); font-size: 13px; }
 .source-group ul { list-style: none; margin-top: 6px; padding-left: 4px; }
 .source-group li { padding: 2px 0; word-break: break-all; }
@@ -621,7 +622,7 @@ table.is-empty thead { display: none; }
 .picker-advanced-grid { display: grid; gap: 10px; margin-top: 10px; }
 .service-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
 .qc-actions {
-  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px;
   align-items: stretch; flex-shrink: 0; margin-top: 14px;
 }
 .qc-action {
@@ -790,4 +791,59 @@ table.is-empty thead { display: none; }
   #publicBenchmarkTable thead th:nth-child(3){width:95px}
   #publicBenchmarkTable thead th:nth-child(4){width:160px}
   #publicBenchmarkTable thead th:nth-child(5){width:145px}
+}
+
+/* 标签切换与紧凑推荐。 */
+[hidden] { display: none !important; }
+.view-tabs { display: flex; gap: 8px; flex-wrap: wrap; padding: 18px 0 8px; border-bottom: 1px solid var(--line); }
+.view-tab { padding: 9px 15px; border-radius: 8px; color: var(--muted); font-size: 13px; font-weight: 600; }
+.view-tab.active { background: var(--ink); color: var(--paper); }
+.view-tab:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 3px; }
+.qc-reasons { margin: 12px 0 16px; padding-left: 18px; display: grid; gap: 7px; font-size: 13px; line-height: 1.6; color: var(--muted); }
+.qc-primary { display: flex; margin-top: auto; }
+.qc-primary a { display: inline-flex; align-items: center; justify-content: center; padding: 9px 15px; border-radius: 8px; background: var(--ink); color: var(--paper); font-size: 13px; font-weight: 600; }
+.qc-details { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; font-size: 12px; line-height: 1.65; }
+.qc-details summary { cursor: pointer; color: var(--muted); }
+.qc-details[open] summary { margin-bottom: 12px; }
+.qc-converted { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.legend-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; flex-shrink: 0; }
+#tokenInsight { display: flex; flex-direction: column; gap: 16px; }
+.token-insight-list { max-height: 600px; overflow: auto; min-height: 0; flex: none; }
+.token-insight-note { margin: 0; flex: none; }
+.dyn-status { display: inline-block; margin-left: 8px; padding: 1px 6px; border-radius: 4px; font-size: 11px; background: var(--panel-2); color: var(--muted); }
+.dyn-upcoming { color: var(--gold); }
+.public-score-uncertainty { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; font-weight: 400; white-space: normal; }
+.public-model-plans { font-size: 11px; font-weight: 400; line-height: 1.7; margin-top: 8px; color: var(--muted); }
+.public-model-plans a { text-decoration: underline; text-underline-offset: 3px; }
+.public-model-plans summary { cursor: pointer; }
+@media (min-width: 1000px) {
+  .quick-grid[data-card-count="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .quick-grid[data-card-count="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .quick-grid[data-card-count="1"] { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 767px) {
+  .view-tabs { gap: 4px; padding-top: 12px; }
+  .view-tab { padding: 8px 10px; font-size: 12px; }
+  /* 保留排序表头操作，记录改为手机卡片，关键价格无需横向滚动。 */
+  .table-wrap:has(#planTable), .metrics-wrap { overflow: visible; max-height: none; border: 0; background: transparent; content-visibility: visible; contain-intrinsic-size: none; }
+  #planTable, #metricsTable, #metricsTable.is-compact { display: block; min-width: 0; width: 100%; font-size: 12px; }
+  #planTable thead, #metricsTable thead { display: block; margin-bottom: 12px; }
+  #planTable thead tr, #metricsTable thead tr { display: flex; flex-wrap: wrap; gap: 8px; }
+  #planTable thead th, #metricsTable thead th { display: none; }
+  #planTable thead th.sortable, #metricsTable thead th.sortable { display: block; position: static; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); white-space: normal; }
+  #metricsTable.is-compact thead th.col-more { display: none; }
+  #planTable tbody, #metricsTable tbody { display: grid; gap: 12px; }
+  #planTable tbody tr, #metricsTable tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; padding: 12px; background: var(--panel); gap: 10px 12px; }
+  #planTable tbody td, #metricsTable tbody td, #metricsTable tbody td:first-child,
+  #planTable tbody .td-vendor, #planTable tbody .td-plan, #metricsTable td.model-cell { display: block; position: static; width: auto; max-width: none; min-width: 0; border: 0; padding: 0; white-space: normal; overflow-wrap: anywhere; background: transparent; box-shadow: none; text-align: left; }
+  #planTable tbody td::before, #metricsTable tbody td::before { content: attr(data-label); display: block; color: var(--faint); font-weight: 400; font-family: var(--sans); font-size: 10px; margin-bottom: 4px; }
+  #planTable td[data-column="plan"], #planTable td[data-column="quota"], #planTable td[data-column="url"],
+  #metricsTable td[data-column="plan"], #metricsTable td[data-column="model"], #metricsTable td[data-column="prov"] { grid-column: 1 / -1; }
+  #planTable td[data-column="vendor"], #planTable td[data-column="plan"] { font-size: 14px; }
+  #planTable td[data-column="priceM"], #metricsTable td[data-column="price"], #metricsTable td[data-column="cpm"] { font-size: 15px; color: var(--ink); }
+  #planTable .td-quota { max-width: none; }
+  #planTable tbody td.col-opt { display: none; }
+  #planTable.show-all-cols tbody td.col-opt { display: block; grid-column: 1 / -1; }
+  #metricsTable.is-compact tbody td.col-more { display: none; }
+  #metricsTable .model-price, #metricsTable td.model-cell { max-width: none; }
 }

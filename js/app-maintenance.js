@@ -72,7 +72,71 @@ function publicBenchmarkSource(url, label) {
   const href = typeof url === "string" && /^https:\/\//i.test(url) ? safeHref(url) : "";
   return href ? `<a href="${href}" target="_blank" rel="noopener" tabindex="0">${esc(label)} ↗</a>` : "来源未公布";
 }
-function publicScoreText(score, unit) { return Number(score.toFixed(3)) + unit; }
+function publicScoreText(score, unit) { return Number(score.toFixed(1)) + unit; }
+function publicCostText(cost) {
+  return cost == null ? "未公布" : cost > 0 && cost < 0.01 ? "小于 $0.01" : "$" + Number(cost.toFixed(2));
+}
+function publicModelDisplayName(model) {
+  const name = displayModelName(String(model).replace(/(\d)-(\d)(?=-|$)/g, "$1.$2"));
+  return name.replace(/^Claude-(Opus|Sonnet|Haiku|Fable)-/i, "Claude $1 ")
+    .replace(/^(GPT|GLM|Gemini|Qwen|DeepSeek|MiniMax|MiMo|Grok)-([\d.]+)-/i, "$1-$2 ")
+    .replace(/^(Opus|Sonnet|Haiku|Fable)[\s-]+(\d)/i, "Claude $1 $2");
+}
+function publicModelExactPattern(name) {
+  const pattern = name.split(/[\s-]+/).map(escRe).join("[\\s-]*");
+  return new RegExp("(^|[^a-z0-9])" + pattern + "(?![a-z0-9.-]|\\s+(?:pro|flash|lite|mini|nano|preview|exp|plus|ultra|max|fast|turbo|thinking)\\b)", "i");
+}
+function publicModelClauseIncludes(part, label) {
+  const match = publicModelExactPattern(label).exec(part);
+  if (!match) return false;
+  const prefix = part.slice(0, match.index + match[1].length).split(/[）)，,；;：:]/).pop();
+  const suffix = part.slice(match.index + match[0].length);
+  return !/不含|不支持|不可用/.test(prefix) &&
+    !/^[\s（(]*(?:需\s*(?:usage\s*credits|按量|额外付费)|(?:不支持|不可用|未包含)(?=[）),，;；]|$))/i.test(suffix);
+}
+function publicModelIncluded(p, name) {
+  const included = splitModelAccess(resolvedField(p, "models")).included;
+  const parts = included.split(/[/、；]/);
+  const names = [name];
+  /* Claude 的共享品牌前缀及官方 GPT 全系括号内的精确版本，均来自套餐明确列出的文本。 */
+  if (/^Claude (?:Opus|Sonnet|Haiku|Fable)\b/i.test(name)) names.push(name.replace(/^Claude /i, ""));
+  if (names.some((label) => parts.some((part) => publicModelClauseIncludes(part, label)))) return true;
+  const gpt = name.match(/^GPT-(\d+(?:\.\d+)?)\s+(.+)$/i);
+  if (p.vendor === "OpenAI" && gpt) {
+    const group = included.match(new RegExp("\\bGPT[\\s-]*" + escRe(gpt[1].split(".")[0]) + "(?![\\d.])\\s*全系[（(]([^）)]+)[）)]", "i"));
+    const short = (gpt[1].includes(".") ? gpt[1] + " " : "") + gpt[2];
+    if (group && !/不含|不支持|不可用/.test(included.split(/[、；]/).find((part) => part.includes(group[0])) || "") &&
+      group[1].split("/").some((part) => part.trim().toLowerCase() === short.toLowerCase())) return true;
+    /* 如 GPT-6 Sol / Luna / Astra，简称仅继承前一个明确模型的版本，遇到新系列即重置。 */
+    return included.split(/[、；;]/).some((segment) => {
+      if (/不含|不支持|不可用|需\s*(?:usage\s*credits|按量|额外付费)/i.test(segment)) return false;
+      let version = "";
+      return segment.split("/").some((part) => {
+        const explicit = part.trim().match(/^GPT[\s-]*(\d+(?:\.\d+)?)[\s-]+(?:Astra|Sol|Luna)$/i);
+        if (explicit) { version = explicit[1]; return false; }
+        if (!/^(?:Astra|Sol|Luna)$/i.test(part.trim())) { version = ""; return false; }
+        return version === gpt[1] && publicModelClauseIncludes(part, gpt[2]);
+      });
+    });
+  }
+  return false;
+}
+function publicModelPlans(model) {
+  const name = publicModelDisplayName(model);
+  return PLANS.filter((p) => metricOfferOk({ ref:p.id }) && !isRelay(p) && (p.priceM > 0 || isFreeCodingEntry(p)) && p.includedModelQuota !== false && p.modelAccess !== "byok" && p.modelAccess !== "metered" &&
+    publicModelIncluded(p, name));
+}
+function publicModelPlansHtml(model) {
+  const plans = publicModelPlans(model);
+  const links = plans.map((p) => `<a href="?q=${encodeURIComponent(p.vendor + " " + p.plan)}#${isFreeCodingEntry(p) ? "free" : "table"}" data-benchmark-plan="${esc(p.id)}">${esc(planTitle(p))}</a>`);
+  return plans.length ? `<div class="public-model-plans">可用套餐：${links.slice(0, 3).join(" · ")}${plans.length > 3 ? `<details><summary>另外 ${plans.length - 3} 档</summary>${links.slice(3).join(" · ")}</details>` : ""}</div>`
+    : `<p class="public-model-plans">在售套餐未明确列出此评测版本。</p>`;
+}
+function publicUncertaintyHtml(row) {
+  if (!row.uncertainty) return `<span class="public-score-uncertainty">置信区间未公布</span>`;
+  const range = String(row.uncertainty).match(/([\d.]+)%?\s*[–—-]\s*([\d.]+)%/);
+  return `<span class="public-score-uncertainty" title="${esc(row.uncertainty)}">${range ? `来源区间 ${Number(Number(range[1]).toFixed(1))}–${Number(Number(range[2]).toFixed(1))}%` : esc(row.uncertainty)}</span>`;
+}
 function publicBenchmarkDate(value) {
   return typeof value === "string" && /^\d{4}-\d{2}-\d{2}/.test(value) ? value.slice(0, 10) : value || "未公布";
 }
@@ -91,7 +155,7 @@ function renderPublicBenchmarks() {
   const modeNote = byId("publicBenchmarkModeNote");
   if (modeNote) modeNote.textContent = publicBenchmarkState.mode === "all" ? "同一模型的不同推理与 Agent 配置分别列出；名次仅适用于当前协议，搜索不改变原名次。" : "每个准确模型名称取当前协议已公布配置中的最高分；同分保留来源首项。名次在本协议这些配置中计算，搜索不改变原名次；切换「全部配置」可查看其他配置。";
   const caption = byId("publicBenchmarkCaption"); if (caption) caption.textContent = benchmark ? `${benchmark.name} · ${benchmark.metric} · ${benchmark.scope}` : "公开模型评测";
-  body.innerHTML = rows.map((r) => `<tr><td class="public-score-rank">${r.rank}</td><th scope="row"><strong>${esc(r.model)}</strong><span class="public-score-config">${esc([r.reasoning ? "推理：" + r.reasoning : "推理未公布", r.agent ? "Agent：" + r.agent : "Agent 未公布"].join(" · "))}</span><details class="public-score-more"><summary>配置与评测说明</summary><p>${esc(publicBenchmarkConfiguration(r))}</p>${r.uncertainty ? `<p>区间 / 不确定性：${esc(r.uncertainty)}</p>` : ""}<p>${esc(r.costNote || "评测每任务成本；来源未提供其他费用说明。未公布费用不能记作零，也不能换算为订阅月费。")}</p></details></th><td class="public-score-value">${esc(publicScoreText(r.score, benchmark.unit))}</td><td>${r.costUSD == null ? "未公布" : "$" + esc(Number(r.costUSD.toFixed(4)))}</td><td>${publicBenchmarkSource(r.sourceUrl, "成绩来源")}<span class="public-score-config" title="${esc(r.checkedAt)}">核查 ${esc(publicBenchmarkDate(r.checkedAt))}</span></td></tr>`).join("");
+  body.innerHTML = rows.map((r) => `<tr><td class="public-score-rank">${r.rank}</td><th scope="row"><strong>${esc(publicModelDisplayName(r.model))}</strong><span class="public-score-config">${esc([r.reasoning ? "推理：" + r.reasoning : "推理未公布", r.agent ? "Agent：" + r.agent : "Agent 未公布"].join(" · "))}</span>${publicModelPlansHtml(r.model)}<details class="public-score-more"><summary>配置与评测说明</summary><p>来源模型 ID：<code>${esc(r.model)}</code></p><p>${esc(publicBenchmarkConfiguration(r))}</p>${r.uncertainty ? `<p>区间 / 不确定性：${esc(r.uncertainty)}</p>` : ""}<p>${esc(r.costNote || "评测每任务成本；来源未提供其他费用说明。未公布费用不能记作零，也不能换算为订阅月费。")}</p></details></th><td class="public-score-value">${esc(publicScoreText(r.score, benchmark.unit))}${publicUncertaintyHtml(r)}</td><td>${esc(publicCostText(r.costUSD))}</td><td>${publicBenchmarkSource(r.sourceUrl, "成绩来源")}<span class="public-score-config" title="${esc(r.checkedAt)}">核查 ${esc(publicBenchmarkDate(r.checkedAt))}</span></td></tr>`).join("");
   empty.hidden = rows.length > 0; table.hidden = !rows.length;
   empty.textContent = benchmark ? "当前协议没有匹配的模型或配置。请调整关键词，或清除搜索。" : "公开数据暂不可用；本站不会用本地验收示例填充模型分数。";
   const reset = byId("publicModelClearBtn"); if (reset) reset.disabled = !publicBenchmarkState.search;
@@ -133,9 +197,10 @@ function bindPublicBenchmarkEvents() {
 }
 function cleanFollowState(value) {
   const planIds = new Set(PLANS.map((p) => p.id));
-  const changeIds = new Set(maintenanceData().changes.map((c) => c.changeId));
+  /* 未下载历史时保留已读ID，避免首屏把上次访问的标记清空。 */
+  const changeIds = optionalDataLoaded("maintenance") ? new Set(maintenanceData().changes.map((c) => c.changeId)) : null;
   const clean = (values, allowed, max) => Array.isArray(values)
-    ? [...new Set(values.filter((v) => typeof v === "string" && allowed.has(v)))].slice(0, max) : [];
+    ? [...new Set(values.filter((v) => typeof v === "string" && (allowed ? allowed.has(v) : /^change-[\w-]{1,100}$/.test(v))))].slice(0, max) : [];
   return { version: 1, planIds: clean(value && value.planIds, planIds, 500), readChangeIds: clean(value && value.readChangeIds, changeIds, 10000) };
 }
 function loadFollowState() {
@@ -222,9 +287,13 @@ function changeCardHtml(change, unread = false) {
   return `<li class="change-card"><div><strong>${esc(change.vendor + " · " + change.name)}</strong>${unread ? '<span class="change-unread">未读</span>' : ""}</div><p class="maintenance-meta">确认于 ${esc(change.checkedAt)} · ${esc(change.kind === "plan" ? "套餐" : change.kind === "api" ? "API" : "按量参考")}</p>${changeFieldsHtml(change)}<p>${maintenanceSources(change.sourceUrls)}</p></li>`;
 }
 function planHistoryHtml(id) {
+  return `<details class="method-box plan-history" data-plan-history="${esc(id)}">${planHistoryContent(id)}</details>`;
+}
+function planHistoryContent(id) {
+  if (!optionalDataLoaded("maintenance")) return `<summary>已确认价格与权益历史</summary><p>展开后加载本档的已确认变更。</p>`;
   const changes = maintenanceData().changes.filter((c) => c.id === id);
-  return `<details class="method-box plan-history"><summary>已确认价格与权益历史（${changes.length} 条）</summary>` +
-    (changes.length ? `<ul class="change-list">${changes.map((c) => changeCardHtml(c)).join("")}</ul>` : `<p>尚未收录本档的已确认变更；当前值与核查日期见完整权益。首次收录是基线，不代表曾经涨价或降价。</p>`) + `</details>`;
+  return `<summary>已确认价格与权益历史（${changes.length} 条）</summary>` +
+    (changes.length ? `<ul class="change-list">${changes.map((c) => changeCardHtml(c)).join("")}</ul>` : `<p>尚未收录本档的已确认变更；当前值与核查日期见完整权益。首次收录是基线，不代表曾经涨价或降价。</p>`);
 }
 function renderFollowedChanges() {
   const list = byId("followedPlans"), changes = byId("followedChanges"), count = byId("followUnreadCount"), read = byId("markFollowReadBtn");
@@ -303,10 +372,12 @@ function contributionTemplate(type) {
 }
 function renderContribution() {
   const select = byId("contributionType"), preview = byId("contributionTemplate"); if (!select || !preview) return;
+  const dataStatus = byId("contributionDataStatus"); if (dataStatus) dataStatus.hidden = select.value !== "benchmark";
   preview.value = contributionTemplate(select.value);
   const issue = byId("contributionIssueLink"), status = byId("contributionProjectNote");
   const base = typeof PUBLIC_PROJECT !== "undefined" ? PUBLIC_PROJECT.githubIssuesBase : null;
-  const href = typeof base === "string" && /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/issues\/?$/.test(base) ? safeHref(base) : "";
+  const href = typeof base === "string" && /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/issues\/?$/.test(base)
+    ? base.replace(/\/$/, "") + "/new?title=" + encodeURIComponent({ correction:"套餐纠错与更新", vendor:"收录新厂商 / 套餐", benchmark:"真实任务测评" }[select.value] || "套餐反馈") + "&body=" + encodeURIComponent(preview.value) : "";
   if (issue) { issue.hidden = !href; if (href) issue.setAttribute("href", href); }
   if (status) status.textContent = href ? "可复制证据模板后，到项目 Issues 提交；模板中请只包含可公开资料。" : "当前未配置公开仓库提交地址。可复制或下载证据模板，交给项目维护者；本站不会自动发送或上传。";
 }
@@ -322,22 +393,51 @@ function downloadContributionTemplate() {
   const feedback = byId("contributionFeedback"); if (feedback) feedback.textContent = "已生成本地证据模板文件；请补全后交给维护者，文件没有上传。";
 }
 function downloadPublicData() {
+  if (!optionalDataLoaded("maintenance") || !optionalDataLoaded("benchmark")) {
+    const feedback = byId("publicDataFeedback"); if (feedback) feedback.textContent = "正在加载完整公开数据…";
+    Promise.all([ensureOptionalData("maintenance"), ensureOptionalData("benchmark")]).then(downloadPublicData, () => {
+      if (feedback) feedback.textContent = "公开数据加载失败，请重试下载。";
+    });
+    return;
+  }
   const data = { schemaVersion: 1, meta: META, plans: PLANS, apiPrices: API_PRICES, paygReferences: PAYG_REFERENCES, priceChecks: PRICE_CHECKS, maintenance: maintenanceData(), benchmarks: benchmarkData() };
   downloadTextFile(JSON.stringify(data, null, 2) + "\n", `coding-plan-public-data-${META.updated}.json`, "application/json;charset=utf-8");
   const feedback = byId("publicDataFeedback"); if (feedback) feedback.textContent = "已生成公开数据 JSON；不含本机关注、已读记录或待审队列。";
 }
-function bindMaintenanceEvents() {
-  loadFollowState(); renderMaintenance(); syncWatchButtons();
-  [["maintenancePlan", () => { maintenancePlanId = byId("maintenancePlan").value; renderMaintenanceHistory(); renderContribution(); }], ["maintenanceRecordFilter", () => { maintenanceRecordFilter = byId("maintenanceRecordFilter").value; renderMaintenanceRecords(); }], ["contributionType", renderContribution]].forEach(([id, handler]) => { const el = byId(id); if (el) el.addEventListener("change", handler); });
+function refreshBenchmarkTaskChoices() {
   const data = benchmarkData();
   const task = byId("benchmarkTask"); if (task) task.innerHTML = '<option value="all">全部任务</option>' + data.tasks.map((t) => `<option value="${esc(t.id)}">${esc(t.title)}</option>`).join("");
+  if (!data.tasks.some((t) => t.id === benchmarkFilter.task)) benchmarkFilter.task = "all";
+  if (task) task.value = benchmarkFilter.task;
   for (const key of ["tool", "model"]) {
     const select = byId(key === "tool" ? "benchmarkTool" : "benchmarkModel");
-    if (select) select.innerHTML = `<option value="all">${key === "tool" ? "全部工具" : "全部模型"}</option>` + benchmarkFilterOptions(key).map((v) => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
+    const choices = benchmarkFilterOptions(key);
+    if (!choices.includes(benchmarkFilter[key])) benchmarkFilter[key] = "all";
+    if (select) {
+      select.innerHTML = `<option value="all">${key === "tool" ? "全部工具" : "全部模型"}</option>` + choices.map((v) => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
+      select.value = benchmarkFilter[key];
+    }
   }
+}
+function refreshOptionalViews(kind) {
+  if (kind === "maintenance") {
+    followState = cleanFollowState(followState);
+    renderMaintenance(); syncWatchButtons();
+    qsa("[data-plan-history]").forEach((details) => { if (details.open) details.innerHTML = planHistoryContent(details.dataset.planHistory); });
+  } else {
+    refreshBenchmarkTaskChoices(); syncPublicBenchmarkChoices(); renderPublicBenchmarks(); renderBenchmarks(); renderContribution();
+  }
+}
+function bindMaintenanceEvents() {
+  loadFollowState(); renderMaintenance(); syncWatchButtons();
+  [["maintenancePlan", () => { maintenancePlanId = byId("maintenancePlan").value; renderMaintenanceHistory(); renderContribution(); }], ["maintenanceRecordFilter", () => { maintenanceRecordFilter = byId("maintenanceRecordFilter").value; renderMaintenanceRecords(); }], ["contributionType", () => {
+    renderContribution();
+    if (byId("contributionType").value === "benchmark") loadViewData("benchmark");
+  }]].forEach(([id, handler]) => { const el = byId(id); if (el) el.addEventListener("change", handler); });
+  refreshBenchmarkTaskChoices();
   for (const [key, id] of Object.entries({ task: "benchmarkTask", tool: "benchmarkTool", model: "benchmarkModel" })) {
     const select = byId(id); if (select) select.addEventListener("change", () => {
-      const allowed = key === "task" ? data.tasks.map((t) => t.id) : benchmarkFilterOptions(key);
+      const allowed = key === "task" ? benchmarkData().tasks.map((t) => t.id) : benchmarkFilterOptions(key);
       benchmarkFilter[key] = allowed.includes(select.value) ? select.value : "all";
       renderBenchmarks(); renderContribution();
     });
@@ -345,7 +445,22 @@ function bindMaintenanceEvents() {
   [["markFollowReadBtn", markFollowedChangesRead], ["copyContributionBtn", copyContributionTemplate], ["downloadContributionBtn", downloadContributionTemplate], ["downloadPublicDataBtn", downloadPublicData]].forEach(([id, handler]) => { const b = byId(id); if (b) b.addEventListener("click", handler); });
   document.addEventListener("click", (e) => {
     const target = evtTarget(e); if (!target || !target.closest) return;
+    const plan = target.closest("[data-benchmark-plan]");
+    if (plan && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey && (e.button == null || e.button === 0)) {
+      e.preventDefault(); showPlanDetails(plan.dataset.benchmarkPlan, plan);
+    }
     const watch = target.closest("[data-watch-plan]"); if (watch) toggleFollowPlan(watch.dataset.watchPlan);
   });
+  document.addEventListener("toggle", (event) => {
+    const details = evtTarget(event);
+    if (!details || !details.open || !details.dataset.planHistory || optionalDataLoaded("maintenance")) return;
+    details.innerHTML = `<summary>已确认价格与权益历史</summary><p>正在加载历史数据…</p>`;
+    ensureOptionalData("maintenance").then(() => {
+      details.innerHTML = planHistoryContent(details.dataset.planHistory);
+      refreshOptionalViews("maintenance");
+    }, () => {
+      details.innerHTML = `<summary>已确认价格与权益历史</summary><p>历史数据加载失败，请关闭后重新展开。</p>`;
+    });
+  }, true);
   bindPublicBenchmarkEvents(); renderBenchmarks(); renderContribution();
 }

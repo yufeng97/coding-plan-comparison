@@ -80,6 +80,41 @@ function safeHref(u) {
   const s = String(u ?? "").trim();
   return /^https?:\/\//i.test(s) ? esc(s) : "";
 }
+function displayPriceReason(reason) {
+  return String(reason || "").replace(/现有priceM为展示目录价/g, "当前展示的是公开目录月费")
+    .replace(/priceM/g, "月付价").replace(/priceY/g, "年付折月价");
+}
+
+/* 辅助视图的数据脚本在访问时下载；保留经典脚本以支持 file://。 */
+const optionalDataLoads = {};
+function optionalDataLoaded(kind) {
+  return kind === "maintenance" ? typeof MAINTENANCE !== "undefined" && MAINTENANCE.schemaVersion === 1
+    : kind === "benchmark" && typeof BENCHMARKS !== "undefined" && BENCHMARKS.schemaVersion === 1;
+}
+function ensureOptionalData(kind) {
+  if (optionalDataLoaded(kind)) return Promise.resolve();
+  if (optionalDataLoads[kind]) return optionalDataLoads[kind];
+  const descriptor = byId(kind + "DataSource");
+  if (!descriptor) return Promise.reject(new Error("缺少数据入口"));
+  const pending = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.dataset.optionalData = kind;
+    let timer;
+    const finish = (error) => {
+      clearTimeout(timer);
+      script.onload = script.onerror = null;
+      if (error) { script.remove(); delete optionalDataLoads[kind]; reject(error); }
+      else resolve();
+    };
+    script.onload = () => finish(optionalDataLoaded(kind) ? null : new Error("数据文件内容不完整"));
+    script.onerror = () => finish(new Error("数据文件下载失败"));
+    script.src = descriptor.getAttribute("src");
+    timer = setTimeout(() => finish(new Error("数据下载超时，请重试")), 15000);
+    document.head.appendChild(script);
+  });
+  optionalDataLoads[kind] = pending;
+  return pending;
+}
 /* 计划分类、offerable、resolvedField、hasOwnClient 在 js/data.js，页面与校验器共用。 */
 /* 号池 / API 转售。和官方订阅、Cursor 这类工具订阅分开上色，不进「帮我选」。 */
 const RELAY_VENDORS = new Set([
@@ -213,7 +248,7 @@ function priceCheckHtml(p, kind = "plan") {
   const check = priceCheckOf(p, kind);
   const urls = priceCheckSources(p, kind);
   const links = urls.map((url, i) => `<a href="${safeHref(url)}" target="_blank" rel="noopener">核价来源${urls.length > 1 ? i + 1 : ""}</a>`).join(" · ");
-  const explanation = check && check.status === "unverified" ? `<details class="price-check-details"><summary>核查说明</summary><p>${esc(check.reason)}</p></details>` : "";
+  const explanation = check && check.status === "unverified" ? `<details class="price-check-details"><summary>核查说明</summary><p>${esc(displayPriceReason(check.reason))}</p></details>` : "";
   return `${links || "—"}<span class="sub">${esc(priceCheckLabel(p, kind))}${check ? " · " + esc(check.checkedAt) : ""}</span>${explanation}`;
 }
 
@@ -502,7 +537,7 @@ function updateActiveNav() {
   let active = null, closestTop = -Infinity;
   links.forEach((link) => {
     const target = byId((link.getAttribute("href") || "").slice(1));
-    if (!target || typeof target.getBoundingClientRect !== "function") return;
+    if (!target || target.hidden || typeof target.getBoundingClientRect !== "function") return;
     const top = target.getBoundingClientRect().top;
     /* 章节顶部的实际留白进入阅读区即属于本节，容纳字体加载后的轻微布局变化。 */
     const paddingTop = parseFloat(getComputedStyle(target).getPropertyValue("padding-top")) || 0;

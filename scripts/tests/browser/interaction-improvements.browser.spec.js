@@ -26,6 +26,7 @@ test("清空比较条后键盘继续操作当前数据表", async ({ page }) => 
 
 test("推荐卡直接加入对比并与数据表同身份按钮同步", async ({ page }) => {
   await page.goto("/");
+  await page.locator("#quickGrid > .quick-card").first().locator(".qc-details > summary").click();
   const recommendation = page.locator("#quickGrid .cmp-add").first();
   await expect(recommendation).toBeVisible();
   const id = await recommendation.getAttribute("data-plan-id");
@@ -33,7 +34,10 @@ test("推荐卡直接加入对比并与数据表同身份按钮同步", async ({
   await page.keyboard.press("Enter");
   await expect(recommendation).toHaveAttribute("aria-pressed", "true");
   await expect(recommendation).toBeFocused();
+  const planName = await page.evaluate("PLANS.find(p => p.id === " + JSON.stringify(id) + ").plan");
+  await page.locator("#searchInput").fill(planName);
   await expect(page.locator(`#tableBody .cmp-add[data-plan-id="${id}"]`)).toHaveAttribute("aria-pressed", "true");
+  await recommendation.focus();
   await page.keyboard.press("Enter");
   await expect(recommendation).toHaveAttribute("aria-pressed", "false");
   await expect(page.locator("#cmpBar")).not.toBeVisible();

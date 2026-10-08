@@ -94,12 +94,12 @@ test("同模型额度优先匹配，daily回退使用日常角色且跨模型不
   app.run(`Object.assign(pickerState, { budget: "100", region: "cn", tool: "any", task: "daily" });
     Object.assign(calcState, { model: "小米 MiMo|mimo-v2.6-flash", requests: "75", tokens: "20000", days: "30", input: "80", cache: "95", cachePrice: "0.02" }); renderCostCalculator();`);
   const specific = app.elements.get("costResult").innerHTML;
-  assert.match(specific, /mimo-v2\.6-flash：参考月量 90M/);
+  assert.match(specific, /MiMo-V2\.6-Flash：参考月量 90M/);
   assert.match(specific, /低于参考区间下限/);
-  assert.doesNotMatch(specific, /mimo-v2\.6-pro：|高于参考区间上限/);
+  assert.doesNotMatch(specific, /MiMo-V2\.6-Pro：|高于参考区间上限/);
   app.run('Object.assign(calcState, { model: APP_DEFAULTS.calc.model, cachePrice: "" }); renderCostCalculator();');
   const fallback = app.elements.get("costResult").innerHTML;
-  assert.match(fallback, /mimo-v2\.6-flash：参考月量 90M/);
+  assert.match(fallback, /MiMo-V2\.6-Flash：参考月量 90M/);
   assert.match(fallback, /所选 API 模型未匹配到该套餐的逐模型额度，无法判断是否够用/);
   assert.doesNotMatch(fallback, /按相同基准，你的总量/);
   healthy(app);

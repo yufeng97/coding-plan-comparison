@@ -12,7 +12,7 @@ test("手机首屏展示主推荐，首屏和帮我选无需下载图表库", as
   expect(charts).toEqual([]);
   await page.locator(".hero-start").click();
   expect(charts).toEqual([]);
-  await page.getByRole("navigation").getByRole("link", { name:"性价比排行", exact:true }).click();
+  await page.getByRole("navigation", { name:"页面章节" }).getByRole("link", { name:"性价比排行", exact:true }).click();
   await expect(page.locator("#chartRank canvas")).toHaveCount(1);
   expect(charts).toHaveLength(1);
 });
@@ -117,6 +117,7 @@ test("保存与恢复常用条件、复制当前状态和删除预设", async ({
 test("完整权益保留年付实际金额，关闭后恢复入口焦点", async ({ page }) => {
   await page.goto("/?budget=200&region=intl&tool=claude");
   const card = page.locator("#quickGrid .quick-card").filter({ has:page.locator('[data-view-plan="plan-0002"]') }).first();
+  await card.locator(".qc-details > summary").click();
   const button = card.locator("[data-view-plan]");
   await button.focus(); await page.keyboard.press("Enter");
   await expect(page.locator("#planDetailsModal")).toBeVisible();
@@ -132,6 +133,7 @@ test("无原生dialog时完整权益可循环焦点并还原背景", async ({ pa
     Object.defineProperty(HTMLDialogElement.prototype,"close",{ value:undefined,configurable:true });
   });
   await page.goto("/");
+  await page.locator("#quickGrid > .quick-card").first().locator(".qc-details > summary").click();
   const button = page.locator("#quickGrid [data-view-plan]").first();
   await button.click();
   const dialog = page.locator("#planDetailsModal");

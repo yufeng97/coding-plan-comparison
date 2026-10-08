@@ -58,7 +58,7 @@ function moneyHtml(p) {
   if (!p) return "<em>—</em>";
   if (p.priceM === 0) return "<em>免费</em>";
   const raw = priceText(p, "priceM");
-  return `<em>${esc(raw)}</em>/月`;
+  return `<em>${esc(raw)}</em>/月${p.cur !== "CNY" ? `<small class="qc-converted">约 ${esc(fmtCNY(cnyOf(p, "M")))}/月</small>` : ""}`;
 }
 function lineHtml(k, text) {
   return `<div class="qc-line"><span class="k">${esc(k)}</span>${esc(text)}</div>`;
@@ -301,6 +301,11 @@ function peerNote(main, pool) {
   if (!top) return "";
   return `同预算还能买 ${planTitle(top.p)}（${top.headline.name}）。官方没有给出高置信的 5 小时 token 数，所以主计划用了能看清窗口的这一档。`;
 }
+/* 升级只跨到紧邻的预算档，避免 ≤200 元直接推到 538 元。
+   500 元和不限预算后没有更高的有限档，才允许查看所有价格。 */
+function upgradeBudgetCeiling() {
+  return { "0": 100, "100": 200, "200": 500 }[pickerState.budget] || Infinity;
+}
 function nextTier(current) {
   const dailyLead = pickerState.task === "daily" || !current.headline;
   const roleId = dailyLead ? current.loose[0] && current.loose[0].id : current.headline.id;
@@ -311,6 +316,7 @@ function nextTier(current) {
     if (!matchesTool(p, pickerState.tool)) return;
     const price = cnyOf(p, "M") || 0;
     if (price <= (cnyOf(current.p, "M") || 0) + BUDGET_EPS) return;
+    if (price > upgradeBudgetCeiling() + BUDGET_EPS) return;
     const prof = planProfile(p);
     if (dailyLead) {
       if (!prof.loose.some((r) => r.id === roleId)) return;
@@ -434,21 +440,25 @@ function pickerVerificationHtml(p) {
   const check = priceCheckOf(p);
   if (!check) return lineHtml("本档核查", "暂无逐条核查记录，请在官网核对价格与权益。");
   const sources = check.sourceIds.map((id) => PRICE_CHECKS.sources[id]).filter(Boolean);
-  const date = lineHtml("本档核查", `${check.checkedAt} · ${priceCheckLabel(p)}${check.reason ? "。" + check.reason : ""}`);
+  const date = lineHtml("本档核查", `${check.checkedAt} · ${priceCheckLabel(p)}${check.reason ? "。" + displayPriceReason(check.reason) : ""}`);
   const evidence = sources.map((s) => `<li>${esc(s.evidence || "来源页面记录")} ${safeHref(s.url) ? `<a href="${safeHref(s.url)}" target="_blank" rel="noopener">核查来源 ↗</a>` : ""}</li>`).join("");
   return date + (evidence ? `<details class="qc-verification"><summary>查看核查依据（${sources.length} 项）</summary><ul>${evidence}</ul></details>` : "");
 }
 function pickerPlanActions(p) {
   if (!p) return "";
-  const href = safeHref(p.url);
-  return `<div class="qc-actions"><button type="button" class="qc-action cmp-add" data-plan-id="${esc(p.id)}" data-vendor="${esc(p.vendor)}" data-plan="${esc(p.plan)}">＋对比</button><button type="button" class="qc-action" data-view-plan="${esc(p.id)}" aria-label="查看 ${esc(planTitle(p))} 完整权益">完整权益</button>${href ? `<a class="qc-action" href="${href}" target="_blank" rel="noopener" tabindex="0"><span>官网</span><span class="qc-action-icon" aria-hidden="true">↗</span></a>` : ""}</div>`;
+  return `<div class="qc-actions"><button type="button" class="qc-action cmp-add" data-plan-id="${esc(p.id)}" data-vendor="${esc(p.vendor)}" data-plan="${esc(p.plan)}">＋对比</button><button type="button" class="qc-action" data-view-plan="${esc(p.id)}" aria-label="查看 ${esc(planTitle(p))} 完整权益">完整权益</button></div>`;
 }
-function quickCard(accent, title, value, body, plan) {
+function quickCard(accent, title, value, reasons, plan, body = "") {
+  const href = plan ? safeHref(plan.url) : "";
+  const name = plan ? `<b class="qc-plan">${esc(planTitle(plan))}</b>` : "";
+  const details = body + (plan ? `<div class="badge-row">${badgeHtml(plan)}</div>` + pickerPaymentHtml(plan) + pickerPlanActions(plan) : "");
   return `<div class="quick-card" style="--qc-accent:${accent}">
     <div class="qc-title"><span class="qc-title-label">${esc(title)}</span>${typeof watchButtonHtml === "function" ? watchButtonHtml(plan, "qc-watch") : ""}</div>
+    ${name}
     <div class="qc-value">${value}</div>
-    <div class="qc-sub">${body}${pickerPaymentHtml(plan)}</div>
-    ${pickerPlanActions(plan)}
+    <ul class="qc-reasons">${reasons.slice(0, 3).map((reason) => `<li>${esc(reason)}</li>`).join("")}</ul>
+    ${href ? `<a class="qc-action qc-primary" href="${href}" target="_blank" rel="noopener">去官网 <span class="qc-action-icon" aria-hidden="true">↗</span></a>` : ""}
+    ${details ? `<details class="qc-details"><summary>价格、额度与核查详情</summary><div class="qc-sub">${details}</div></details>` : ""}
   </div>`;
 }
 function pickerUsageGuide(p) {
@@ -461,8 +471,16 @@ function pickerUsageGuide(p) {
 function mainCard(main, pool) {
   const p = main.p;
   const dailyLead = pickerState.task === "daily" && main.loose.length;
-  const bits = [`<b>${esc(planTitle(p))}</b><div class="badge-row">${badgeHtml(p)}</div>`];
-  bits.push(lineHtml("选取理由", pickerChoiceReason(main)));
+  const role = dailyLead || !main.headline ? main.loose[0] : main.headline;
+  const reasons = [role ? `${role.name} 适合${dailyLead || !main.headline ? "日常编码" : "复杂编码任务"}` : "附赠编程推理额度"];
+  const tokens = knownTokens(p, role);
+  reasons.push(tokens > 0 ? `公开额度折算约 ${fmtTok(tokens)} tokens/月，按页面基准` : "可用 token 总量未公开，购买前核对额度规则");
+  if (dailyLead && main.headline) reasons.push(`同档已包含 ${main.headline.name}，可用于复杂任务`);
+  else if (!dailyLead && main.headline && main.loose.length) reasons.push(`日常已包含 ${main.loose.map((r) => r.name).join("、")}；${main.shared || main.sharing === "shared" ? "共用额度池" : main.sharing === "separate" ? "模型额度分池" : "共享关系未公开"}`);
+  else if (pickerState.task === "both" && !main.headline) reasons.push("当前条件仅匹配日常模型，复杂任务需另找方案");
+  else if (pickerState.task === "both" && !main.loose.length) reasons.push("本档未匹配日常模型，日常入口需单独确认");
+  else reasons.push("满足当前预算、地区与工具条件");
+  const bits = [lineHtml("选取理由", pickerChoiceReason(main))];
   if (dailyLead) {
     const names = main.loose.map((r) => r.name).join("、");
     bits.push(lineHtml("日常", `${names}。${roleUseText(main.loose[0])}。`));
@@ -492,86 +510,43 @@ function mainCard(main, pool) {
   bits.push(pickerUsageGuide(p));
   if (p.region === "intl" && pickerState.region !== "cn") bits.push(`<div class="qc-avoid">需要外币或国际账号支付。</div>`);
   const title = dailyLead || !main.headline ? "主计划 · 日常" : "主计划 · 复杂任务";
-  return quickCard(PICK_ACCENT[0], title, moneyHtml(p), bits.join(""), p);
+  return quickCard(PICK_ACCENT[0], title, moneyHtml(p), reasons, p, bits.join(""));
 }
-/* 中间卡的三条底线：能不花钱覆盖就不推荐第二档；要另买时写清差多少；实在没有才留空值 */
+/* 已包含的覆盖写在主卡中；只为实际可选的另一份订阅出卡，且合计不超预算。 */
 function dailyCard(main, pool) {
-  const dailyNames = main.loose.map((r) => r.name).join("、");
-  const windowNote = windowNoteShort(main);
-  const included = (title, text) => quickCard(PICK_ACCENT[1], title, "<em>已包含</em>",
-    `<b>${esc(planTitle(main.p))}</b>${lineHtml("不用另买", text)}${lineHtml("合计月费", priceLine(main.p))}`, main.p);
-  if (pickerState.task === "hard") {
-    if (main.loose.length) {
-      return included("日常覆盖", `日常可以用同一档里的 ${dailyNames}。${windowNote}`);
-    }
-    return quickCard(PICK_ACCENT[1], "日常覆盖", "<em>—</em>",
-      lineHtml("这次不配", "筛选以复杂任务为主，这一档也没有能日常慢烧的模型。"), null);
-  }
-  if (pickerState.task === "daily") {
-    const meter = meteredText(main);
-    if (meter) {
-      return quickCard(PICK_ACCENT[1], "复杂任务", "<em>按量另计</em>",
-        `<b>${esc(planTitle(main.p))}</b>${lineHtml("另一池", meter)}`, main.p);
-    }
-    if (main.headline) {
-      return included("复杂任务", `${main.headline.name} 也在这档里，可用于偶尔的复杂任务。${windowNote}`);
-    }
-    return quickCard(PICK_ACCENT[1], "复杂任务", "<em>—</em>",
-      lineHtml("这档不包含", "这档没有匹配到复杂任务模型；需要时可改选复杂任务，比较包含这类模型的套餐。"), null);
-  }
-  if (main.internalDaily.length) {
-    return included("日常覆盖", `用 ${dailyNames}。${roleUseText(main.internalDaily[0])}。${windowNote}`);
-  }
+  if (pickerState.task !== "both" || main.internalDaily.length) return "";
   /* 已有日常模型时，仅明确的共享 5h 窗口才考虑补充；未知共享关系不能成为加购依据。 */
-  if (main.loose.length && !main.shared) {
-    return included("日常覆盖", `用 ${dailyNames} 做日常。${windowNote}当前信息不足以据此建议购买第二份订阅。`);
-  }
+  if (main.loose.length && !main.shared) return "";
   const shared = main.headline ? sameWindowText(main) : "";
   const sup = pickSupplement(main, pool);
-  if (sup.chosen) {
-    const roles = sup.chosen.internalDaily.length ? sup.chosen.internalDaily : sup.chosen.loose;
-    const total = (cnyOf(main.p, "M") || 0) + (cnyOf(sup.chosen.p, "M") || 0);
-    const free = isFreeCodingEntry(sup.chosen.p);
-    const fee = free ? "，使用免费入口，无需额外月费" : `，另付 ${priceLine(sup.chosen.p)}`;
-    let text = `日常用 ${roles.map((r) => r.name).join("、")}${fee}。${roleUseText(roles[0])}。这是${free ? "独立的免费入口" : "另一份订阅"}，用量不占主计划额度。`;
-    if (main.loose.length) text += `也可以继续用主计划里的 ${dailyNames}，无需第二份订阅。`;
-    if (sup.dreamed) {
-      const both = (cnyOf(main.p, "M") || 0) + (cnyOf(sup.dreamed.p, "M") || 0);
-      text += `若要 ${planTitle(sup.dreamed.p)} 里更大的独立池，两档合计约 ${fmtCNY(both)}，高于当前预算。`;
-    }
-    return quickCard(PICK_ACCENT[1], "日常覆盖", moneyHtml(sup.chosen.p),
-      `<b>${esc(planTitle(sup.chosen.p))}</b><div class="badge-row">${badgeHtml(sup.chosen.p)}</div>${shared ? lineHtml("主计划额度", shared) : ""}${lineHtml("可选补充", text)}${lineHtml("两档合计月费", `约 ${fmtCNY(total)}（按页面汇率折算）`)}`, sup.chosen.p);
-  }
-  if (main.loose.length) {
-    /* 主计划里的慢烧模型和复杂任务共用窗口，预算内没有更合适的独立慢烧档：日常就在本档覆盖 */
-    let text = `用 ${dailyNames} 做日常。${roleUseText(main.loose[0])}。${windowNote}`;
-    const dream = sup.dreamed || dailyEntries(pool, main)[0];
-    if (dream) {
-      const both = (cnyOf(main.p, "M") || 0) + (cnyOf(dream.p, "M") || 0);
-      text += `另一份日常订阅 ${planTitle(dream.p)} 月费 ${priceLine(dream.p)}，两档合计约 ${fmtCNY(both)}，高于当前预算。`;
-    } else {
-      text += "当前条件下没有带独立慢烧池的另一档。";
-    }
-    return included("日常覆盖", text);
-  }
-  const dream = sup.dreamed || dailyEntries(pool, main)[0];
-  if (dream) {
-    const names = dream.loose.map((r) => r.name).join("、");
-    const both = (cnyOf(main.p, "M") || 0) + (cnyOf(dream.p, "M") || 0);
-    const text = `当前预算还剩 ${fmtCNY(Math.max(0, sup.remain))}。另一份订阅可提供 ${names}，月费 ${priceLine(dream.p)}，两档合计约 ${fmtCNY(both)}，高于当前预算。`;
-    return quickCard(PICK_ACCENT[1], "日常覆盖", moneyHtml(dream.p),
-      `<b>${esc(planTitle(dream.p))}</b><div class="badge-row">${badgeHtml(dream.p)}</div><div class="qc-miss">当前预算放不下第二档。</div>${lineHtml("差多少", text)}`, dream.p);
-  }
-  return quickCard(PICK_ACCENT[1], "日常覆盖", "<em>—</em>", lineHtml("没有第二档", "没有找到符合地区和工具、且带慢烧模型的另一档。"), null);
+  if (!sup.chosen) return "";
+  const p = sup.chosen.p;
+  const roles = sup.chosen.internalDaily.length ? sup.chosen.internalDaily : sup.chosen.loose;
+  const total = (cnyOf(main.p, "M") || 0) + (cnyOf(p, "M") || 0);
+  const free = isFreeCodingEntry(p);
+  const reasons = [
+    `日常可用 ${roles.map((r) => r.name).join("、")}`,
+    free ? "独立免费入口，无需额外月费" : "可选的另一份订阅，用量不占主计划额度",
+    `两档合计约 ${fmtCNY(total)}/月，在当前预算内`,
+  ];
+  const body = (shared ? lineHtml("主计划额度", shared) : "") +
+    (main.loose.length ? lineHtml("不用另买", "主计划已包含日常模型；仅在需要另一份额度时考虑这个可选入口。") : "") +
+    lineHtml("两档合计月费", `约 ${fmtCNY(total)}（按页面汇率折算）`) + pickerVerificationHtml(p) + pickerUsageGuide(p);
+  return quickCard(PICK_ACCENT[1], "可选日常补充", moneyHtml(p), reasons, p, body);
 }
 function upgradeCard(main) {
   const next = nextTier(main);
-  if (!next) {
-    return quickCard(PICK_ACCENT[2], "预算再往上", "<em>暂无下一档</em>", lineHtml("当前条件", "没有找到符合地区和工具的更高同厂商通用档位；未公开的额度不能据此断定已经到顶。"), main.p);
-  }
+  if (!next) return "";
   const over = pickerState.budget !== "any" && (cnyOf(next.p, "M") || 0) > Number(pickerState.budget) + BUDGET_EPS;
-  const flag = over ? `<div class="qc-miss">高于当前预算。</div>` : "";
-  return quickCard(PICK_ACCENT[2], "预算再往上", moneyHtml(next.p), `${flag}<b>${esc(planTitle(next.p))}</b>${lineHtml("多出来的是", unlockText(main, next))}`, next.p);
+  const cap = upgradeBudgetCeiling();
+  const role = pickerState.task === "daily" || !main.headline ? next.loose[0] : next.headline;
+  const reasons = [
+    over ? `高于当前预算${Number.isFinite(cap) ? `，在下一档 ≤${fmtCNY(cap)} 内` : ""}` : "月费仍在当前预算内",
+    role ? `仍可使用 ${role.name}，主要比较额度差异` : "同厂商更高档位，可对照额度规则",
+    "这是升级替代方案，无需与主计划同时购买",
+  ];
+  return quickCard(PICK_ACCENT[2], "同厂商升级参考", moneyHtml(next.p), reasons, next.p,
+    lineHtml("多出来的是", unlockText(main, next)) + pickerVerificationHtml(next.p) + pickerUsageGuide(next.p));
 }
 /* 工具自家厂商的入门个人档（忽略预算，但尊重地区筛选；地区内没有时回退到国际档并提示） */
 function ownVendorCard(main) {
@@ -585,7 +560,7 @@ function ownVendorCard(main) {
   const plan = inRegion[0] || all[0];
   const regionMiss = !inRegion.length;
   const prof = planProfile(plan);
-  const bits = [`<b>${esc(planTitle(plan))}</b><div class="badge-row">${badgeHtml(plan)}</div>`];
+  const bits = [];
   const role = prof.headline || prof.loose[0];
   if (role) {
     const use = prof.headline ? "复杂任务" : "日常";
@@ -602,7 +577,13 @@ function ownVendorCard(main) {
   } else if (main && !regionMiss) bits.push(lineHtml("和主计划", `它没有赢下这组条件的主计划（见第一张卡）。${OWN_VENDOR_NOTE[vendor] || ""}`));
   if (regionMiss) bits.push(`<div class="qc-avoid">${esc(vendor)} 只有国际档，当前地区筛选把它排除了。<button type="button" class="linkish" data-set-picker="region=all">把地区改成「不限」再看</button></div>`);
   else if (plan.region === "intl") bits.push(`<div class="qc-avoid">需要外币或国际账号支付。</div>`);
-  return quickCard(PICK_ACCENT[3], `${shortVendor(vendor)} 自家订阅`, moneyHtml(plan), bits.join(""), plan);
+  const reasons = [
+    "所选工具的自家订阅，供购买时对照",
+    role ? `包含 ${role.name} 的编程推理额度` : "核对官方模型池与额度规则",
+    regionMiss ? "当前地区不符合；此卡仅供参考" : overBudget ? "高于当前预算；此卡仅供参考" : "价格符合预算，比较模型与额度后再选",
+  ];
+  return quickCard(PICK_ACCENT[3], `${shortVendor(vendor)} 自家订阅`, moneyHtml(plan), reasons, plan,
+    bits.join("") + pickerVerificationHtml(plan) + pickerUsageGuide(plan));
 }
 function windowNoteShort(prof) {
   if (prof.windowPeriod === "none") return "目前没有 5 小时上限；总体用量仍需查看官方仪表盘。";
@@ -673,13 +654,16 @@ function alternativeCards(main, pool) {
     const tradeoff = difference > BUDGET_EPS ? `每月比主计划少 ${fmtCNY(difference)}；请同时比较模型与额度。`
       : x.p.vendor !== main.p.vendor ? "来自另一厂商，可以比较模型、服务权益与额度规则。" : "同厂商另一档位，可比较月费和额度规则。";
     const role = pickerState.task === "daily" ? x.loose[0] : x.headline || x.loose[0];
-    const body = `<b>${esc(planTitle(x.p))}</b><div class="badge-row">${badgeHtml(x.p)}</div>${lineHtml("比较理由", tradeoff)}${lineHtml("模型与额度", `${role.name}。${windowSentence(x.p, role)}`)}${pickerVerificationHtml(x.p)}`;
-    return quickCard(PICK_ACCENT[3], "预算内候选", moneyHtml(x.p), body, x.p);
+    const reasons = [tradeoff, `${role.name} 适合当前任务`, "满足当前预算、地区与工具条件"];
+    const body = lineHtml("模型与额度", `${role.name}。${windowSentence(x.p, role)}`) + pickerVerificationHtml(x.p) + pickerUsageGuide(x.p);
+    return quickCard(PICK_ACCENT[3], "预算内候选", moneyHtml(x.p), reasons, x.p, body);
   }).join("");
   return `<details class="picker-alternatives method-box"><summary>其他候选（${alternatives.length} 档，均在预算内）</summary><div class="picker-alternatives-grid">${cards}</div></details>`;
 }
 function renderPicker() {
   const previousFocus = document.activeElement;
+  const focusedDetails = /** @type {HTMLDetailsElement | null} */ (previousFocus && previousFocus.closest ? previousFocus.closest(".qc-details") : null);
+  const focusedPlanId = focusedDetails && focusedDetails.open ? previousFocus.getAttribute("data-plan-id") || previousFocus.getAttribute("data-view-plan") : "";
   syncPickerChips();
   const pool = eligibleProfiles();
   const grid = byId("quickGrid");
@@ -687,6 +671,7 @@ function renderPicker() {
   const main = chooseMain(pool);
   const own = ownVendorCard(main);
   if (!main) {
+    grid.dataset.cardCount = own ? "1" : "0";
     grid.innerHTML = `<div class="picker-empty">${esc(pickerEmptyReason(pool))}</div>` + (own || "");
     note.textContent = own
       ? "上面是所选工具的自家订阅，供参考；请结合预算、地区和所选任务查看，参考卡不等于当前条件下的推荐。中转站不参与。"
@@ -695,8 +680,18 @@ function renderPicker() {
     if (typeof syncServiceControls === "function") syncServiceControls();
     return;
   }
-  grid.innerHTML = [mainCard(main, pool), dailyCard(main, pool), upgradeCard(main), own, alternativeCards(main, pool)].filter(Boolean).join("");
-  note.textContent = `符合条件 ${pool.length} 档。${own ? "所选工具的自家订阅卡供对照，不参与主计划排序。" : "前三张卡是一套用法："}其他候选是预算内的替代选择，无需同时购买。复杂任务按模型用途和已公开额度选择；日常额度共享情况未公开时，不据此建议加购。已包含的覆盖无需重复付费，补充订阅会列出合计月费。预算再往上可以高于当前筛选。模型角色按 ${MODEL_ROLES_ASOF} 的用法归类，不是跑分。中转站不参与。每百万 tokens 排行仍然只比价格。`;
+  const cards = [mainCard(main, pool), dailyCard(main, pool), upgradeCard(main), own].filter(Boolean);
+  grid.dataset.cardCount = String(cards.length);
+  grid.innerHTML = cards.join("") + alternativeCards(main, pool);
+  /* 对比按钮重绘后要恢复到可见入口；仅恢复仍存在的同套餐折叠区。 */
+  if (focusedPlanId) {
+    const replacement = Array.from(grid.querySelectorAll("[data-plan-id], [data-view-plan]")).find((el) => el.getAttribute("data-plan-id") === focusedPlanId || el.getAttribute("data-view-plan") === focusedPlanId);
+    const details = replacement && replacement.closest(".qc-details");
+    if (details) details.setAttribute("open", "");
+    const alternatives = replacement && replacement.closest(".picker-alternatives");
+    if (alternatives) alternatives.setAttribute("open", "");
+  }
+  note.textContent = `符合条件 ${pool.length} 档。已包含的日常覆盖写在主卡中；可选补充列出合计月费。升级参考最多跨到下一预算档，其他候选和自家订阅供对照，无需同时购买。模型用途按 ${MODEL_ROLES_ASOF} 归类；未公开额度与共享规则请核对官网。`;
   syncTableCmpButtons(previousFocus);
   if (typeof syncServiceControls === "function") syncServiceControls();
 }

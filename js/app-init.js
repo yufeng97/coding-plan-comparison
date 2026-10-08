@@ -10,6 +10,35 @@ function boot(name, fn) {
   }
 }
 
+/* 主选购页和辅助资料按标签显示；锚点仍是可分享、可前进后退的入口。 */
+const AUXILIARY_VIEWS = new Set(["updates", "benchmarks", "sources", "contribute"]);
+let currentSiteView = "compare";
+function loadViewData(kind) {
+  const statuses = [byId(kind + "DataStatus"), kind === "benchmark" ? byId("contributionDataStatus") : null].filter(Boolean);
+  statuses.forEach((status) => { status.textContent = optionalDataLoaded(kind) ? "" : "正在加载本标签的数据…"; });
+  return ensureOptionalData(kind).then(() => {
+    statuses.forEach((status) => { status.textContent = ""; });
+    refreshOptionalViews(kind);
+  }, (err) => {
+    statuses.forEach((status) => { status.innerHTML = `${esc(err.message)}。<button type="button" class="chip" data-retry-data="${esc(kind)}">重新加载数据</button>`; });
+  });
+}
+function activatePageForTarget(target) {
+  const section = target && (target.classList.contains("section") ? target : target.closest(".section"));
+  const view = section && AUXILIARY_VIEWS.has(section.id) ? section.id : "compare";
+  currentSiteView = view;
+  qsa("main .section").forEach((item) => { item.hidden = AUXILIARY_VIEWS.has(item.id) ? item.id !== view : view !== "compare"; });
+  const hero = qs(".hero"); if (hero) hero.hidden = view !== "compare";
+  qsa("[data-site-view]").forEach((link) => {
+    const selected = link.dataset.siteView === view;
+    link.classList.toggle("active", selected);
+    if (selected) link.setAttribute("aria-current", "page"); else link.removeAttribute("aria-current");
+  });
+  if (view === "updates") loadViewData("maintenance");
+  if (view === "benchmarks") loadViewData("benchmark");
+  if (typeof requestAnimationFrame === "function") requestAnimationFrame(() => { resizeVisibleCharts(); updateActiveNav(); });
+}
+
 /* Firefox 可能在 popstate 前清掉 fragment 内的焦点；保留最近的方案按钮身份。 */
 let historicalPlanFocus = null;
 function isCurrentFragmentTarget(target) {
@@ -29,6 +58,9 @@ document.addEventListener("pointerdown", (e) => {
 }, { passive:true });
 
 applyUrlState();
+let initialSection = "quick";
+try { initialSection = decodeURIComponent(location.hash.slice(1)) || "quick"; } catch (err) { /* 使用默认视图 */ }
+activatePageForTarget(byId(initialSection));
 syncControlsFromState();
 renderCmpBar();
 /* 分享的对比链接：≥2 档时自动弹出对比视图 */
@@ -48,6 +80,7 @@ if (cmpState.items.length >= 2) {
 /* 首屏只画「帮我选」以上的内容；图表在滚动接近时再初始化（见 LAZY_CHARTS） */
 boot("theme", initTheme);
 boot("stats", renderStats);
+boot("rankVendors", populateRankVendor);
 boot("legend", renderLegend); /* 图例在区块头里，不随图表懒加载，避免滚达前空着 */
 boot("quick", renderPicker);
 boot("free", renderFree);
@@ -85,17 +118,18 @@ function prepareSection(hash) {
   if (id === "top") return target;
   LAZY_CHARTS.forEach((item) => {
     const chart = byId(item.el);
-    if (chart && (target.contains(chart) || (chart.compareDocumentPosition(target) & 4))) bootLazy(item);
+    if (chart && !chart.closest(".section").hidden && (target.contains(chart) || (chart.compareDocumentPosition(target) & 4))) bootLazy(item);
   });
   return target;
 }
 let sectionNavigationVersion = 0;
 function navigateToSection(hash, updateHistory = true, moveFocus = true) {
   const version = ++sectionNavigationVersion;
-  let id = String(hash || "").slice(1);
+  let id = String(hash || "").slice(1) || "top";
   try { id = decodeURIComponent(id); } catch (err) { return; }
   const target = byId(id);
   if (!target) return;
+  activatePageForTarget(target);
   /* 先提交有效的导航意图，后续输入不会把尚在下载图表的历史入口覆盖掉。 */
   if (updateHistory && location.hash !== hash) {
     try { history.pushState(null, "", location.pathname + location.search + hash); }
@@ -104,7 +138,7 @@ function navigateToSection(hash, updateHistory = true, moveFocus = true) {
   updateHistory = false;
   const needsCharts = target && id !== "top" && LAZY_CHARTS.some((item) => {
     const chart = byId(item.el);
-    return chart && (target.contains(chart) || (chart.compareDocumentPosition(target) & 4));
+    return chart && !chart.closest(".section").hidden && (target.contains(chart) || (chart.compareDocumentPosition(target) & 4));
   });
   if (!chartLibraryReady() && needsCharts) {
     const initialScroll = window.scrollY;
@@ -177,6 +211,8 @@ document.addEventListener("click", (e) => {
       bootLazy(item);
     }
   }
+  const retryData = target && target.closest ? target.closest("[data-retry-data]") : null;
+  if (retryData) loadViewData(retryData.dataset.retryData);
 });
 /* Back/Forward 恢复整份状态。恢复期间视图不允许写回 URL。 */
 let historyRestoreVersion = 0;
@@ -223,7 +259,7 @@ function restoreHistoryState(search, restoreAnchor = true) {
     if (restoreAnchor && location.hash) {
       navigateToSection(location.hash, false, false);
       restoredAnchorHash = location.hash;
-    }
+    } else if (restoreAnchor) activatePageForTarget(byId("quick"));
     /* 关闭窗口已找回可用入口时保留；仅修复被重绘或隐藏后丢失的方案按钮焦点。 */
     const currentFocus = document.activeElement;
     const modalClosed = focusedClass === "cmp-remove" && !isCmpModalOpen();
@@ -232,6 +268,7 @@ function restoreHistoryState(search, restoreAnchor = true) {
       : nativeFocusLost || focused && focused.isConnected === false;
     if (focusedClass && focusLost) {
       const selector = focusedClass === "cmp-add" ? ".cmp-add" : isCmpModalOpen() ? "#cmpTable .cmp-remove" : "";
+      if (focusedClass === "cmp-add" && focusedPlanId && focusedScope === "tableBody") revealTablePlan(focusedPlanId);
       const replacement = selector && focusedPlanId ? [...qsa(selector)].find((btn) => btn.dataset.planId === focusedPlanId && (!focusedScope || btn.dataset.cmpScope === focusedScope)) : null;
       if (!focusTableControl(replacement)) focusTableControl(byId(isCmpModalOpen() ? "cmpCloseBtn" : "searchInput"));
     }
@@ -279,7 +316,7 @@ function renderLazyIfNeeded() {
   LAZY_CHARTS.forEach((item) => {
     if (LAZY_DONE.has(item.el)) return;
     const el = byId(item.el);
-    if (!el) return;
+    if (!el || el.closest(".section").hidden) return;
     const r = el.getBoundingClientRect();
     if (r.top < window.innerHeight + 200 && r.bottom > -200) bootLazy(item);
   });
@@ -338,7 +375,7 @@ function onScrollFrame(fn) {
     ++sectionNavigationVersion;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
-    const title = qs(".hero h1");
+    const title = currentSiteView === "compare" ? qs(".hero h1") : byId(currentSiteView).querySelector("h2");
     if (title) { title.setAttribute("tabindex", "-1"); title.focus({ preventScroll: true }); }
   });
   const frameToggle = onScrollFrame(toggle);

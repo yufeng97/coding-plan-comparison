@@ -70,9 +70,9 @@ test("同锚点popstate也恢复全部状态，push/replace不派发历史导航
   assert.equal(app.run("testHistoryEvents.join(',')"), "popstate", "相同hash只产生popstate");
   assert.equal(app.run('JSON.stringify(pickerState)'), JSON.stringify({ budget: "500", region: "intl", tool: "codex", task: "daily" }));
   assert.equal(app.run('JSON.stringify(personalState)'), JSON.stringify({ cat: "tool", region: "intl", billing: "Y", q: "Cursor", limit: null }));
-  assert.equal(app.run('JSON.stringify(rankState)'), JSON.stringify({ tier: "all", scope: "credits" }));
+  assert.equal(app.run('JSON.stringify(rankState)'), JSON.stringify({ tier: "all", scope: "credits", vendor:"all" }));
   assert.equal(app.run('JSON.stringify(tableState)'), JSON.stringify({ search: "Cursor", cat: "tool", region: "intl", sortKey: "priceY", sortDir: -1 }));
-  assert.equal(app.run('JSON.stringify(metricsState)'), JSON.stringify({ model: "GPT-6.1 Sol", ver: "V2", sortKey: "twk", sortDir: -1 }));
+  assert.equal(app.run('JSON.stringify(metricsState)'), JSON.stringify({ model: "GPT-6.1 Sol", ver: "V2", tier:"flagship", offer:"current", sortKey: "twk", sortDir: -1 }));
   assert.equal(app.elements.get("chartSearch").value, "Cursor");
   assert.equal(app.elements.get("searchInput").value, "Cursor");
   assert.equal(app.elements.get("metricsModel").value, "GPT-6.1 Sol");
@@ -83,7 +83,7 @@ test("同锚点popstate也恢复全部状态，push/replace不派发历史导航
   assert.equal(app.history.state.fixture, "replaced");
   assert.equal(app.run('JSON.stringify(pickerState)'), JSON.stringify({ budget: "200", region: "cn", tool: "any", task: "both" }));
   assert.equal(app.run('JSON.stringify(personalState)'), JSON.stringify({ cat: "all", region: "all", billing: "M", q: "", limit: 20 }));
-  assert.equal(app.run("rankState.tier + ':' + rankState.scope"), "flagship:official");
+  assert.equal(app.run("rankState.tier + ':' + rankState.scope"), "flagship:all");
   assert.equal(app.run("tableState.search + ':' + tableState.sortKey + ':' + tableState.sortDir"), ":priceM:1");
   assert.equal(app.run("metricsState.model + ':' + metricsState.ver + ':' + metricsState.sortKey + ':' + metricsState.sortDir"), "all:all:cpm:1");
   assert.equal(app.location.search, "");
@@ -121,6 +121,7 @@ test("历史重绘按稳定ID找回表格对比按钮，筛选移除该方案时
 test("搜索延迟重绘保留已进入方案按钮的焦点，历史恢复取消旧搜索任务", () => {
   const app = createApp();
   app.fire(app.anchor("#table"), "click");
+  app.run("revealTablePlan('plan-0002');");
   const search = app.elements.get("searchInput");
   const button = () => app.elements.get("tableBody").querySelector('.cmp-add[data-plan-id="plan-0002"]');
   search.value = "Anthropic";
@@ -420,7 +421,8 @@ test("相同查询串的历史恢复仍完成被取消的搜索防抖", () => {
   app.flushTimeouts();
   assert.equal(app.run("tableState.search"), "Cursor");
   assert.equal((app.elements.get("tableBody").innerHTML.match(/<tr>/g) || []).length,
-    app.run("computeTableRows().length"), "相同状态不能让旧表格永久留在页面");
+    app.run("Math.min(responsivePageSize(), computeTableRows().length)"), "相同状态不能让旧表格永久留在页面");
+  assert.ok(app.run("computeTableRows().slice(0,responsivePageSize()).every(p=>planSearchBlob(p).toLowerCase().includes('cursor'))"));
   const search = app.elements.get("chartSearch");
   search.value = "Claude";
   app.fire(search, "input");
@@ -434,21 +436,29 @@ test("相同查询串的历史恢复仍完成被取消的搜索防抖", () => {
 
 test("历史事件前原生fragment清空焦点仍找回方案按钮，主动离开则不抢回", () => {
   const app = createApp({ url:"http://127.0.0.1:8123/index.html#table" });
+  app.run("revealTablePlan('plan-0002');");
   const button = () => app.elements.get("tableBody").querySelectorAll(".cmp-add").find((e) => e.dataset.planId === "plan-0002");
   button().focus();
   app.history.pushState(null,"","?q=Anthropic#s4");
   app.run("document.activeElement = document.body;");
   app.fireWindow("popstate");
-  assert.equal(app.run("document.activeElement"),button());
+  assert.ok(app.run("document.activeElement") === button(), "原生清空焦点后应找回同一方案入口");
   app.history.pushState(null,"","?q=Anthropic#table");
   app.elements.get("table").focus();
   app.fireWindow("popstate");
-  assert.equal(app.run("document.activeElement"),button(),"原生锚点提前取得焦点也保留方案身份");
+  assert.ok(app.run("document.activeElement") === button(), "原生锚点提前取得焦点也保留方案身份");
+  /* fragment-only URL 会保留旧查询串；显式给 pathname 才清空关键词筛选。 */
+  app.history.pushState(null,"",app.location.pathname + "#table");
+  app.run("document.activeElement = document.body;");
+  app.fireWindow("popstate");
+  assert.equal(app.run("tableState.search"), "", "应实际恢复无关键词筛选的大表");
+  assert.ok(app.run("tableVisibleLimit > responsivePageSize()"), "恢复目标在后续页时应实际展开表格");
+  assert.ok(app.run("document.activeElement") === button(), "恢复无筛选的大表时展开同一方案所在页，保留原方案焦点");
   app.fire(app.elements.get("shareResultsBtn"),"pointerdown");
   app.history.pushState(null,"","?q=Anthropic#s4");
   app.run("document.activeElement = document.body;");
   app.fireWindow("popstate");
-  assert.equal(app.run("document.activeElement"),app.run("document.body"));
+  assert.ok(app.run("document.activeElement") === app.run("document.body"), "主动离开方案按钮后不抢回焦点");
   healthy(app);
 });
 

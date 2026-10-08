@@ -159,7 +159,7 @@ test("resize跳过同尺寸和离屏画布，滚入后更新尺寸且图例保�
 
 for (const width of [375, 768, 1280]) {
   for (const theme of ["light", "dark"]) {
-    test(`${width}px ${theme}画布可见，表格在容器内横滚且页面不溢出`, async ({ page }) => {
+    test(`${width}px ${theme}画布可见，手机卡片价格可读与桌面表格滚动均不溢出`, async ({ page }) => {
       const errors = trackErrors(page);
       await page.setViewportSize({ width, height: 900 });
       await page.addInitScript("localStorage.setItem('cp-theme', " + JSON.stringify(theme) + ");");
@@ -183,19 +183,35 @@ for (const width of [375, 768, 1280]) {
       const viewport = await page.evaluate("({ document: document.documentElement.scrollWidth, body: document.body.scrollWidth, viewport: window.innerWidth })");
       expect(viewport.document).toBeLessThanOrEqual(viewport.viewport + 1);
       expect(viewport.body).toBeLessThanOrEqual(viewport.viewport + 1);
-      for (const selector of [".api-detail-wrap", "#table .table-wrap"]) {
+      await page.locator("details:has(.api-detail-wrap) > summary").click();
+      for (const selector of [".api-detail-wrap", "#table .table-wrap", ".metrics-wrap"]) {
         const wrapper = page.locator(selector);
         // 离屏表格使用 content-visibility，进入阅读区后才有真实滚动宽度。
         await wrapper.scrollIntoViewIfNeeded();
-        if (width < 768) await expect.poll(() => wrapper.evaluate(el => el.scrollWidth > el.clientWidth), { message: selector + " 可见后完成表格布局" }).toBe(true);
+        const mobileCards = width < 768 && selector !== ".api-detail-wrap";
+        const needsHorizontalScroll = (width < 768 && selector === ".api-detail-wrap") || (width === 768 && selector !== ".api-detail-wrap");
+        if (needsHorizontalScroll) await expect.poll(() => wrapper.evaluate(el => el.scrollWidth > el.clientWidth), { message: selector + " 可见后完成表格布局" }).toBe(true);
         const before = await wrapper.evaluate(el => ({ width: el.clientWidth, scrollWidth: el.scrollWidth, left: el.scrollLeft }));
         expect(before.width).toBeGreaterThan(100);
-        if (width < 768) {
+        if (mobileCards) {
+          expect(before.scrollWidth).toBeLessThanOrEqual(before.width + 1);
+          const price = selector === ".metrics-wrap"
+            ? wrapper.locator('td[data-column="cpm"]').first()
+            : wrapper.locator('td[data-column="priceM"]').filter({ has: page.locator(".sub") }).first();
+          await price.scrollIntoViewIfNeeded();
+          await expect(price).toBeVisible();
+          await expect(price).toContainText(/[¥$₹]/);
+          const bounds = await price.evaluate((el) => ({ left: el.getBoundingClientRect().left, right: el.getBoundingClientRect().right, viewport: window.innerWidth }));
+          expect(bounds.left).toBeGreaterThanOrEqual(-1);
+          expect(bounds.right).toBeLessThanOrEqual(bounds.viewport + 1);
+          expect(await wrapper.evaluate(el => el.scrollLeft)).toBe(0);
+        } else if (needsHorizontalScroll) {
           expect(before.scrollWidth).toBeGreaterThan(before.width);
           await wrapper.evaluate(el => { el.scrollLeft = el.scrollWidth; });
           await expect.poll(() => wrapper.evaluate(el => el.scrollLeft)).toBeGreaterThan(0);
         }
       }
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
       expect(errors).toEqual([]);
     });
   }

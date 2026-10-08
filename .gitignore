@@ -4,6 +4,7 @@ node_modules/
 .site-build/
 playwright-report/
 test-results/
+scratchpad/
 audit/ui-*.png
 audit/news/
 audit/benchmarks/

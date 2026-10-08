@@ -36,6 +36,23 @@ test("225组四维推荐满足资格、预算、工具和地区；升级/补充�
       check(pickerState.region === "all" || p.region === pickerState.region, label + " 地区不符");
       check(matchesTool(p, pickerState.tool), label + " 工具不符");
     };
+    const checkCards = () => {
+      renderPicker();
+      const cards = [...document.getElementById("quickGrid").children].filter(el => el.classList.contains("quick-card"));
+      const ids = [];
+      for (const card of cards) {
+        const reasons = card.querySelector(".qc-reasons");
+        check(!!reasons && reasons.children.length >= 1 && reasons.children.length <= 3, "卡片理由不在1–3条内");
+        const details = card.querySelector(".qc-details");
+        check(!!details && !details.open && details.getAttribute("open") == null, "购买详情未默认折叠");
+        check(!!card.querySelector(".qc-primary"), "缺少官网入口");
+        const id = card.querySelector("[data-view-plan]")?.dataset.viewPlan;
+        check(!!id && !ids.includes(id), "卡片重复同套餐或缺少权益入口");
+        ids.push(id);
+      }
+      check(Number(document.getElementById("quickGrid").dataset.cardCount) === cards.length, "卡片列数与内容不一致");
+      check(!/priceM|priceY|NaN|undefined/.test(document.getElementById("quickGrid").innerHTML), "内部字段/无效数字泄漏");
+    };
     for (const budget of ["0", "100", "200", "500", "any"])
     for (const region of ["all", "cn", "intl"])
     for (const tool of ["any", "claude", "codex", "cursor", "own"])
@@ -49,7 +66,8 @@ test("225组四维推荐满足资格、预算、工具和地区；升级/补充�
         check(cnyOf(x.p, "M") <= cap + 0.05, "候选超预算");
         check(budget === "0" ? x.p.priceM === 0 : x.p.priceM > 0, "候选免费/付费口径不符");
       }
-      if (!main) continue;
+      checkCards();
+      if (!main) { check(!!document.getElementById("quickGrid").querySelector(".picker-empty"), "无推荐时缺少原因"); continue; }
       check(pool.includes(main), "主计划超出候选池");
       check(task === "hard" ? !!main.headline : task === "daily" ? !!main.loose.length : !!(main.headline || main.loose.length), "主计划模型不符任务");
       const alternatives = alternativeProfiles(pool, main);
@@ -63,6 +81,7 @@ test("225组四维推荐满足资格、预算、工具和地区；升级/补充�
       if (next) {
         allowed(next.p, "升级 " + next.p.plan);
         check(next.p.vendor === main.p.vendor && cnyOf(next.p, "M") > cnyOf(main.p, "M"), "升级厂商/价格不符");
+        check(cnyOf(next.p, "M") <= upgradeBudgetCeiling() + 0.05, "升级跨过下一预算档");
       }
       const supplement = pickSupplement(main, pool).chosen;
       if (supplement) {
@@ -86,11 +105,12 @@ test("Pro无5h上限不触发Go Plus加购，平台免费及非编程订阅不�
     const result = app.run(`(() => {
       const plan = PLANS.find(p => p.vendor === "OpenAI" && p.priceM === ${price} && p.plan.startsWith("ChatGPT Pro"));
       const profile = planProfile(plan);
-      return { period: profile.windowPeriod, shared: profile.shared, card: dailyCard(profile, eligibleProfiles()), window: windowSentence(plan, profile.headline) };
+      return { period: profile.windowPeriod, shared: profile.shared, card: mainCard(profile, eligibleProfiles()), daily: dailyCard(profile, eligibleProfiles()), window: windowSentence(plan, profile.headline) };
     })()`);
     assert.equal(result.period, "none");
     assert.equal(result.shared, false);
-    assert.match(result.card, /已包含/);
+    assert.match(result.card, /日常已包含/);
+    assert.equal(result.daily, "", "已包含权益不应重复套餐和月费出第二卡");
     assert.doesNotMatch(result.card, /OpenCode Go Plus|可选补充|另付/);
     assert.match(result.window, /没有 5 小时上限/);
   }
@@ -174,6 +194,23 @@ test("付费主计划可配免费推理入口，合计预算和地区工具资�
   })()`);
   assert.ok(fixtureIds.includes("fixture-free"));
   for (const id of ["fixture-country", "fixture-byok", "fixture-team", "fixture-no-coding"]) assert.ok(!fixtureIds.includes(id), id);
+  healthy(app);
+});
+
+test("200元预算的升级最多到500元，538元档不出现为推荐且含价核查不泄漏字段", () => {
+  const app = createApp();
+  app.run('Object.assign(pickerState, { budget: "200", region: "cn", tool: "any", task: "hard" }); renderPicker();');
+  assert.equal(app.run("chooseMain(eligibleProfiles()).p.id"), "plan-0157");
+  assert.equal(app.run("upgradeBudgetCeiling()"), 500);
+  assert.equal(app.run("nextTier(chooseMain(eligibleProfiles()))"), null);
+  const grid = app.elements.get("quickGrid");
+  assert.doesNotMatch(grid.innerHTML, /GLM Coding V3 Pro|priceM|priceY/);
+  assert.match(grid.innerHTML, /页面月费|月付价|月费/);
+  assert.equal(grid.querySelectorAll(".qc-details[open]").length, 0);
+  assert.equal(grid.querySelectorAll(".qc-primary").length, Number(grid.dataset.cardCount) + grid.querySelectorAll(".picker-alternatives-grid .quick-card").length);
+  app.run('Object.assign(pickerState, { budget: "500" }); renderPicker();');
+  assert.equal(app.run("nextTier(chooseMain(eligibleProfiles())).p.id"), "plan-0158");
+  assert.match(grid.innerHTML, /高于当前预算/);
   healthy(app);
 });
 
@@ -287,6 +324,7 @@ test("真实推荐卡的对比按钮可操作且重绘后保留选择与自身�
   app.run('Object.assign(pickerState, { budget: "500", region: "cn", tool: "any", task: "both" }); renderPicker();');
   const grid = app.elements.get("quickGrid");
   const button = grid.querySelector(".cmp-add");
+  button.closest(".qc-details").open = true;
   const id = button.dataset.planId;
   app.fire(button, "click");
   assert.equal(app.run(`cmpState.items.some(p => p.id === ${JSON.stringify(id)})`), true);
@@ -296,6 +334,7 @@ test("真实推荐卡的对比按钮可操作且重绘后保留选择与自身�
   const replacement = grid.querySelector('.cmp-add[data-plan-id="' + id + '"]');
   assert.equal(button.isConnected, false);
   assert.equal(replacement.getAttribute("aria-pressed"), "true");
+  assert.equal(replacement.closest(".qc-details").open, true, "恢复焦点时入口必须保持展开可见");
   assert.equal(app.run("document.activeElement"), replacement);
   healthy(app);
 });

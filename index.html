@@ -16,7 +16,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%23b9ff00'/%3E%3Ctext%20x='16'%20y='22'%20font-family='monospace'%20font-size='15'%20font-weight='bold'%20text-anchor='middle'%20fill='%2310110f'%3E%26lt;/%26gt;%3C/text%3E%3C/svg%3E">
   <script>try{var __m=localStorage.getItem("cp-theme")||"system";var __d=matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.dataset.theme=__m==="system"?(__d?"dark":"light"):__m;}catch(e){}</script>
   <link rel="stylesheet" href="libs/fonts/fonts.css?v=17da4b4">
-  <link rel="stylesheet" href="css/style.css?v=40c7872">
+  <link rel="stylesheet" href="css/style.css?v=3fc26c1">
 </head>
 <body>
 <div id="loadFailure" class="load-failure" role="alert" hidden>
@@ -47,6 +47,14 @@
 </header>
 
 <main id="top">
+
+  <nav class="view-tabs" aria-label="内容标签">
+    <a class="view-tab active" href="#quick" data-site-view="compare" aria-current="page">选购对比</a>
+    <a class="view-tab" href="#benchmarks" data-site-view="benchmarks">模型评测</a>
+    <a class="view-tab" href="#updates" data-site-view="updates">数据维护</a>
+    <a class="view-tab" href="#sources" data-site-view="sources">来源说明</a>
+    <a class="view-tab" href="#contribute" data-site-view="contribute">提交纠错</a>
+  </nav>
 
   <!-- ======== Hero ======== -->
   <section class="hero">
@@ -120,7 +128,7 @@
   <section class="section" id="rank">
     <div class="section-head">
       <h2><span class="sec-no">02</span>每百万 tokens 实际成本排行</h2>
-      <p>月费 ÷ 月可用 tokens，越低越划算。默认只看旗舰模型，轻量模型不会因为 token 便宜排到第一。默认口径只列<strong>官方公布每周 tokens、且新用户当前可购买</strong>的计划；可切换「含官方折算」（credits 面值/系数/官方区间折算，≈标记）与「含全部估算」（第三方/请求折算）看到更多家的 Coding Plan，置信度在悬停里标注。</p>
+      <p>月费 ÷ 月可用 tokens，越低越划算。默认看旗舰模型与新用户可购买套餐，包含官方数据、官方折算及第三方估算。实心柱表示官方公布的高置信数据，斜纹柱表示折算或估算；不同依据的数值不能视为同样可靠。可收紧到「官方每周 tokens」核对。</p>
     </div>
     <div class="controls">
       <div class="chip-group" id="chipRank" role="group" aria-label="模型档">
@@ -128,15 +136,16 @@
         <button type="button" class="chip" data-rank="all" aria-pressed="false">含轻量模型</button>
       </div>
       <div class="chip-group" id="chipRScope" role="group" aria-label="排行口径">
-        <button type="button" class="chip active" data-rscope="official" aria-pressed="true">官方每周 tokens</button>
+        <button type="button" class="chip" data-rscope="official" aria-pressed="false">官方每周 tokens</button>
         <button type="button" class="chip" data-rscope="credits" aria-pressed="false">含官方折算</button>
-        <button type="button" class="chip" data-rscope="all" aria-pressed="false">含全部估算</button>
+        <button type="button" class="chip active" data-rscope="all" aria-pressed="true">含全部估算</button>
       </div>
+      <select id="rankVendor" class="select" aria-label="排行厂商"><option value="all">全部厂商</option></select>
     </div>
     <div class="chart-card"><div id="chartRank" class="chart"></div></div>
     <p class="chart-note" id="rankNote"></p>
-    <details class="method-box">
-      <summary>查看当前口径的完整排行明细</summary>
+    <details class="method-box" id="rankDetails">
+      <summary id="rankDetailsSummary">查看当前口径的完整排行明细</summary>
       <div class="table-wrap" tabindex="0" role="region" aria-label="成本排行明细，可横向滚动">
         <table id="rankDetailTable">
           <caption class="sr-only">与当前模型档和排行口径一致的全部套餐</caption>
@@ -169,13 +178,19 @@
         <option value="V3">V3（新版积分制）</option>
         <option value="V2">V2（老用户续费）</option>
       </select>
+      <select id="metricsTier" class="select" aria-label="额度表模型档">
+        <option value="flagship">只看旗舰</option><option value="all">含轻量模型</option>
+      </select>
+      <select id="metricsOffer" class="select" aria-label="额度表购买资格">
+        <option value="current">新用户可购买</option><option value="all">含历史与续费档</option>
+      </select>
       <span class="table-count" id="metricsCount" role="status" aria-live="polite"></span>
       <span class="table-sort-hint" id="metricsSortHint" role="status" aria-live="polite"></span>
       <button type="button" class="chip" id="metricsResetBtn">清除筛选</button>
       <button type="button" class="chip" id="metricsToggle">展开 5 小时 / 每周明细</button>
     </div>
     <div class="table-wrap metrics-wrap" tabindex="0" role="region" aria-label="额度对比表，可横向滚动">
-      <table id="metricsTable" class="is-compact">
+      <table id="metricsTable" class="is-compact" role="table">
         <thead>
           <tr>
             <!-- 列由 js/app-tables.js 的 METRICS_COLUMNS 生成（表头/排序/渲染同源） -->
@@ -184,6 +199,7 @@
         <tbody id="metricsBody"></tbody>
       </table>
     </div>
+    <button type="button" class="chip" id="metricsMoreBtn" hidden>显示更多额度记录</button>
     <p class="chart-note" id="metricsNote"></p>
     <details class="method-box">
       <summary>📐 方法论：官方没公布用量时，这些「≈估」行是怎么推算出来的？（6 种方法 + 3 个坑）</summary>
@@ -239,6 +255,7 @@
       <h2><span class="sec-no">05</span>团队 / 企业档（席位 / 整包价格）</h2>
       <p>按席位计费的团队与企业档（Claude Team、Copilot Business、Cursor Teams 等），以及云厂商企业级服务（AWS Q、Gemini Code Assist、阿里云灵码企业版、智谱 BigModel 团队版、百炼 Token Plan 团队版等）。标注「整包」的为按团队/账户整体计费（如 Roo Roomote 按团队规模、Augment Business 按账户），悬停可查看各自计价口径。云厂商面向个人的 API 套餐（腾讯云/百炼/方舟 Coding Plan 等）已归入上方「个人订阅价格全景」。</p>
     </div>
+    <p class="chart-note">按席位与整包分组，各组内按价格排序。横轴为对数刻度，每大格增长 10 倍；柱长不能解读为价格倍数。</p>
     <div class="chart-card"><div id="chartTeam" class="chart"></div></div>
   </section>
 
@@ -351,7 +368,7 @@
     </div>
     <p class="table-feedback" id="tableFeedback" role="status" aria-live="polite"></p>
     <div class="table-wrap" tabindex="0" role="region" aria-label="计划数据表，可横向滚动">
-      <table id="planTable">
+      <table id="planTable" role="table">
         <caption class="sr-only">公开标价记录、额度、模型与核价来源</caption>
         <thead>
           <tr>
@@ -364,6 +381,7 @@
         <tbody id="tableBody"></tbody>
       </table>
     </div>
+    <button type="button" class="chip" id="tableMoreBtn" hidden>显示更多记录</button>
   </section>
 
   <!-- ======== 10 重要动态 ======== -->
@@ -380,7 +398,8 @@
   </section>
 
   <section class="section" id="updates">
-    <div class="section-head"><h2><span class="sec-no">↻</span>数据可信与关注变更</h2><p>查看逐条核查、复查安排与已确认历史。<a href="changes.xml">订阅变更 RSS ↗</a></p></div>
+    <div class="section-head"><h2><span class="sec-no">11</span>数据可信与关注变更</h2><p>查看逐条核查、复查安排与已确认历史。<a href="changes.xml">订阅变更 RSS ↗</a></p></div>
+    <p id="maintenanceDataStatus" class="table-feedback optional-data-status" role="status" aria-live="polite"></p>
     <div class="maintenance-panel" id="maintenanceSummary"></div>
     <div class="maintenance-toolbar"><button type="button" class="chip" id="downloadPublicDataBtn">下载公开数据 JSON</button><span class="maintenance-meta">schemaVersion 1 · 价格、核查、已确认历史与测评规范</span></div>
     <p id="publicDataFeedback" class="table-feedback" role="status" aria-live="polite"></p>
@@ -404,7 +423,8 @@
   </section>
 
   <section class="section" id="benchmarks">
-    <div class="section-head"><h2><span class="sec-no">⌘</span>模型公开评测</h2><p>查看公开来源的模型分数、评测配置与范围。每个版本和协议独立展示，不合成跨榜总分。</p></div>
+    <div class="section-head"><h2><span class="sec-no">12</span>模型公开评测</h2><p>查看公开来源的模型分数、评测配置与范围。每个版本和协议独立展示，不合成跨榜总分。</p></div>
+    <p id="benchmarkDataStatus" class="table-feedback optional-data-status" role="status" aria-live="polite"></p>
     <div class="maintenance-panel public-benchmark-panel">
       <div class="public-benchmark-controls">
         <label class="maintenance-select" for="publicBenchmarkFamily">评测用途<select id="publicBenchmarkFamily"></select></label>
@@ -421,7 +441,7 @@
       <div class="table-wrap public-benchmark-wrap" id="publicBenchmarkWrap" tabindex="0" role="region" aria-label="公开模型评测成绩，窄屏可横向滚动">
         <table id="publicBenchmarkTable"><caption id="publicBenchmarkCaption">公开模型评测</caption><thead><tr><th scope="col">本协议名次</th><th scope="col">模型与配置</th><th scope="col">分数</th><th scope="col">评测每任务成本</th><th scope="col">来源与核查</th></tr></thead><tbody id="publicBenchmarkBody"></tbody></table>
       </div>
-      <p class="maintenance-meta">成绩沿用来源中的准确模型名称、推理与 Agent 配置；同一模型的不同配置是不同记录。费用是官方评测每任务成本，不能当成订阅月费；未公布的费用、Tokens 或 Steps 不补为 0。</p>
+      <p class="maintenance-meta">分数显示到 1 位小数，成本显示到 2 位；导出保留原始精度。区间沿用来源，接近的分数不代表可靠领先；未公布的区间不补算。套餐链接只匹配模型列表明确列出该版本的在售档位，不保证订阅能使用评测的推理与 Agent 配置。原始模型 ID 与完整区间在「配置与评测说明」中。</p>
     </div>
     <details class="method-box public-benchmark-guide"><summary>这些榜单适合回答什么问题？</summary><p>DeepSWE 与 CursorBench 聚焦代码任务，但各自的任务集、Agent、评分与版本不同，应在同一协议内比较。OSWorld 是图形界面操作任务，关注桌面与应用交互；HLE 是综合学术题目，关注知识与推理。GUI 或学术分数不能直接当成编程任务表现。</p><p>请同时查看版本、样本范围、是否使用工具及推理配置。分数说明来源中的评测条件，不保证你的具体任务、工具或套餐能获得同样结果。</p></details>
     <details class="method-box" id="contributorBenchmarkTools"><summary>贡献者工具：任务验收与记录提交（可选）</summary>
@@ -441,9 +461,10 @@
   </section>
 
   <section class="section" id="contribute">
-    <div class="section-head"><h2><span class="sec-no">＋</span>帮助补全与纠错</h2><p>提交新厂商、官方变更证据或可复现测评，帮助其他人做选择。</p></div>
+    <div class="section-head"><h2><span class="sec-no">13</span>帮助补全与纠错</h2><p>提交新厂商、官方变更证据或可复现测评，帮助其他人做选择。</p></div>
     <div class="maintenance-panel">
       <label class="maintenance-select" for="contributionType">贡献类型<select id="contributionType"><option value="correction">套餐纠错与更新</option><option value="vendor">收录新厂商 / 套餐</option><option value="benchmark">真实任务测评</option></select></label>
+      <p id="contributionDataStatus" class="table-feedback optional-data-status" role="status" aria-live="polite" hidden></p>
       <p id="contributionProjectNote"></p>
       <div class="maintenance-toolbar"><button type="button" class="chip" id="copyContributionBtn">复制证据模板</button><button type="button" class="chip" id="downloadContributionBtn">下载模板</button><a class="chip" id="contributionIssueLink" target="_blank" rel="noopener" hidden>前往项目 Issues ↗</a></div>
       <p id="contributionFeedback" class="table-feedback" role="status" aria-live="polite"></p>
@@ -453,7 +474,7 @@
 
   <!-- ======== 11 数据来源与说明 ======== -->
   <section class="section" id="sources">
-    <div class="section-head"><h2><span class="sec-no">11</span>数据来源与说明</h2></div>
+    <div class="section-head"><h2><span class="sec-no">14</span>数据来源与说明</h2></div>
     <div class="grid-2">
       <div class="source-card" id="sourceList"></div>
       <div class="source-card">
@@ -512,20 +533,20 @@
 </footer>
 
 <template id="chartLibraryTemplate"><script src="libs/echarts.min.js?v=14c5497"></script></template>
-<script src="js/app-loader.js?v=dcdaf05"></script>
+<script src="js/app-loader.js?v=0127d10"></script>
 <script src="js/data.js?v=7656a9e"></script>
-<script src="js/maintenance-data.js?v=9cad292"></script>
-<script src="js/benchmark-data.js?v=08b3c8e"></script>
-<script src="js/project-data.js?v=1ce1b74"></script>
+<script id="maintenanceDataSource" type="application/json" src="js/maintenance-data.js?v=9cad292"></script>
+<script id="benchmarkDataSource" type="application/json" src="js/benchmark-data.js?v=08b3c8e"></script>
+<script src="js/project-data.js?v=b9931ec"></script>
 <script src="js/metrics.js?v=436b915"></script>
-<script src="js/app-core.js?v=483f84d"></script>
-<script src="js/app-state.js?v=bf00610"></script>
-<script src="js/app-charts.js?v=bca4828"></script>
-<script src="js/app-picker.js?v=3ff4aa3"></script>
-<script src="js/app-tables.js?v=2b46fe1"></script>
-<script src="js/app-service.js?v=29b2964"></script>
-<script src="js/app-maintenance.js?v=d17b491"></script>
-<script src="js/app-events.js?v=c3c6f7f"></script>
-<script src="js/app-init.js?v=e16df2f"></script>
+<script src="js/app-core.js?v=b4c5505"></script>
+<script src="js/app-state.js?v=6b9cf23"></script>
+<script src="js/app-charts.js?v=8ad440c"></script>
+<script src="js/app-picker.js?v=9058c4d"></script>
+<script src="js/app-tables.js?v=a6d53ec"></script>
+<script src="js/app-service.js?v=797ae59"></script>
+<script src="js/app-maintenance.js?v=db63a71"></script>
+<script src="js/app-events.js?v=56dd9ad"></script>
+<script src="js/app-init.js?v=a22280e"></script>
 </body>
 </html>
