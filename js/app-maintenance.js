@@ -8,6 +8,7 @@ let followStorageMessage = "";
 let maintenancePlanId = "";
 let maintenanceRecordFilter = "all";
 let benchmarkFilter = { task: "all", tool: "all", model: "all" };
+let publicBenchmarkState = { id: "deepswe-v1-1", family: "", search: "", mode: "best" };
 
 /** @returns {MaintenanceSnapshot} */
 function maintenanceData() {
@@ -20,6 +21,115 @@ function benchmarkData() {
   return typeof BENCHMARKS !== "undefined" && BENCHMARKS.schemaVersion === 1
     ? /** @type {BenchmarkSnapshot} */ (BENCHMARKS)
     : { schemaVersion: 1, generatedAt: "", tasks: [], runs: [], methodology: "" };
+}
+/** @returns {PublicBenchmarkSnapshot} */
+function publicBenchmarkData() {
+  const data = benchmarkData().public;
+  return data && data.schemaVersion === 1 ? data : { schemaVersion: 1, checkedAt: "", benchmarks: [], scores: [] };
+}
+function selectedPublicBenchmark() {
+  const all = publicBenchmarkData().benchmarks;
+  const rows = publicBenchmarkState.family ? all.filter((b) => b.family === publicBenchmarkState.family) : all;
+  return rows.find((b) => b.id === publicBenchmarkState.id) || defaultPublicBenchmarkForFamily(publicBenchmarkState.family, rows);
+}
+function defaultPublicBenchmarkForFamily(family, rows) {
+  const preferred = { osworld: "osworld-2-25443e96866dc9ce", hle: "hle-diamond-2026-high-closed-book-multimodal", deepswe: "deepswe-v1-1" }[String(family || "deepswe").toLowerCase()];
+  return rows.find((b) => b.id === preferred) || rows[0] || null;
+}
+function publicBenchmarkFamilyLabel(family) {
+  return { deepswe: "DeepSWE · 编程", cursorbench: "CursorBench · 编程", "swe-bench": "SWE-bench · 编程", osworld: "OSWorld · GUI 操作", hle: "HLE · 综合学术" }[family.toLowerCase()] || family;
+}
+function syncPublicBenchmarkChoices() {
+  const protocols = publicBenchmarkData().benchmarks, selected = selectedPublicBenchmark();
+  if (selected) { publicBenchmarkState.id = selected.id; publicBenchmarkState.family = selected.family; }
+  const family = byId("publicBenchmarkFamily");
+  if (family) {
+    const order = ["deepswe", "cursorbench", "swe-bench", "osworld", "hle"];
+    family.innerHTML = [...new Set(protocols.map((b) => b.family))].sort((a, b) => order.indexOf(a.toLowerCase()) - order.indexOf(b.toLowerCase())).map((f) => `<option value="${esc(f)}">${esc(publicBenchmarkFamilyLabel(f))}</option>`).join("");
+    family.value = publicBenchmarkState.family;
+  }
+  const select = byId("publicBenchmarkSelect");
+  if (select) {
+    select.innerHTML = `<optgroup label="${esc(publicBenchmarkFamilyLabel(publicBenchmarkState.family || "评测协议"))}">` + protocols.filter((b) => b.family === publicBenchmarkState.family).map((b) => `<option value="${esc(b.id)}">${esc(b.name)} · ${esc(b.version)}</option>`).join("") + `</optgroup>`;
+    if (selected) select.value = selected.id;
+  }
+}
+function publicBenchmarkRows() {
+  const benchmark = selectedPublicBenchmark(); if (!benchmark) return [];
+  /* 同一评测协议中的名次固定；搜索只筛行，不把第十名显示成第一名。 */
+  let sorted = publicBenchmarkData().scores.filter((r) => r.benchmarkId === benchmark.id && typeof r.score === "number" && Number.isFinite(r.score))
+    .slice().sort((a, b) => b.score - a.score || a.model.localeCompare(b.model));
+  if (publicBenchmarkState.mode !== "all") {
+    const seen = new Set();
+    sorted = sorted.filter((r) => { if (seen.has(r.model)) return false; seen.add(r.model); return true; });
+  }
+  let rank = 0, previousScore = null;
+  const ranked = sorted.map((r, i) => { if (previousScore !== r.score) rank = i + 1; previousScore = r.score; return { ...r, rank }; });
+  const q = publicBenchmarkState.search.trim();
+  return q ? ranked.filter((r) => queryHit(foldSearch([r.model, r.reasoning, r.agent].filter(Boolean).join(" ")), q)) : ranked;
+}
+function publicBenchmarkSource(url, label) {
+  const href = typeof url === "string" && /^https:\/\//i.test(url) ? safeHref(url) : "";
+  return href ? `<a href="${href}" target="_blank" rel="noopener" tabindex="0">${esc(label)} ↗</a>` : "来源未公布";
+}
+function publicScoreText(score, unit) { return Number(score.toFixed(3)) + unit; }
+function publicBenchmarkDate(value) {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}/.test(value) ? value.slice(0, 10) : value || "未公布";
+}
+function publicBenchmarkConfiguration(row) {
+  return [row.reasoning ? "推理：" + row.reasoning : "推理配置未公布", row.agent ? "Agent：" + row.agent : "Agent 配置未公布", "Tokens：" + (row.tokens == null ? "未公布" : row.tokens), "Steps：" + (row.steps == null ? "未公布" : row.steps)].join("；");
+}
+function renderPublicBenchmarks() {
+  const meta = byId("publicBenchmarkMeta"), body = byId("publicBenchmarkBody"), empty = byId("publicBenchmarkEmpty"), table = byId("publicBenchmarkWrap");
+  if (!meta || !body || !empty || !table) return;
+  const benchmark = selectedPublicBenchmark(), rows = publicBenchmarkRows();
+  const select = byId("publicBenchmarkSelect");
+  if (benchmark) { publicBenchmarkState.id = benchmark.id; publicBenchmarkState.family = benchmark.family; if (select) select.value = benchmark.id; }
+  meta.innerHTML = benchmark ? `<h3>${esc(benchmark.name)}</h3><p>${esc(benchmark.description)}</p><dl class="public-benchmark-meta"><div><dt>版本与协议</dt><dd>${esc(benchmark.version)} · <code>${esc(benchmark.id)}</code></dd></div><div><dt>指标与范围</dt><dd>${esc(benchmark.metric)}（${esc(benchmark.unit)}） · ${esc(benchmark.scope)}</dd></div><div><dt>评测配置</dt><dd>${esc(benchmark.configuration)}</dd></div><div><dt>官方标注日期与核查</dt><dd>官方标注 ${esc(publicBenchmarkDate(benchmark.sourceUpdatedAt))} · 本站核查 ${esc(publicBenchmarkDate(benchmark.checkedAt))} · ${publicBenchmarkSource(benchmark.sourceUrl, "原始评测")}</dd></div></dl>` : "<p>公开评测数据暂未加载，请刷新重试。</p>";
+  const count = byId("publicBenchmarkCount");
+  if (count) count.textContent = benchmark ? `${rows.length} 条匹配记录 · ${publicBenchmarkState.mode === "all" ? "全部已公布配置" : "每模型最佳已公布配置"} · 本协议分数降序` : "暂无公开记录";
+  const modeNote = byId("publicBenchmarkModeNote");
+  if (modeNote) modeNote.textContent = publicBenchmarkState.mode === "all" ? "同一模型的不同推理与 Agent 配置分别列出；名次仅适用于当前协议，搜索不改变原名次。" : "每个准确模型名称取当前协议已公布配置中的最高分；同分保留来源首项。名次在本协议这些配置中计算，搜索不改变原名次；切换「全部配置」可查看其他配置。";
+  const caption = byId("publicBenchmarkCaption"); if (caption) caption.textContent = benchmark ? `${benchmark.name} · ${benchmark.metric} · ${benchmark.scope}` : "公开模型评测";
+  body.innerHTML = rows.map((r) => `<tr><td class="public-score-rank">${r.rank}</td><th scope="row"><strong>${esc(r.model)}</strong><span class="public-score-config">${esc([r.reasoning ? "推理：" + r.reasoning : "推理未公布", r.agent ? "Agent：" + r.agent : "Agent 未公布"].join(" · "))}</span><details class="public-score-more"><summary>配置与评测说明</summary><p>${esc(publicBenchmarkConfiguration(r))}</p>${r.uncertainty ? `<p>区间 / 不确定性：${esc(r.uncertainty)}</p>` : ""}<p>${esc(r.costNote || "评测每任务成本；来源未提供其他费用说明。未公布费用不能记作零，也不能换算为订阅月费。")}</p></details></th><td class="public-score-value">${esc(publicScoreText(r.score, benchmark.unit))}</td><td>${r.costUSD == null ? "未公布" : "$" + esc(Number(r.costUSD.toFixed(4)))}</td><td>${publicBenchmarkSource(r.sourceUrl, "成绩来源")}<span class="public-score-config" title="${esc(r.checkedAt)}">核查 ${esc(publicBenchmarkDate(r.checkedAt))}</span></td></tr>`).join("");
+  empty.hidden = rows.length > 0; table.hidden = !rows.length;
+  empty.textContent = benchmark ? "当前协议没有匹配的模型或配置。请调整关键词，或清除搜索。" : "公开数据暂不可用；本站不会用本地验收示例填充模型分数。";
+  const reset = byId("publicModelClearBtn"); if (reset) reset.disabled = !publicBenchmarkState.search;
+  const csv = byId("downloadPublicBenchmarkCsvBtn"); if (csv) csv.disabled = !rows.length;
+  const json = byId("downloadPublicBenchmarkJsonBtn"); if (json) json.disabled = !publicBenchmarkData().benchmarks.length;
+}
+function publicBenchmarkCsv() {
+  const benchmark = selectedPublicBenchmark(); if (!benchmark) return "";
+  const columns = ["协议 ID", "评测", "版本", "范围", "协议配置", "展示模式", "名次", "模型", "推理配置", "Agent", "分数", "单位", "官方评测每任务成本 USD", "成本说明", "不确定性", "Tokens", "Steps", "成绩来源", "核查日期", "协议来源", "官方标注日期"];
+  const cell = (value) => { let s = String(value ?? ""); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return '"' + s.replace(/"/g, '""') + '"'; };
+  return [columns.map(cell).join(","), ...publicBenchmarkRows().map((r) => [benchmark.id, benchmark.name, benchmark.version, benchmark.scope, benchmark.configuration, publicBenchmarkState.mode === "all" ? "全部已公布配置" : "每模型最佳已公布配置", r.rank, r.model, r.reasoning, r.agent, r.score, benchmark.unit, r.costUSD, r.costNote, r.uncertainty, r.tokens, r.steps, r.sourceUrl, r.checkedAt, benchmark.sourceUrl, benchmark.sourceUpdatedAt].map(cell).join(","))].join("\r\n");
+}
+function downloadPublicBenchmarkCsv() {
+  const benchmark = selectedPublicBenchmark(); if (!benchmark || !publicBenchmarkRows().length) return;
+  downloadCsvText(publicBenchmarkCsv(), `coding-plan-benchmark-${benchmark.id}.csv`);
+  const feedback = byId("publicBenchmarkFeedback"); if (feedback) feedback.textContent = `已导出当前协议的 ${publicBenchmarkRows().length} 条筛选结果，配置、来源与费用口径已保留。`;
+}
+function downloadPublicBenchmarkJson() {
+  const data = publicBenchmarkData(); if (!data.benchmarks.length) return;
+  downloadTextFile(JSON.stringify(data, null, 2) + "\n", "coding-plan-public-benchmarks.json", "application/json;charset=utf-8");
+  const feedback = byId("publicBenchmarkFeedback"); if (feedback) feedback.textContent = "已导出全部公开评测协议与原始成绩；未包含本机关注或投稿资料。";
+}
+function bindPublicBenchmarkEvents() {
+  const select = byId("publicBenchmarkSelect"), search = byId("publicModelSearch");
+  syncPublicBenchmarkChoices();
+  const family = byId("publicBenchmarkFamily"); if (family) family.addEventListener("change", () => {
+    if (!publicBenchmarkData().benchmarks.some((b) => b.family === family.value)) return;
+    publicBenchmarkState.family = family.value; publicBenchmarkState.id = "";
+    syncPublicBenchmarkChoices(); renderPublicBenchmarks();
+  });
+  if (select) {
+    select.addEventListener("change", () => { if (publicBenchmarkData().benchmarks.some((b) => b.id === select.value)) publicBenchmarkState.id = select.value; renderPublicBenchmarks(); });
+  }
+  if (search) search.addEventListener("input", () => { publicBenchmarkState.search = search.value.slice(0, 200); renderPublicBenchmarks(); });
+  const mode = byId("publicBenchmarkMode"); if (mode) mode.addEventListener("change", () => { publicBenchmarkState.mode = mode.value === "all" ? "all" : "best"; renderPublicBenchmarks(); });
+  const clear = byId("publicModelClearBtn"); if (clear) clear.addEventListener("click", () => { publicBenchmarkState.search = ""; if (search) search.value = ""; renderPublicBenchmarks(); focusTableControl(search); });
+  [["downloadPublicBenchmarkCsvBtn", downloadPublicBenchmarkCsv], ["downloadPublicBenchmarkJsonBtn", downloadPublicBenchmarkJson]].forEach(([id, handler]) => { const button = byId(id); if (button) button.addEventListener("click", handler); });
+  renderPublicBenchmarks();
 }
 function cleanFollowState(value) {
   const planIds = new Set(PLANS.map((p) => p.id));
@@ -177,7 +287,7 @@ function renderBenchmarks() {
   const el = byId("benchmarkResults"); if (!el) return;
   const data = benchmarkData();
   const rows = data.runs.filter((r) => (benchmarkFilter.task === "all" || r.taskId === benchmarkFilter.task) && (benchmarkFilter.tool === "all" || r.tool === benchmarkFilter.tool) && (benchmarkFilter.model === "all" || r.model === benchmarkFilter.model));
-  el.innerHTML = rows.length ? `<p>符合条件 ${rows.length} 条解答记录。不同任务、环境与币种分别展示，不合并成成功率或性能排名。</p><ul class="benchmark-runs">${rows.map(benchmarkRunHtml).join("")}</ul>` : `<p class="benchmark-empty">${data.runs.length ? "当前筛选没有测评记录。" : "尚未公布真实模型测评结果。下面提供可复现任务与验收规范；未测量的费用、时间和结果不填充为分数。"}</p>`;
+  el.innerHTML = rows.length ? `<p>符合条件 ${rows.length} 条贡献者解答记录。不同任务、环境与币种分别展示，不合并成成功率或性能排名。</p><ul class="benchmark-runs">${rows.map(benchmarkRunHtml).join("")}</ul>` : `<p class="benchmark-empty">${data.runs.length ? "当前筛选没有贡献者记录。" : "尚未收录贡献者任务记录。这里的验收工具用于复现提交的单份解答，未测量的数据不填充分数。"}</p>`;
   const tasks = byId("benchmarkTasks");
   if (tasks) tasks.innerHTML = data.tasks.filter((t) => benchmarkFilter.task === "all" || t.id === benchmarkFilter.task).map((t) => `<details class="method-box"><summary>${esc(t.title)}</summary><p>${esc(t.description)}</p><p><strong>验收条件：</strong>${esc(benchmarkText(t.acceptance))}</p><p>任务标识：<code>${esc(t.id)}</code></p></details>`).join("");
   const method = byId("benchmarkMethodology"); if (method) method.textContent = benchmarkText(data.methodology);
@@ -237,5 +347,5 @@ function bindMaintenanceEvents() {
     const target = evtTarget(e); if (!target || !target.closest) return;
     const watch = target.closest("[data-watch-plan]"); if (watch) toggleFollowPlan(watch.dataset.watchPlan);
   });
-  renderBenchmarks(); renderContribution();
+  bindPublicBenchmarkEvents(); renderBenchmarks(); renderContribution();
 }

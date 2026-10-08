@@ -2,7 +2,7 @@
 
 国内外在售 AI Coding Plan（编程订阅计划）的价格与 token 额度可视化对比页面。
 
-正式网站：[Coding Plan 全球比价中心](https://coding-plan-comparison-tau.vercel.app/)。面向用户提供预算推荐、完整权益、并排对比、免费入口及 API 工作量费用估算；面向维护者保留逐条核价证据和回归检查。
+正式网站：[Coding Plan 全球比价中心](https://coding-plan-comparison-tau.vercel.app/)。面向用户提供预算推荐、完整权益、并排对比、免费入口、API 工作量费用估算及有来源的模型公开评测；面向维护者保留逐条核价证据和回归检查。
 
 ## 数据覆盖
 
@@ -12,6 +12,8 @@
 - **API 按量计费**：36 款主流编程模型的输入/输出单价（USD 与 CNY 原币，统一折算对比）
 
 数据版本：**2026-10-06**；覆盖 57 家厂商、212 档订阅计划、27 个免费档（其中 20 个是编程工具免费档或免费模型入口）、84 行套餐额度深度对比（官方数据 + 标注置信度的估算）、36 行 API 定价，另有 10 行 API 按量对照。工具免费档中，BYOK/按量推理的费用会单独注明。页面与导出的更新日期指整份数据的版本日期；每条价格另记官网核查日期和结果。
+
+模型公开评测独立于价格版本：**2026-10-08 核查**，5 类评测、85 个独立协议、438 条成绩（DeepSWE 70、CursorBench 68、OSWorld 224、HLE 46、SWE-bench 30）。同一模型的多个配置和 OSWorld 的完整/部分得分均各算一条，不表示 438 个模型；版本、样本分母、工具与步骤预算不同不混排。
 
 ## 逐条价格核查
 
@@ -120,12 +122,44 @@ npm run bump
 | 数据可信 | 增量核价、真实差异历史、复核日历、来源健康与持久审核队列 | 核心套餐核查时效、连续失败、待审积压和纠错时长 |
 | 选购决策 | 推荐理由、工具与资格说明、预算耗尽建议及工作量费用计算 | 用用户的真实工作量检查解释是否有用，未知权益继续标未知 |
 | 新品协作 | 中英文开放发现、未知厂商保留、贡献与纠错模板 | 每周做一次不限厂商的搜索，及时核实新产品身份和官方价格 |
-| 任务测评 | 三项固定代码任务、独立验收、记录校验与审核导入、页面筛选 | 增加真实模型记录，公开提示词、工具环境、日期与费用口径 |
+| 模型评测 | 官方公开榜单抓取、协议分表、准确模型与推理配置、来源日期、CSV/JSON 导出；保留贡献者任务验收 | 每周检查公开榜单更新与来源故障；有真实生成证据后补本机任务记录 |
 | 回访服务 | 本机关注套餐、未读变更摘要、已读操作、变更 RSS | 只提供有意义的变更，避免重复“无变化”通知 |
 
 保持静态前端与现有校验器，把采集状态、待审材料和正式数据分别保存；多人协作和历史查询确有需求后再考虑数据库。推荐规则与估算口径公开，推广或赞助应披露，不能暗改排序。
 
-### 如何跑真实任务测评
+### 模型公开评测如何更新
+
+[模型公开评测](https://coding-plan-comparison-tau.vercel.app/#benchmarks) 展示评测发布方的实际公开成绩。默认展示 DeepSWE，在当前协议内可选每个准确模型已公布的最佳配置或全部配置，再搜索模型/推理档位/Agent。最佳配置只指该榜已测配置中的最高分，不保证适合所有任务；不把不同评测平均成综合排名，也不据此保证某个 Coding Plan 包含该版本模型。
+
+| 指标 | 第一方入口 | 本站保留的口径 |
+|---|---|---|
+| DeepSWE v1.1 | [Datacurve](https://deepswe.datacurve.ai/) | 113 个长程编程任务、pass@1、mini-swe-agent、各推理档位与置信区间；这里是评测名，不是同名开源模型 |
+| CursorBench | [Cursor 官方评测](https://cursor.com/evals) | 当前 4.0 任务正确性、各推理档位；内部任务/Agent 配置未完全公开，不能声称本站可复现其运行 |
+| OSWorld | [Verified](https://osworld-v1.xlang.ai/)、[2.0](https://osworld-v2.xlang.ai/) | 桌面操作任务；版本、实际样本数、步数、工具、单次/多次尝试分表，2.0 完整完成与部分得分分别展示 |
+| Humanity's Last Exam | [CAIS](https://lastexam.ai/)、[Diamond](https://lastexam.ai/blog/hle-diamond) | 专家知识与推理；原版/Diamond、纯文本/多模态、high/max、无工具/web+code 分表 |
+| SWE-bench Verified | [官方 Bash Only 榜](https://www.swebench.com/) | 500 个 issue 修复任务；仅 mini-SWE-agent、单次尝试及官方团队运行/核验行，小版本逐行标注 |
+
+HLE 原版目前采用 CAIS 官网页面上的历史量化表，试题更新日为 2025-04-03；这不是最新全模型 HLE 榜。Diamond 是另一套题，不能用它的分数替代原版。Scale 的 HLE 页面对脚本返回访问限制时，不用缓存搜索摘要冒充最新成绩。OSWorld 衡量电脑操作，HLE 衡量综合知识/推理；选编程模型时优先查看 DeepSWE、CursorBench 与 SWE-bench，并结合模型在套餐中的可用资格。
+
+采集脚本见 [scripts/benchmarks/public-scores.js](scripts/benchmarks/public-scores.js)。它从固定的第一方页面发现同源 JSON/JS 数据块，DeepSWE 用公开 JSON 与官方价格修正表，CursorBench 安全读取 TypeScript AST 中的数据字面量，OSWorld Verified 在内存中读取受限 XLSX，其他榜单读取官方 JSON/SSR 数据。不会执行远程脚本，也不调用收费模型 API。新模型只要出现在这些官方榜单中，就会被抓取，不受订阅厂商列表限制；新增评测来源或未知协议需要扩展 adapter、官方域名登记和回归测试。
+
+```bash
+npm run benchmark:collect
+# 查看 latest.json 的成绩、diff.json 的新增/变化/撤回和 health.json 的失败
+# 访问原始官方榜单核对版本、配置、费用口径与真实数字，再登记审核
+npm run benchmark:publish -- --input audit/benchmark-sources/latest.json --reviewer 维护者 --reason "已逐榜核对官方成绩、配置及来源日期"
+npm run benchmark:validate
+npm run benchmark:build
+npm test
+npm run bump
+npm run cache:check
+```
+
+`collect` 只写忽略目录 `audit/benchmark-sources/`，保留原始下载 SHA-256、完整历史候选和来源连续失败；变化比较按协议/精确模型/推理/Agent 的稳定 ID，日期刷新不会冒充成绩变化。任何必需来源失败或格式改变均返回非零码，保留正式数据与上一份完整候选。`publish` 要求审核者、理由及哈希匹配的原始证据，然后原子替换 `benchmarks/public-results.json`；`benchmark:build` 生成浏览器可离线读取的 `BENCHMARKS.public`，`benchmark:check` 在 CI 只读核对产物。采集不直接提交或部署；[手动采集工作流](.github/workflows/benchmark-collect.yml) 可在配置远程仓库后下载待审材料。
+
+核查日期是本站本次下载/核对时间，官方更新日另记；未公布的运行日、工具、费用或样本数保留未知。费用列属于评测任务或 rollout 的官方成本，DeepSWE 的部分模型按官网当前价格修正表折算，CursorBench 按公布的 token 价格计算；不把原始费用、折算费用或未知费用混为真实账单，不等同订阅月费。不跨模型/协议推断未公布的成绩，也不把空值补成零。
+
+### 贡献者如何跑本机任务验收
 
 固定任务在 benchmarks/tasks.json，起始代码与验收在 benchmarks/fixtures/。先把某项任务的 solution.cjs 复制到单独目录，记录相同提示词、模型/工具版本和实际生成过程，由选定模型修复，再执行：
 
@@ -137,7 +171,7 @@ npm run benchmark:validate
 npm run benchmark:build
 ```
 
-示例费用仅演示参数，不能当作测评结果。命令只验收本机可信解答，不联网调用模型；导入至少需要 3 次验收、任务/解答哈希、环境、公开 HTTPS 证据和维护者审核。生成耗时由贡献者记录；同一解答重复验收的平均运行时间单独显示，不能算独立模型尝试或模型成功率。API 使用生成该解答的真实账单；订阅内/未知费用用 costBasis=included-subscription/unknown，cost 为 null，不当作免费。当前没有发布真实模型测评记录，不生成排行榜或虚构样本。验收执行解答代码，仅使用主动选择的可信本机目录。
+示例费用仅演示参数，不能当作测评结果。命令只验收本机可信解答，不联网调用模型；导入至少需要 3 次验收、任务/解答哈希、环境、公开 HTTPS 证据和维护者审核。生成耗时由贡献者记录；同一解答重复验收的平均运行时间单独显示，不能算独立模型尝试或模型成功率。API 使用生成该解答的真实账单；订阅内/未知费用用 costBasis=included-subscription/unknown，cost 为 null，不当作免费。当前本机贡献者记录仍为空，入口折叠在公开评测下方；公开榜单中的成绩来自评测发布方，不是本站运行。验收执行解答代码，仅使用主动选择的可信本机目录。
 
 ## 使用方式
 
@@ -170,7 +204,7 @@ npm run serve
 9. **数据表**：公开标价记录（164 档，含明确标注的待核历史价），支持搜索/筛选/排序及核查来源
 10. **重要动态**：已核对的行业与套餐消息
 11. **核查与变更服务**：核查时效、复核日历、历史变化、本机关注与 RSS
-12. **任务测评**：固定任务与真实测评记录
+12. **模型公开评测**：DeepSWE、CursorBench、OSWorld、HLE 与 SWE-bench 的官方成绩，按协议筛选及导出；附折叠的贡献者本机验收工具
 13. **贡献入口**：纠错、新厂商和测评模板
 14. **数据来源 + 不确定性说明**
 
@@ -201,7 +235,7 @@ npm run serve
 | `config/news-sources.json` / `review-calendar.json` | 官方监测、开放发现与有来源的复核日历 |
 | `js/app-maintenance.js` / `*-data.js` | 时效、变更、关注、贡献和测评服务及生成的公共数据 |
 | `scripts/maintenance/` / `data/` | 维护摘要、真实变更历史、RSS 构建与回归 |
-| `scripts/benchmarks/` / `benchmarks/` | 固定任务、验收记录、审核导入与公共测评构建 |
+| `scripts/benchmarks/` / `benchmarks/` | 官方公开评测 adapter、带哈希证据的采集/审核、public-results.json 快照、固定任务验收与公共测评构建 |
 | `scripts/tests/` | Node 回归套件：metrics / data-regressions / app-{history,picker,charts,tables,service} / server / tools / pricing / pricing-sync / news / runners；共享页面替身在 app-harness.js；Chromium、Firefox、WebKit 用例在 scripts/tests/browser/ |
 | `audit/` | 258 条价格的原始库存、分组官网证据与 JSON/CSV 合并台账；不复制到公共部署产物 |
 
@@ -214,7 +248,7 @@ npm run serve
 - **单一数据源**：类别色走 CSS 变量 `--cat-*`（JS 的 `refreshCategoryColors()` 在主题切换时重读）；数据表正文、CSV 与 Markdown 共享 `PLAN_COLUMNS`，各渠道按配置选列；额度表的列定义只在 `METRICS_COLUMNS` 一处。已有继承权益均通过 `fieldRefs` 的永久 ID 明确目标，新增继承也填写目标 ID，追加权益保留且循环引用安全中止。解析器保留旧文本名称及「同上」相邻位置的兼容能力，不用它们建立新数据引用。
 - **推荐元数据**：`windowPeriod` 与 `quotaSharing` 分别描述重置周期与模型额度是否共享，缺省表示未知；`codingSurface`、`includedModelQuota`、`modelAccess` 与 `purchaseCountries` 分别描述编程入口、是否包含推理、自备模型和国家限定资格。`modelBaseRef` 通过计划引用继承模型，`modelIncludes`/`modelExcludes` 显式补充和排除模型，`ownClient` 明确自家编程入口；校验器检查字段类型、引用及混合继承环。填有依据的事实，未知情况不靠条数或文案猜测。月 credits 及无 5h 上限的套餐不生成虚假的 5h 额度，官方与估算的重复周额度按稳定引用去重。
 - **缓存版本号**：`npm run bump` 自动发现 HTML 本地资源和 CSS 的字体/导入依赖；先给依赖生成内容哈希，再更新 CSS 与 HTML 的 `?v=`。全部资源验证后才写入，替换中途失败会回滚。缺文件、越界、私有/隐藏目录（包括链接的真实目标）、非法编码或循环 CSS 引用会失败。`npm run cache:check` 只读验证，CI 不修改仓库；`.gitattributes` 固定文本检出为 LF，避免 Windows/Linux 的换行差异改变资源哈希。
-- **开发环境与校验**：Node.js 20+，首次运行 `npm ci`。开发依赖固定版本并提交 lockfile。`npm run typecheck` 分别使用浏览器 `jsconfig.json` 与工具/测试 `jsconfig.node.json`；新增页面脚本自动纳入，不需手改命令。`npm run validate` 检查数据结构、引用、有限数字、日期和价格区间；同一套规则可校验内存候选源码。`npm run test` 执行 16 个 Node 套件，包含额度公式、真实数据、VM 用户流程、HTTP 服务、审计无效输入/幂等/失败回滚、资讯采集解析/新厂商/缓存/失败处理、字体去重/失败回滚、缓存与公共产物回归。`npm run test:browser` 对 Chromium、Firefox、WebKit 运行同一批真实浏览器用例，覆盖图表、历史导航、服务功能及桌面/手机布局。CI 在 Linux 与 Windows 安装三种浏览器并执行各项检查，浏览器缓存键包含 lockfile 哈希；失败保留截图；CI 首次重试才录制 trace，避免正常回归的全页快照开销（[Playwright 官方建议](https://playwright.dev/docs/trace-viewer#tracing-on-ci)）。本地需要追踪时显式加 --trace on。
+- **开发环境与校验**：Node.js 20+，首次运行 `npm ci`。开发依赖固定版本并提交 lockfile。`npm run typecheck` 分别使用浏览器 `jsconfig.json` 与工具/测试 `jsconfig.node.json`；新增页面脚本自动纳入，不需手改命令。`npm run validate` 检查数据结构、引用、有限数字、日期和价格区间；同一套规则可校验内存候选源码。`npm run test` 执行 19 个 Node 套件，包含额度公式、真实数据、VM 用户流程、HTTP 服务、审计无效输入/幂等/失败回滚、资讯采集解析/新厂商/缓存/失败处理、字体去重/失败回滚、缓存与公共产物回归。`npm run test:browser` 对 Chromium、Firefox、WebKit 运行同一批真实浏览器用例，覆盖图表、历史导航、服务功能及桌面/手机布局。CI 在 Linux 与 Windows 安装三种浏览器并执行各项检查，浏览器缓存键包含 lockfile 哈希；失败保留截图；CI 首次重试才录制 trace，避免正常回归的全页快照开销（[Playwright 官方建议](https://playwright.dev/docs/trace-viewer#tracing-on-ci)）。本地需要追踪时显式加 --trace on。
 - **重建精简版 ECharts**（一般不需要）：
 
   ```bash

@@ -56,4 +56,15 @@ interface BenchmarkRun {
   cost: number | null; currency: string; costBasis: string; durationSeconds: number;
   generationSeconds: number | null; passed: boolean; repeats: number; evidence: string; environment: string;
 }
-interface BenchmarkSnapshot { schemaVersion: number; generatedAt: string; tasks: BenchmarkTask[]; runs: BenchmarkRun[]; methodology: string | string[]; }
+interface PublicBenchmarkProtocol {
+  id: string; family: string; name: string; version: string; category: string;
+  metric: string; unit: "%"; description: string; configuration: string; scope: string;
+  sourceUrl: string; sourceUpdatedAt: string | null; checkedAt: string;
+}
+interface PublicBenchmarkScore {
+  id: string; benchmarkId: string; model: string; reasoning: string | null; agent: string | null;
+  score: number; costUSD: number | null; costNote: string | null; uncertainty: string | null;
+  tokens: number | null; steps: number | null; sourceUrl: string; checkedAt: string;
+}
+interface PublicBenchmarkSnapshot { schemaVersion: number; checkedAt: string; benchmarks: PublicBenchmarkProtocol[]; scores: PublicBenchmarkScore[]; }
+interface BenchmarkSnapshot { schemaVersion: number; generatedAt: string; tasks: BenchmarkTask[]; runs: BenchmarkRun[]; methodology: string | string[]; public?: PublicBenchmarkSnapshot; }

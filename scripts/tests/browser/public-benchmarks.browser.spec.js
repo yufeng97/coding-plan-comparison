@@ -1,0 +1,55 @@
+"use strict";
+const { test, expect } = require("@playwright/test");
+const fs = require("node:fs/promises");
+
+test("公开榜默认DeepSWE，搜索保留原榜名次且空态可键盘清除", async ({ page }) => {
+  await page.goto("/#benchmarks"); await page.waitForFunction(() => window["codingPlanReady"] === true);
+  const select = page.locator("#publicBenchmarkSelect");
+  await expect(select).toHaveValue(/deepswe/);
+  await expect(page.locator("#publicBenchmarkMode")).toHaveValue("best");
+  const bestCount = await page.locator("#publicBenchmarkBody tr").count();
+  await page.locator("#publicBenchmarkMode").selectOption("all");
+  expect(await page.locator("#publicBenchmarkBody tr").count()).toBeGreaterThan(bestCount);
+  await page.locator("#publicBenchmarkMode").selectOption("best");
+  await expect(page.locator("#publicBenchmarkBody tr").first()).toBeVisible();
+  await expect(page.locator("#publicBenchmarkMeta")).toContainText("配置");
+  await expect(page.locator("#publicBenchmarkMeta")).toContainText("核查");
+  const target = await page.evaluate("publicBenchmarkRows().at(-1)");
+  const search = page.locator("#publicModelSearch");
+  await search.fill(target.model);
+  await expect(search).toBeFocused();
+  await expect(page.locator("#publicBenchmarkBody")).toContainText(target.model);
+  const row = page.locator("#publicBenchmarkBody tr").filter({ has: page.locator("th strong", { hasText: target.model }) }).last();
+  await expect(row.locator("td").first()).toHaveText(String(target.rank));
+  await search.fill("__没有匹配的公开模型__");
+  await expect(page.locator("#publicBenchmarkEmpty")).toBeVisible();
+  await expect(page.locator("#downloadPublicBenchmarkCsvBtn")).toBeDisabled();
+  const clear = page.locator("#publicModelClearBtn"); await clear.focus(); await page.keyboard.press("Enter");
+  await expect(search).toBeFocused(); await expect(search).toHaveValue("");
+  await expect(page.locator("#publicBenchmarkWrap")).toBeVisible();
+  await expect(page.locator("#contributorBenchmarkTools")).not.toHaveAttribute("open", "");
+});
+
+test("手机切换独立协议且CSV和JSON保留公开来源与费用口径", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/#benchmarks"); await page.waitForFunction(() => window["codingPlanReady"] === true);
+  const family = page.locator("#publicBenchmarkFamily"); await family.focus(); await family.selectOption("OSWorld");
+  await expect(family).toBeFocused();
+  const select = page.locator("#publicBenchmarkSelect");
+  await expect(select).toHaveValue("osworld-2-25443e96866dc9ce");
+  const id = await select.inputValue();
+  await expect(page.locator("#publicBenchmarkMeta")).toContainText(id);
+  expect(await page.evaluate("publicBenchmarkRows().every(r=>r.benchmarkId===publicBenchmarkState.id)")).toBe(true);
+  const wrapper = page.locator("#publicBenchmarkWrap");
+  expect(await wrapper.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
+  await wrapper.evaluate((el) => { el.scrollLeft = el.scrollWidth; });
+  expect(await wrapper.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+  const expected = await page.evaluate("publicBenchmarkCsv()");
+  const pending = page.waitForEvent("download"); await page.locator("#downloadPublicBenchmarkCsvBtn").click();
+  const file = await pending; expect(await fs.readFile(await file.path(), "utf8")).toBe("\uFEFF" + expected);
+  const all = page.waitForEvent("download"); await page.locator("#downloadPublicBenchmarkJsonBtn").click();
+  const json = JSON.parse(await fs.readFile(await (await all).path(), "utf8"));
+  expect(json.schemaVersion).toBe(1); expect(json.benchmarks.length).toBeGreaterThan(1); expect(json.scores.length).toBeGreaterThan(0);
+  expect(json).not.toHaveProperty("planIds"); expect(json).not.toHaveProperty("runs");
+});

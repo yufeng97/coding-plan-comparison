@@ -765,3 +765,29 @@ table.is-empty thead { display: none; }
 .contribution-preview{display:block;margin-top:16px;font-size:12px;color:var(--muted)}
 .contribution-preview textarea{box-sizing:border-box;width:100%;margin-top:8px;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--text);font:12px/1.7 var(--mono);resize:vertical;min-height:180px}
 @media(max-width:700px){.maintenance-grid{grid-template-columns:1fr}.maintenance-panel{padding:16px}.trust-counts{grid-template-columns:repeat(2,minmax(0,1fr))}.benchmark-filters{grid-template-columns:1fr;gap:2px}.watch-plan{min-height:40px}.qc-title .qc-watch{min-height:36px}.maintenance-toolbar .chip{min-height:40px}.benchmark-values{grid-template-columns:1fr}.followed-plan .chip{max-width:100%;white-space:normal;text-align:left}.qc-title{align-items:center}}
+
+/* 公开评测按协议独立比较，贡献者任务工具保留在可选折叠区。 */
+.public-benchmark-controls{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.5fr) minmax(0,.8fr) minmax(0,1.1fr) auto;gap:14px;align-items:end;margin-bottom:18px}
+.public-benchmark-controls .maintenance-select{margin:0}.public-benchmark-controls .search-input{width:100%}.public-benchmark-controls .chip{min-height:38px}
+.public-benchmark-meta{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0;font-size:12px;line-height:1.75}
+.public-benchmark-meta div{min-width:0}.public-benchmark-meta dt{color:var(--muted);font-weight:600}.public-benchmark-meta dd{margin:3px 0 0;overflow-wrap:anywhere}
+.public-benchmark-wrap{margin:14px 0;max-height:640px}.public-benchmark-wrap[hidden]{display:none}
+#publicBenchmarkTable{min-width:850px;font-size:13px}
+#publicBenchmarkTable caption{text-align:left;padding:12px;color:var(--muted);font-size:12px;line-height:1.65}
+#publicBenchmarkTable th[scope="row"]{text-align:left;min-width:235px;max-width:340px;background:transparent}
+#publicBenchmarkTable td{vertical-align:top;min-width:110px}#publicBenchmarkTable td:nth-child(4){min-width:175px;max-width:250px}
+.public-score-rank{font-family:var(--mono);color:var(--muted)}.public-score-value{font:600 17px var(--mono);color:var(--accent);white-space:nowrap}
+.public-score-config{display:block;color:var(--muted);font:400 11.5px/1.7 var(--sans);margin-top:6px;overflow-wrap:anywhere;white-space:normal}
+.public-score-more{font:400 11.5px/1.7 var(--sans);color:var(--muted);margin-top:7px}.public-score-more summary{cursor:pointer;color:var(--accent)}.public-score-more p{font-size:11.5px;margin:8px 0;line-height:1.7}
+#contributorBenchmarkTools>.maintenance-panel{margin:14px 0}
+@media(max-width:1000px){.public-benchmark-controls{grid-template-columns:1fr 1fr}.public-benchmark-controls .chip{justify-self:start}}
+@media(max-width:700px){.public-benchmark-controls{grid-template-columns:1fr;gap:12px}.public-benchmark-meta{grid-template-columns:1fr;gap:12px}.public-benchmark-panel .maintenance-toolbar{align-items:flex-start}.public-benchmark-panel .maintenance-toolbar strong{width:100%;margin-bottom:4px}}
+@media(max-width:700px){
+  #publicBenchmarkTable{table-layout:fixed;width:613px;min-width:613px}
+  #publicBenchmarkTable th[scope="row"],#publicBenchmarkTable td,#publicBenchmarkTable td:nth-child(4){min-width:0;max-width:none}
+  #publicBenchmarkTable thead th:nth-child(1){width:48px;white-space:normal}
+  #publicBenchmarkTable thead th:nth-child(2){width:165px}
+  #publicBenchmarkTable thead th:nth-child(3){width:95px}
+  #publicBenchmarkTable thead th:nth-child(4){width:160px}
+  #publicBenchmarkTable thead th:nth-child(5){width:145px}
+}

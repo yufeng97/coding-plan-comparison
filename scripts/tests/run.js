@@ -19,6 +19,9 @@ const suite = [
   "test-news.js",
   "../maintenance/test-maintenance.js",
   "test-benchmarks.js",
+  "test-public-benchmarks.js",
+  "test-benchmark-deepswe-cursor.js",
+  "test-benchmark-osworld-hle.js",
   "test-runners.js",
 ];
 

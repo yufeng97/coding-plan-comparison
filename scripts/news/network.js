@@ -92,8 +92,11 @@ async function validateSourceURL(raw, resolver = resolveHost) {
 }
 
 /** @param {string} raw
- * @param {{fetcher?:typeof fetch,resolver?:(hostname:string)=>Promise<Array<{address:string}>>,headers?:Record<string,string>,timeoutMs?:number}} options */
+ * @param {{fetcher?:typeof fetch,resolver?:(hostname:string)=>Promise<Array<{address:string}>>,headers?:Record<string,string>,timeoutMs?:number,maxBytes?:number}} options */
 async function fetchSource(raw, options = {}) {
+  const maxBytes = options.maxBytes ?? MAX_BYTES;
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > 16 * 1024 * 1024) throw new Error("来源响应限额无效");
+  const sizeLabel = maxBytes === MAX_BYTES ? "2 MiB" : maxBytes + " bytes";
   const fetcher = options.fetcher || fetch;
   const controller = new AbortController(), signal = controller.signal;
   const resolver = options.resolver || ((hostname) => resolveHost(hostname, { signal }));
@@ -120,7 +123,7 @@ async function fetchSource(raw, options = {}) {
     }
     if (response.status === 304) return { response, text: "", finalURL: url.href };
     if (!response.ok) { if (response.body) await bounded(response.body.cancel()); throw new Error("来源 HTTP " + response.status); }
-    if (Number(response.headers.get("content-length")) > MAX_BYTES) { if (response.body) await bounded(response.body.cancel()); throw new Error("来源响应超过 2 MiB"); }
+    if (Number(response.headers.get("content-length")) > maxBytes) { if (response.body) await bounded(response.body.cancel()); throw new Error("来源响应超过 " + sizeLabel); }
     const chunks = [], reader = response.body?.getReader();
     let size = 0;
     if (reader) {
@@ -129,7 +132,7 @@ async function fetchSource(raw, options = {}) {
           const { done, value } = await bounded(reader.read());
           if (done) break;
           size += value.byteLength;
-          if (size > MAX_BYTES) { await bounded(reader.cancel()); throw new Error("来源响应超过 2 MiB"); }
+          if (size > maxBytes) { await bounded(reader.cancel()); throw new Error("来源响应超过 " + sizeLabel); }
           chunks.push(Buffer.from(value));
         }
       } catch (error) { reader.cancel().catch(() => {}); throw error; }
@@ -137,7 +140,7 @@ async function fetchSource(raw, options = {}) {
     }
     const bytes = Buffer.concat(chunks);
     const charset = /charset\s*=\s*["']?([^;"'\s]+)/i.exec(response.headers.get("content-type") || "")?.[1] || "utf-8";
-    return { response, text: new TextDecoder(charset).decode(bytes), finalURL: url.href };
+    return { response, text: new TextDecoder(charset).decode(bytes), bytes, finalURL: url.href };
   }
   throw new Error("来源重定向次数超限");
   } finally { clearTimeout(timer); }

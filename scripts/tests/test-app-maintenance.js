@@ -4,10 +4,10 @@ const assert = require("node:assert/strict");
 const { createApp, healthy, test, main } = require("./app-harness");
 const plain = (value) => JSON.parse(JSON.stringify(value));
 
-test("维护快照、真实变更与无实测记录的任务规范能完整启动", () => {
+test("维护快照、真实变更与贡献者任务规范能完整启动", () => {
   const app = createApp();
   assert.match(app.elements.get("maintenanceSummary").innerHTML, /维护快照/);
-  assert.match(app.elements.get("benchmarkResults").innerHTML, /尚未公布真实模型测评结果/);
+  assert.match(app.elements.get("benchmarkResults").innerHTML, /尚未收录贡献者任务记录/);
   assert.match(app.elements.get("benchmarkTasks").innerHTML, /cached-cost/);
   assert.match(app.elements.get("benchmarkMethodology").textContent, /同一解答/);
   assert.match(app.elements.get("contributionProjectNote").textContent, /未配置公开仓库/);
@@ -122,6 +122,86 @@ test("公开JSON按稳定结构导出且不包含本机关注已读和待审资�
   assert.equal(data.benchmarks.runs.length, 0);
   assert.ok(!("followState" in data) && !("readChangeIds" in data) && !("candidates" in data));
   assert.match(app.elements.get("publicDataFeedback").textContent, /不含本机关注/);
+  healthy(app);
+});
+
+function fixturePublicBenchmarks(app) {
+  const protocol = { id: "deepswe-1-1", family: "DeepSWE", name: "Fixture DeepSWE", version: "1.1", category: "coding", metric: "任务通过率", unit: "%", description: "仅测试fixture", configuration: "固定测试配置", scope: "10项fixture", sourceUrl: "https://example.com/protocol", sourceUpdatedAt: null, checkedAt: "2026-10-10" };
+  const score = { id: "fixture-a", benchmarkId: protocol.id, model: "Fixture Model A", reasoning: "high", agent: "fixture-agent", score: 80, costUSD: null, costNote: null, uncertainty: null, tokens: null, steps: null, sourceUrl: "https://example.com/scores", checkedAt: "2026-10-10" };
+  const data = { schemaVersion: 1, checkedAt: "2026-10-10", benchmarks: [protocol, { ...protocol, id: "hle-fixture", family: "HLE", name: "Fixture HLE", version: "no-tools", scope: "20项fixture" }], scores: [score, { ...score, id: "fixture-b", model: "Fixture Model B", score: 80, costUSD: 0 }, { ...score, id: "fixture-c", model: "Fixture Model C", score: 60, reasoning: null, agent: null, tokens: 100, steps: 0 }, { ...score, id: "fixture-hle", benchmarkId: "hle-fixture", model: "Fixture Other Protocol", score: 99 }] };
+  app.run(`BENCHMARKS.public = ${JSON.stringify(data)}; publicBenchmarkState = {id:'deepswe-1-1',search:''}; renderPublicBenchmarks();`);
+  return data;
+}
+
+test("公开榜单仅在协议内排名，并列和模型搜索保留原始名次", () => {
+  const app = createApp(); fixturePublicBenchmarks(app);
+  assert.deepEqual(plain(app.run("publicBenchmarkRows().map(r=>r.rank)")), [1, 1, 3]);
+  app.run("publicBenchmarkState.search = 'Model C'; renderPublicBenchmarks()");
+  assert.deepEqual(plain(app.run("publicBenchmarkRows().map(r=>[r.model,r.rank])")), [["Fixture Model C", 3]]);
+  assert.equal(app.elements.get("publicModelClearBtn").disabled, false);
+  assert.doesNotMatch(app.elements.get("publicBenchmarkBody").innerHTML, /Other Protocol/);
+  app.run("publicBenchmarkState.family='HLE'; publicBenchmarkState.id='hle-fixture'; publicBenchmarkState.search=''; renderPublicBenchmarks()");
+  assert.deepEqual(plain(app.run("publicBenchmarkRows().map(r=>r.model)")), ["Fixture Other Protocol"]);
+  assert.match(app.elements.get("publicBenchmarkMeta").innerHTML, /no-tools|20项fixture/);
+  healthy(app);
+});
+
+test("公开评测null成本显示未公布，真实零成本及步骤保留且模型文案转义", () => {
+  const app = createApp(); fixturePublicBenchmarks(app);
+  let html = app.elements.get("publicBenchmarkBody").innerHTML;
+  assert.match(html, /未公布/); assert.match(html, /\$0/); assert.match(html, /Steps：0/);
+  app.run("BENCHMARKS.public.scores[0].model='<script>fixture</script>'; BENCHMARKS.public.scores[0].sourceUrl='javascript:alert(1)'; renderPublicBenchmarks()");
+  html = app.elements.get("publicBenchmarkBody").innerHTML;
+  assert.match(html, /&lt;script&gt;/); assert.doesNotMatch(html, /<script>|javascript:/);
+  healthy(app);
+});
+
+test("每模型最佳配置默认取协议内最高分，全部模式保留不同推理配置", () => {
+  const app = createApp(); fixturePublicBenchmarks(app);
+  app.run("BENCHMARKS.public.scores.push({...BENCHMARKS.public.scores[0],id:'fixture-a-low',reasoning:'low',score:70,costUSD:0.1}); renderPublicBenchmarks()");
+  assert.equal(app.run("publicBenchmarkRows().length"), 3);
+  assert.equal(app.run("publicBenchmarkRows().find(r=>r.model==='Fixture Model A').reasoning"), "high");
+  const mode = app.elements.get("publicBenchmarkMode"); mode.value = "all"; app.fire(mode, "change");
+  assert.equal(app.run("publicBenchmarkRows().length"), 4);
+  assert.deepEqual(plain(app.run("publicBenchmarkRows().filter(r=>r.model==='Fixture Model A').map(r=>r.reasoning)")), ["high", "low"]);
+  assert.match(app.elements.get("publicBenchmarkCount").textContent, /全部已公布配置/);
+  healthy(app);
+});
+
+test("用途选择只列同类协议，HLE和OSWorld默认公开当前配置而非历史表", () => {
+  const app = createApp(); fixturePublicBenchmarks(app);
+  app.run(`BENCHMARKS.public.benchmarks.push({...BENCHMARKS.public.benchmarks[1],id:'hle-diamond-2026-high-closed-book-multimodal',name:'Fixture Diamond'}, {...BENCHMARKS.public.benchmarks[1],id:'osworld-2-25443e96866dc9ce',family:'OSWorld',name:'Fixture OS2 current'}); syncPublicBenchmarkChoices();`);
+  const family = app.elements.get("publicBenchmarkFamily"); family.value = "HLE"; app.fire(family, "change");
+  assert.equal(app.run("publicBenchmarkState.id"), "hle-diamond-2026-high-closed-book-multimodal");
+  assert.doesNotMatch(app.elements.get("publicBenchmarkSelect").innerHTML, /deepswe/);
+  family.value = "OSWorld"; app.fire(family, "change");
+  assert.equal(app.run("publicBenchmarkState.id"), "osworld-2-25443e96866dc9ce");
+  assert.match(app.elements.get("publicBenchmarkMeta").innerHTML, /Fixture OS2 current/);
+  healthy(app);
+});
+
+test("公开模型搜索空态可清除，下载按钮状态与结果一致且焦点返回搜索", () => {
+  const app = createApp(); fixturePublicBenchmarks(app);
+  const input = app.elements.get("publicModelSearch"); input.value = "missing fixture model";
+  app.fire(input, "input");
+  assert.equal(app.elements.get("publicBenchmarkWrap").hidden, true);
+  assert.equal(app.elements.get("publicBenchmarkEmpty").hidden, false);
+  assert.equal(app.elements.get("downloadPublicBenchmarkCsvBtn").disabled, true);
+  app.elements.get("publicModelClearBtn").click();
+  assert.equal(app.elements.get("publicBenchmarkWrap").hidden, false);
+  assert.equal(app.elements.get("downloadPublicBenchmarkCsvBtn").disabled, false);
+  assert.equal(app.run("document.activeElement.id"), "publicModelSearch");
+  healthy(app);
+});
+
+test("评测CSV保留独立协议、配置与缺失成本，JSON仅导出公共榜单", async () => {
+  const app = createApp(); const data = fixturePublicBenchmarks(app);
+  app.run("publicBenchmarkState.search='Model A'; renderPublicBenchmarks(); downloadPublicBenchmarkCsv(); downloadPublicBenchmarkJson()");
+  const csv = Buffer.from(await app.downloads[0].blob.arrayBuffer()).toString("utf8");
+  assert.ok(csv.startsWith("\uFEFF")); assert.match(csv, /官方评测每任务成本 USD/);
+  assert.match(csv, /deepswe-1-1/); assert.match(csv, /固定测试配置/);
+  assert.match(csv, /"80","%","",""/); assert.doesNotMatch(csv, /Other Protocol/);
+  assert.deepEqual(JSON.parse(await app.downloads[1].blob.text()), data);
   healthy(app);
 });
 

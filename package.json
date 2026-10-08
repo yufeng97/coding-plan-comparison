@@ -16,6 +16,8 @@
     "pricing:sync": "node scripts/build/sync-pricing-audit.js",
     "maintenance:build": "node scripts/maintenance/build-maintenance.js",
     "benchmark:run": "node scripts/benchmarks/benchmark.js run",
+    "benchmark:collect": "node scripts/benchmarks/public-scores.js collect",
+    "benchmark:publish": "node scripts/benchmarks/public-scores.js publish",
     "benchmark:import": "node scripts/benchmarks/benchmark.js import",
     "benchmark:validate": "node scripts/benchmarks/benchmark.js validate",
     "benchmark:build": "node scripts/benchmarks/benchmark.js build",

@@ -16,7 +16,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%23b9ff00'/%3E%3Ctext%20x='16'%20y='22'%20font-family='monospace'%20font-size='15'%20font-weight='bold'%20text-anchor='middle'%20fill='%2310110f'%3E%26lt;/%26gt;%3C/text%3E%3C/svg%3E">
   <script>try{var __m=localStorage.getItem("cp-theme")||"system";var __d=matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.dataset.theme=__m==="system"?(__d?"dark":"light"):__m;}catch(e){}</script>
   <link rel="stylesheet" href="libs/fonts/fonts.css?v=17da4b4">
-  <link rel="stylesheet" href="css/style.css?v=f9bb674">
+  <link rel="stylesheet" href="css/style.css?v=40c7872">
 </head>
 <body>
 <div id="loadFailure" class="load-failure" role="alert" hidden>
@@ -40,7 +40,7 @@
       <a href="#free">免费入口</a>
       <a href="#table">数据表</a>
       <a href="#updates">关注与变更</a>
-      <a href="#benchmarks">真实任务测评</a>
+      <a href="#benchmarks">模型公开评测</a>
     </nav>
     <button id="themeBtn" class="theme-btn" title="切换主题：暗色 → 亮色 → 跟随系统"><i class="ric" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z"/></svg></i></button>
   </div>
@@ -404,7 +404,28 @@
   </section>
 
   <section class="section" id="benchmarks">
-    <div class="section-head"><h2><span class="sec-no">⌘</span>可复现真实任务测评</h2><p>从相同任务与验收条件出发，展示有公开证据的实测记录。</p></div>
+    <div class="section-head"><h2><span class="sec-no">⌘</span>模型公开评测</h2><p>查看公开来源的模型分数、评测配置与范围。每个版本和协议独立展示，不合成跨榜总分。</p></div>
+    <div class="maintenance-panel public-benchmark-panel">
+      <div class="public-benchmark-controls">
+        <label class="maintenance-select" for="publicBenchmarkFamily">评测用途<select id="publicBenchmarkFamily"></select></label>
+        <label class="maintenance-select" for="publicBenchmarkSelect">评测协议<select id="publicBenchmarkSelect"></select></label>
+        <label class="maintenance-select" for="publicBenchmarkMode">配置展示<select id="publicBenchmarkMode"><option value="best">每模型最佳配置</option><option value="all">全部配置</option></select></label>
+        <label class="maintenance-select" for="publicModelSearch">模型或配置关键词<input type="search" id="publicModelSearch" class="search-input" maxlength="200" placeholder="例如模型名、推理档位或 Agent"></label>
+        <button type="button" class="chip" id="publicModelClearBtn" disabled>清除搜索</button>
+      </div>
+      <div id="publicBenchmarkMeta"></div>
+      <p id="publicBenchmarkModeNote" class="maintenance-meta"></p>
+      <div class="maintenance-toolbar"><strong id="publicBenchmarkCount" role="status" aria-live="polite"></strong><button type="button" class="chip" id="downloadPublicBenchmarkCsvBtn">下载当前榜 CSV</button><button type="button" class="chip" id="downloadPublicBenchmarkJsonBtn">下载全部评测 JSON</button></div>
+      <p id="publicBenchmarkFeedback" class="table-feedback" role="status" aria-live="polite"></p>
+      <p id="publicBenchmarkEmpty" class="benchmark-empty" hidden></p>
+      <div class="table-wrap public-benchmark-wrap" id="publicBenchmarkWrap" tabindex="0" role="region" aria-label="公开模型评测成绩，窄屏可横向滚动">
+        <table id="publicBenchmarkTable"><caption id="publicBenchmarkCaption">公开模型评测</caption><thead><tr><th scope="col">本协议名次</th><th scope="col">模型与配置</th><th scope="col">分数</th><th scope="col">评测每任务成本</th><th scope="col">来源与核查</th></tr></thead><tbody id="publicBenchmarkBody"></tbody></table>
+      </div>
+      <p class="maintenance-meta">成绩沿用来源中的准确模型名称、推理与 Agent 配置；同一模型的不同配置是不同记录。费用是官方评测每任务成本，不能当成订阅月费；未公布的费用、Tokens 或 Steps 不补为 0。</p>
+    </div>
+    <details class="method-box public-benchmark-guide"><summary>这些榜单适合回答什么问题？</summary><p>DeepSWE 与 CursorBench 聚焦代码任务，但各自的任务集、Agent、评分与版本不同，应在同一协议内比较。OSWorld 是图形界面操作任务，关注桌面与应用交互；HLE 是综合学术题目，关注知识与推理。GUI 或学术分数不能直接当成编程任务表现。</p><p>请同时查看版本、样本范围、是否使用工具及推理配置。分数说明来源中的评测条件，不保证你的具体任务、工具或套餐能获得同样结果。</p></details>
+    <details class="method-box" id="contributorBenchmarkTools"><summary>贡献者工具：任务验收与记录提交（可选）</summary>
+    <p class="maintenance-meta">下面的本地任务框架用于检查提交解答；公开模型榜单来自上方所列来源，二者分别记录。</p>
     <div class="maintenance-panel">
       <div class="benchmark-filters">
         <label class="maintenance-select" for="benchmarkTask">任务<select id="benchmarkTask"><option value="all">全部任务</option></select></label>
@@ -416,6 +437,7 @@
     </div>
     <div id="benchmarkTasks"></div>
     <details class="method-box"><summary>测评方法与记录导入说明</summary><p id="benchmarkMethodology"></p><p>贡献记录包含 taskId、model、tool、measuredAt、cost、currency、costBasis、generationSeconds、durationSeconds、passed、repeats、evidence 与 environment。evidence 须为可公开的 HTTPS 证据；costBasis 为 api-receipt 时填写实际账单，included-subscription 或 unknown 时 cost=null。</p><p>请在本地任务框架运行同一解答的验收，保存原始提示、解答与日志，再将记录交由维护者核对导入。本站不会在浏览器上传文件或自动发布结果。</p><a href="#contribute">复制或下载测评贡献模板 ↓</a></details>
+    </details>
   </section>
 
   <section class="section" id="contribute">
@@ -493,7 +515,7 @@
 <script src="js/app-loader.js?v=dcdaf05"></script>
 <script src="js/data.js?v=7656a9e"></script>
 <script src="js/maintenance-data.js?v=9cad292"></script>
-<script src="js/benchmark-data.js?v=9d80587"></script>
+<script src="js/benchmark-data.js?v=08b3c8e"></script>
 <script src="js/project-data.js?v=1ce1b74"></script>
 <script src="js/metrics.js?v=436b915"></script>
 <script src="js/app-core.js?v=483f84d"></script>
@@ -502,7 +524,7 @@
 <script src="js/app-picker.js?v=3ff4aa3"></script>
 <script src="js/app-tables.js?v=2b46fe1"></script>
 <script src="js/app-service.js?v=29b2964"></script>
-<script src="js/app-maintenance.js?v=c5d301e"></script>
+<script src="js/app-maintenance.js?v=d17b491"></script>
 <script src="js/app-events.js?v=c3c6f7f"></script>
 <script src="js/app-init.js?v=e16df2f"></script>
 </body>

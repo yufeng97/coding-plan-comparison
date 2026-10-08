@@ -58,7 +58,13 @@ npm run build:site
 
 `data/change-history.json` 是正式变化历史。旧审计种子只记录可重建的真实字段差异；不是所有 changed 状态都代表可重建的调价。新增历史保留永久记录身份和稳定 changeId，关注已读使用 changeId。不要清空历史或改 ID。`config/review-calendar.json` 仅记录有来源的复核日期，不自行断言到期后的价格。
 
-测评固定任务和验收见 `benchmarks/`，命令见 README。记录真实提示词、环境、解答与账单公开证据。区分模型生成与验收时间；至少 3 次同一解答验收不是独立模型成功率。发布前人工核对证据，使用 `benchmark:import --input ... --reviewer ...` 并运行 validate/build；当前空记录是没有实测数据，不应补随机或模拟成绩。
+公开模型评测先运行 `npm run benchmark:collect`，核对 `audit/benchmark-sources/latest.json`、`diff.json` 和 `health.json`。逐榜访问官方页面，核对协议版本、模型精确名称、推理档位、Agent/工具、实际样本数、费用单位和源更新日期。确认后执行 `benchmark:publish -- --input ... --reviewer ... --reason ...`；脚本必须找到下载哈希一致的原始证据。运行 validate/build/check、相关回归和缓存版本检查后再提交部署。来源失败不刷新正式日期；新增/撤回条目与同 ID 的实际成绩变化需要复核。
+
+公开成绩的粒度是评测协议 + 准确模型 + 推理档位 + Agent。禁止把 HLE 原版、Diamond、工具/无工具、纯文本/多模态混用，也不把 OSWorld 各版本、步数、样本分母和完整/部分指标混排。新模型不依赖已有 Coding Plan 厂商白名单；不要仅根据模型名推断某个订阅的可用资格。新增来源在 `scripts/benchmarks/sources/` 提供 adapter，登记第一方固定域名/仓库路径，补离线格式变更与异常输入测试；不执行网页 JS，不用第三方聚合站填数。
+
+费用采用官方评测每任务/rollout 口径，注明实际记录或官网价格折算；不等同 API 每百万 token 价或订阅月费。总费用缺乏重复次数/样本分母时不换算为每任务；缺值为 null，合法零分/零成本只有官方明确时才是 0。真实采集时间与官方更新日分开，原始来源哈希留在正式快照，下载缓存不进入公共部署。
+
+贡献者固定任务和验收见 `benchmarks/`，命令见 README。记录真实提示词、环境、解答与账单公开证据。区分模型生成与验收时间；至少 3 次同一解答验收不是独立模型成功率。发布前人工核对证据，使用 `benchmark:import --input ... --reviewer ...` 并运行 validate/build；当前本机贡献者记录为空，不应补随机或模拟成绩。它与官方模型公开榜单分开，页面中的贡献者工具默认折叠。
 
 ## 发布与巡检
 

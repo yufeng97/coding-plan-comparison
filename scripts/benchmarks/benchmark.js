@@ -6,6 +6,7 @@ const crypto = require("node:crypto");
 const os = require("node:os");
 const { spawnSync } = require("node:child_process");
 const { publicURL } = require("../news/network");
+const { readPublic } = require("./public-scores");
 const root = path.resolve(__dirname, "../..");
 const digest = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex");
 function tasks(workspace = root) {
@@ -104,13 +105,14 @@ function atomicWrite(file, content) {
 function build(workspace = root, options = {check:false}) {
   const data = validateRuns(JSON.parse(fs.readFileSync(path.join(workspace,"benchmarks/results.json"),"utf8")),tasks(workspace));
   const output = {schemaVersion:1,tasks:tasks(workspace),runs:data.runs,methodology:"固定任务与版本；同一解答在独立暂存目录重复验收至少 3 次，不代表独立模型尝试。生成耗时由贡献者记录，验收运行耗时单独展示；费用为生成该解答的真实 API 账单金额，订阅内/未知不记零。记录由贡献者提供并经维护者审核；不同工具、任务、版本和费用口径分别比较。",generatedAt:data.runs.reduce((date,run)=>run.reviewedAt.slice(0,10)>date?run.reviewedAt.slice(0,10):date,"2026-10-08")};
-  const content = "/* 自动生成：npm run benchmark:build */\nconst BENCHMARKS = "+JSON.stringify(output,null,2)+";\n";
+  const snapshot = { ...output, public: readPublic(workspace) };
+  const content = "/* 自动生成：npm run benchmark:build */\nconst BENCHMARKS = "+JSON.stringify(snapshot,null,2)+";\n";
   const file = path.join(workspace,"js/benchmark-data.js");
   if (!fs.existsSync(file) || fs.readFileSync(file,"utf8")!==content) {
     if (options.check) throw new Error("测评公共数据过期，请运行 npm run benchmark:build");
     atomicWrite(file,content);
   }
-  return output;
+  return snapshot;
 }
 function main(argv) {
   const command = argv.shift();
@@ -124,7 +126,7 @@ function main(argv) {
   }
   if (command === "build") return build();
   if (command === "check") return build(root,{check:true});
-  if (command === "validate") return validateRuns(JSON.parse(fs.readFileSync(path.join(root,"benchmarks/results.json"),"utf8")));
+  if (command === "validate") { readPublic(); return validateRuns(JSON.parse(fs.readFileSync(path.join(root,"benchmarks/results.json"),"utf8"))); }
   if (command === "run") {
     const run=runTask(options);
     atomicWrite(path.join(root,"audit/benchmarks",run.id+".json"),JSON.stringify(run,null,2)+"\n");
