@@ -11,6 +11,8 @@ interface Plan {
   cur: "USD" | "CNY" | "INR";
   priceM: number | null;
   priceY: number | null;
+  /** 已有官方证据的连续包月价格；缺值不从目录价或备注推测。 */
+  autoRenewMonthly?: number;
   seat: boolean;
   quota: string;
   models: string;

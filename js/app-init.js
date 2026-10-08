@@ -144,27 +144,38 @@ function navigateToSection(hash, updateHistory = true, moveFocus = true) {
     const initialScroll = window.scrollY;
     const initialFocus = document.activeElement;
     let abandoned = false;
+    const focusChanged = () => document.activeElement !== initialFocus && document.activeElement !== document.body;
+    const abandonOnInput = () => { abandoned = true; };
+    const scrollKeys = new Set(["Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "PageUp", "PageDown", "Home", "End", " "]);
+    const abandonOnKey = (/** @type {KeyboardEvent} */ event) => { if (scrollKeys.has(event.key)) abandoned = true; };
+    const inputEvents = ["wheel", "touchmove", "pointerdown"];
     const trackReading = () => {
       updateActiveNav();
       const active = qs('.topnav a[aria-current="location"]');
       if (!moveFocus && Math.abs(window.scrollY - initialScroll) > 2 && active && active.getAttribute("href") !== hash) abandoned = true;
     };
     window.addEventListener("scroll",trackReading,{ passive:true });
-    const stopTracking = () => window.removeEventListener("scroll",trackReading);
+    inputEvents.forEach((type) => window.addEventListener(type,abandonOnInput,{ passive:true }));
+    window.addEventListener("keydown",abandonOnKey);
+    const stopTracking = () => {
+      window.removeEventListener("scroll",trackReading);
+      inputEvents.forEach((type) => window.removeEventListener(type,abandonOnInput));
+      window.removeEventListener("keydown",abandonOnKey);
+    };
     /* 先排空已排队的图表渲染，再测量锚点；否则上方图表增高会顶偏目标。 */
     ensureChartLibrary().then(() => {
       trackReading();
       const active = qs('.topnav a[aria-current="location"]');
-      const movedAway = Math.abs(window.scrollY - initialScroll) > 2 && active && active.getAttribute("href") !== hash;
-      const focusChanged = document.activeElement !== initialFocus && document.activeElement !== document.body;
-      return Promise.resolve(abandoned || movedAway || focusChanged);
+      /* 显式键盘导航的来源链接可能在下一帧才滚入视口；不能把这个滚动当作放弃导航。 */
+      const movedAway = !moveFocus && Math.abs(window.scrollY - initialScroll) > 2 && active && active.getAttribute("href") !== hash;
+      return Promise.resolve(abandoned || movedAway || focusChanged());
     }).then((movedAway) => {
       stopTracking();
       if (!movedAway && version === sectionNavigationVersion) navigateToSection(hash,updateHistory,moveFocus);
     }, () => {
       stopTracking();
       /* 图表不可用时仍让用户进入文字明细；本地错误卡可独立重试。 */
-      if (!abandoned && version === sectionNavigationVersion) navigateToSectionReady(hash,updateHistory,moveFocus);
+      if (!abandoned && !focusChanged() && version === sectionNavigationVersion) navigateToSectionReady(hash,updateHistory,moveFocus);
     });
     return;
   }

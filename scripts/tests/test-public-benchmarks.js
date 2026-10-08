@@ -69,6 +69,7 @@ async function main() {
     await test("来源失败、格式变化及非法分数不覆盖候选或正式数据，连续失败持久记录", async () => {
       const bad = { id: "test", collect: async () => { throw new Error("HTTP 503"); } };
       await assert.rejects(collect(dir, { fetchSource: getter, adapters: [bad] }), /保留/);
+      assert.equal(fs.existsSync(path.join(dir, "audit/benchmark-sources/.benchmark.lock")), false);
       await assert.rejects(collect(dir, { fetchSource: getter, adapters: [{ id: "test", collect: async get => { const value = await good.collect(get); value.scores[0].score = 101; return value; } }] }), /保留/);
       const health = JSON.parse(fs.readFileSync(path.join(dir, "audit/benchmark-sources/health.json"), "utf8"));
       assert.equal(health.sources[0].consecutiveFailures, 2); assert.equal(health.sources[0].ok, false);
@@ -112,6 +113,28 @@ async function main() {
       assert.throws(() => publish(latest, "reviewer", "reason", dir), /正在采集/);
       release(); await running;
       assert.equal(fs.existsSync(path.join(dir, "audit/benchmark-sources/.benchmark.lock")), false);
+    });
+    await test("公开评测的遗留锁拒绝同时采集与发布，不修改锁、候选或审核数据", async () => {
+      const lock = path.join(dir, "audit/benchmark-sources/.benchmark.lock");
+      const exited = require("node:child_process").spawnSync(process.execPath, ["-e", "process.stdout.write(String(process.pid))"], { encoding: "utf8" });
+      assert.equal(exited.status, 0);
+      const stale = JSON.stringify({ pid: Number(exited.stdout) }), latestBefore = fs.readFileSync(latest), formalBefore = fs.readFileSync(formal);
+      fs.writeFileSync(lock, stale);
+      let collected = false;
+      try {
+        const outcomes = await Promise.allSettled([1, 2].map(() => collect(dir, { adapters: [{ id: "test", collect: async () => { collected = true; throw new Error("should not enter"); } }] })));
+        for (const outcome of outcomes) { assert.equal(outcome.status, "rejected"); if (outcome.status === "rejected") assert.match(outcome.reason.message, /人工检查/); }
+        assert.throws(() => publish(latest, "reviewer", "reason", dir), /人工检查/);
+        assert.equal(collected, false); assert.equal(fs.readFileSync(lock, "utf8"), stale);
+        assert.deepEqual(fs.readFileSync(latest), latestBefore); assert.deepEqual(fs.readFileSync(formal), formalBefore);
+      } finally { fs.unlinkSync(lock); }
+    });
+    await test("公开评测执行中锁被替换时报告并保留另一所有者的锁", async () => {
+      const lock = path.join(dir, "audit/benchmark-sources/.benchmark.lock"), replacement = JSON.stringify({ ownerId: "another-owner", pid: process.pid });
+      try {
+        await assert.rejects(collect(dir, { fetchSource: getter, adapters: [{ id: "test", collect: async get => { fs.writeFileSync(lock, replacement); return good.collect(get); } }] }), /所有权已变化/);
+        assert.equal(fs.readFileSync(lock, "utf8"), replacement);
+      } finally { fs.unlinkSync(lock); }
     });
   } finally {
     if (path.dirname(dir) !== fs.realpathSync(os.tmpdir()) || !path.basename(dir).startsWith("public-benchmark-test-")) throw new Error("未知测试目录");

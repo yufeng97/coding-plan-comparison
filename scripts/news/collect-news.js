@@ -8,6 +8,7 @@ const { plainText, parseFeed, parseHN } = require("./feed");
 const { publicURL, fetchSource } = require("./network");
 const { normalizeURL } = require("./urls");
 const { validateInbox, updateInbox, validInstant } = require("./inbox");
+const { withFileLock } = require("../lib/file-lock");
 
 const DEFAULT_KEYWORDS = ["coding plan", "token plan", "编程套餐", "编程订阅", "AI编程", "AI 编程", "编程助手", "编码助手",
   "coding agent", "code agent", "code assistant", "code editor", "agentic coding", "vibe coding", "copilot", "credits", "pricing"];
@@ -359,27 +360,10 @@ function resolveNewsPaths(workspace, outputPath = "audit/news/latest.json", inpu
   return { workspace: root, output, dir, stateFile, inboxFile, healthFile };
 }
 
-/** Prevent collection from overwriting a concurrent human review. An abandoned lock from a dead process is recoverable.
+/** Prevent collection from overwriting a concurrent human review. Existing locks require manual inspection.
  * @template T @param {string} dir @param {()=>Promise<T>|T} action @returns {Promise<T>} */
 async function withNewsLock(dir, action) {
-  fs.mkdirSync(dir, { recursive: true });
-  const lock = path.join(dir, ".news.lock");
-  let handle;
-  try { handle = fs.openSync(lock, "wx"); }
-  catch (error) {
-    if (error.code !== "EEXIST") throw error;
-    let abandoned = false;
-    try {
-      const previous = JSON.parse(fs.readFileSync(lock, "utf8"));
-      if (previous.hostname === require("node:os").hostname() && Number.isInteger(previous.pid) && previous.pid > 0) {
-        try { process.kill(previous.pid, 0); } catch (probeError) { abandoned = probeError.code === "ESRCH"; }
-      }
-    } catch {}
-    if (!abandoned) throw new Error("资讯队列正在采集或复核，稍后重试（.news.lock）");
-    fs.unlinkSync(lock); handle = fs.openSync(lock, "wx");
-  }
-  try { fs.writeFileSync(handle, JSON.stringify({ pid: process.pid, hostname: require("node:os").hostname(), startedAt: new Date().toISOString() })); return await action(); }
-  finally { fs.closeSync(handle); fs.unlinkSync(lock); }
+  return withFileLock(path.join(dir, ".news.lock"), action, { busyMessage: "资讯队列正在采集或复核，或存在遗留锁" });
 }
 
 /** @param {{workspace?:string,configPath?:string,outputPath?:string,importPath?:string,days?:number,now?:Date,rename?:(from:string,to:string)=>void} & NetworkOptions} options

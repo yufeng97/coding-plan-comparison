@@ -117,6 +117,7 @@ test("回到顶部在页首不能取得隐形键盘焦点，滚动后恢复操�
   await expect(top).toBeHidden();
   await top.evaluate((element) => element.focus());
   await expect(top).not.toBeFocused();
+  await page.locator("#sectionMenu").evaluate((menu) => { /** @type {HTMLDetailsElement} */ (menu).open = true; });
   await page.locator('.topnav a[href="#s1"]').click();
   await expect(top).toBeVisible();
   await top.focus();
@@ -149,8 +150,10 @@ test("resize跳过同尺寸和离屏画布，滚入后更新尺寸且图例保�
   await expect.poll(() => page.evaluate("chartCache.chartApi.getWidth() === document.getElementById('chartApi').clientWidth")).toBe(true);
   expect(await page.evaluate("window.reviewResizeCounts.chartPersonal || 0")).toBe(0);
   expect(await page.evaluate("chartCache.chartPersonal.getWidth() > document.getElementById('chartPersonal').clientWidth")).toBe(true);
+  await page.locator("#sectionMenu").evaluate((menu) => { /** @type {HTMLDetailsElement} */ (menu).open = true; });
   await page.locator('.topnav a[href="#s1"]').click();
   await expect.poll(() => page.evaluate("chartCache.chartPersonal.getWidth() === document.getElementById('chartPersonal').clientWidth")).toBe(true);
+  await page.locator("#sectionMenu").evaluate((menu) => { /** @type {HTMLDetailsElement} */ (menu).open = true; });
   await page.locator('.topnav a[href="#s4"]').click();
   await expect(page.locator('#apiLegend [data-series="输入 / 1M tokens"]')).toHaveAttribute("aria-pressed", "false");
   expect(await page.evaluate("chartCache.chartApi.getModel().isSeriesFiltered(chartCache.chartApi.getModel().getSeries()[0])")).toBe(true);

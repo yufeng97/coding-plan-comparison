@@ -1,6 +1,6 @@
 # 贡献与维护
 
-网站提供“新增厂商 / 纠错 / 测评”模板，可复制或下载。仓库配置 GitHub 后可使用 `.github/ISSUE_TEMPLATE/` 表单；把真实 Issue 根地址写入 `js/project-data.js` 的 `githubIssuesBase`。当前无远程仓库，未提供虚构的提交地址。
+网站提供“新增厂商 / 纠错 / 测评”模板，可复制或下载，也可使用 `.github/ISSUE_TEMPLATE/` 表单；项目的真实 Issue 根地址配置在 `js/project-data.js` 的 `githubIssuesBase`。
 
 ## 发现与审核
 
@@ -32,6 +32,8 @@
 ```
 
 `status` 为 verified / changed / unverified / custom / retired。无需改价也可用空 patch 记录实际核查；unverified 不允许修改事实。若有变更，提交 allowed 字段的 patch，建议附 `old` 明确旧值，防止旧审计覆盖新值。价格 Y 表示年付折月；来源 ID 不可用来覆盖另一份证据，新核查分配新来源 ID。已有记录 ID、vendor、类别和地区不通过 patch 变更。
+
+可选 `autoRenewMonthly` 表示有官方证据的连续包月／自动续费原币月价，须为正数，并在 `note` 或该套餐关联的官方核价证据中写明续费方式与资格；未知时省略，不用月付价自动填补。它与 `priceM` 的目录月价、`priceY` 的年付折月价分别维护。首购限时优惠不得当作长期续费金额。已有注释中的价格结构化不代表重新核价，不能据此推进核查日期。
 
 ```bash
 npm run pricing:sync -- --incremental --input audit/incremental.json

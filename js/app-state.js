@@ -3,19 +3,20 @@
 const DEBUG_MODE = new URLSearchParams(location.search).has("debug");
 const PERSONAL_DEFAULT_LIMIT = 20;
 const CMP_MAX = 4;
-/** @type {{cat:string, region:string, billing:string, q:string, limit:number|null}} */
-const personalState = { cat:"all", region:"all", billing:"M", q:"", limit:PERSONAL_DEFAULT_LIMIT };
+/** @type {{cat:string, region:string, billing:string, q:string, limit:number|null, fromPicker:boolean}} */
+const personalState = { cat:"all", region:"all", billing:"M", q:"", limit:PERSONAL_DEFAULT_LIMIT, fromPicker:false };
 const rankState = { tier:"flagship", scope:"all", vendor:"all" };
-const pickerState = { budget:"200", region:"cn", tool:"any", task:"both" };
-const tableState = { search:"", cat:"all", region:"all", sortKey:"priceM", sortDir:1 };
+const pickerState = { budget:"200", region:"cn", tool:"any", task:"both", billing:"M" };
+const tableState = { search:"", cat:"all", region:"all", sortKey:"priceM", sortDir:1, fromPicker:false };
 /** @type {{items: typeof PLANS}} */
 const cmpState = { items:[] };
-const metricsState = { model:"all", ver:"all", tier:"flagship", offer:"current", sortKey:"cpm", sortDir:1 };
+const metricsState = { model:"all", ver:"all", tier:"flagship", offer:"current", sortKey:"cpm", sortDir:1, fromPicker:false };
 const CALC_MODELS = new Set(API_PRICES.filter((a) => isPriceConfirmed(a, "api")).map((a) => a.vendor + "|" + a.model));
-const calcState = { model:[...CALC_MODELS][0] || "", requests:"100", tokens:"20000", days:"22", input:"80", cache:"95", cachePrice:"", budget:"200" };
+const calcState = { model:[...CALC_MODELS][0] || "", requests:"100", tokens:"20000", days:"22", input:"80", cache:"95", cachePrice:"", budget:"200", scenario:"typical" };
 const CALC_LIMITS = { requests:[0,100000,true], tokens:[1,10000000,true], days:[1,31,true], input:[0,100,false], cache:[0,100,false], cachePrice:[0,1000000,false], budget:[0,1000000000,false] };
 function validCalcValue(key, value) {
   if (key === "model") return CALC_MODELS.has(value);
+  if (key === "scenario") return ["conservative", "typical", "optimistic"].includes(value);
   if (key === "cachePrice" && value === "") return true;
   if (!CALC_LIMITS[key] || !/^\d+(?:\.\d+)?$/.test(String(value))) return false;
   const n = Number(value), [min,max,integer] = CALC_LIMITS[key];
@@ -51,6 +52,10 @@ const URL_KEYS = {
   region: () => pickerState.region,
   tool: () => pickerState.tool,
   task: () => pickerState.task,
+  billing: () => pickerState.billing,
+  papply: () => personalState.fromPicker ? "1" : "0",
+  tapply: () => tableState.fromPicker ? "1" : "0",
+  mapply: () => metricsState.fromPicker ? "1" : "0",
   /* 个人订阅价格全景 */
   pcat: () => personalState.cat,
   pregion: () => personalState.region,
@@ -82,6 +87,7 @@ const URL_KEYS = {
   ccache: () => calcState.cache,
   ccacheprice: () => calcState.cachePrice,
   cbudget: () => calcState.budget,
+  cscenario: () => calcState.scenario,
 };
 const URL_DEFAULTS = Object.fromEntries(Object.entries(URL_KEYS).map(([k,get])=>[k,get()]));
 const URL_VALID = {
@@ -89,6 +95,7 @@ const URL_VALID = {
   region: new Set(["all", "cn", "intl"]),
   tool: new Set(["any", "claude", "codex", "cursor", "own"]),
   task: new Set(["hard", "both", "daily"]),
+  billing: new Set(["M", "A", "Y"]),
   pcat: new Set(["all", "official", "tool", "cloud"]),
   pregion: new Set(["all", "cn", "intl"]),
   pbilling: new Set(["M", "Y"]),
@@ -126,6 +133,10 @@ function applyUrlState(search = location.search) {
   pick("region", URL_VALID.region, pickerState, "region");
   pick("tool", URL_VALID.tool, pickerState, "tool");
   pick("task", URL_VALID.task, pickerState, "task");
+  pick("billing", URL_VALID.billing, pickerState, "billing");
+  personalState.fromPicker = p.get("papply") === "1";
+  tableState.fromPicker = p.get("tapply") === "1";
+  metricsState.fromPicker = p.get("mapply") === "1";
   pick("pcat", URL_VALID.pcat, personalState, "cat");
   pick("pregion", URL_VALID.pregion, personalState, "region");
   pick("pbilling", URL_VALID.pbilling, personalState, "billing");

@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
 const { fetchSource, publicURL } = require("../news/network");
+const { withFileLock, withFileLockSync } = require("../lib/file-lock");
 const root = path.resolve(__dirname, "../..");
 const digest = bytes => crypto.createHash("sha256").update(bytes).digest("hex");
 function canonical(value) {
@@ -73,23 +74,8 @@ function atomicWrite(file, content) {
   try { fs.writeFileSync(tmp, content); fs.renameSync(tmp, file); }
   finally { if (fs.existsSync(tmp)) fs.unlinkSync(tmp); }
 }
-function acquireLock(workspace) {
-  const dir = path.join(workspace, "audit/benchmark-sources"); fs.mkdirSync(dir, { recursive: true });
-  const file = path.join(dir, ".benchmark.lock");
-  try { fs.writeFileSync(file, JSON.stringify({ pid: process.pid }), { flag: "wx" }); }
-  catch (error) {
-    if (error.code !== "EEXIST") throw error;
-    let abandoned = false;
-    try {
-      const previous = JSON.parse(fs.readFileSync(file, "utf8"));
-      if (!Number.isSafeInteger(previous.pid) || previous.pid <= 0) throw new Error("无效锁");
-      try { process.kill(previous.pid, 0); } catch (failure) { if (failure.code === "ESRCH") abandoned = true; }
-    } catch { /* A corrupt or live lock requires inspection, never unconditional deletion. */ }
-    if (!abandoned) throw new Error("公开评测正在采集或审核，请稍后重试（.benchmark.lock）");
-    fs.unlinkSync(file); fs.writeFileSync(file, JSON.stringify({ pid: process.pid }), { flag: "wx" });
-  }
-  return () => fs.unlinkSync(file);
-}
+const lockFile = workspace => path.join(workspace, "audit/benchmark-sources/.benchmark.lock");
+const lockOptions = { busyMessage: "公开评测正在采集或审核，或存在遗留锁" };
 function compareScores(previous, next) {
   const old = new Map(previous.scores.map(row => [row.id, row]));
   const current = new Map(next.scores.map(row => [row.id, row]));
@@ -122,8 +108,7 @@ function readPublic(workspace = root) {
 /** @param {string} workspace
  * @param {{fetchSource?:Function,adapters?:Array<{id:string,collect:Function}>}} options */
 async function collect(workspace = root, options = {}) {
-  const release = acquireLock(workspace);
-  try {
+  return withFileLock(lockFile(workspace), async () => {
   const audit = path.join(workspace, "audit/benchmark-sources");
   const artifacts = new Map(), cache = new Map();
   const getter = options.fetchSource || fetchSource;
@@ -170,11 +155,10 @@ async function collect(workspace = root, options = {}) {
   atomicWrite(path.join(audit, "snapshots", digest(canonical(data)) + ".json"), JSON.stringify(data, null, 2) + "\n");
   atomicWrite(path.join(audit, "latest.json"), JSON.stringify(data, null, 2) + "\n");
   return data;
-  } finally { release(); }
+  }, lockOptions);
 }
 function publish(input, reviewer, reason, workspace = root) {
-  const release = acquireLock(workspace);
-  try {
+  return withFileLockSync(lockFile(workspace), () => {
   text(reviewer, "审核者", 200); text(reason, "审核理由", 2000);
   const { review: priorReview, ...inputData } = JSON.parse(fs.readFileSync(path.resolve(input), "utf8"));
   const data = validatePublic(inputData);
@@ -198,7 +182,7 @@ function publish(input, reviewer, reason, workspace = root) {
   const output = { ...data, review: { by: reviewer, reason, reviewedAt: new Date().toISOString(), candidateHash } };
   atomicWrite(file, JSON.stringify(output, null, 2) + "\n");
   return output;
-  } finally { release(); }
+  }, lockOptions);
 }
 async function main(argv) {
   const command = argv.shift();

@@ -62,12 +62,26 @@ test("同步保留较新的整站版本与原价格，重复执行不写入", ({
   assert.equal(after.META.updated, before.META.updated);
   assert.equal(after.PRICE_CHECKS.checkedAt, checkedAt);
   for (const name of ["PLANS", "API_PRICES", "PAYG_REFERENCES"]) {
-    const prices = (data) => data[name].map((item) => [item.priceM, item.priceY, item.inUSD, item.outUSD, item.inCNY, item.outCNY, item.apiIn, item.apiOut, item.apiCache]);
+    const prices = (data) => data[name].map((item) => [item.priceM, item.priceY, item.autoRenewMonthly, item.inUSD, item.outUSD, item.inCNY, item.outCNY, item.apiIn, item.apiOut, item.apiCache]);
     assert.equal(JSON.stringify(prices(after)), JSON.stringify(prices(before)));
   }
   const first = snapshot();
   assert.equal(syncPricingAudit(root, { rename: () => { throw new Error("幂等同步不应替换文件"); } }).filesChanged, 0);
   assert.deepEqual(snapshot(), first);
+});
+
+test("自动续费金额可由本套餐关联核价证据说明，其他套餐或未关联的条款不能放行", ({ root }) => {
+  const source = fs.readFileSync(path.join(root, "js/data.js"), "utf8");
+  const noteOnlyMonthly = '\n;PLANS.find(p => p.id === "plan-0066").note = "官方个人月订阅 Lite $29、Pro $79、Max $179。";';
+  assert.deepEqual(validateData({ workspace: root, source: source + noteOnlyMonthly }).errors, []);
+  const noLinkedTerms = noteOnlyMonthly + '\n;PRICE_CHECKS.rows["plan:plan-0066"].sourceIds = ["relays-devpass"];';
+  assert.ok(validateData({ workspace: root, source: source + noLinkedTerms }).errors.some(error => /autoRenewMonthly.*DevPass/.test(error)));
+  const unrelatedTerms = noLinkedTerms + '\n;PRICE_CHECKS.sources["claude-plans"].evidence = "官方条款为自动月续订。";';
+  assert.ok(validateData({ workspace: root, source: source + unrelatedTerms }).errors.some(error => /autoRenewMonthly.*DevPass/.test(error)));
+  for (const invalid of ["0", "-1", '"29"', "Infinity", "NaN"]) {
+    const candidate = source + noteOnlyMonthly + '\n;PLANS.find(p => p.id === "plan-0066").autoRenewMonthly = ' + invalid + ';';
+    assert.ok(validateData({ workspace: root, source: candidate }).errors.some(error => /autoRenewMonthly.*DevPass/.test(error)));
+  }
 });
 
 test("较新的核价推进整站版本并生成对应日期台账", ({ root }) => {

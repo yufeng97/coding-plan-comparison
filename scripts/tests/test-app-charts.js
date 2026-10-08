@@ -25,7 +25,7 @@ test("首次导航及分享锚点先渲染前方五组图表，再定位 API 区
 });
 
 test("图表跳表清除旧 cloud/cn 条件并定位，清除按钮恢复默认表格", () => {
-  const app = createApp({ url: "http://127.0.0.1:8123/index.html?tcat=cloud&tregion=cn" });
+  const app = createApp({ url: "http://127.0.0.1:8123/index.html?tcat=cloud&tregion=cn&tapply=1" });
   const search = app.elements.get("chartSearch");
   search.value = "Claude Team";
   app.fire(search, "input");
@@ -35,7 +35,9 @@ test("图表跳表清除旧 cloud/cn 条件并定位，清除按钮恢复默认�
   healthy(app);
   assert.equal(app.run("tableState.cat"), "all");
   assert.equal(app.run("tableState.region"), "all");
-  assert.equal(app.run("computeTableRows().length"), 2);
+  assert.equal(app.run("tableState.fromPicker"), false);
+  assert.equal(app.run('computeTableRows().filter(p => p.vendor === "Anthropic" && /Claude Team/.test(p.plan)).length'), 2);
+  assert.equal(app.run('computeTableRows().every(p => queryHit(planSearchBlob(p), "Claude Team"))'), true);
   assert.equal(app.elements.get("selectCat").value, "all");
   assert.equal(app.elements.get("selectRegion").value, "all");
   assert.equal(app.location.hash, "#table");
@@ -44,6 +46,7 @@ test("图表跳表清除旧 cloud/cn 条件并定位，清除按钮恢复默认�
   assert.equal(params.get("q"), "Claude Team");
   assert.equal(params.has("tcat"), false);
   assert.equal(params.has("tregion"), false);
+  assert.equal(params.has("tapply"), false);
   app.fire(app.elements.get("tableResetBtn"), "click");
   assert.equal(app.run("tableState.search"), "");
   assert.equal(app.run("tableState.sortKey + ':' + tableState.sortDir"), "priceM:1");
@@ -78,7 +81,7 @@ test("个人图表显示全部可收起，空结果可清除并恢复20档与筛
   assert.equal(app.elements.get("chartPersonalEmpty").hidden, false);
   assert.equal(app.elements.get("chartPersonalEmpty").getAttribute("role"), "status");
   app.fire(app.elements.get("personalResetBtn"), "click");
-  assert.equal(app.run('JSON.stringify(personalState)'), JSON.stringify({ cat: "all", region: "all", billing: "M", q: "", limit: 20 }));
+  assert.equal(app.run('JSON.stringify(personalState)'), JSON.stringify({ cat: "all", region: "all", billing: "M", q: "", limit: 20, fromPicker:false }));
   assert.equal(search.value, "");
   assert.equal(app.run("document.activeElement.id"), "chartSearch");
   assert.equal(app.elements.get("chartPersonal").hidden, false);

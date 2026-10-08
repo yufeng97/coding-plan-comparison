@@ -242,7 +242,7 @@ test("表格排序键盘操作与aria说明一致，明细开关同步展开状�
   app.fire(version, "change");
   assert.match(app.elements.get("metricsBody").innerHTML, /当前模型与版本没有可展示的额度/);
   app.fire(app.elements.get("metricsEmptyResetBtn"), "click");
-  assert.deepEqual(JSON.parse(app.run('JSON.stringify(metricsState)')), { model: "all", ver: "all", tier: "flagship", offer: "current", sortKey: "cpm", sortDir: 1 });
+  assert.deepEqual(JSON.parse(app.run('JSON.stringify(metricsState)')), { model: "all", ver: "all", tier: "flagship", offer: "current", sortKey: "cpm", sortDir: 1, fromPicker:false });
   assert.equal(model.value, "all");
   assert.equal(version.value, "all");
   assert.equal(app.run("document.activeElement.id"), "metricsModel");
@@ -500,6 +500,46 @@ test("两张表手机每批5行、桌面每批20行，跨断点重绘重新应�
   assert.deepEqual(counts(), [20, 20]);
   app.run("window.innerWidth = 375; renderTable(); renderMetricsTable();");
   assert.deepEqual(counts(), [5, 5]);
+  healthy(app);
+});
+
+test("多关键词与厂商别名搜索保留型号、空白及标点归一化", () => {
+  const app = createApp();
+  for (const query of ["OpenAI Plus", "Plus OpenAI", "CHATGPT   Plus", "Codex Plus"]) {
+    app.run(`tableState.search = ${JSON.stringify(query)}; renderTable();`);
+    assert.ok(app.run('computeTableRows().some(p => p.id === "plan-0010")'), query);
+  }
+  app.run('tableState.search = "克劳德 Pro"; renderTable();');
+  assert.ok(app.run('computeTableRows().some(p => p.vendor === "Anthropic" && p.plan === "Claude Pro")'));
+  app.run('tableState.search = "Moonshot"; renderTable();');
+  assert.ok(app.run('computeTableRows().some(p => /Kimi/.test(p.vendor))'));
+  for (const query of ["", "   ", " _-./· "]) {
+    app.run(`tableState.search = ${JSON.stringify(query)};`);
+    assert.equal(app.run("computeTableRows().length"), app.run("PLANS.filter(isOnSalePlan).length"));
+  }
+  assert.equal(app.run('queryHit("gpt6sol", "GPT-6 Sol")'), true);
+  assert.equal(app.run('queryHit("gpt6sol", "GPT-6 Luna")'), false);
+  healthy(app);
+});
+
+test("降级对比窗口包含核查说明且跳过收起详情内的链接", () => {
+  const app = createApp({ noNativeDialog:true });
+  app.run('cmpAdd("plan-0024"); cmpAdd("plan-0027"); openCmpModal();');
+  const modal = app.elements.get("cmpModal");
+  const summary = modal.querySelector("details.price-check-details summary");
+  summary.focus();
+  const tab = app.fire(summary, "keydown", { key:"Tab" });
+  assert.equal(tab.defaultPrevented, false, "第一条核查说明后应继续正常 Tab 浏览");
+  assert.equal(app.run('cmpFocusableElements().filter(el => el.tagName === "SUMMARY").length'), 2);
+  app.run('byId("cmpFeedback").innerHTML = \'<details id="closedReviewFixture"><summary>隐藏链接测试</summary><a id="hiddenReviewLink" href="https://example.com">证据</a></details>\';');
+  assert.equal(app.run('cmpFocusableElements().some(el => el.id === "hiddenReviewLink")'), false);
+  app.run('byId("closedReviewFixture").open = true;');
+  assert.equal(app.run('cmpFocusableElements().some(el => el.id === "hiddenReviewLink")'), true);
+  const focusable = app.run("cmpFocusableElements()");
+  const first = focusable[0], last = focusable[focusable.length - 1];
+  last.focus();
+  assert.equal(app.fire(last,"keydown",{key:"Tab"}).defaultPrevented, true);
+  assert.equal(app.run("document.activeElement"), first);
   healthy(app);
 });
 

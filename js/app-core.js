@@ -466,12 +466,30 @@ function foldSearch(s) {
 function escRe(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
+/** @type {Array<[RegExp, string]>} */
+const SEARCH_VENDOR_ALIASES = [
+  [/OpenAI|ChatGPT/i, "OpenAI ChatGPT Codex GPT 聊天GPT"],
+  [/Anthropic|Claude/i, "Anthropic Claude 克劳德"],
+  [/智谱|BigModel|Z\.ai/i, "智谱 BigModel GLM Z.ai"],
+  [/月之暗面|Kimi/i, "月之暗面 Kimi Moonshot"],
+  [/DeepSeek|深度求索/i, "DeepSeek 深度求索"],
+  [/阿里/i, "阿里 Alibaba"],
+  [/Qwen|千问/i, "千问 Qwen"],
+  [/字节/i, "字节 ByteDance"],
+  [/豆包|Doubao/i, "豆包 Doubao"],
+  [/GitHub|Copilot/i, "GitHub Copilot"],
+  [/Google|Gemini|谷歌/i, "Google 谷歌 Gemini 双子座"],
+  [/MiniMax|稀宇/i, "MiniMax 稀宇"],
+  [/小米|MiMo/i, "小米 Xiaomi MiMo"],
+];
 function planSearchBlob(p) {
-  return foldSearch([p.vendor, p.plan, resolvedField(p, "models"), resolvedField(p, "tools"), resolvedField(p, "quota"), resolvedField(p, "note")].join(" "));
+  const identity = [p.vendor, p.plan].join(" ");
+  const aliases = SEARCH_VENDOR_ALIASES.filter(([pattern]) => pattern.test(identity)).map(([, words]) => words);
+  return foldSearch([p.vendor, p.plan, resolvedField(p, "models"), resolvedField(p, "tools"), resolvedField(p, "quota"), resolvedField(p, "note"), ...aliases].join(" "));
 }
 function queryHit(blob, q) {
-  const fq = foldSearch(q);
-  return !fq || blob.includes(fq);
+  const terms = String(q || "").trim().split(/\s+/).map(foldSearch).filter(Boolean);
+  return terms.every((term) => blob.includes(term));
 }
 
 /* ---------- 明暗主题切换（暗 → 亮 → 跟随系统 循环） ---------- */

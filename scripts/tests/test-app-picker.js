@@ -24,7 +24,10 @@ test("国家限定套餐始终不入通用推荐，过期country链接清理后�
 
 test("225组四维推荐满足资格、预算、工具和地区；升级/补充均排除国家限定", () => {
   const app = createApp();
-  const checks = app.run(`(() => {
+  const checks = { total:0, failures:[] };
+  /* 按预算分批运行相同225组断言，避免整轮共享一个VM超时而受并行浏览器负载影响。 */
+  for (const budget of ["0", "100", "200", "500", "any"]) {
+    const batch = app.run(`(() => {
     let total = 0;
     const failures = [];
     const check = (ok, label) => { if (!ok) failures.push(label + " " + JSON.stringify(pickerState)); };
@@ -53,7 +56,7 @@ test("225组四维推荐满足资格、预算、工具和地区；升级/补充�
       check(Number(document.getElementById("quickGrid").dataset.cardCount) === cards.length, "卡片列数与内容不一致");
       check(!/priceM|priceY|NaN|undefined/.test(document.getElementById("quickGrid").innerHTML), "内部字段/无效数字泄漏");
     };
-    for (const budget of ["0", "100", "200", "500", "any"])
+    const budget = ${JSON.stringify(budget)};
     for (const region of ["all", "cn", "intl"])
     for (const tool of ["any", "claude", "codex", "cursor", "own"])
     for (const task of ["hard", "both", "daily"]) {
@@ -93,6 +96,9 @@ test("225组四维推荐满足资格、预算、工具和地区；升级/补充�
     }
     return { total, failures };
   })()`);
+    checks.total += batch.total;
+    checks.failures.push(...batch.failures);
+  }
   assert.equal(checks.total, 225);
   assert.equal(checks.failures.length, 0, checks.failures.slice(0, 12).join("\n"));
   healthy(app);
@@ -324,7 +330,7 @@ test("真实推荐卡的对比按钮可操作且重绘后保留选择与自身�
   app.run('Object.assign(pickerState, { budget: "500", region: "cn", tool: "any", task: "both" }); renderPicker();');
   const grid = app.elements.get("quickGrid");
   const button = grid.querySelector(".cmp-add");
-  button.closest(".qc-details").open = true;
+  assert.equal(button.closest(".qc-details"), null, "推荐动作应无需展开即可操作");
   const id = button.dataset.planId;
   app.fire(button, "click");
   assert.equal(app.run(`cmpState.items.some(p => p.id === ${JSON.stringify(id)})`), true);
@@ -334,7 +340,7 @@ test("真实推荐卡的对比按钮可操作且重绘后保留选择与自身�
   const replacement = grid.querySelector('.cmp-add[data-plan-id="' + id + '"]');
   assert.equal(button.isConnected, false);
   assert.equal(replacement.getAttribute("aria-pressed"), "true");
-  assert.equal(replacement.closest(".qc-details").open, true, "恢复焦点时入口必须保持展开可见");
+  assert.equal(replacement.closest(".qc-details"), null, "重绘后的动作仍可直接访问");
   assert.equal(app.run("document.activeElement"), replacement);
   healthy(app);
 });

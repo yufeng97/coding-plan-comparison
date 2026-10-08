@@ -27,7 +27,8 @@ function syncSortHeader(th, label, key, dir, firstDir = 1) {
 
 function planMonthlyPriceCell(p) {
   const sub = p.priceM > 0 ? `<br><span class="sub">≈${fmtCNY(cnyOf(p, "M"))}/${esc(priceUnit(p))}</span>` : "";
-  return esc(planPriceLabel(p)) + sub;
+  const chosen = tableState.fromPicker ? `<br><span class="sub">选购口径：${esc(priceLine(p))}；首次 ${esc(pickerFirstPaymentText(p))}</span>` : "";
+  return esc(planPriceLabel(p)) + sub + chosen;
 }
 function planAnnualPriceCell(p) {
   if (p.priceY == null) return isOneTimePlan(p) ? "—" : '<span class="sub">未列年付价</span>';
@@ -47,6 +48,8 @@ const PLAN_COLUMNS = [
   { id: "priceY", label: "年付折月", cls: "td-price", value: (p) => p.priceY == null ? "" : planPriceLabel(p, "Y"),
     markdownValue: (p) => p.priceY == null ? "—" : planPriceLabel(p, "Y"), cell: planAnnualPriceCell },
   { id: "annualTotal", label: "年付全年金额", table: false, value: annualPaymentText },
+  { id: "selectedPayment", label: "选购支付口径", table:false, value:(p) => tableState.fromPicker ? priceLine(p) : "" },
+  { id: "selectedFirstPayment", label: "选购首次付款", table:false, value:(p) => tableState.fromPicker ? pickerFirstPaymentText(p) : "" },
   { id: "quota", label: "额度（官方口径）", cls: "td-quota", value: (p) => resolvedField(p, "quota") },
   { id: "models", label: "模型", cls: "td-models col-opt", value: (p) => resolvedField(p, "models") },
   { id: "tools", label: "支持工具", cls: "col-opt", value: (p) => resolvedField(p, "tools") },
@@ -76,6 +79,7 @@ function computeTableRows() {
   const rows = onSale.filter((p) =>
     (tableState.cat === "all" || p.cat === tableState.cat) &&
     (tableState.region === "all" || p.region === tableState.region) &&
+    (!tableState.fromPicker || matchesPickerPurchase(p)) &&
     (!q || queryHit(planSearchBlob(p), q))
   );
   const k = tableState.sortKey;
@@ -88,12 +92,16 @@ function computeTableRows() {
   });
 }
 
+function tableFingerprint(pageSize = responsivePageSize()) {
+  return JSON.stringify([tableState, pageSize, tableState.fromPicker ? pickerState : null]);
+}
+
 function renderTable() {
   const focused = /** @type {HTMLElement | null} */ (document.activeElement);
   const focusedPlanId = focused && byId("tableBody").contains(focused) && focused.classList.contains("cmp-add") ? focused.dataset.planId : "";
   const rows = computeTableRows();
   const pageSize = responsivePageSize();
-  const fingerprint = JSON.stringify([tableState, pageSize]);
+  const fingerprint = tableFingerprint(pageSize);
   if (fingerprint !== tableViewFingerprint) {
     tableVisibleLimit = pageSize;
     tableViewFingerprint = fingerprint;
@@ -131,7 +139,8 @@ function renderTable() {
     btn.title = rows.length ? (id === "exportCsvBtn" ? "下载当前筛选结果为 CSV（UTF-8）" : "复制当前筛选结果为 Markdown 表格") : "没有可导出的结果，请先调整筛选";
   });
   const reset = byId("tableResetBtn");
-  if (reset) reset.disabled = !tableState.search && tableState.cat === "all" && tableState.region === "all" && tableState.sortKey === "priceM" && tableState.sortDir === 1;
+  if (reset) reset.disabled = !tableState.fromPicker && !tableState.search && tableState.cat === "all" && tableState.region === "all" && tableState.sortKey === "priceM" && tableState.sortDir === 1;
+  if (typeof syncPickerScopeControls === "function") syncPickerScopeControls();
   tableFeedback("");
   syncTableCmpButtons();
   /* 防抖搜索期间用户可能已 Tab 到方案按钮；按身份找回重绘后的同一操作。 */
@@ -156,14 +165,14 @@ function revealTablePlan(planId) {
   if (index >= tableVisibleLimit) {
     const pageSize = responsivePageSize();
     tableVisibleLimit = Math.ceil((index + 1) / pageSize) * pageSize;
-    tableViewFingerprint = JSON.stringify([tableState, pageSize]);
+    tableViewFingerprint = tableFingerprint(pageSize);
     renderTable();
   }
   return true;
 }
 
 function resetTableFilters() {
-  Object.assign(tableState, { search: "", cat: "all", region: "all", sortKey: "priceM", sortDir: 1 });
+  Object.assign(tableState, { search: "", cat: "all", region: "all", sortKey: "priceM", sortDir: 1, fromPicker:false });
   byId("searchInput").value = "";
   byId("selectCat").value = "all";
   byId("selectRegion").value = "all";
@@ -269,9 +278,21 @@ function isCmpModalOpen() {
 }
 function cmpFocusableElements() {
   const dlg = byId("cmpModal");
+  return modalFocusableElements(dlg);
+}
+function modalFocusableElements(dlg) {
   if (!dlg) return [];
-  return [...dlg.querySelectorAll("a[href], button, input, select, textarea, [tabindex]")]
-    .filter((el) => !el.disabled && !el.hidden && el.getAttribute("tabindex") !== "-1" && !el.closest("[hidden]"));
+  return [...dlg.querySelectorAll("a[href], button, input, select, textarea, summary, [tabindex]")].filter((el) => {
+    if (el.disabled || el.hidden || el.tabIndex < 0 || el.closest("[hidden], [inert]")) return false;
+    for (let parent = el.parentNode; parent && parent !== dlg; parent = parent.parentNode) {
+      if (parent.tagName === "DETAILS" && !parent.open) {
+        const summary = parent.querySelector("summary");
+        if (!summary || (el !== summary && !summary.contains(el))) return false;
+      }
+    }
+    const style = getComputedStyle(el);
+    return style.display !== "none" && style.visibility !== "hidden" && style.visibility !== "collapse" && el.getClientRects().length > 0;
+  });
 }
 function setCmpBackgroundInert(on) {
   if (on) {
@@ -550,7 +571,7 @@ function renderMisc() {
 /* 额度换算的常量与纯函数（WEEKS_PER_MONTH、blendPrice、computeMetrics 等）在 js/metrics.js */
 
 function resetMetricsFilters() {
-  Object.assign(metricsState, { model: "all", ver: "all", tier: "flagship", offer: "current", sortKey: "cpm", sortDir: 1 });
+  Object.assign(metricsState, { model: "all", ver: "all", tier: "flagship", offer: "current", sortKey: "cpm", sortDir: 1, fromPicker:false });
   byId("metricsModel").value = "all";
   byId("metricsVer").value = "all";
   if (byId("metricsTier")) byId("metricsTier").value = "flagship";
@@ -577,8 +598,9 @@ const METRICS_COLUMNS = [
     cell: ({ c, isPayg }) => {
       const title = isPayg
         ? "官方牌价按 80% 输入 / 20% 输出、95% 缓存命中折成每百万人民币。有峰谷的取低峰。不是套餐月费除以额度。"
-        : "每百万 tokens 实际成本（统一折算人民币）";
-      return `<span style="font-weight:800;color:${cpmColor(c.costPerM)}" title="${esc(title)}">${fmtCpm(c.costPerM)}</span>`;
+        : "用尽参考月额度时的每百万 tokens 折算成本；主值按额度区间中点排序（统一折算人民币）";
+      const range = !isPayg && fullUseCostRangeText(c);
+      return `<span style="font-weight:800;color:${cpmColor(c.costPerM)}" title="${esc(title)}">${fmtCpm(c.costPerM)}</span>${range ? `<br><span class="sub">${esc(range)}</span>` : ""}`;
     } },
   { id: "t5h", label: "Tokens/5h", sortKey: "t5h", cls: "col-more tok-cell",
     cell: ({ m, c, isPayg }) => (isPayg ? "—" : fTokCell(c.fLow, c.fHigh,
@@ -707,11 +729,14 @@ function metricsTierOk(m) {
 let metricsVisibleLimit = responsivePageSize();
 let metricsViewFingerprint = "";
 function metricsTableRows() {
-  let rows = METRICS_ALL.map((m) => ({ m, c: computeMetrics(m), payg: false })).filter((r) => r.c);
+  let rows = METRICS_ALL.map((original) => {
+    const m = metricsState.fromPicker ? pickerMetricInput(original) : original;
+    return { m:m || original, c:m ? computeMetrics(m) : null, payg:false };
+  }).filter((r) => r.c);
   rows = rows.filter((r) => metricsTierOk(r.m) && (metricsState.offer === "all" || metricOfferOk(r.m)));
   if (metricsState.model !== "all") rows = rows.filter((r) => r.m.model === metricsState.model);
   if (metricsState.ver !== "all") rows = rows.filter((r) => r.m.ver === metricsState.ver);
-  const payg = metricsState.ver === "all"
+  const payg = metricsState.ver === "all" && !metricsState.fromPicker
     ? paygReferenceRows().filter((r) => metricsTierOk(r.m) && (metricsState.offer === "all" || isPriceConfirmed(r.m, "payg")) && (metricsState.model === "all" || r.m.model === metricsState.model))
     : [];
   const shownRows = [...payg, ...rows];
@@ -727,7 +752,7 @@ function metricsTableRows() {
 function renderMetricsTable() {
   const { rows, payg, shownRows } = metricsTableRows();
   const pageSize = responsivePageSize();
-  const fingerprint = JSON.stringify([metricsState, pageSize]);
+  const fingerprint = JSON.stringify([metricsState, pageSize, metricsState.fromPicker ? pickerState : null]);
   if (fingerprint !== metricsViewFingerprint) {
     metricsVisibleLimit = pageSize;
     metricsViewFingerprint = fingerprint;
@@ -758,7 +783,8 @@ function renderMetricsTable() {
     if (col) syncSortHeader(th, col.label, metricsState.sortKey, metricsState.sortDir, col.asc ? 1 : -1);
   });
   const reset = byId("metricsResetBtn");
-  if (reset) reset.disabled = metricsState.model === "all" && metricsState.ver === "all" && metricsState.tier === "flagship" && metricsState.offer === "current" && metricsState.sortKey === "cpm" && metricsState.sortDir === 1;
+  if (reset) reset.disabled = !metricsState.fromPicker && metricsState.model === "all" && metricsState.ver === "all" && metricsState.tier === "flagship" && metricsState.offer === "current" && metricsState.sortKey === "cpm" && metricsState.sortDir === 1;
+  if (typeof syncPickerScopeControls === "function") syncPickerScopeControls();
   const sortColumn = METRICS_COLUMNS.find((c) => c.sortKey === metricsState.sortKey);
   const sortDescription = sortColumn ? `${esc(sortColumn.label)}${metricsState.sortDir === 1 ? "从低到高" : "从高到低"}` : "当前列";
   renderMetricsSortHint();

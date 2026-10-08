@@ -7,7 +7,7 @@ const vm = require("node:vm");
 const maintenance = vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../../../js/maintenance-data.js"), "utf8") + "; MAINTENANCE;");
 const followed = maintenance.changes.find((change) => change.kind === "plan");
 const readIds = maintenance.changes.filter((change) => change.id === followed.id).map((change) => change.changeId);
-const tab = (page, name) => page.getByRole("navigation", { name:"内容标签" }).getByRole("link", { name, exact:true });
+const tab = (page, name) => page.getByRole("link", { name, exact:true });
 
 test("首页按标签延迟加载资料，历史返回和回首页保留视图且不重复下载", async ({ page }) => {
   const requests = [];
@@ -17,7 +17,7 @@ test("首页按标签延迟加载资料，历史返回和回首页保留视图�
   });
   await page.goto("/", { waitUntil:"networkidle" });
   await expect(page.locator("#quickGrid > .quick-card").first()).toBeVisible();
-  await expect(tab(page, "选购对比")).toHaveAttribute("aria-current", "page");
+  await expect(tab(page, "选套餐")).toHaveAttribute("aria-current", "page");
   expect(requests).toEqual([]);
   await expect(page.locator("#benchmarks")).toBeHidden();
   await expect(page.locator("#updates")).toBeHidden();
@@ -28,7 +28,7 @@ test("首页按标签延迟加载资料，历史返回和回首页保留视图�
   await expect(tab(page, "模型评测")).toHaveAttribute("aria-current", "page");
   expect(requests).toEqual(["benchmark"]);
 
-  await tab(page, "数据维护").click();
+  await tab(page, "我的关注").click();
   await page.waitForFunction("optionalDataLoaded('maintenance')");
   await expect(page.locator("#maintenanceSummary")).not.toBeEmpty();
   await expect(page.locator("#benchmarks")).toBeHidden();
@@ -38,14 +38,14 @@ test("首页按标签延迟加载资料，历史返回和回首页保留视图�
   await expect(tab(page, "模型评测")).toHaveAttribute("aria-current", "page");
   await expect(page.locator("#publicBenchmarkBody tr").first()).toBeVisible();
   await expect(page.locator("#updates")).toBeHidden();
-  await tab(page, "选购对比").click();
+  await tab(page, "选套餐").click();
   await expect(page.locator("#quickGrid > .quick-card").first()).toBeVisible();
   await expect(page.locator(".hero")).toBeVisible();
   await expect(page.locator("#benchmarks")).toBeHidden();
   expect(requests).toEqual(["benchmark", "maintenance"]);
 });
 
-for (const [kind, label] of [["benchmark", "模型评测"], ["maintenance", "数据维护"]]) {
+for (const [kind, label] of [["benchmark", "模型评测"], ["maintenance", "我的关注"]]) {
   test(`${label}下载失败显示局部重试，恢复数据后首页仍可使用`, async ({ page }) => {
     let fail = true;
     let attempts = 0;
@@ -68,7 +68,7 @@ for (const [kind, label] of [["benchmark", "模型评测"], ["maintenance", "数
     expect(attempts).toBe(2);
     if (kind === "benchmark") await expect(page.locator("#publicBenchmarkBody tr").first()).toBeVisible();
     else await expect(page.locator("#maintenanceSummary")).not.toBeEmpty();
-    await tab(page, "选购对比").click();
+    await tab(page, "选套餐").click();
     await expect(page.locator("#quickGrid > .quick-card").first()).toBeVisible();
     await expect(page.locator("#loadFailure")).toBeHidden();
   });
@@ -92,7 +92,7 @@ test("历史数据尚未下载时关注操作保留已读ID，打开维护页后
   // 还原当前主卡的关注状态，让维护页只检验预置套餐的已读历史。
   await watch.click();
   expect(requested).toBe(false);
-  await tab(page, "数据维护").click();
+  await tab(page, "我的关注").click();
   await page.waitForFunction("optionalDataLoaded('maintenance')");
   await expect(page.locator("#followedChanges")).toContainText("没有未读");
   await expect(page.locator("#markFollowReadBtn")).toBeDisabled();
@@ -120,7 +120,7 @@ test("测评贡献下载失败可在当前标签重试，任务筛选返回后�
   await page.locator("#contributorBenchmarkTools > summary").click();
   await page.locator("#benchmarkTask").selectOption("csv-export");
   await expect(page.locator("#benchmarkTasks details")).toHaveCount(1);
-  await tab(page, "选购对比").click();
+  await tab(page, "选套餐").click();
   await tab(page, "模型评测").click();
   await expect(page.locator("#benchmarkTask")).toHaveValue("csv-export");
   await expect(page.locator("#benchmarkTasks details")).toHaveCount(1);

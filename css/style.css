@@ -181,12 +181,19 @@ html[data-theme="dark"] .to-top:hover { color: var(--brand-ink); }
   border-radius: var(--radius-s); font-family: var(--mono); font-size: 11px; font-weight: 600;
 }
 html[data-theme="light"] .brand-mark { color: #315f59; background: var(--brand); }
-.topnav { display: flex; gap: 2px; flex-wrap: wrap; margin-right: auto; }
-.topnav a {
+.topnav, .primary-nav { display: flex; gap: 2px; flex-wrap: wrap; margin-right: auto; }
+.topnav a, .primary-nav a {
   color: var(--muted); font-size: 13px; font-weight: 600; padding: 6px 10px; border-radius: var(--radius-s);
 }
-.topnav a:hover { color: var(--ink); background: var(--hover); text-decoration: none; }
-.topnav a[aria-current="location"] { color: var(--ink); background: var(--brand-soft); }
+.topnav a:hover, .primary-nav a:hover { color: var(--ink); background: var(--hover); text-decoration: none; }
+.topnav a[aria-current="location"], .primary-nav a[aria-current="page"] { color: var(--ink); background: var(--brand-soft); }
+.section-menu { margin-top: 18px; }
+.section-menu > summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+.section-menu .topnav { margin-top: 10px; flex-wrap: wrap; overflow: visible; }
+.workload-check { align-self: flex-start; margin-bottom: 12px; }
+.qc-payment-summary { margin-top: 8px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+#pickerBillingNote { grid-column: 1 / -1; margin: 0; line-height: 1.6; }
+.footer .view-tabs { justify-content: center; padding: 0 0 14px; border: 0; }
 .theme-btn {
   display: inline-grid; place-items: center; width: 34px; height: 34px;
   background: transparent; border: 1px solid var(--line-strong); color: var(--muted);
@@ -667,12 +674,16 @@ table.is-empty thead { display: none; }
 @media (max-width: 700px) {
   #quick { display: flex; flex-direction: column; }
   #quick { padding-top: 24px !important; }
+  #quick > .section-head { margin-bottom: 12px; }
+  #quick > .section-head p { display: none; }
   .hero .prompt-mark { display: none; }
   #quick > .section-head { order: 0; }
   #picker { order: 1; }
   #quickGrid { order: 2; }
-  #quick > .service-actions { order: 3; }
-  #serviceFeedback, #pickerNote { order: 4; }
+  #quick > .workload-check { order: 3; }
+  #quick > .service-actions { order: 4; }
+  #serviceFeedback, #pickerNote { order: 5; }
+  #quick > .section-menu { order: 6; }
   .cost-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cost-model { grid-column: 1 / -1; }
   .plan-detail-fields > div { grid-template-columns: 1fr; gap: 4px; }
@@ -688,9 +699,8 @@ table.is-empty thead { display: none; }
   :root { --header-height: 88px; }
   .topbar-inner { gap: 8px; padding: 8px 14px; }
   .theme-btn { order: 2; margin-left: auto; }
-  .topnav { order: 3; flex-basis: 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-right: 0; }
-  .topnav::-webkit-scrollbar { display: none; }
-  .topnav a { flex: 0 0 auto; white-space: nowrap; padding: 5px 9px; }
+  .primary-nav { order: 3; flex-basis: 100%; margin-right: 0; }
+  .primary-nav a { flex: 1; text-align: center; white-space: nowrap; padding: 5px 9px; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
@@ -701,7 +711,11 @@ table.is-empty thead { display: none; }
   .hero-inner, .section { padding-left: 16px; padding-right: 16px; }
   .section { padding-top: 40px; }
   .section-head h2 { font-size: 19px; }
-  .hero-inner { padding-top: 22px; }
+  .hero-inner { padding-top: 12px; padding-bottom: 12px; }
+  .hero h1 { font-size: 28px; }
+  .hero .hero-meta { margin-top: 8px; }
+  .hero .hero-details { margin-top: 10px; }
+  .hero .hero-start { margin-top: 8px; }
   .prompt-mark { margin-bottom: 8px; }
   .hero-lede { margin-top: 12px; }
   .hero-meta { font-family: var(--sans); line-height: 1.8; }
@@ -714,6 +728,8 @@ table.is-empty thead { display: none; }
   .picker-row { gap: 6px; }
   .picker-label { color: var(--ink); }
   .picker-row .chip { padding: 6px 11px; }
+  .picker-row[data-pick="budget"] { gap: 4px; }
+  .picker-row[data-pick="budget"] .chip { padding-left: 8px; padding-right: 8px; }
   .legend-inline { margin-left: 0; gap: 8px 12px; }
   .chart-card { padding-left: 6px; padding-right: 6px; }
   .card-text { padding: 16px; }
@@ -730,7 +746,6 @@ table.is-empty thead { display: none; }
   #planTable .td-quota { min-width: 140px; }
   #planTable .col-opt { display: none; }
   #planTable.show-all-cols .col-opt { display: table-cell; }
-  #tableColsToggle { display: inline-block; }
   /* 对比浮动条居中占宽，回到顶部按钮上移避让 */
   .to-top { bottom: 24px; right: 18px; }
   .has-compare .to-top { bottom: 110px; }
@@ -822,6 +837,7 @@ table.is-empty thead { display: none; }
   .quick-grid[data-card-count="1"] { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 767px) {
+  #tableColsToggle { display: inline-block; }
   .view-tabs { gap: 4px; padding-top: 12px; }
   .view-tab { padding: 8px 10px; font-size: 12px; }
   /* 保留排序表头操作，记录改为手机卡片，关键价格无需横向滚动。 */

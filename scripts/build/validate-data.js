@@ -94,6 +94,11 @@ function validateData(options = {}) {
     check(["USD", "CNY", "INR"].includes(p.cur), `PLANS cur 非法(${p.cur}): ${key}`);
     check(p.priceM == null || finiteNonnegative(p.priceM), `PLANS priceM 必须为有限非负数或 null: ${key}`);
     check(p.priceY == null || finiteNonnegative(p.priceY), `PLANS priceY 必须为有限非负数或 null: ${key}`);
+    /* 续费条款可记录在本套餐关联的核价来源中，不要求展示备注重复整段官方条款。 */
+    const renewalSources = PRICE_CHECKS.rows["plan:" + p.id]?.sourceIds;
+    const renewalExplanation = [p.note || "", ...(Array.isArray(renewalSources) ? renewalSources.map(id => PRICE_CHECKS.sources[id]?.evidence || "") : [])]
+      .some(text => /连续包月|自动(?:续费|月续订|按月续订)/.test(text));
+    check(p.autoRenewMonthly == null || (finitePositive(p.autoRenewMonthly) && p.priceM > 0 && renewalExplanation), `PLANS autoRenewMonthly 必须为有明确续费说明的有限正数: ${key}`);
     check(p.priceM !== undefined, `PLANS 缺 priceM 字段(应为数字或 null): ${key}`);
     check(typeof p.quota === "string" && p.quota.length > 4, `PLANS quota 缺失/过短: ${key}`);
     check(typeof p.url === "string" && p.url.startsWith("http"), `PLANS url 非法: ${key}`);

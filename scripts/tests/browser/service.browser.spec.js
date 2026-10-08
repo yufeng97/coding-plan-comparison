@@ -12,6 +12,7 @@ test("手机首屏展示主推荐，首屏和帮我选无需下载图表库", as
   expect(charts).toEqual([]);
   await page.locator(".hero-start").click();
   expect(charts).toEqual([]);
+  await page.locator("#sectionMenu").evaluate((menu) => { /** @type {HTMLDetailsElement} */ (menu).open = true; });
   await page.getByRole("navigation", { name:"页面章节" }).getByRole("link", { name:"性价比排行", exact:true }).click();
   await expect(page.locator("#chartRank canvas")).toHaveCount(1);
   expect(charts).toHaveLength(1);
@@ -94,6 +95,54 @@ test("图表仍在下载时回到顶部，加载完成不重新跳回分享章�
   } finally { release(); }
 });
 
+for (const failed of [false,true]) test(`显式导航下载期间主动转到其它控件，${failed ? "失败" : "完成"}后保留用户焦点`, async ({ page }) => {
+  let release = () => {};
+  const gate = new Promise((resolve) => { release = () => resolve(null); });
+  let requested = false;
+  await page.route("**/echarts.min.js*", async (route) => { requested = true; await gate; if (failed) await route.abort(); else await route.continue(); });
+  try {
+    await page.goto("/", { waitUntil:"domcontentloaded" });
+    await page.locator("#sectionMenu").evaluate((menu) => { /** @type {HTMLDetailsElement} */ (menu).open = true; });
+    const link = page.getByRole("navigation",{ name:"页面章节" }).getByRole("link",{ name:"数据表",exact:true });
+    await link.focus();
+    await page.keyboard.press("Enter");
+    await expect.poll(() => requested).toBe(true);
+    const budget = page.locator('#picker [data-pick="budget"] [data-value="100"]');
+    await budget.focus();
+    release();
+    if (failed) await expect.poll(() => page.evaluate("chartLibraryPromise === null")).toBe(true);
+    else await expect.poll(() => page.evaluate("chartLibraryReady()")).toBe(true);
+    await expect(budget).toBeFocused();
+    await expect(page.locator("#table")).not.toBeFocused();
+    expect(await page.locator("#table").evaluate((el) => el.getBoundingClientRect().top)).toBeGreaterThan(900);
+  } finally { release(); }
+});
+
+for (const action of ["滚轮","PageUp"]) test(`显式导航下载期间通过${action}继续阅读，完成后不抢回目标章节`, async ({ page }) => {
+  let release = () => {};
+  const gate = new Promise((resolve) => { release = () => resolve(null); });
+  let requested = false;
+  await page.route("**/echarts.min.js*", async (route) => { requested = true; await gate; await route.continue(); });
+  try {
+    await page.goto("/", { waitUntil:"domcontentloaded" });
+    await page.locator("#sectionMenu").evaluate((menu) => { /** @type {HTMLDetailsElement} */ (menu).open = true; });
+    const link = page.getByRole("navigation",{ name:"页面章节" }).getByRole("link",{ name:"数据表",exact:true });
+    await link.focus();
+    await page.keyboard.press("Enter");
+    await expect.poll(() => requested).toBe(true);
+    await expect.poll(() => page.evaluate("scrollY")).toBeGreaterThan(100);
+    const position = await page.evaluate("scrollY");
+    if (action === "滚轮") await page.mouse.wheel(0,-320);
+    else await page.keyboard.press("PageUp");
+    await expect.poll(() => page.evaluate("scrollY")).toBeLessThan(position - 2);
+    release();
+    await expect.poll(() => page.evaluate("chartLibraryReady()")).toBe(true);
+    await expect(link).toBeFocused();
+    await expect(page.locator("#table")).not.toBeFocused();
+    expect(await page.locator("#table").evaluate((el) => el.getBoundingClientRect().top)).toBeGreaterThan(900);
+  } finally { release(); }
+});
+
 test("保存与恢复常用条件、复制当前状态和删除预设", async ({ page }) => {
   await page.addInitScript(() => { window["clipboardTexts"] = []; Object.defineProperty(navigator,"clipboard",{ value:{ writeText: async (text) => { window["clipboardTexts"].push(text); } },configurable:true }); });
   await page.goto("/?budget=100&ccache=50&cbudget=88");
@@ -140,7 +189,7 @@ test("无原生dialog时完整权益可循环焦点并还原背景", async ({ pa
   await expect(dialog).toBeVisible();
   await expect(page.locator("#planDetailsCloseBtn")).toBeFocused();
   await page.keyboard.press("Shift+Tab");
-  await expect(dialog.getByRole("link",{name:"官网购买与权益规则 ↗"})).toBeFocused();
+  await expect(dialog.locator(".plan-history > summary")).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(page.locator("#planDetailsCloseBtn")).toBeFocused();
   await page.keyboard.press("Escape");
@@ -155,4 +204,80 @@ test("排行明细包含当前口径全部行，并同步口径切换", async ({
   await page.locator('#chipRScope [data-rscope="all"]').click();
   await expect.poll(() => page.locator("#rankDetailBody tr").count()).toBe(await page.evaluate("rankRows().length"));
   expect(await page.locator("#rankDetailBody tr").count()).toBeGreaterThan(20);
+});
+
+test("选购用量入口打开计算器并带入精确模型，示例预设和三情景可编辑且可分享", async ({ page }) => {
+  await page.goto("/?budget=200&region=cn&task=hard");
+  await page.locator("#checkWorkloadBtn").click();
+  await expect(page).toHaveURL(/#s4$/);
+  await expect(page.locator("#costCalculator")).toHaveAttribute("open","");
+  await expect(page.locator("#costBudget")).toHaveValue("200");
+  await expect(page.locator("#costModel")).toHaveValue("智谱 BigModel|GLM-5.3");
+  await expect(page.locator("[data-cost-scenario-result]")).toHaveCount(3);
+  await expect(page.locator("#costResult")).toContainText("不代表真实用户用量");
+  await page.locator('[data-cost-preset="light"]').click();
+  await expect(page.locator("#costRequests")).toHaveValue("20");
+  await expect(page.locator("#costTokens")).toHaveValue("5000");
+  await page.locator('[data-cost-scenario="conservative"]').click();
+  await expect(page.locator("#costInput")).toHaveValue("60");
+  await expect(page.locator("#costCache")).toHaveValue("50");
+  await expect(page.locator('[data-cost-scenario="conservative"]')).toHaveAttribute("aria-pressed","true");
+  await expect(page).toHaveURL(/cscenario=conservative/);
+  await page.reload();
+  await page.locator("#costCalculator > summary").click();
+  await expect(page.locator("#costInput")).toHaveValue("60");
+  await expect(page.locator("#costRequests")).toHaveValue("20");
+  await page.locator("#costInput").fill("75");
+  await expect(page.locator('[data-cost-scenario="conservative"]')).toHaveAttribute("aria-pressed","false");
+  await page.locator("#costTokens").fill("0");
+  await page.locator("#costDays").fill("21");
+  await expect(page.locator("#costTokens")).toHaveValue("0");
+  await expect(page.locator("#costResult")).toContainText("有效数字");
+  await expect(page.locator("[data-cost-scenario-result]")).toHaveCount(0);
+});
+
+test("表格应用选购条件叠加搜索，自动续费预算可包含优惠档并在刷新后还原", async ({ page }) => {
+  await page.goto("/?budget=100&region=cn&tool=claude&billing=A&q=GLM#table");
+  const apply = page.locator('[data-apply-picker="table"]');
+  await apply.click();
+  await expect(apply).toHaveAttribute("aria-pressed","true");
+  await expect(page.locator("#tableScope")).toContainText("自动续费");
+  await expect(page.locator("#tableScope")).toContainText("叠加");
+  await expect(page.locator("#tableBody")).toContainText("GLM Coding V3 Lite");
+  await expect(page).toHaveURL(/tapply=1/);
+  await page.reload();
+  await expect(apply).toHaveAttribute("aria-pressed","true");
+  expect(await page.evaluate("tableState.search")).toBe("GLM");
+  await apply.click();
+  await expect(page.locator("#tableScope")).toContainText("尚未应用选购条件");
+  expect(await page.evaluate("tableState.search")).toBe("GLM");
+});
+
+test("个人图应用选购支付方式时停用本区切换，取消、清除与后退恢复一致", async ({ page }) => {
+  await page.goto("/?region=intl&billing=M&pbilling=Y#s1");
+  const monthly = page.locator('#chipBilling [data-billing="M"]');
+  const annual = page.locator('#chipBilling [data-billing="Y"]');
+  const apply = page.locator('[data-apply-picker="personal"]');
+  await expect(annual).toBeEnabled();
+  await expect(annual).toHaveAttribute("aria-pressed","true");
+  await apply.click();
+  await expect(monthly).toBeDisabled();
+  await expect(annual).toBeDisabled();
+  await expect(annual).toHaveAttribute("aria-describedby","personalScope");
+  await expect(page.locator("#personalScope")).toContainText("暂不可切换");
+  expect(await page.evaluate("personalTooltip(findPlanReference('plan-0002'))")).not.toContain("折算价：");
+  await page.reload();
+  await expect(annual).toBeDisabled();
+  await apply.click();
+  await expect(annual).toBeEnabled();
+  await expect(annual).toHaveAttribute("aria-pressed","true");
+  await apply.click();
+  await page.evaluate("navigateToSection('#rank')");
+  await apply.click();
+  await expect(annual).toBeEnabled();
+  await page.goBack();
+  await expect(annual).toBeDisabled();
+  await page.locator("#personalResetBtn").click();
+  await expect(annual).toBeEnabled();
+  await expect(monthly).toHaveAttribute("aria-pressed","true");
 });

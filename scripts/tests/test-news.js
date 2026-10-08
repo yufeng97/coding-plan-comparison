@@ -6,7 +6,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { parseFeed, parseHN } = require("../news/feed");
 const { fetchSource, publicURL, publicAddress, validateSourceURL, MAX_BYTES } = require("../news/network");
-const { collectNews, runCollection, normalizeURL, readKnownVendors, parseArguments, main } = require("../news/collect-news");
+const { collectNews, runCollection, normalizeURL, readKnownVendors, parseArguments, main, withNewsLock } = require("../news/collect-news");
 const { stableId, validateInbox } = require("../news/inbox");
 const { applyReview, runReview, triageData, parseArguments: reviewArguments } = require("../news/review-news");
 
@@ -357,6 +357,30 @@ async function tests() {
     await started;
     await assert.rejects(runReview({ command: "review", workspace: root, id: "missing", status: "rejected", reason: "later" }), /正在采集或复核/);
     release(); await running; assert.equal(fs.existsSync(path.join(root, "audit/news/.news.lock")), false);
+  }));
+  await test("资讯遗留锁阻止同时采集与复核，不删锁或改已有队列", () => fixture(async (root, write) => {
+    const exited = require("node:child_process").spawnSync(process.execPath, ["-e", "process.stdout.write(String(process.pid))"], { encoding: "utf8" });
+    assert.equal(exited.status, 0);
+    const stale = JSON.stringify({ pid: Number(exited.stdout), hostname: os.hostname() });
+    write("audit/news/.news.lock", stale); write("audit/news/inbox.json", "saved review queue");
+    let fetched = false;
+    const outcomes = await Promise.allSettled([
+      runCollection({ workspace: root, resolver, fetcher: async () => { fetched = true; return new Response(rss()); } }),
+      runReview({ command: "review", workspace: root, id: "missing", status: "rejected", reason: "later" }),
+    ]);
+    for (const outcome of outcomes) { assert.equal(outcome.status, "rejected"); if (outcome.status === "rejected") assert.match(outcome.reason.message, /人工检查/); }
+    assert.equal(fetched, false);
+    assert.equal(fs.readFileSync(path.join(root, "audit/news/.news.lock"), "utf8"), stale);
+    assert.equal(fs.readFileSync(path.join(root, "audit/news/inbox.json"), "utf8"), "saved review queue");
+  }));
+  await test("资讯操作失去锁所有权后保留替换锁，抛错操作正常释放自己的锁", () => fixture(async root => {
+    const dir = path.join(root, "audit/news"), lock = path.join(dir, ".news.lock");
+    const failure = new Error("news action failed");
+    await assert.rejects(withNewsLock(dir, () => { throw failure; }), error => error === failure);
+    assert.equal(fs.existsSync(lock), false);
+    const replacement = JSON.stringify({ ownerId: "replacement", pid: process.pid });
+    await assert.rejects(withNewsLock(dir, () => fs.writeFileSync(lock, replacement)), /所有权已变化/);
+    assert.equal(fs.readFileSync(lock, "utf8"), replacement);
   }));
   await test("系统Fake-IP通过固定DoH复核，私有/失败/超限结果仍拒绝", () => require("./test-news-proxy").testProxyDNS());
   console.log("资讯离线回归通过：" + passed + " 项（无网络请求）");

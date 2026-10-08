@@ -10,13 +10,13 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Coding Plan 全球比价中心">
 <meta property="og:title" content="Coding Plan 全球比价中心 · 逐条核价">
-<meta property="og:description" content="一次看全市面上在售的 AI 编程订阅计划：模型官方 / 云厂商 / 第三方工具与中转站的每月价格、可用 token 额度、每百万 tokens 实际成本与免费入口对比。">
+<meta property="og:description" content="比较在售 AI 编程订阅的支付金额、可用额度与满额使用折算成本，按预算、工具和工作量核对适合自己的套餐。">
 <meta name="twitter:card" content="summary">
 <link rel="alternate" type="application/rss+xml" title="Coding Plan 已确认变更" href="changes.xml?v=f7ef1e7">
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%23b9ff00'/%3E%3Ctext%20x='16'%20y='22'%20font-family='monospace'%20font-size='15'%20font-weight='bold'%20text-anchor='middle'%20fill='%2310110f'%3E%26lt;/%26gt;%3C/text%3E%3C/svg%3E">
   <script>try{var __m=localStorage.getItem("cp-theme")||"system";var __d=matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.dataset.theme=__m==="system"?(__d?"dark":"light"):__m;}catch(e){}</script>
   <link rel="stylesheet" href="libs/fonts/fonts.css?v=17da4b4">
-  <link rel="stylesheet" href="css/style.css?v=3fc26c1">
+  <link rel="stylesheet" href="css/style.css?v=c5ff885">
 </head>
 <body>
 <div id="loadFailure" class="load-failure" role="alert" hidden>
@@ -29,32 +29,16 @@
 <header class="topbar">
   <div class="topbar-inner">
     <a class="brand" href="#top"><span class="brand-mark">&lt;/&gt;</span> Coding Plan <em>比价中心</em></a>
-    <nav class="topnav" aria-label="页面章节">
-      <a href="#quick">帮我选</a>
-      <a href="#rank">性价比排行</a>
-      <a href="#s3b">额度对比</a>
-      <a href="#s1">订阅价格</a>
-      <a href="#s2">团队档</a>
-      <a href="#s3">每周 tokens</a>
-      <a href="#s4">API 按量</a>
-      <a href="#free">免费入口</a>
-      <a href="#table">数据表</a>
-      <a href="#updates">关注与变更</a>
-      <a href="#benchmarks">模型公开评测</a>
+    <nav class="primary-nav" aria-label="主要内容">
+      <a href="#quick" data-site-view="compare" aria-current="page">选套餐</a>
+      <a href="#benchmarks" data-site-view="benchmarks">模型评测</a>
+      <a href="#updates" data-site-view="updates">我的关注</a>
     </nav>
     <button id="themeBtn" class="theme-btn" title="切换主题：暗色 → 亮色 → 跟随系统"><i class="ric" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z"/></svg></i></button>
   </div>
 </header>
 
 <main id="top">
-
-  <nav class="view-tabs" aria-label="内容标签">
-    <a class="view-tab active" href="#quick" data-site-view="compare" aria-current="page">选购对比</a>
-    <a class="view-tab" href="#benchmarks" data-site-view="benchmarks">模型评测</a>
-    <a class="view-tab" href="#updates" data-site-view="updates">数据维护</a>
-    <a class="view-tab" href="#sources" data-site-view="sources">来源说明</a>
-    <a class="view-tab" href="#contribute" data-site-view="contribute">提交纠错</a>
-  </nav>
 
   <!-- ======== Hero ======== -->
   <section class="hero">
@@ -93,6 +77,13 @@
         <button type="button" class="chip" data-value="intl" aria-pressed="false">国际</button>
         <button type="button" class="chip" data-value="all" aria-pressed="false">不限</button>
       </div>
+      <div class="picker-row" data-pick="billing" role="group" aria-label="支付方式">
+        <span class="picker-label">支付方式</span>
+        <button type="button" class="chip active" data-value="M" aria-pressed="true">月付标价</button>
+        <button type="button" class="chip" data-value="A" aria-pressed="false">自动续费</button>
+        <button type="button" class="chip" data-value="Y" aria-pressed="false">年付（折月预算）</button>
+      </div>
+      <p id="pickerBillingNote" class="maintenance-meta">年付按月均比预算，首期支付全年；自动续费只列有明确金额依据的档位。</p>
       <details class="picker-advanced" id="pickerAdvanced">
       <summary id="pickerAdvancedSummary">工具与任务：不限 · 复杂和日常都有</summary>
       <div class="picker-advanced-grid">
@@ -121,14 +112,29 @@
     </div>
     <p id="serviceFeedback" class="table-feedback" role="status" aria-live="polite"></p>
     <div class="quick-grid" id="quickGrid"></div>
+    <button type="button" class="chip workload-check" id="checkWorkloadBtn">按我的用量核对</button>
     <p class="chart-note" id="pickerNote" role="status" aria-live="polite" aria-atomic="true"></p>
+    <details class="section-menu" id="sectionMenu">
+      <summary>更多比较：价格、额度与完整数据</summary>
+      <nav class="topnav" aria-label="页面章节">
+        <a href="#quick">帮我选</a>
+        <a href="#rank">性价比排行</a>
+        <a href="#s3b">额度对比</a>
+        <a href="#s1">订阅价格</a>
+        <a href="#s2">团队档</a>
+        <a href="#s3">每周 tokens</a>
+        <a href="#s4">API 按量</a>
+        <a href="#free">免费入口</a>
+        <a href="#table">数据表</a>
+      </nav>
+    </details>
   </section>
 
   <!-- ======== 02 每百万 tokens 成本排行 ======== -->
   <section class="section" id="rank">
     <div class="section-head">
-      <h2><span class="sec-no">02</span>每百万 tokens 实际成本排行</h2>
-      <p>月费 ÷ 月可用 tokens，越低越划算。默认看旗舰模型与新用户可购买套餐，包含官方数据、官方折算及第三方估算。实心柱表示官方公布的高置信数据，斜纹柱表示折算或估算；不同依据的数值不能视为同样可靠。可收紧到「官方每周 tokens」核对。</p>
+      <h2><span class="sec-no">02</span>每百万 tokens 满额使用折算成本</h2>
+      <p>月费 ÷ 参考月 tokens，假设参考额度全部用满；用量较少时实际每百万成本更高。默认看旗舰模型与新用户可购买套餐，包含官方数据、官方折算及第三方估算。实心柱表示官方公布的高置信数据，斜纹柱表示折算或估算。估算区间不代表等效模型质量或保证可用额度；可收紧到「官方每周 tokens」核对。</p>
     </div>
     <div class="controls">
       <div class="chip-group" id="chipRank" role="group" aria-label="模型档">
@@ -188,7 +194,9 @@
       <span class="table-sort-hint" id="metricsSortHint" role="status" aria-live="polite"></span>
       <button type="button" class="chip" id="metricsResetBtn">清除筛选</button>
       <button type="button" class="chip" id="metricsToggle">展开 5 小时 / 每周明细</button>
+      <button type="button" class="chip" data-apply-picker="metrics">应用当前选购条件</button>
     </div>
+    <p id="metricsScope" class="maintenance-meta"></p>
     <div class="table-wrap metrics-wrap" tabindex="0" role="region" aria-label="额度对比表，可横向滚动">
       <table id="metricsTable" class="is-compact" role="table">
         <thead>
@@ -240,7 +248,9 @@
       </div>
       <button type="button" class="chip" id="personalResetBtn">清除筛选</button>
       <div class="legend-inline" id="chartLegend"></div>
+      <button type="button" class="chip" data-apply-picker="personal">应用当前选购条件</button>
     </div>
+    <p id="personalScope" class="maintenance-meta"></p>
     <div class="chart-card">
       <div id="chartPersonalEmpty" class="chart-empty" hidden role="status">没有匹配的个人月付套餐。请更换关键词或清除筛选。</div>
       <div id="chartPersonal" class="chart"></div>
@@ -288,6 +298,16 @@
     <details class="method-box cost-calculator" id="costCalculator">
       <summary>按我的工作量计算 API 月费与套餐用量</summary>
       <p>填写每天的请求数和每次总 tokens，比较所选模型的按量费用与月预算。计算包括输入、输出和已知缓存单价；长上下文档位、工具费及税费仍按官网规则另计。</p>
+      <div class="service-actions" id="costPresets" role="group" aria-label="工作量预设">
+        <button type="button" class="chip" data-cost-preset="light">轻度使用</button>
+        <button type="button" class="chip" data-cost-preset="daily">日常开发</button>
+        <button type="button" class="chip" data-cost-preset="heavy">高强度使用</button>
+      </div>
+      <div class="service-actions" id="costScenarios" role="group" aria-label="费用情景">
+        <button type="button" class="chip" data-cost-scenario="conservative">保守情景</button>
+        <button type="button" class="chip" data-cost-scenario="typical">典型情景</button>
+        <button type="button" class="chip" data-cost-scenario="optimistic">乐观情景</button>
+      </div>
       <form id="costForm" class="cost-form">
         <label class="cost-model">API 模型<select id="costModel" class="select"></select></label>
         <label>每天请求数<input id="costRequests" type="number" min="0" max="100000" step="1" value="100"></label>
@@ -365,7 +385,9 @@
       <button type="button" class="chip" id="tableColsToggle">全部列</button>
       <button type="button" class="chip" id="copyMdBtn" title="复制当前筛选结果为 Markdown 表格">复制 Markdown</button>
       <button type="button" class="chip" id="exportCsvBtn" title="下载当前筛选结果为 CSV（UTF-8）">导出 CSV</button>
+      <button type="button" class="chip" data-apply-picker="table">应用当前选购条件</button>
     </div>
+    <p id="tableScope" class="maintenance-meta"></p>
     <p class="table-feedback" id="tableFeedback" role="status" aria-live="polite"></p>
     <div class="table-wrap" tabindex="0" role="region" aria-label="计划数据表，可横向滚动">
       <table id="planTable" role="table">
@@ -398,7 +420,7 @@
   </section>
 
   <section class="section" id="updates">
-    <div class="section-head"><h2><span class="sec-no">11</span>数据可信与关注变更</h2><p>查看逐条核查、复查安排与已确认历史。<a href="changes.xml">订阅变更 RSS ↗</a></p></div>
+    <div class="section-head"><h2><span class="sec-no">11</span>我的关注与套餐变更</h2><p>查看关注套餐的已确认变更，核对价格来源与复查安排。<a href="changes.xml">订阅变更 RSS ↗</a></p></div>
     <p id="maintenanceDataStatus" class="table-feedback optional-data-status" role="status" aria-live="polite"></p>
     <div class="maintenance-panel" id="maintenanceSummary"></div>
     <div class="maintenance-toolbar"><button type="button" class="chip" id="downloadPublicDataBtn">下载公开数据 JSON</button><span class="maintenance-meta">schemaVersion 1 · 价格、核查、已确认历史与测评规范</span></div>
@@ -529,24 +551,28 @@
 </dialog>
 
 <footer class="footer">
+  <nav class="view-tabs" aria-label="资料与反馈">
+    <a class="view-tab" href="#sources" data-site-view="sources">来源说明</a>
+    <a class="view-tab" href="#contribute" data-site-view="contribute">提交纠错</a>
+  </nav>
   <p>Coding Plan 全球比价中心 · 数据调研与核实日期 <span id="footDate">2026-10-01</span> · 仅供参考，以各厂商官方页面为准 · 纯静态页面：无统计、无跟踪，主题、常用条件与关注记录仅存于本机</p>
 </footer>
 
 <template id="chartLibraryTemplate"><script src="libs/echarts.min.js?v=14c5497"></script></template>
 <script src="js/app-loader.js?v=0127d10"></script>
-<script src="js/data.js?v=7656a9e"></script>
-<script id="maintenanceDataSource" type="application/json" src="js/maintenance-data.js?v=9cad292"></script>
+<script src="js/data.js?v=b448264"></script>
+<script id="maintenanceDataSource" type="application/json" src="js/maintenance-data.js?v=b331f84"></script>
 <script id="benchmarkDataSource" type="application/json" src="js/benchmark-data.js?v=08b3c8e"></script>
 <script src="js/project-data.js?v=b9931ec"></script>
 <script src="js/metrics.js?v=436b915"></script>
-<script src="js/app-core.js?v=b4c5505"></script>
-<script src="js/app-state.js?v=6b9cf23"></script>
-<script src="js/app-charts.js?v=8ad440c"></script>
-<script src="js/app-picker.js?v=9058c4d"></script>
-<script src="js/app-tables.js?v=a6d53ec"></script>
-<script src="js/app-service.js?v=797ae59"></script>
+<script src="js/app-core.js?v=676e153"></script>
+<script src="js/app-state.js?v=a29b9c2"></script>
+<script src="js/app-charts.js?v=ee59d11"></script>
+<script src="js/app-picker.js?v=f067c2e"></script>
+<script src="js/app-tables.js?v=aac5d22"></script>
+<script src="js/app-service.js?v=34615df"></script>
 <script src="js/app-maintenance.js?v=db63a71"></script>
-<script src="js/app-events.js?v=56dd9ad"></script>
-<script src="js/app-init.js?v=a22280e"></script>
+<script src="js/app-events.js?v=eedecb3"></script>
+<script src="js/app-init.js?v=ee6c408"></script>
 </body>
 </html>

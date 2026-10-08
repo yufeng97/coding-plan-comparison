@@ -33,8 +33,9 @@ function metricChartLabel(m) {
 }
 
 /* ---------- 个人订阅价格全景 ---------- */
+function personalChartPrice(p) { return personalState.fromPicker ? pickerMonthlyCNY(p) : cnyOf(p, personalState.billing); }
 function resetPersonalFilters() {
-  Object.assign(personalState, { cat: "all", region: "all", billing: "M", q: "", limit: PERSONAL_DEFAULT_LIMIT });
+  Object.assign(personalState, { cat: "all", region: "all", billing: "M", q: "", limit: PERSONAL_DEFAULT_LIMIT, fromPicker:false });
   byId("chartSearch").value = "";
   setChipPressed(qsa("#chipCat .chip"), (c) => c.dataset.cat === "all");
   setChipPressed(qsa("#chipRegion .chip"), (c) => c.dataset.region === "all");
@@ -73,12 +74,16 @@ function renderLegend() {
 }
 
 function personalTooltip(p) {
-  const y = p.priceY != null ? `年付：${priceText(p, "priceY")}/月（年付折算）` : "年付：未列公开价（按月付展示）";
-  const unified = priceOf(p, personalState.billing);
-  const uni = unified != null ? `${currencySymbol(p.cur) + Number(unified.toFixed(2))} ≈ ${fmtCNY(cnyOf(p, personalState.billing))}` : "—";
+  const quote = personalState.fromPicker ? pickerPaymentQuote(p) : null;
+  const billing = quote ? quote.mode : personalState.billing;
+  const y = p.priceY != null ? `年付：${priceText(p, "priceY")}/月（年付折算）` : "年付：未列公开价" + (quote ? "" : "（按月付展示）");
+  const unified = quote ? quote.monthlyNative : priceOf(p, billing);
+  const unifiedCNY = quote ? quote.monthlyCNY : cnyOf(p, billing);
+  const uni = unified != null ? `${currencySymbol(p.cur) + Number(unified.toFixed(2))} ≈ ${fmtCNY(unifiedCNY)}` : "—";
   const href = safeHref(p.url);
   return `<b style="font-size:13.5px">${esc(p.vendor)} · ${esc(p.plan)}</b><br/>
-    ${personalState.billing === "Y" ? `折算价：${esc(uni)}<br/>` : ""}
+    ${quote ? `选购口径：${esc(priceLine(p))}<br/>首次付款：${esc(pickerFirstPaymentText(p))}<br/>` : ""}
+    ${billing === "Y" ? `折算价：${esc(uni)}<br/>` : ""}
     月付：${p.priceM != null ? esc(priceText(p, "priceM")) : "—"} ｜ ${esc(y)}<br/>
     <span style="color:${PAL.gold}">额度：</span>${esc(trunc(resolvedField(p, "quota"), 120))}<br/>
     <span style="color:${PAL.info}">模型：</span>${esc(trunc(resolvedField(p, "models"), 120))}<br/>
@@ -88,18 +93,20 @@ function personalTooltip(p) {
 }
 
 function renderPersonalChart() {
+  if (typeof syncPickerScopeControls === "function") syncPickerScopeControls();
   if (deferChartRender("chartPersonal",renderPersonalChart)) return;
   renderLegend();
-  const q1 = foldSearch(personalState.q);
+  const q1 = foldSearch(personalState.q) ? personalState.q.trim() : "";
   const rows = PLANS.filter(
     (p) => isPriceConfirmed(p) && isPersonalMonthly(p) &&
       (personalState.cat === "all" || p.cat === personalState.cat) &&
       (personalState.region === "all" || p.region === personalState.region) &&
+      (!personalState.fromPicker || matchesPickerPurchase(p)) &&
       (!q1 || queryHit(planSearchBlob(p), q1))
-  ).sort((a, b) => cnyOf(a, personalState.billing) - cnyOf(b, personalState.billing));
+  ).sort((a, b) => personalChartPrice(a) - personalChartPrice(b));
 
   // 无筛选时默认只展示最便宜的前 N 档，避免图表过长；可点「显示全部」展开
-  const noFilter = personalState.cat === "all" && personalState.region === "all" && !q1;
+  const noFilter = !personalState.fromPicker && personalState.cat === "all" && personalState.region === "all" && !q1;
   const limit = noFilter ? personalState.limit : null;
   const shown = limit ? rows.slice(0, limit) : rows;
 
@@ -112,7 +119,7 @@ function renderPersonalChart() {
 
   const labels = shown.map((p) => (isRelay(p) ? "中转 · " : "") + shortVendor(p.vendor) + " · " + p.plan + (p.region === "cn" ? "·国内" : ""));
   const data = shown.map((p) => ({
-    value: Math.round(cnyOf(p, personalState.billing) * 10) / 10,
+    value: Math.round(personalChartPrice(p) * 10) / 10,
     itemStyle: { color: isRelay(p) ? RELAY_COLOR : CAT_COLOR[p.cat], borderRadius: [0, 4, 4, 0] },
     _p: p,
   }));
@@ -140,9 +147,9 @@ function renderPersonalChart() {
   chart.resize();
   el.hidden = shown.length === 0;
 
-  const billingLabel = personalState.billing === "Y" ? "年付折月" : "月付";
+  const billingLabel = personalState.fromPicker ? PICKER_BILLING_LABELS[pickerState.billing] + "月均" : personalState.billing === "Y" ? "年付折月" : "月付";
   describeChart("chartPersonal", "个人订阅价格全景（" + billingLabel + "，人民币/月）" + shown.length + " 档，最低三档：" + shown.slice(0, 3).map((p) =>
-    shortVendor(p.vendor) + " " + p.plan + " " + fmtCNY(cnyOf(p, personalState.billing)) +
+    shortVendor(p.vendor) + " " + p.plan + " " + fmtCNY(personalChartPrice(p)) +
     (personalState.billing === "Y" && p.priceY == null ? "（未列年付价，按月付）" : "")
   ).join("、"));
   const hidden = rows.length - shown.length;
@@ -167,7 +174,7 @@ function renderPersonalChart() {
       `。<button type="button" id="showExcludedInTable" class="linkish">在完整表里看</button>`
     : "";
   byId("notePersonal").innerHTML =
-    `当前筛选：${rows.length} 个档位（显示 ${shown.length}） ｜ 汇率 1 USD ≈ ${RATE} CNY，1 INR ≈ ${Number(RATE_INR_CNY.toFixed(6))} CNY（${META.rateAsOf}，<a href="${safeHref(META.rateSource)}" target="_blank" rel="noopener">汇率来源</a>） ｜ 红色是中转站，不和官方订阅、工具订阅放在同一类颜色里 ｜ 搜索会忽略大小写、空格和连字符，并展开「同某档」` +
+    `当前筛选：${rows.length} 个档位（显示 ${shown.length}） ｜ 汇率 1 USD ≈ ${RATE} CNY，1 INR ≈ ${Number(RATE_INR_CNY.toFixed(6))} CNY（${META.rateAsOf}，<a href="${safeHref(META.rateSource)}" target="_blank" rel="noopener">汇率来源</a>） ｜ 红色是中转站，不和官方订阅、工具订阅放在同一类颜色里 ｜ 搜索按空格分词，各词均须匹配；词内忽略大小写与连字符，支持产品别名并展开「同某档」` +
     (hidden > 0 ? ` ｜ <button type="button" id="showAllPersonal" class="linkish">显示全部 ${rows.length} 档</button>` :
       noFilter && rows.length > PERSONAL_DEFAULT_LIMIT ? ` ｜ <button type="button" id="showAllPersonal" class="linkish">收起为 ${PERSONAL_DEFAULT_LIMIT} 档</button>` : "") +
     excludedHtml;
@@ -554,7 +561,7 @@ function renderRankDetails() {
   body.innerHTML = rows.length ? rows.map((r) => {
     const prov = provenance(r.m), c = r.c;
     return `<tr><th scope="row">${esc(planLabel(r.m))}<br>${esc(displayModelName(r.m.model))}</th>` +
-      `<td>${esc(fmtCNY(c.priceCNY))}/月</td><td>¥${c.costPerM.toFixed(3)}</td><td>${esc(tokSpan(c,"moLow","moHigh"))}</td><td>${esc(prov.text)} · 置信${esc(prov.conf)}</td></tr>`;
+      `<td>${esc(fmtCNY(c.priceCNY))}/月</td><td>¥${c.costPerM.toFixed(3)}${fullUseCostRangeText(c) ? `<br><span class="sub">${esc(fullUseCostRangeText(c))}</span>` : ""}</td><td>${esc(tokSpan(c,"moLow","moHigh"))}</td><td>${esc(prov.text)} · 置信${esc(prov.conf)}</td></tr>`;
   }).join("") : '<tr><td colspan="5" class="table-empty">当前口径没有可比较的套餐，请调整模型档或排行口径。</td></tr>';
 }
 function renderRankChart() {
@@ -602,6 +609,7 @@ function renderRankChart() {
           const rate = r.c.rmo == null ? "—" : `${r.c.rmo.toFixed(1)}×`;
           return `<b>${esc(planLabel(r.m))}</b>（${esc(displayModelName(r.m.model))}）<br/>
             💵每 M tokens：<b style="color:${cpColor}">¥${cp.toFixed(3)}</b><br/>
+            ${fullUseCostRangeText(r.c) ? esc(fullUseCostRangeText(r.c)) + "（用尽对应额度）<br/>" : ""}
             月费：${fmtCNY(r.c.priceCNY)} ｜ 月倍率：<b>${rate}</b><br/>
             月 tokens：${mo}<br/>
             <span style="color:${PAL.dim}">依据：${esc(prov.text)} · 置信${esc(prov.conf)}${prov.conf !== "高" ? "（tokens 为折算/估算值）" : ""}</span>`;

@@ -93,6 +93,7 @@ function bindEvents() {
         tableState.search = q;
         tableState.cat = "all";
         tableState.region = "all";
+        tableState.fromPicker = false;
         const input = byId("searchInput");
         if (input) input.value = q;
         const cat = byId("selectCat");

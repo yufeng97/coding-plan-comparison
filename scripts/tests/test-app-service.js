@@ -107,7 +107,7 @@ test("同模型额度优先匹配，daily回退使用日常角色且跨模型不
 
 test("计算URL字段全部往返，非法值还原默认并从分享链接清理", () => {
   const app = createApp();
-  const expected = { model: "智谱 BigModel|GLM-5.3", requests: "73", tokens: "1024", days: "7", input: "27.5", cache: "61.5", cachePrice: "0.01", budget: "88.5" };
+  const expected = { model: "智谱 BigModel|GLM-5.3", requests: "73", tokens: "1024", days: "7", input: "27.5", cache: "61.5", cachePrice: "0.01", budget: "88.5", scenario:"conservative" };
   const query = app.run(`Object.assign(calcState, ${JSON.stringify(expected)}); appQueryString();`);
   app.run(`applyUrlState(${JSON.stringify("?" + query)}); syncControlsFromState(); syncUrl();`);
   assert.deepEqual(plain(app.run("calcState")), expected);
@@ -148,12 +148,136 @@ test("修改其他数字不会掩盖尚未修正的非法输入", () => {
   const app = createApp();
   const tokens = app.elements.get("costTokens"), days = app.elements.get("costDays");
   tokens.value = "0"; app.fire(tokens,"input");
+  assert.equal(app.run('document.querySelector("[data-cost-preset=daily]").getAttribute("aria-pressed")'), "false", "非法编辑也不能保留与可见输入不符的预设高亮");
   days.value = "20"; app.fire(days,"input");
   assert.match(app.elements.get("costResult").textContent,/有效数字/);
+  assert.equal(tokens.value,"0","刷新情景按钮不能偷偷纠正其他非法输入");
   assert.equal(app.run("calcState.tokens"),"20000");
   tokens.value = "1000"; app.fire(tokens,"input");
   assert.match(app.elements.get("costResult").innerHTML,/预计月费/);
   assert.equal(app.run("calcState.tokens"),"1000");
+  healthy(app);
+});
+
+test("三种费用情景按明确示例假设计算，各自保留工作量区间，缓存缺价不虚构折扣", () => {
+  const app = createApp();
+  const rows = plain(app.run(`calculateCostScenarios({ ...APP_DEFAULTS.calc,cachePrice:"0.2" },${JSON.stringify(usdApi)})`));
+  const rate = app.run("RATE_USD_CNY");
+  for (const [i,usd] of [205.04,98.208,51.92].entries()) {
+    near(rows[i].costNative,usd);
+    near(rows[i].lowCNY,usd * rate * 0.8);
+    near(rows[i].highCNY,usd * rate * 1.2);
+    assert.equal(rows[i].monthlyM,44);
+  }
+  const noCache = plain(app.run(`calculateCostScenarios({ ...APP_DEFAULTS.calc,cachePrice:"" },${JSON.stringify(usdApi)})`));
+  for (const [i,usd] of [228.8,158.4,123.2].entries()) near(noCache[i].costNative,usd);
+  assert.deepEqual(plain(app.run(`calculateCostScenarios({ ...APP_DEFAULTS.calc,requests:"0" },${JSON.stringify(usdApi)}).map(r=>r.costCNY)`)),[0,0,0]);
+  const result = app.elements.get("costResult");
+  assert.equal(result.querySelectorAll("[data-cost-scenario-result]").length,3);
+  assert.match(result.innerHTML,/不代表真实用户用量/);
+  assert.match(result.innerHTML,/范围只模拟总工作量 ±20%/);
+  healthy(app);
+});
+
+test("工作量预设与费用情景可直接修改可见输入，分享刷新保留实际假设", () => {
+  const app = createApp();
+  const light = app.run('document.querySelector("[data-cost-preset=light]")');
+  const heavy = app.run('document.querySelector("[data-cost-preset=heavy]")');
+  app.fire(light,"click");
+  assert.equal(app.elements.get("costRequests").value,"20");
+  assert.equal(app.elements.get("costTokens").value,"5000");
+  assert.equal(light.getAttribute("aria-pressed"),"true");
+  app.fire(heavy,"click");
+  assert.equal(app.elements.get("costRequests").value,"300");
+  assert.equal(app.elements.get("costTokens").value,"40000");
+  assert.equal(app.elements.get("costDays").value,"26");
+  assert.equal(light.getAttribute("aria-pressed"),"false");
+  const conservative = app.run('document.querySelector("[data-cost-scenario=conservative]")');
+  app.fire(conservative,"click");
+  assert.equal(app.elements.get("costInput").value,"60");
+  assert.equal(app.elements.get("costCache").value,"50");
+  assert.equal(conservative.getAttribute("aria-pressed"),"true");
+  assert.equal(new URLSearchParams(app.location.search).get("cscenario"),"conservative");
+  const restored = createApp({ url:app.location.href });
+  assert.equal(restored.elements.get("costRequests").value,"300");
+  assert.equal(restored.elements.get("costInput").value,"60");
+  assert.equal(restored.run('document.querySelector("[data-cost-scenario=conservative]").getAttribute("aria-pressed")'),"true");
+  const input = app.elements.get("costInput");
+  input.value = "75"; app.fire(input,"input");
+  assert.equal(conservative.getAttribute("aria-pressed"),"false","手动改变示例假设后不再标为选中");
+  healthy(app); healthy(restored);
+});
+
+test("选购用量CTA带入预算和精确匹配模型，模型改变清除旧缓存价，无匹配时明确保留", () => {
+  const app = createApp();
+  app.run('Object.assign(pickerState,{ budget:"200",region:"cn",tool:"any",task:"hard",billing:"M" }); calcState.cachePrice="0.2";');
+  app.fire(app.elements.get("checkWorkloadBtn"),"click");
+  assert.equal(app.elements.get("costCalculator").open,true);
+  assert.equal(app.elements.get("costBudget").value,"200");
+  assert.equal(app.elements.get("costModel").value,"智谱 BigModel|GLM-5.3");
+  assert.equal(app.elements.get("costCachePrice").value,"");
+  assert.equal(app.location.hash,"#s4");
+  assert.match(app.elements.get("serviceFeedback").textContent,/同名的 API 模型/);
+  assert.equal(app.run('recommendedApi(planProfile(findPlanReference("plan-0002"))).model'),"Claude Opus 5.5","主表完整型号可匹配，即使没有该模型的逐行套餐额度");
+  app.run('Object.assign(pickerState,{ budget:"any",region:"intl",tool:"cursor",task:"hard" });');
+  app.elements.get("costBudget").value = "123.4";
+  app.fire(app.elements.get("costBudget"),"input");
+  app.fire(app.elements.get("checkWorkloadBtn"),"click");
+  assert.equal(app.elements.get("costBudget").value,"123.4");
+  assert.match(app.elements.get("serviceFeedback").textContent,/没有可精确匹配的 API 报价/);
+  assert.match(app.elements.get("serviceFeedback").textContent,/预算不限/);
+  healthy(app);
+});
+
+test("应用与取消选购条件只切换本区范围，叠加原筛选并在URL及刷新后保留", () => {
+  const app = createApp();
+  app.run('Object.assign(pickerState,{ budget:"100",region:"cn",tool:"claude",billing:"A" }); tableState.search="GLM"; metricsState.model="GLM-5.3"; personalState.q="GLM";');
+  for (const [name,param] of [["personal","papply"],["metrics","mapply"],["table","tapply"]]) {
+    const button = app.run(`document.querySelector('[data-apply-picker="${name}"]')`);
+    app.fire(button,"click");
+    assert.equal(app.run(`${name}State.fromPicker`),true);
+    assert.equal(new URLSearchParams(app.location.search).get(param),"1");
+    assert.equal(button.getAttribute("aria-pressed"),"true");
+    assert.match(app.elements.get(name + "Scope").textContent,/月均预算 ≤¥100.*国内.*Claude Code.*自动续费/);
+    assert.match(app.elements.get(name + "Scope").textContent,/叠加/);
+  }
+  assert.equal(app.run("tableState.search"),"GLM");
+  assert.equal(app.run("metricsState.model"),"GLM-5.3");
+  assert.equal(app.run("personalState.q"),"GLM");
+  assert.match(app.elements.get("personalScope").textContent,/图中金额为所选支付方式的月均价/);
+  assert.match(app.elements.get("metricsScope").textContent,/套餐按所选支付方式重算.*取消选购条件可查看 API 参照/);
+  assert.match(app.elements.get("tableScope").textContent,/保留目录月付\/年付价，并另标选购口径/);
+  assert.equal(app.run('Object.assign(pickerState,{ billing:"M" }); pickerScopeText().endsWith("月付标价")'),true);
+  const restored = createApp({ url:app.location.href });
+  assert.equal(restored.run("tableState.fromPicker && personalState.fromPicker && metricsState.fromPicker"),true);
+  app.fire(app.run('document.querySelector("[data-apply-picker=table]")'),"click");
+  assert.equal(app.run("tableState.fromPicker"),false);
+  assert.equal(app.run("tableState.search"),"GLM");
+  assert.match(app.elements.get("tableScope").textContent,/尚未应用选购条件/);
+  healthy(app); healthy(restored);
+});
+
+test("应用个人图条件停用本区支付切换，金额使用选购方式且取消、清除及历史恢复后同步", () => {
+  const app = createApp({url:"http://127.0.0.1:8123/?region=intl&billing=M&pbilling=Y#s1"});
+  const chips = app.run('Array.from(document.querySelectorAll("#chipBilling .chip"))');
+  assert.ok(chips.every((chip) => !chip.disabled));
+  app.fire(app.run('document.querySelector("[data-apply-picker=personal]")'),"click");
+  assert.ok(chips.every((chip) => chip.disabled && chip.getAttribute("aria-describedby") === "personalScope"));
+  assert.equal(app.run("personalState.billing"),"Y", "原本区年付选择保留，取消后可以恢复");
+  const tooltip = app.run('personalTooltip(findPlanReference("plan-0002"))');
+  assert.match(tooltip,/选购口径：\$20\/月/);
+  assert.doesNotMatch(tooltip,/折算价：/);
+  assert.match(app.elements.get("personalScope").textContent,/暂不可切换/);
+  const appliedUrl = app.location.search;
+  app.fire(app.run('document.querySelector("[data-apply-picker=personal]")'),"click");
+  assert.ok(chips.every((chip) => !chip.disabled && chip.getAttribute("aria-describedby") == null));
+  assert.equal(app.run("personalState.billing"),"Y");
+  assert.match(app.run('personalTooltip(findPlanReference("plan-0002"))'),/折算价：\$16.67/);
+  app.run('restoreHistoryState(' + JSON.stringify(appliedUrl) + ', false)');
+  assert.ok(chips.every((chip) => chip.disabled));
+  app.fire(app.elements.get("personalResetBtn"),"click");
+  assert.ok(chips.every((chip) => !chip.disabled));
+  assert.equal(app.run("personalState.billing"),"M");
   healthy(app);
 });
 

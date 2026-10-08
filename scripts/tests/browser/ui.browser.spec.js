@@ -1,4 +1,9 @@
 const { test, expect } = require("@playwright/test");
+async function openChapters(page) { await page.locator("#sectionMenu").evaluate((menu) => { /** @type {HTMLDetailsElement} */ (menu).open = true; }); }
+async function clickChapter(page, name) {
+  await openChapters(page);
+  await page.getByRole("navigation", { name: "页面章节" }).getByRole("link", { name, exact: true }).click();
+}
 
 test("搜索防抖未执行时的同查询串后退仍更新表格", async ({ page }) => {
   await page.goto("/index.html#table");
@@ -20,7 +25,7 @@ test("预算后退/前进同步按钮、推荐及分享URL", async ({ page }) =>
   const budget = page.locator('#picker [data-pick="budget"]');
   await expect(budget.getByRole("button", { name: "≤ ¥100", exact: true })).toHaveAttribute("aria-pressed", "true");
   const first = await page.locator("#quickGrid").innerText();
-  await page.getByRole("navigation", { name: "页面章节" }).getByRole("link", { name: "性价比排行", exact: true }).click();
+  await clickChapter(page, "性价比排行");
   await budget.getByRole("button", { name: "≤ ¥500", exact: true }).click();
   await expect(page).toHaveURL(/budget=500/);
   const changed = await page.locator("#quickGrid").innerText();
@@ -38,6 +43,7 @@ test("预算后退/前进同步按钮、推荐及分享URL", async ({ page }) =>
 
 test("键盘锚点后下一次Tab进入目标章节的筛选控件", async ({ page }) => {
   await page.goto("/");
+  await openChapters(page);
   const link = page.getByRole("navigation", { name: "页面章节" }).getByRole("link", { name: "数据表", exact: true });
   await link.focus();
   await page.keyboard.press("Enter");
@@ -65,7 +71,7 @@ for (const width of [375, 1280]) {
     });
     await expect(current).toHaveAttribute("href", "#rank");
     await expect(page).toHaveURL(/#s3b$/);
-    await page.getByRole("navigation", { name: "页面章节" }).getByRole("link", { name: "订阅价格", exact: true }).click();
+    await clickChapter(page, "订阅价格");
     await expect(current).toHaveAttribute("href", "#s1");
     await expect(page).toHaveURL(/#s1$/);
   });
@@ -110,11 +116,13 @@ for (const colorScheme of /** @type {("light"|"dark")[]} */ (["light", "dark"]))
     await page.setViewportSize({ width: 375, height: 900 });
     await page.emulateMedia({ colorScheme });
     await page.goto("/?q=Claude+Pro#table");
-    const price = page.locator('#tableBody tr [data-column="priceM"]').first();
+    await page.evaluate("revealTablePlan('plan-0002')");
+    const row = page.locator('#tableBody tr:has(.cmp-add[data-plan-id="plan-0002"])');
+    const price = row.locator('[data-column="priceM"]');
     await expect(price).toBeVisible();
     await expect(price).toHaveAttribute("data-label", "价格 / 周期");
     await expect(price).toContainText("$20/月");
-    for (const field of [price, page.locator('#tableBody tr [data-column="plan"]').first()]) {
+    for (const field of [price, row.locator('[data-column="plan"]')]) {
       const bounds = await field.boundingBox();
       expect(bounds.x).toBeGreaterThanOrEqual(0);
       expect(bounds.x + bounds.width).toBeLessThanOrEqual(375);
@@ -245,7 +253,7 @@ test("稳定ID链接和无原生dialog降级可关闭、循环焦点和移出", 
 
 test("历史恢复重新聚焦同一方案的表格按钮，筛选隐藏时回到搜索框", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("navigation", { name: "页面章节" }).getByRole("link", { name: "数据表", exact: true }).click();
+  await clickChapter(page, "数据表");
   const search = page.locator("#searchInput");
   await search.fill("Anthropic");
   await expect(page).toHaveURL(/q=Anthropic/);
@@ -299,7 +307,7 @@ for (const fallback of [false, true]) {
     const dialog = page.locator("#cmpModal"), close = page.locator("#cmpCloseBtn");
     const remove = (id) => dialog.locator('.cmp-remove[data-plan-id="' + id + '"]');
     await close.click();
-    await page.getByRole("navigation", { name: "页面章节" }).getByRole("link", { name: "API 按量", exact: true }).click();
+    await clickChapter(page, "API 按量");
     await page.locator("#cmpOpenBtn").click();
     await remove("plan-0003").focus();
     await page.goBack();
