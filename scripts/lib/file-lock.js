@@ -14,25 +14,31 @@ const { randomUUID } = require("node:crypto");
 function acquireFileLock(filename, options = {}) {
   const file = path.resolve(filename);
   fs.mkdirSync(path.dirname(file), { recursive: true });
+  const ownerId = randomUUID();
   let handle;
   try { handle = fs.openSync(file, "wx"); }
   catch (error) {
     if (error.code !== "EEXIST") throw error;
     throw new Error((options.busyMessage || "操作正在进行或存在遗留锁") + "（" + file + "）；请稍后重试。遗留锁须人工检查，确认没有相关进程后再清理");
   }
-  const ownerId = randomUUID();
+  const initializationErrors = [];
   try {
     fs.writeFileSync(handle, JSON.stringify({ ownerId, pid: process.pid, hostname: os.hostname(), startedAt: new Date().toISOString() }));
-  } catch (error) {
+  } catch (error) { initializationErrors.push(error); }
+  /* wx 创建的路径及 ownerId 提供互斥，不需要在操作期间持有句柄。
+   * Windows / Node 20 下仍打开的文件被删除后会处于待删除状态，阻止新所有者重建路径。 */
+  try { fs.closeSync(handle); }
+  catch (error) { initializationErrors.push(error); }
+  if (initializationErrors.length) {
     // An incomplete lock is safer to retain than removing a path whose owner is unknown.
-    fs.closeSync(handle);
-    throw new Error("锁初始化失败，保留锁文件供人工检查：" + file, { cause: error });
+    const cause = initializationErrors.length === 1 ? initializationErrors[0]
+      : new AggregateError(initializationErrors, "锁元数据写入和句柄关闭均失败");
+    throw new Error("锁初始化失败，保留锁文件供人工检查：" + file, { cause });
   }
   let released = false;
   return () => {
     if (released) return;
     released = true;
-    fs.closeSync(handle);
     let current;
     try {
       if (!fs.lstatSync(file).isFile()) throw new Error("锁路径已被替换");

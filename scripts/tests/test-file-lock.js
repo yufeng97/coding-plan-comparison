@@ -39,6 +39,56 @@ function contender(file) {
 }
 
 async function main() {
+  await test("正常初始化后立即释放句柄，保留锁路径供所有者校验", file => {
+    const nativeWrite = fs.writeFileSync;
+    let handle = -1, release;
+    try {
+      fs.writeFileSync = (target, data, options) => {
+        if (typeof target === "number") handle = target;
+        return nativeWrite(target, data, options);
+      };
+      release = acquireFileLock(file);
+      assert.ok(handle >= 0);
+      assert.throws(() => fs.fstatSync(handle), error => error instanceof Error && /** @type {NodeJS.ErrnoException} */ (error).code === "EBADF");
+      assert.equal(fs.existsSync(file), true);
+    } finally { fs.writeFileSync = nativeWrite; release?.(); }
+    assert.equal(fs.existsSync(file), false);
+  });
+  await test("初始化写入或关闭失败不进入业务，仍尝试关闭句柄并保留全部错误", file => {
+    const nativeWrite = fs.writeFileSync, nativeClose = fs.closeSync;
+    for (const failed of ["write", "close", "both"]) {
+      const writeFailure = new Error("injected metadata write failure"), closeFailure = new Error("injected descriptor close failure");
+      let handle = -1, closeCalls = 0, entered = false;
+      try {
+        fs.writeFileSync = (target, data, options) => {
+          if (typeof target === "number") {
+            handle = target;
+            if (failed !== "close") throw writeFailure;
+          }
+          return nativeWrite(target, data, options);
+        };
+        fs.closeSync = target => {
+          closeCalls++;
+          nativeClose(target);
+          if (failed !== "write") throw closeFailure;
+        };
+        assert.throws(() => withFileLockSync(file, () => { entered = true; }), error => {
+          assert.ok(error instanceof Error);
+          assert.match(error.message, /锁初始化失败/);
+          if (failed === "both") {
+            assert.ok(error.cause instanceof AggregateError);
+            assert.deepEqual(error.cause.errors, [writeFailure, closeFailure]);
+          } else assert.equal(error.cause, failed === "write" ? writeFailure : closeFailure);
+          return true;
+        });
+      } finally { fs.writeFileSync = nativeWrite; fs.closeSync = nativeClose; }
+      assert.equal(entered, false); assert.equal(closeCalls, 1);
+      assert.throws(() => fs.fstatSync(handle), error => error instanceof Error && /** @type {NodeJS.ErrnoException} */ (error).code === "EBADF");
+      assert.equal(fs.existsSync(file), true);
+      assert.throws(() => acquireFileLock(file), /人工检查/);
+      fs.unlinkSync(file);
+    }
+  });
   await test("锁记录唯一所有者，正常释放幂等且不删除后来的锁", file => {
     const release = acquireFileLock(file), original = fs.readFileSync(file);
     const metadata = JSON.parse(original.toString());
@@ -72,6 +122,15 @@ async function main() {
     assert.deepEqual(await Promise.all([contender(file), contender(file)]), ["blocked", "blocked"]);
     assert.equal(fs.readFileSync(file, "utf8"), stale);
   });
+  await test("关闭句柄后真实子进程仍被活动锁阻挡，正常释放后可重新取得锁", async file => {
+    const release = acquireFileLock(file), original = fs.readFileSync(file);
+    try {
+      assert.equal(await contender(file), "blocked");
+      assert.deepEqual(fs.readFileSync(file), original);
+    } finally { release(); }
+    assert.equal(await contender(file), "acquired");
+    assert.equal(fs.existsSync(file), false);
+  });
   await test("损坏和未知格式的既有锁也保留供人工检查", file => {
     for (const bytes of ["corrupt lock", JSON.stringify({ pid: 0 }), ""]) {
       fs.writeFileSync(file, bytes);
@@ -83,10 +142,12 @@ async function main() {
     const oldRelease = acquireFileLock(file);
     fs.unlinkSync(file);
     const newRelease = acquireFileLock(file), replacement = fs.readFileSync(file);
-    assert.throws(oldRelease, /所有权已变化/);
-    assert.deepEqual(fs.readFileSync(file), replacement);
-    assert.throws(() => acquireFileLock(file), /人工检查/);
-    newRelease(); assert.equal(fs.existsSync(file), false);
+    try {
+      assert.throws(oldRelease, /所有权已变化/);
+      assert.deepEqual(fs.readFileSync(file), replacement);
+      assert.throws(() => acquireFileLock(file), /人工检查/);
+    } finally { newRelease(); }
+    assert.equal(fs.existsSync(file), false);
   });
   await test("锁在执行中损坏或消失时报告所有权问题，保留损坏内容", file => {
     const release = acquireFileLock(file);
