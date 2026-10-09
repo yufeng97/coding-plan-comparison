@@ -26,6 +26,58 @@
       "keywords": ["编程", "代码助手", "代码编辑器", "智能体"]
     },
     {
+      "id": "openai-news",
+      "name": "OpenAI 官方发布博客",
+      "kind": "rss",
+      "url": "https://openai.com/news/rss.xml",
+      "authority": "official",
+      "keywords": ["GPT", "Codex"]
+    },
+    {
+      "id": "mistral-news",
+      "name": "Mistral 官方发布博客",
+      "kind": "rss",
+      "url": "https://mistral.ai/news/rss",
+      "authority": "official",
+      "keywords": ["Mistral", "Ministral", "Codestral", "Devstral", "Magistral"]
+    },
+    {
+      "id": "minimax-research",
+      "name": "MiniMax 官方研究博客",
+      "kind": "blog",
+      "url": "https://www.minimax.io/blog",
+      "authority": "official",
+      "articlePaths": ["^/blog/[^/]+/?$"],
+      "keywords": ["MiniMax"]
+    },
+    {
+      "id": "kimi-research",
+      "name": "Moonshot Kimi 官方研究博客",
+      "kind": "blog",
+      "url": "https://www.kimi.ai/blog/",
+      "authority": "official",
+      "articlePaths": ["^/blog/[^/]+/?$"],
+      "keywords": ["Kimi", "Moonshot"]
+    },
+    {
+      "id": "deepseek-news",
+      "name": "DeepSeek 官方模型动态",
+      "kind": "blog",
+      "url": "https://www.deepseek.com/news/",
+      "authority": "official",
+      "articlePaths": ["^/news/[^/]+/?$"],
+      "keywords": ["DeepSeek"]
+    },
+    {
+      "id": "zai-model-news",
+      "name": "Z.ai 官方模型博客",
+      "kind": "blog",
+      "url": "https://autoclaw.z.ai/blog/model/",
+      "authority": "official",
+      "articlePaths": ["^/blog/model/[^/]+/?$"],
+      "keywords": ["GLM"]
+    },
+    {
       "id": "github-changelog",
       "name": "GitHub 官方更新日志",
       "kind": "rss",
@@ -84,9 +136,11 @@
     {
       "id": "anthropic-news",
       "name": "Anthropic 官方新闻页",
-      "kind": "page",
+      "kind": "blog",
       "url": "https://www.anthropic.com/news",
-      "authority": "official"
+      "authority": "official",
+      "articlePaths": ["^/news/[^/]+/?$", "^/claude-[a-z0-9-]+-[0-9][a-z0-9-]*/?$"],
+      "keywords": ["Claude", "Haiku", "Sonnet", "Opus"]
     },
     {
       "id": "bigmodel-coding-plan",

@@ -5,19 +5,23 @@ const path = require("node:path");
 const vm = require("node:vm");
 const crypto = require("node:crypto");
 const { plainText, parseFeed, parseHN } = require("./feed");
+const { parseBlogLinks, parseBlogArticle } = require("./blog");
 const { publicURL, fetchSource } = require("./network");
 const { normalizeURL } = require("./urls");
 const { validateInbox, updateInbox, validInstant } = require("./inbox");
 const { withFileLock } = require("../lib/file-lock");
 
 const DEFAULT_KEYWORDS = ["coding plan", "token plan", "编程套餐", "编程订阅", "AI编程", "AI 编程", "编程助手", "编码助手",
-  "coding agent", "code agent", "code assistant", "code editor", "agentic coding", "vibe coding", "copilot", "credits", "pricing"];
+  "coding agent", "code agent", "code assistant", "code editor", "agentic coding", "vibe coding", "copilot", "codex", "credits", "pricing",
+  "new model", "model release", "model launch", "新模型", "模型发布", "发布模型", "模型上线", "模型更新"];
+const MODEL_NAMES = /\b(?:gpt\s*\d|claude\s+(?:haiku|sonnet|opus)\s*\d|(?:gemini|grok|deepseek|qwen|glm|mistral|kimi|mini\s*max)[\s-]*[a-z]?\d)/i;
+const MODEL_ALIASES = { OpenAI: /\b(?:gpt\s*\d|codex)\b/i, Anthropic: /\bclaude\b/i, Google: /\bgemini\b/i, xAI: /\bgrok\b/i };
 const SHARED_DOMAINS = ["github.com", "github.io", "huggingface.co", "vercel.app", "netlify.app", "pages.dev", "gitlab.com", "gitlab.io", "blogspot.com"];
-const KINDS = ["rss", "atom", "hn-search", "page"];
+const KINDS = ["rss", "atom", "hn-search", "page", "blog"];
 const MAX_STATE_ITEMS = 5000;
 
 /** @typedef {import('./feed').NewsItem} NewsItem */
-/** @typedef {{id:string,name:string,kind:string,url:string,authority:string,keywords?:string[]}} NewsSource */
+/** @typedef {{id:string,name:string,kind:string,url:string,authority:string,keywords?:string[],articlePaths?:string[],maxArticles?:number}} NewsSource */
 /** @typedef {{vendor:string,domains:string[]}} KnownVendor */
 /** @typedef {{url:string,kind:string,etag?:string,lastModified?:string,items:NewsItem[],pageHash?:string,baselineAt?:string,truncated?:boolean,updatedAt?:string}} SourceCache */
 /** @typedef {{id:string,url:string,kind:string,checkedAt:string,lastSuccess:string|null,consecutiveFailures:number,status:string,error:string|null,baselineAt?:string,baselineExpired?:boolean,freshness:string,enabled:boolean}} SourceHealth */
@@ -25,10 +29,10 @@ const MAX_STATE_ITEMS = 5000;
 /** @typedef {{fetcher?:typeof fetch,resolver?:(hostname:string)=>Promise<Array<{address:string}>>,timeoutMs?:number}} NetworkOptions */
 /** @typedef {{id:string,name:string,url:string,authority:string,dateMeaning:string}} SourceReference */
 /** @typedef {NewsItem & {dateStatus:string,sources:SourceReference[],vendorMatches:Array<{vendor:string,match:string}>,needsVendorReview:boolean}} Candidate */
-/** @typedef {{id:string,name:string,kind:string,url:string,authority:string,status:string,itemsFetched:number,candidatesEligible:number,cacheReused?:boolean,cacheStale?:boolean,truncated?:boolean,sourceDate?:string,error?:string,pagesFetched?:number,pageLimit?:number,requestURL?:string,lastSuccess?:string|null,consecutiveFailures?:number,baselineAt?:string,baselineExpired?:boolean,freshness?:string}} SourceResult */
+/** @typedef {{id:string,name:string,kind:string,url:string,authority:string,status:string,itemsFetched:number,candidatesEligible:number,cacheReused?:boolean,cacheStale?:boolean,truncated?:boolean,sourceDate?:string,error?:string,pagesFetched?:number,pageLimit?:number,missingPublicationDates?:string[],futurePublicationDates?:string[],requestURL?:string,lastSuccess?:string|null,consecutiveFailures?:number,baselineAt?:string,baselineExpired?:boolean,freshness?:string}} SourceResult */
 /** @typedef {{schemaVersion:number,checkedAt:string,window:{days:number,start:string,end:string},status:string,reviewRequired:boolean,sources:SourceResult[],errors:Array<{sourceId:string,message:string}>,candidates:Candidate[],stats:{candidates:number,knownVendor:number,vendorReviewCandidates:number,sourcesSucceeded:number,sourcesFailed:number},queue?:import('./inbox').InboxStats}} NewsReport */
-const folded = (text) => String(text || "").toLowerCase().replace(/[\s_-]+/g, " ");
-function keywordMatch(item, extra = []) { const text = folded(item.title + " " + item.summary); return [...DEFAULT_KEYWORDS, ...extra].some((word) => text.includes(folded(word))); }
+const folded = (text) => String(text || "").toLowerCase().replace(/[\s_\-\u2010-\u2015\u2212]+/g, " ");
+function keywordMatch(item, extra = []) { const text = folded(item.title + " " + item.summary); return MODEL_NAMES.test(text) || [...DEFAULT_KEYWORDS, ...extra].some((word) => text.includes(folded(word))); }
 
 function calendarDate(year, month, day) {
   const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
@@ -88,7 +92,8 @@ function matchVendors(item, vendors) {
       if (SHARED_DOMAINS.some((shared) => value.endsWith("." + shared))) return host === value;
       return host === value || host.endsWith("." + value);
     });
-    return domain || vendorNameMatch(text, known.vendor) ? [{ vendor: known.vendor, match: domain ? "domain" : "name" }] : [];
+    const alias = MODEL_ALIASES[known.vendor]?.test(folded(text));
+    return domain || vendorNameMatch(text, known.vendor) || alias ? [{ vendor: known.vendor, match: domain ? "domain" : alias ? "model-alias" : "name" }] : [];
   });
 }
 
@@ -98,6 +103,11 @@ function validSource(source) {
       typeof source.url !== "string" || !["official", "discovery"].includes(source.authority) ||
       (source.keywords !== undefined && (!Array.isArray(source.keywords) || source.keywords.some((word) => typeof word !== "string" || !word.trim())))) throw new Error("来源配置字段无效");
   publicURL(source.url, true);
+  if (source.kind === "blog") {
+    if (!Array.isArray(source.articlePaths) || !source.articlePaths.length || source.articlePaths.some((pattern) => typeof pattern !== "string" || !pattern.startsWith("^") || !pattern.endsWith("$"))) throw new Error("博客来源须提供完整锚定的 articlePaths 路径规则");
+    for (const pattern of source.articlePaths) new RegExp(pattern);
+    if (source.maxArticles !== undefined && (!Number.isInteger(source.maxArticles) || source.maxArticles < 1 || source.maxArticles > 40)) throw new Error("博客 maxArticles 必须为 1–40 的整数");
+  }
 }
 
 /** @returns {NewsState} */
@@ -188,12 +198,13 @@ async function collectNews(options) {
         ids.add(source.id);
         const headers = { "user-agent": "CodingPlanNewsCollector/1.0", "accept": source.kind === "hn-search" ? "application/json" : "application/rss+xml, application/atom+xml, text/html, text/plain;q=0.9" };
         // A multi-page HN query is always read as one bounded snapshot; one page's ETag cannot represent all pages.
-        if (source.kind !== "hn-search" && compatibleCache?.etag) headers["if-none-match"] = compatibleCache.etag;
-        if (source.kind !== "hn-search" && compatibleCache?.lastModified) headers["if-modified-since"] = compatibleCache.lastModified;
+        if (!["hn-search", "blog"].includes(source.kind) && compatibleCache?.etag) headers["if-none-match"] = compatibleCache.etag;
+        if (!["hn-search", "blog"].includes(source.kind) && compatibleCache?.lastModified) headers["if-modified-since"] = compatibleCache.lastModified;
         result.requestURL = source.kind === "hn-search" ? hnRequestURL(source.url, start, end) : source.url;
         const fetched = await fetchSource(result.requestURL, { ...options, headers });
         const page = source.kind === "page";
         if (fetched.response.status === 304) {
+          if (source.kind === "blog") throw new Error("博客目录返回 304，无法核对文章内容变化");
           if (!compatibleCache || (page && !compatibleCache.pageHash)) throw new Error("收到 304 但没有可复用的来源缓存");
           items = compatibleCache.items;
           result.cacheReused = true;
@@ -202,6 +213,29 @@ async function collectNews(options) {
         } else {
           let pageHash, truncated = false;
           if (source.kind === "rss" || source.kind === "atom") items = parseFeed(fetched.text, fetched.finalURL, source.kind);
+          else if (source.kind === "blog") {
+            const links = parseBlogLinks(fetched.text, fetched.finalURL, source.articlePaths, { maxArticles: source.maxArticles || 20 });
+            truncated = links.truncated;
+            result.pagesFetched = 1; result.pageLimit = (source.maxArticles || 20) + 1;
+            const articleErrors = [];
+            // Read articles on every pass: an unchanged index does not prove an article is unchanged.
+            for (const url of links.urls) {
+              try {
+                const article = await fetchSource(url, { ...options, headers: { "user-agent": headers["user-agent"], accept: "text/html" } });
+                if (new URL(article.finalURL).origin !== new URL(fetched.finalURL).origin) throw new Error("文章跳转到博客来源以外的域名");
+                const parsedArticle = parseBlogArticle(article.text, article.finalURL);
+                items.push(parsedArticle);
+                if (!parsedArticle.publishedAt) (result.missingPublicationDates ||= []).push(parsedArticle.url);
+                else if (publicationTime(parsedArticle.publishedAt) > end) (result.futurePublicationDates ||= []).push(parsedArticle.url);
+                result.pagesFetched++;
+              } catch (error) { articleErrors.push(url + ": " + (error instanceof Error ? error.message : String(error))); }
+            }
+            if (!items.length && articleErrors.length) throw new Error(articleErrors.join("; "));
+            if (articleErrors.length) {
+              result.status = "partial"; result.error = articleErrors.join("; ");
+              errors.push({ sourceId: source.id, message: result.error });
+            }
+          }
           else if (source.kind === "hn-search") {
             const first = JSON.parse(fetched.text), parsed = parseHN(first);
             items = parsed.items; result.pagesFetched = 1; result.pageLimit = 3;
@@ -229,10 +263,10 @@ async function collectNews(options) {
           nextState.sources[source.id] = { url: source.url, kind: source.kind, items, ...(pageHash ? { pageHash, baselineAt } : {}), truncated,
             ...(fetched.response.headers.get("etag") ? { etag: fetched.response.headers.get("etag") } : {}),
             ...(fetched.response.headers.get("last-modified") ? { lastModified: fetched.response.headers.get("last-modified") } : {}), updatedAt: checkedAt };
-          result.status = result.status === "baseline" ? "baseline" : "ok";
+          result.status = ["baseline", "partial"].includes(result.status) ? result.status : "ok";
           result.truncated = truncated;
         }
-        result.sourceDate = page ? "页面变化的观测时间，不是新闻发布日期或改价证据" : source.kind === "hn-search" ? "HN 帖子创建时间，不是原文发布时间；发现线索需核对官网" : "Feed 提供的发布日期；仅有 updated 时标记 feed-update";
+        result.sourceDate = page ? "页面变化的观测时间，不是新闻发布日期或改价证据" : source.kind === "blog" ? "官方文章的真实发布日期；逐篇提取，缺失日期单列待核" : source.kind === "hn-search" ? "HN 帖子创建时间，不是原文发布时间；发现线索需核对官网" : "Feed 提供的发布日期；仅有 updated 时标记 feed-update";
       } catch (error) {
         result.error = error instanceof Error ? error.message : String(error);
         errors.push({ sourceId: result.id, message: result.error });
@@ -242,13 +276,13 @@ async function collectNews(options) {
       result.itemsFetched = items.length;
       const priorHealth = oldState.health?.[result.id], previousHealth = priorHealth?.url === result.url && priorHealth?.kind === result.kind ? priorHealth : undefined;
       const baselineAt = nextState.sources[result.id]?.baselineAt || compatibleCache?.baselineAt || (result.kind === "page" ? compatibleCache?.updatedAt : undefined);
-      const succeeded = result.status !== "error";
-      const lastSuccess = succeeded ? checkedAt : previousHealth?.lastSuccess || compatibleCache?.updatedAt || null;
+      const succeeded = !["error", "partial"].includes(result.status);
+      const lastSuccess = succeeded ? checkedAt : previousHealth ? previousHealth.lastSuccess : compatibleCache?.updatedAt || null;
       const baselineExpired = !!baselineAt && Date.parse(baselineAt) < start;
       const health = { id: result.id, url: result.url, kind: result.kind, checkedAt, lastSuccess,
         consecutiveFailures: succeeded ? 0 : (previousHealth?.consecutiveFailures || 0) + 1, status: result.status, error: result.error || null,
         ...(baselineAt ? { baselineAt, baselineExpired } : {}),
-        freshness: !succeeded ? lastSuccess ? "stale" : "never-succeeded" : baselineExpired ? "baseline-aged" : "checked", enabled: true };
+        freshness: result.status === "partial" ? "partial" : !succeeded ? lastSuccess ? "stale" : "never-succeeded" : baselineExpired ? "baseline-aged" : "checked", enabled: true };
       nextState.health[result.id] = health;
       Object.assign(result, { lastSuccess, consecutiveFailures: health.consecutiveFailures, freshness: health.freshness, ...(baselineAt ? { baselineAt, baselineExpired } : {}) });
       resultSlots[index] = result;
@@ -299,12 +333,12 @@ async function collectNews(options) {
     sources.push(result);
   }
   const list = [...candidates.values()].sort((a, b) => (b.publishedAt || b.observedAt || "").localeCompare(a.publishedAt || a.observedAt || "") || a.url.localeCompare(b.url));
-  const successful = sources.filter((source) => source.status !== "error" && source.kind !== "import").length;
+  const successful = sources.filter((source) => !["error", "partial"].includes(source.status) && source.kind !== "import").length;
   const report = { schemaVersion: 1, checkedAt, window: { days, start: new Date(start).toISOString(), end: checkedAt },
-    status: errors.length ? successful ? "partial" : "failed" : "ok", reviewRequired: true, sources, errors, candidates: list,
+    status: errors.length ? successful || sources.some((source) => source.status === "partial" && source.itemsFetched > 0) ? "partial" : "failed" : "ok", reviewRequired: true, sources, errors, candidates: list,
     stats: { candidates: list.length, knownVendor: list.filter((item) => !item.needsVendorReview).length, vendorReviewCandidates: list.filter((item) => item.needsVendorReview).length,
-      sourcesSucceeded: successful, sourcesFailed: sources.filter((source) => source.status === "error").length } };
-  const inbox = updateInbox(options.inbox, report);
+      sourcesSucceeded: successful, sourcesFailed: sources.filter((source) => ["error", "partial"].includes(source.status)).length } };
+  const inbox = validateInbox(updateInbox(options.inbox, report));
   report.queue = inbox.stats;
   return { report, state: nextState, inbox, health: { schemaVersion: 1, checkedAt, status: report.status, sources: Object.values(nextState.health), errors } };
 }

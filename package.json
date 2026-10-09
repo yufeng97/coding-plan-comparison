@@ -23,7 +23,7 @@
     "benchmark:build": "node scripts/benchmarks/benchmark.js build",
     "benchmark:check": "node scripts/benchmarks/benchmark.js check",
     "maintenance:check": "node scripts/maintenance/build-maintenance.js --check",
-    "test:news": "node scripts/tests/test-news.js",
+    "test:news": "node scripts/tests/test-news.js && node scripts/tests/test-news-blog.js && node scripts/tests/test-news-blog-collection.js",
     "test:browser": "playwright test",
     "cache:check": "node scripts/build/bump-versions.js --check",
     "vendor:fonts": "node scripts/build/vendor-fonts.js",

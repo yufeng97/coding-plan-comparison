@@ -15,7 +15,7 @@
 - **云厂商/企业档**：AWS Q Developer、Google Gemini Code Assist、阿里云通义灵码（Qoder CN）、腾讯云、华为云 CodeArts、讯飞星辰 Astron Coding Plan 等
 - **API 按量计费**：36 款主流编程模型的输入/输出单价（USD 与 CNY 原币，统一折算对比）
 
-数据版本：**2026-10-06**；覆盖 57 家厂商、212 档订阅计划、27 个免费档（其中 20 个是编程工具免费档或免费模型入口）、84 行套餐额度深度对比（官方数据 + 标注置信度的估算）、36 行 API 定价，另有 10 行 API 按量对照。工具免费档中，BYOK/按量推理的费用会单独注明。页面与导出的更新日期指整份数据的版本日期；每条价格另记官网核查日期和结果。
+数据版本：**2026-10-09**；覆盖 57 家厂商、212 档订阅计划、27 个免费档（其中 20 个是编程工具免费档或免费模型入口）、84 行套餐额度深度对比（官方数据 + 标注置信度的估算）、36 行 API 定价，另有 10 行 API 按量对照。工具免费档中，BYOK/按量推理的费用会单独注明。页面与导出的更新日期指整份数据的版本日期；每条价格另记官网核查日期和结果。
 
 模型公开评测独立于价格版本：**2026-10-08 核查**，5 类评测、85 个独立协议、438 条成绩（DeepSWE 70、CursorBench 68、OSWorld 224、HLE 46、SWE-bench 30）。同一模型的多个配置和 OSWorld 的完整/部分得分均各算一条，不表示 438 个模型；版本、样本分母、工具与步骤预算不同不混排。
 
@@ -60,7 +60,9 @@ npm run news:collect -- --import audit/news/manual.json
 npm run test:news
 ```
 
-默认来源配置在 [config/news-sources.json](config/news-sources.json)：17 个来源，包括 GitHub 与 Google 的官方 RSS、Cursor/Anthropic/智谱/Z.ai/MiniMax/Kimi/Kiro 的页面、三个 Hacker News 关键词搜索，以及少数派、InfoQ、开源中国中文发现源。`authority: "official"` 表示来源渠道是官网，仍需核对具体事实；`"discovery"` 表示发现线索，不能替代官网报价。可按相同结构增加 `rss`、`atom`、`page` 或 `hn-search` 来源，使用 `keywords` 扩展关键词。
+默认来源配置在 [config/news-sources.json](config/news-sources.json)：23 个来源。模型发布入口包括 OpenAI、Mistral、Google 官方 RSS，以及 Anthropic、MiniMax、Kimi、DeepSeek、Z.ai 官方博客；保留产品页面、GitHub 更新日志、三个 Hacker News 搜索和中文发现源。`authority: "official"` 表示来源渠道是官网，仍需核对具体事实；`"discovery"` 表示发现线索，不能替代官网报价。支持 `rss`、`atom`、`blog`、`page`、`hn-search`，使用 `keywords` 扩展关键词；默认识别常见模型系列与版本，无需新闻包含套餐或价格字样。
+
+`blog` 从目录逐篇读取同源文章，不再仅记录整页哈希变化。`articlePaths` 是首尾锚定的 URL 路径正则数组，默认最多 20 篇（可设 `maxArticles`，上限 40）；首次采集也读取已有文章，再按真实发布日期筛选窗口。文章使用 JSON-LD 的 `datePublished`、发布元数据或正文 `time`；没有发布日期的候选保留 `dateStatus: "missing"`，来源报告单列 `missingPublicationDates`，不能用采集日或修改日补齐。未来时间单列 `futurePublicationDates`，不当作已发生事件；文章发表日也不自动等于模型首次发布日。目录或文章解析失败显式记录，部分文章失败仍保存成功候选，截断标记说明覆盖上限。xAI 直接抓取当前返回 403，Qwen 新博客尚无已验证的稳定入口，仍需周期性官方搜索补充。
 
 默认报告为 `audit/news/latest.json`，同目录的 `state.json` 保留页面基线、已解析条目和条件请求缓存；`--output` 只允许写入项目 `audit/news/` 内的 JSON 报告，例如 `--output audit/news/2026-10-07.json` 保存当次报告，不能覆盖代码、配置或导入文件。`latest.json` 为滚动报告，`inbox.json` 为持久待审队列：pending / accepted / rejected / deferred，保留审核理由、官方证据、关联计划与历史决策。候选超出窗口或来源失败不会删除；内容变化会标记 needsReReview，不重复推送完全相同的内容。`health.json` 记录逐源最后成功、连续失败与缓存状态。此目录已忽略，不进入 Git 或公开部署产物。请保存状态文件：删除后页面监测会重新建立基线；CI 的临时工作目录也需要单独恢复状态。RSS/Atom 和搜索结果有窗口与条数限制，报告中需查看来源的错误和截断标记；一次执行不能当作全网检索。候选统计中的厂商待识别数量是条目数，不是确认新增的厂商数。
 
@@ -118,6 +120,8 @@ npm run validate
 npm test
 npm run bump
 ```
+
+`list` / `triage` 独立列出 `awaitingPublication`（已接受、无需再次复核、尚未收录正式动态）和 `needsReReview`，默认 pending 筛选不会隐藏这些积压。`publication` 仅按候选 URL 与非 `checked` 的 `DYNAMICS` 来源 URL 归一后精确匹配，表示正式数据已收录；仍需验证并部署后才算线上更新。`evidencePublicationMatches` 仅供人工核对，不会因为共用定价页而误判同一事件已发布。厂商发布新的编程模型本身可以成为重要动态，无需等待套餐调价；发布消息不自动证明每个订阅档的可用模型或权益。每天巡检都须处理待收录项目，不因已接受或已通知而视为完成。
 
 维护摘要在 data/maintenance.json，变更历史在 data/change-history.json；通过经典脚本同步到页面，保留 file:// 直开。页面显示核查时效、待核条目、复核日历和已确认变化，可下载 schemaVersion 1 的公开套餐/API/核价/历史/测评 JSON（不含本机关注和待审材料）；过期提醒不会自行改价。[changes.xml](https://coding-plan-comparison-tau.vercel.app/changes.xml) 是可订阅的已确认变更 RSS，重复构建不会产生新事件。套餐关注和已读状态保存在当前浏览器，不跨设备；RSS 阅读器可独立订阅。
 
@@ -258,7 +262,7 @@ npm run serve
 - **单一数据源**：类别色走 CSS 变量 `--cat-*`（JS 的 `refreshCategoryColors()` 在主题切换时重读）；数据表正文、CSV 与 Markdown 共享 `PLAN_COLUMNS`，各渠道按配置选列；额度表的列定义只在 `METRICS_COLUMNS` 一处。已有继承权益均通过 `fieldRefs` 的永久 ID 明确目标，新增继承也填写目标 ID，追加权益保留且循环引用安全中止。解析器保留旧文本名称及「同上」相邻位置的兼容能力，不用它们建立新数据引用。
 - **推荐元数据**：`windowPeriod` 与 `quotaSharing` 分别描述重置周期与模型额度是否共享，缺省表示未知；`codingSurface`、`includedModelQuota`、`modelAccess` 与 `purchaseCountries` 分别描述编程入口、是否包含推理、自备模型和国家限定资格。`modelBaseRef` 通过计划引用继承模型，`modelIncludes`/`modelExcludes` 显式补充和排除模型，`ownClient` 明确自家编程入口；校验器检查字段类型、引用及混合继承环。填有依据的事实，未知情况不靠条数或文案猜测。月 credits 及无 5h 上限的套餐不生成虚假的 5h 额度，官方与估算的重复周额度按稳定引用去重。
 - **缓存版本号**：`npm run bump` 自动发现 HTML 本地资源和 CSS 的字体/导入依赖；先给依赖生成内容哈希，再更新 CSS 与 HTML 的 `?v=`。全部资源验证后才写入，替换中途失败会回滚。缺文件、越界、私有/隐藏目录（包括链接的真实目标）、非法编码或循环 CSS 引用会失败。`npm run cache:check` 只读验证，CI 不修改仓库；`.gitattributes` 固定文本检出为 LF，避免 Windows/Linux 的换行差异改变资源哈希。
-- **开发环境与校验**：Node.js 20+，首次运行 `npm ci`。开发依赖固定版本并提交 lockfile。`npm run typecheck` 分别使用浏览器 `jsconfig.json` 与工具/测试 `jsconfig.node.json`；新增页面脚本自动纳入，不需手改命令。`npm run validate` 检查数据结构、引用、有限数字、日期和价格区间；同一套规则可校验内存候选源码。`npm run test` 执行 19 个 Node 套件，包含额度公式、真实数据、VM 用户流程、HTTP 服务、审计无效输入/幂等/失败回滚、资讯采集解析/新厂商/缓存/失败处理、字体去重/失败回滚、缓存与公共产物回归。`npm run test:browser` 对 Chromium、Firefox、WebKit 运行同一批真实浏览器用例，覆盖图表、历史导航、服务功能及桌面/手机布局。CI 在 Linux 与 Windows 安装三种浏览器并执行各项检查，浏览器缓存键包含 lockfile 哈希；失败保留截图；CI 首次重试才录制 trace，避免正常回归的全页快照开销（[Playwright 官方建议](https://playwright.dev/docs/trace-viewer#tracing-on-ci)）。本地需要追踪时显式加 --trace on。
+- **开发环境与校验**：Node.js 20+，首次运行 `npm ci`。开发依赖固定版本并提交 lockfile。`npm run typecheck` 分别使用浏览器 `jsconfig.json` 与工具/测试 `jsconfig.node.json`；新增页面脚本自动纳入，不需手改命令。`npm run validate` 检查数据结构、引用、有限数字、日期和价格区间；同一套规则可校验内存候选源码。`npm run test` 执行 23 个 Node 套件，包含额度公式、真实数据、VM 用户流程、HTTP 服务、审计无效输入/幂等/失败回滚、资讯采集解析/新厂商/缓存/失败处理、字体去重/失败回滚、缓存与公共产物回归。`npm run test:browser` 对 Chromium、Firefox、WebKit 运行同一批真实浏览器用例，覆盖图表、历史导航、服务功能及桌面/手机布局。CI 在 Linux 与 Windows 安装三种浏览器并执行各项检查，浏览器缓存键包含 lockfile 哈希；失败保留截图；CI 首次重试才录制 trace，避免正常回归的全页快照开销（[Playwright 官方建议](https://playwright.dev/docs/trace-viewer#tracing-on-ci)）。本地需要追踪时显式加 --trace on。
 - **重建精简版 ECharts**（一般不需要）：
 
   ```bash

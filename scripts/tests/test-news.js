@@ -289,6 +289,33 @@ async function tests() {
     const recovered = await collect([source()], async () => new Response(null, { status: 304 }), { state: fail2.state, inbox: fail2.inbox, now: new Date("2026-10-11T00:00:00Z") });
     assert.equal(recovered.health.sources[0].consecutiveFailures, 0); assert.equal(recovered.health.sources[0].lastSuccess, "2026-10-11T00:00:00.000Z");
   });
+  await test("日常pending筛选持续列出accepted未发布，正式URL归一匹配且修订仍先待复核", async () => {
+    const urls = ["awaiting", "published", "revised", "rejected"].map((name) => "https://news.example.com/" + name);
+    const first = await collect([source()], async () => new Response(rss(...urls.map((url) => itemXML("Coding plan launch", url)))), { now: OCT8 });
+    const context = { config: config(source()), knownVendors: [], plans: [], now: OCT8 };
+    let inbox = first.inbox;
+    for (const item of first.inbox.items) inbox = applyReview(inbox, { id: item.id, status: item.url === urls[3] ? "rejected" : "accepted",
+      reason: "人工核对候选", evidenceUrls: ["https://news.example.com/pricing"] }, context);
+    const revised = await collect([source()], async () => new Response(rss(itemXML("Coding plan revised pricing", urls[2]))), { now: OCT8, state: first.state, inbox });
+    const saved = JSON.stringify(revised.inbox);
+    const publishedURLs = [urls[1] + "?utm_source=formal#top", urls[2], "https://news.example.com/pricing"];
+    const options = { ...reviewArguments(["list"]), now: OCT8, publishedURLs };
+    const triage = triageData(revised.inbox, options);
+    assert.equal(triage.candidates.length, 0);
+    assert.deepEqual(triage.awaitingPublication.map((item) => item.url), [urls[0]]);
+    assert.equal(triage.awaitingPublication[0].status, "accepted");
+    assert.equal(triage.awaitingPublication[0].publication, "awaiting-publication");
+    assert.deepEqual(triage.awaitingPublication[0].evidencePublicationMatches, ["https://news.example.com/pricing"]);
+    assert.deepEqual(triage.needsReReview.map((item) => item.url), [urls[2]]);
+    assert.equal(triage.needsReReview[0].status, "accepted");
+    const all = triageData(revised.inbox, { status: "all", now: OCT8, publishedURLs });
+    assert.equal(all.candidates.find((item) => item.url === urls[1]).publication, "published");
+    const nextInspection = triageData(revised.inbox, { ...options, now: new Date("2026-11-08T00:00:00Z") });
+    assert.deepEqual(nextInspection.awaitingPublication.map((item) => item.id), triage.awaitingPublication.map((item) => item.id));
+    const published = triageData(revised.inbox, { ...options, publishedURLs: [...publishedURLs, urls[0]] });
+    assert.equal(published.awaitingPublication.length, 0); assert.equal(published.needsReReview.length, 1);
+    assert.equal(JSON.stringify(revised.inbox), saved);
+  });
   await test("过期page baseline与停用来源不伪称新鲜，304保留原基线日期", async () => {
     const page = source("page", "page"), text = "The official product has long visible feature documentation and subscription information.";
     const first = await collect([page], async () => new Response(text), { now: OCT8 });
@@ -337,6 +364,29 @@ async function tests() {
     await assert.rejects(runReview({ command: "triage", workspace: root, outputPath: "js/data.js" }), /输出/);
     assert.equal(reviewArguments(["review", "--id", "abc", "--status", "deferred", "--reason", "later"]).command, "review");
     assert.throws(() => reviewArguments(["review", "--id", "abc"])); assert.throws(() => reviewArguments(["list", "--evidence", "https://new.example.com"]));
+  }));
+  await test("list/triage读取正式动态，checked核查与通用定价证据不消除待发布候选", () => fixture(async (root, write) => {
+    const url = "https://existing.example.com/events/launch";
+    await runCollection({ workspace: root, now: OCT8, resolver, fetcher: async () => new Response(rss(itemXML("Existing coding plan launch", url))) });
+    const inboxFile = path.join(root, "audit/news/inbox.json"), dataFile = path.join(root, "js/data.js");
+    const inbox = JSON.parse(fs.readFileSync(inboxFile, "utf8")), base = fs.readFileSync(dataFile, "utf8");
+    await runReview({ command: "review", workspace: root, now: OCT8, id: inbox.items[0].id, status: "accepted", reason: "官方事件值得入库",
+      evidenceUrls: ["https://existing.example.com/pricing"], planIds: ["plan-existing"] });
+    const savedInbox = fs.readFileSync(inboxFile);
+    write("js/data.js", base + "\nconst DYNAMICS = " + JSON.stringify([{ url, checked: true }, { url: "https://existing.example.com/pricing" }]) + ";");
+    const checkedData = fs.readFileSync(dataFile);
+    const pending = await runReview({ command: "list", workspace: root, status: "pending", now: OCT8 });
+    assert.ok("candidates" in pending);
+    assert.equal(pending.candidates.length, 0); assert.equal(pending.awaitingPublication.length, 1);
+    assert.equal(pending.awaitingPublication[0].publication, "awaiting-publication");
+    assert.deepEqual(pending.awaitingPublication[0].evidencePublicationMatches, ["https://existing.example.com/pricing"]);
+    assert.deepEqual(fs.readFileSync(dataFile), checkedData); assert.deepEqual(fs.readFileSync(inboxFile), savedInbox);
+    write("js/data.js", base + "\nconst DYNAMICS = " + JSON.stringify([{ url: url + "?utm_source=official#article" }]) + ";");
+    const formalData = fs.readFileSync(dataFile);
+    const published = await runReview({ command: "triage", workspace: root, status: "accepted", now: OCT8 });
+    assert.ok("candidates" in published);
+    assert.equal(published.candidates[0].publication, "published"); assert.equal(published.awaitingPublication.length, 0);
+    assert.deepEqual(fs.readFileSync(dataFile), formalData); assert.deepEqual(fs.readFileSync(inboxFile), savedInbox);
   }));
   await test("迁移旧latest保留过期候选；损坏inbox失败时不覆写原历史或缓存", () => fixture(async (root, write) => {
     const first = await collect([source()], async () => new Response(rss(itemXML("Coding plan launch", "https://new.example.com/a"))), { now: OCT8 });

@@ -2,6 +2,7 @@
 "use strict";
 const fs = require("node:fs");
 const path = require("node:path");
+const vm = require("node:vm");
 const { publicURL } = require("./network");
 const { plainText } = require("./feed");
 const { normalizeURL, readKnownVendors, readPlanReferences, resolveNewsPaths, withNewsLock, commitOutputs } = require("./collect-news");
@@ -70,17 +71,34 @@ function applyReview(original, input, context) {
 }
 
 const WORKFLOW = ["accepted 仅确认候选值得进入人工数据核验，不代表已核价或已写入正式数据。",
+  "awaitingPublication 持续列出已 accepted、无需重新复核且尚未进入正式 DYNAMICS 的候选；不受 status 筛选隐藏。",
+  "publication 仅按候选 URL 与正式非 checked 动态的来源 URL 归一后精确匹配；evidencePublicationMatches 只供人工核对，不据通用定价证据判定发布。",
+  "needsReReview 候选始终单列待复核，先重新核对当前内容，再处理正式入库。",
   "已知计划填写现有 plan-id；新厂商允许 planIds 为空，人工建立计划和核价证据后再关联。",
   "新厂商官网须人工核对后用 official-domain 声明；该声明是复核者判断，脚本不保证站点身份。",
   "根据证据单独编辑正式数据与价格审计，运行数据验证/同步和回归；本命令不改价、不部署、不发消息。"];
 
-/** @param {import('./inbox').Inbox} inbox @param {{status?:string,id?:string,needsReReview?:boolean,now?:Date}} options */
+/** @returns {Set<string>} */
+function readPublishedURLs(workspace) {
+  const source = fs.readFileSync(path.join(workspace, "js", "data.js"), "utf8");
+  const dynamics = /** @type {Array<{url:string,checked?:boolean}>} */ (vm.runInNewContext(source + "\n;typeof DYNAMICS !== 'undefined' ? DYNAMICS : []", {}, { timeout: 2000 }));
+  return new Set(dynamics.filter((item) => item && item.checked !== true && typeof item.url === "string").map((item) => normalizeURL(item.url)));
+}
+
+/** @param {import('./inbox').Inbox} inbox @param {{status?:string,id?:string,needsReReview?:boolean,publishedURLs?:Iterable<string>,now?:Date}} options */
 function triageData(inbox, options = {}) {
   const checkedAt = (options.now || new Date()).toISOString(), summary = summarizeInbox(structuredClone(inbox), checkedAt);
-  const candidates = summary.items.filter((item) => (!options.status || options.status === "all" || item.status === options.status) &&
-    (!options.id || item.id === options.id) && (!options.needsReReview || item.needsReReview));
+  const publishedURLs = new Set(Array.from(options.publishedURLs || [], (url) => normalizeURL(url)));
+  const scoped = summary.items.filter((item) => !options.id || item.id === options.id).map((item) => ({ ...item,
+    publication: publishedURLs.has(normalizeURL(item.url)) ? "published" : "awaiting-publication",
+    evidencePublicationMatches: item.evidenceUrls.filter((url) => publishedURLs.has(normalizeURL(url))) }));
+  const candidates = scoped.filter((item) => (!options.status || options.status === "all" || item.status === options.status) &&
+    (!options.needsReReview || item.needsReReview));
   if (options.id && !candidates.length) throw new Error("找不到符合筛选条件的候选 ID");
-  return { schemaVersion: 1, exportedAt: checkedAt, queueUpdatedAt: inbox.updatedAt, purpose: "manual-review-only", workflow: WORKFLOW, stats: summary.stats, candidates };
+  const awaitingPublication = scoped.filter((item) => item.status === "accepted" && !item.needsReReview && item.publication === "awaiting-publication");
+  const needsReReview = scoped.filter((item) => item.needsReReview);
+  return { schemaVersion: 1, exportedAt: checkedAt, queueUpdatedAt: inbox.updatedAt, purpose: "manual-review-only", workflow: WORKFLOW,
+    stats: summary.stats, candidates, awaitingPublication, needsReReview };
 }
 
 /** @param {{command:string,workspace?:string,inboxPath?:string,configPath?:string,id?:string,status?:string,reason?:string,evidenceUrls?:string[],planIds?:string[],officialDomains?:string[],needsReReview?:boolean,outputPath?:string,now?:Date,rename?:(from:string,to:string)=>void}} options */
@@ -92,7 +110,7 @@ async function runReview(options) {
   if (options.command !== "review") {
     const inbox = readInbox();
     if (options.status && options.status !== "all" && !STATUSES.includes(options.status)) throw new Error("无效状态筛选");
-    const data = triageData(inbox, options);
+    const data = triageData(inbox, { ...options, publishedURLs: readPublishedURLs(files.workspace) });
     if (options.outputPath) {
       if (options.command !== "triage") throw new Error("只有 triage 可以指定 --output");
       const target = resolveNewsPaths(files.workspace, options.outputPath, [options.configPath || "config/news-sources.json"]);

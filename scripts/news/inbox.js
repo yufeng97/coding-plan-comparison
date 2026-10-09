@@ -33,7 +33,7 @@ function validateInbox(value) {
         !validInstant(item.firstSeen) || !validInstant(item.lastSeen) || item.firstSeen > item.lastSeen ||
         !STATUSES.includes(item.status) || typeof item.needsReReview !== "boolean" || !/^[a-f\d]{64}$/.test(item.contentHash) ||
         !["known", "missing", "invalid", "not-applicable"].includes(item.dateStatus) || typeof item.kind !== "string" || !Array.isArray(item.sources) || item.sources.some((ref) => !ref || typeof ref.id !== "string" || typeof ref.name !== "string" || typeof ref.url !== "string" || !["official", "discovery"].includes(ref.authority)) ||
-        !Array.isArray(item.vendorMatches) || item.vendorMatches.some((match) => !match || typeof match.vendor !== "string" || !["name", "domain"].includes(match.match)) || typeof item.needsVendorReview !== "boolean" ||
+        !Array.isArray(item.vendorMatches) || item.vendorMatches.some((match) => !match || typeof match.vendor !== "string" || !["name", "domain", "model-alias"].includes(match.match)) || typeof item.needsVendorReview !== "boolean" ||
         typeof item.reason !== "string" || !validEvidence(item.evidenceUrls) || !stringList(item.planIds) || !stringList(item.officialDomains) ||
         (item.status === "accepted" && (!item.reason.trim() || !item.evidenceUrls.length)) ||
         (item.publishedAt !== undefined && !validInstant(item.publishedAt)) || (item.observedAt !== undefined && !validInstant(item.observedAt)) ||

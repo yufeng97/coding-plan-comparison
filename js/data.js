@@ -11,7 +11,7 @@ const RATE_USD_CNY = 6.71;
 const RATE_INR_CNY = 6.7074 / 95.74;
 
 const META = {
-  updated: "2026-10-06",
+  updated: "2026-10-09",
   rate: RATE_USD_CNY,
   rateAsOf: "2026-09-23",
   rateSource: "https://api.frankfurter.dev/v1/2026-09-23?base=USD&symbols=CNY,INR",
@@ -2438,6 +2438,8 @@ const ESTIMATES = [
 
 /* date 是来源写明的发生日。checked 表示这只是本站核对到该状态的日子，不是公告日。 */
 const DYNAMICS = [
+  { date: "2026-10-07", text: "Anthropic 发布 Claude Haiku 5.5，面向高频、低成本任务，也可作为编程子 Agent；同日宣布 Sonnet 5.5 缓存读取价格减半，以及 Max / Team 订阅按月 API 赠额（逐步开放）。具体计费门槛与赠额资格以官方文档为准。", source: "Anthropic 官方发布博客", url: "https://www.anthropic.com/claude-haiku-5-5" },
+  { date: "2026-10-06", text: "Mistral 发布 Large 4 公开预览，可通过 Mistral Studio 的预览 API 使用，支持编程、Agent 与多模态任务。官方计划于 10 月底发布权重；当前仍为预览阶段。", source: "Mistral 官方发布博客", url: "https://mistral.ai/news/mistral-large-4/" },
   { date: "2026-06-01", text: "GitHub Copilot 以「AI Credits」（1 credit = $0.01）全面取代 premium requests，并新增 $100/月的个人 Max 档。", source: "GitHub Docs", url: "https://docs.github.com/en/copilot/get-started/plans" },
   { date: "2026-03", text: "Windsurf 被 Cognition 收购并更名为 Devin Desktop，2026 年 3 月起从 prompt credits 改为每日/每周配额制，与 Devin 共用 Free / Pro $20 / Max $200 档位体系。", source: "Devin Docs", url: "https://docs.devin.ai/desktop/accounts/quota.md" },
   { date: "2026-06", text: "Cursor 改为双池用量体系（Cursor Models 池 + Other Models 池），不再公布固定 credits 数；Teams 新增 $120 Premium 席位。", source: "Cursor Docs", url: "https://cursor.com/docs/models-and-pricing.md" },
@@ -2475,7 +2477,8 @@ const DYNAMICS = [
   { date: "2026-05-15", text: "Roo Code 的 VS Code 扩展于 2026-05-15 停更，团队转向自托管云 agent Roomote。自托管 10 个用户以内免费，Cloud 从 $49/月起。", source: "Roo Code / Roomote", url: "https://github.com/RooCodeInc/Roo-Code" },
   { date: "2026-09-25", text: "智谱/Z.ai GLM Coding Plan 双节活动（09-25~10-07）全天按非高峰 5 折消耗积分；叠加夜间畅用（09-03~10-07 每日 23:00–09:00）：ZCode/AutoClaw 端调 GLM-5.3-Flash 不限量，其他 Agent 额度翻倍。", source: "BigModel / Z.ai 官方文档", url: "https://docs.bigmodel.cn/cn/coding-plan/overview.md" },
   { date: "2026-10-01", checked: true, text: "智谱官网购买页在售连续包季 8 折、连续包年 7 折：Lite ¥82.6、Pro ¥376.6、Max ¥754.6/月（年付折算，划线价 ¥118/538/1078）。此前记录的「年付 7 折活动 08-15 截止」已不成立。", source: "bigmodel.cn/glm-coding（官网直抓）", url: "https://bigmodel.cn/glm-coding" },
-  { date: "2026-09-29", text: "OpenAI DevDay 发布 GPT-6.1 Sol：API $2/$10、缓存输入 $0.10（GPT-6 Sol 的一半），官方称编码对齐 Astra、约其 1/5 价。ChatGPT Plus 额度表新增 GPT-6.1 Sol 15–160 条/5h；Pro 重构为 $100/$200/$500 三档、官方注明目前无 5 小时上限，Astra Ultrafast（8x 计量）仅 $500 档。", source: "OpenAI 定价文档", url: "https://learn.chatgpt.com/docs/pricing" },
+  { date: "2026-09-29", text: "OpenAI 发布 GPT-6.1 Sol：标准 API 输入 $2 / 输出 $10、缓存输入 $0.10（每百万 tokens）；官方称复杂编码表现接近 Astra，标准输入输出价格约为其 1/5。已向 ChatGPT Work 与 Codex 的 Plus / Pro / Business / Enterprise / Edu 用户开放，并提供 API 模型 gpt-6.1-sol。", source: "OpenAI 官方发布博客", url: "https://openai.com/index/introducing-gpt-6-1-sol" },
+  { date: "2026-09-29", text: "OpenAI 额度文档新增 GPT-6.1 Sol 的 Plus 15–160 条/5h；Pro 重构为 $100/$200/$500 三档，官方注明目前无 5 小时上限，Astra Ultrafast（8x 计量）仅 $500 档。", source: "OpenAI 定价文档", url: "https://learn.chatgpt.com/docs/pricing" },
   { date: "2026-09-28", text: "Anthropic 上线 Claude Sonnet 5.5：API 价格与 Sonnet 5 持平（$2/$10、缓存读 $0.20、Batch $1/$5）；Cursor Other Models 池与 GitHub Copilot Pro 同步上架。", source: "Anthropic 定价文档", url: "https://platform.claude.com/docs/en/about-claude/pricing" },
   { date: "2026-10-03", checked: true, text: "OpenAI Codex 定价页核对：与 10-01 口径一致（Plus 各模型 5 小时条数、Pro $100/$200/$500 目前无 5 小时上限、GPT-5.5 确认 10-14 全线退役）。新增确认：GPT-5.6 Sol 促销 credits 价（输入 100 / 缓存 10 / 输出 500 每百万 tokens）官方写明至少延续至 2026-11-21；Speed 档倍率 Fast 2.5×、Astra Ultrafast 订阅内 8×。第三方「Plus 用量 10-30 起 20×降为 10×」传闻在官方页无对应倍率标注，未入库。", source: "OpenAI Codex 定价文档", url: "https://learn.chatgpt.com/docs/pricing" },
   { date: "2026-10-03", checked: true, text: "Anthropic API 定价页核对：与库内一致，无 10 月调价——Opus 5.5 $4/$20（缓存读 $0.20 = 输入价 0.05×，5m 写 $5 / 1h 写 $8）、Sonnet 5.5 与 Sonnet 5 $2/$10 标准价、Haiku 4.5 $1/$5；Opus 5.5 Fast 模式 $8/$40，inference_geo us 区 1.1×。第三方「API 10-01 调价」说法与官方页不符（所列数字即现行价）。", source: "Anthropic 定价文档", url: "https://platform.claude.com/docs/en/about-claude/pricing" },
@@ -2494,10 +2497,12 @@ const DYNAMICS = [
 const SOURCES = [
   { group: "Anthropic（Claude）", urls: [
     "https://claude.com/pricing",
+    "https://www.anthropic.com/claude-haiku-5-5",
     "https://support.claude.com/en/articles/9797557-usage-limit-best-practices",
   ]},
   { group: "OpenAI（Codex）", urls: [
     "https://learn.chatgpt.com/docs/pricing",
+    "https://openai.com/index/introducing-gpt-6-1-sol",
   ]},
   { group: "Google（Gemini）", urls: [
     "https://one.google.com/about/ai-premium",
@@ -2507,7 +2512,7 @@ const SOURCES = [
     "https://www.theverge.com/tech/933233/google-ai-ultra-plan-price-change",
   ]},
   { group: "xAI（Grok）", urls: [ "https://x.ai/pricing" ]},
-  { group: "Mistral", urls: [ "https://mistral.ai/pricing" ]},
+  { group: "Mistral", urls: [ "https://mistral.ai/pricing", "https://mistral.ai/news/mistral-large-4/" ]},
   { group: "Z.ai", urls: [
     "https://docs.z.ai/devpack/overview.md",
     "https://docs.z.ai/devpack/transition.md",

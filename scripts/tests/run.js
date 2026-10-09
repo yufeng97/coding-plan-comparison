@@ -19,6 +19,8 @@ const suite = [
   "test-pricing.js",
   "test-pricing-sync.js",
   "test-news.js",
+  "test-news-blog.js",
+  "test-news-blog-collection.js",
   "../maintenance/test-maintenance.js",
   "test-benchmarks.js",
   "test-public-benchmarks.js",
