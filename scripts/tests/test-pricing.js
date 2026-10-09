@@ -19,20 +19,23 @@ test("258 条核价记录完整对应计划、API 与 PAYG，日期和官方来�
   assert.equal(rows.length, 258, "现行库存应逐条核查，不能以厂商级状态代替套餐级记录");
   assert.equal(new Set(rows.map(r => r.key)).size, rows.length);
   assert.equal(app.run("Object.keys(PRICE_CHECKS.rows).length"), rows.length, "不能遗漏或残留其他产品的核价记录");
+  /* 2026-10-04 全量核查后，增量同步只推进有新证据的行；台账日期等于最新一行。 */
+  const ledgerDate = app.run("PRICE_CHECKS.checkedAt");
   for (const { key, check } of rows) {
     assert.ok(check, key + " 缺少核价记录");
     assert.ok(["verified", "changed", "unverified", "retired", "custom"].includes(check.status), key + " 状态非法");
-    assert.equal(check.checkedAt, "2026-10-04", key + " 核价日期不匹配");
+    assert.match(check.checkedAt, /^\d{4}-\d{2}-\d{2}$/, key + " 核价日期格式非法");
+    assert.ok(check.checkedAt >= "2026-10-04" && check.checkedAt <= ledgerDate, key + " 核价日期早于全量核查或晚于台账日期");
     assert.ok(check.reason && check.reason.trim(), key + " 缺少证据说明");
     assert.ok(check.sourceIds.length, key + " 缺少来源");
   }
+  assert.equal(ledgerDate, rows.map((r) => r.check.checkedAt).sort().at(-1), "台账日期应等于最新逐行核查日期");
   const sources = JSON.parse(app.run("JSON.stringify(PRICE_CHECKS.sources)"));
   for (const { key, check } of rows) for (const id of check.sourceIds) {
     assert.ok(sources[id], key + " 引用未知来源 " + id);
     assert.match(sources[id].url, /^https?:\/\//, id + " 缺少可点击来源 URL");
     assert.ok(sources[id].evidence && sources[id].evidence.trim(), id + " 缺少证据释义");
   }
-  assert.equal(app.run("PRICE_CHECKS.checkedAt"), "2026-10-04");
   healthy(app);
 });
 

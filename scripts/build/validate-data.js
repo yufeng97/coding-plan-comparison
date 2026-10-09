@@ -17,7 +17,7 @@ function isISODate(value) {
 }
 
 /** 校验内存中的候选源码；调用者可在所有输出落盘前使用同一套规则。
- * @param {{workspace?:string, source?:string}} options */
+ * @param {{workspace?:string, source?:string, now?:string|number|Date}} options  now 仅供测试注入「今天」 */
 function validateData(options = {}) {
   const root = path.resolve(options.workspace || path.join(__dirname, "..", ".."));
 
@@ -38,11 +38,11 @@ function validateData(options = {}) {
   vm.createContext(sandbox);
   vm.runInContext(
     (options.source ?? fs.readFileSync(path.join(root, "js/data.js"), "utf8")) +
-      "\n;globalThis.__D={RATE_USD_CNY,RATE_INR_CNY,META,PRICE_CHECKS,PLANS,METRICS_RAW,ESTIMATES,PLAN_TOKENS,DYNAMICS,API_PRICES,PAYG_REFERENCES,SOURCES,MODEL_ROLES,matchModelRoles,isRetiredPlan,isFreeCodingEntry,isOnSalePlan,isPersonalMonthly,resolvedField,hasOwnClient,offerable,findPlanReference};",
+      "\n;globalThis.__D={RATE_USD_CNY,RATE_INR_CNY,META,PRICE_CHECKS,PLANS,METRICS_RAW,ESTIMATES,PLAN_TOKENS,DYNAMICS,API_PRICES,PAYG_REFERENCES,SOURCES,UNCERTAIN,MODEL_ROLES,matchModelRoles,isRetiredPlan,isFreeCodingEntry,isOnSalePlan,isPersonalMonthly,resolvedField,hasOwnClient,offerable,findPlanReference,displayPriceReason,INTERNAL_TEXT_RE};",
     sandbox,
     { filename: "js/data.js" }
   );
-  const { RATE_USD_CNY, RATE_INR_CNY, META, PRICE_CHECKS, PLANS, METRICS_RAW, ESTIMATES, PLAN_TOKENS, DYNAMICS, API_PRICES, PAYG_REFERENCES, SOURCES, MODEL_ROLES, matchModelRoles, isRetiredPlan, isFreeCodingEntry, isOnSalePlan, isPersonalMonthly, resolvedField, hasOwnClient, offerable, findPlanReference } = sandbox.__D;
+  const { RATE_USD_CNY, RATE_INR_CNY, META, PRICE_CHECKS, PLANS, METRICS_RAW, ESTIMATES, PLAN_TOKENS, DYNAMICS, API_PRICES, PAYG_REFERENCES, SOURCES, UNCERTAIN, MODEL_ROLES, matchModelRoles, isRetiredPlan, isFreeCodingEntry, isOnSalePlan, isPersonalMonthly, resolvedField, hasOwnClient, offerable, findPlanReference, displayPriceReason, INTERNAL_TEXT_RE } = sandbox.__D;
 
   const CATS = ["official", "tool", "cloud", "team"];
   const REGIONS = ["cn", "intl"];
@@ -117,6 +117,14 @@ function validateData(options = {}) {
       check(p[field] == null || (Array.isArray(p[field]) && p[field].every((value) => typeof value === "string" && !!value.trim())), `PLANS ${field} 必须为字符串数组: ${key}`);
     }
     check(p.purchaseCountries == null || (Array.isArray(p.purchaseCountries) && p.purchaseCountries.length > 0 && p.purchaseCountries.every((c) => /^[A-Z]{2}$/.test(c))), `PLANS purchaseCountries 必须为非空 ISO 国别数组: ${key}`);
+    check(p.availability == null || p.availability === "sold-out", `PLANS availability 只能是 sold-out: ${key}`);
+    /* 单月价是不连续续费的购买价，不应低于作为主标价的连续包月价。 */
+    check(p.singleMonthPrice == null || (finitePositive(p.singleMonthPrice) && p.priceM > 0 && p.singleMonthPrice >= p.priceM), `PLANS singleMonthPrice 必须为不低于月付标价的有限正数: ${key}`);
+    if (p.sameAs != null) {
+      const target = PLANS.find((x) => x.id === p.sameAs);
+      check(!!target && target !== p && target.sameAs == null, `PLANS sameAs 必须指向另一条非重复的主条目: ${key}`);
+      check(!!target && target.cur === p.cur && target.priceM === p.priceM, `PLANS sameAs 的主条目价格与币种必须相同: ${key}`);
+    }
     if (p.priceM != null && p.priceM > 0 && p.priceY != null) warn(p.priceY <= p.priceM, `PLANS 年付折月高于月付: ${key}`);
     /* 定制档不应只填年付价（复制残留的典型信号）。plan-0007 的年付席位费在 quota 里有官方依据，显式豁免。 */
     check(p.priceM != null || p.priceY == null || p.id === "plan-0007",
@@ -228,6 +236,10 @@ function validateData(options = {}) {
     if (m.wkLowM != null) {
       check(finitePositive(m.wkLowM), `wkLowM 非法: ${key}`);
       check(m.wkHighM == null || (finitePositive(m.wkHighM) && m.wkHighM >= m.wkLowM), `wkHighM 非法或 < wkLowM: ${key}`);
+    }
+    /* 厂商按自身用量假设给出的估算只作对照，必须与统一口径的周额度同时存在。 */
+    if (m.vendorWkLowM != null || m.vendorWkHighM != null) {
+      check(m.wkLowM != null && finitePositive(m.vendorWkLowM) && finitePositive(m.vendorWkHighM) && m.vendorWkHighM >= m.vendorWkLowM, `vendorWkLowM/vendorWkHighM 必须成对、为正且不颠倒: ${key}`);
     }
     for (const field of ["reqPerWk", "reqPerMo", "reqPer5h", "creditUSD", "creditCNY"]) {
       if (m[field] != null) check(finitePositive(m[field]), `${field} 必须为有限正数: ${key}`);
@@ -363,6 +375,56 @@ function validateData(options = {}) {
   warn(dates.length === 0 || dates.some((x) => x.startsWith(ym)), `动态中缺少本月(${ym})条目`);
   function trunc(s) { return (s || "").slice(0, 30); }
 
+  /* ---- 用户可见文字：不出现内部字段名与开发用语；核查说明与来源证据按页面同一改写规则检查 ---- */
+  const leaks = [];
+  const lint = (where, text) => { if (text && INTERNAL_TEXT_RE.test(String(text))) leaks.push(where + "「" + String(text).slice(0, 48) + "」"); };
+  for (const p of PLANS) for (const field of ["plan", "quota", "models", "tools", "note"]) lint(`${p.id}.${field}`, p[field]);
+  for (const [rowKey, row] of Object.entries(PRICE_CHECKS.rows)) lint(`核查 ${rowKey}`, displayPriceReason(row.reason));
+  for (const [id, source] of Object.entries(PRICE_CHECKS.sources)) lint(`来源 ${id}`, displayPriceReason(source.evidence));
+  for (const d of DYNAMICS) lint(`动态 ${d.date}`, d.text);
+  for (const item of UNCERTAIN) lint("不确定性说明", typeof item === "string" ? item : item && item.text);
+  check(!leaks.length, `用户可见文字含内部字段名或开发用语（${leaks.length} 处），请改写数据或 displayPriceReason：${leaks.slice(0, 4).join("；")}`);
+
+  /* ---- 日期不得晚于今天（北京时间，容差 1 天）：2062 之类的误输入会让之后所有正确核查被判为「日期倒退」 ---- */
+  const nowMs = options.now === undefined ? Date.now() : new Date(options.now).getTime();
+  check(Number.isFinite(nowMs), "校验时间无效");
+  const latestAllowed = Number.isFinite(nowMs) ? new Date(nowMs + (8 + 24) * 3600000).toISOString().slice(0, 10) : "";
+  check(!META.updated || META.updated <= latestAllowed, `META.updated ${META.updated} 晚于今天，疑似误输入`);
+  check(!PRICE_CHECKS.checkedAt || PRICE_CHECKS.checkedAt <= latestAllowed, `PRICE_CHECKS.checkedAt ${PRICE_CHECKS.checkedAt} 晚于今天，疑似误输入`);
+  const futureRows = Object.entries(PRICE_CHECKS.rows).filter(([, row]) => row.checkedAt > latestAllowed).map(([rowKey, row]) => `${rowKey}（${row.checkedAt}）`);
+  check(!futureRows.length, `核查日期晚于今天：${futureRows.slice(0, 5).join("、")}`);
+  const futureSources = Object.entries(PRICE_CHECKS.sources).filter(([, source]) => source.checkedAt && source.checkedAt > latestAllowed).map(([id]) => id);
+  check(!futureSources.length, `来源核查日期晚于今天：${futureSources.slice(0, 5).join("、")}`);
+  const scheduled = DYNAMICS.filter((d) => !d.checked && /^\d{4}-\d{2}-\d{2}$/.test(d.date || "") && d.date > META.updated);
+  if (scheduled.length) note(`${scheduled.length} 条动态日期晚于数据版本，页面按日期标为计划中：${scheduled.map((d) => d.date).join("、")}`);
+
+  /* ---- 套餐额度或备注中已结束的限时活动（MM-DD~MM-DD、至 YYYY-MM-DD），应移除或改写 ---- */
+  const versionYear = Number(String(META.updated).slice(0, 4));
+  const expiredPromos = [];
+  for (const p of PLANS) {
+    const text = [p.quota, p.note].filter(Boolean).join("；");
+    for (const m of text.matchAll(/(?:(\d{4})-)?(\d{1,2})-(\d{1,2})\s*[~～]\s*(?:(\d{4})-)?(\d{1,2})-(\d{1,2})/g)) {
+      const end = `${m[4] || m[1] || versionYear}-${m[5].padStart(2, "0")}-${m[6].padStart(2, "0")}`;
+      if (isISODate(end) && end < META.updated) expiredPromos.push(`${p.id}（${m[0]}）`);
+    }
+    /* 「截至」是时点说明，不是活动截止。 */
+    for (const m of text.matchAll(/(?<!截)至\s*(\d{4}-\d{2}-\d{2})/g)) if (m[1] < META.updated) expiredPromos.push(`${p.id}（至 ${m[1]}）`);
+  }
+  warn(!expiredPromos.length, `套餐额度或备注含已结束的限时活动日期，请移除或改写：${expiredPromos.slice(0, 6).join("、")}`);
+
+  /* ---- 不同档位复用同一组周额度却有不同的额度原文：常见于复制粘贴（如老用户档沿用新版额度） ---- */
+  const byWeeklyQuota = new Map();
+  for (const m of METRICS_RAW) {
+    if (m.wkLowM == null || m.ref == null || m.weeklyChart === false) continue;
+    const quotaKey = `${m.model}|${m.wkLowM}|${m.wkHighM}`;
+    byWeeklyQuota.set(quotaKey, [...(byWeeklyQuota.get(quotaKey) || []), m.ref]);
+  }
+  for (const refs of byWeeklyQuota.values()) {
+    const plans = [...new Set(refs)].map((ref) => findPlanReference(ref)).filter(Boolean);
+    const texts = new Set(plans.map((p) => String(resolvedField(p, "quota")).replace(/\s+/g, "")));
+    warn(plans.length < 2 || texts.size === 1, `不同档位使用相同周额度但额度原文不同，请确认不是复制残留：${plans.map((p) => p.id).join("、")}`);
+  }
+
   /* ---- SOURCES ---- */
   for (const g of SOURCES) {
     check(typeof g.group === "string" && Array.isArray(g.urls) && g.urls.length > 0, `SOURCES 分组异常: ${g.group || "?"}`);
@@ -379,6 +441,11 @@ function validateData(options = {}) {
     "index.html 缺少关键 DOM 容器");
   check(html.includes("cmpBar") && html.includes("cmpModal") && html.includes("cmpTable"),
     "index.html 缺少并排对比容器");
+  /* 静态日期占位在无脚本或抓取预览时可见；核价同步推进版本后需同步更新（只警告，不阻断同步）。 */
+  for (const id of ["heroDate", "footDate"]) {
+    const literal = html.match(new RegExp(`id="${id}">([^<]*)<`));
+    warn(!literal || literal[1] === META.updated, `index.html #${id} 的静态日期 ${literal && literal[1]} 与 META.updated ${META.updated} 不一致`);
+  }
 
   return { errors, warns, notes,
     summary: `规模：PLANS ${PLANS.length} · 指标 ${allMetrics.length} · API ${API_PRICES.length} · 按量对照 ${PAYG_REFERENCES.length} · 免费档 ${PLANS.filter((p) => p.priceM === 0).length} · 可用 Coding 入口 ${freeCoding.length} · 动态 ${DYNAMICS.length} · 来源组 ${SOURCES.length}` };

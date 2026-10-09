@@ -63,5 +63,19 @@ jobs:
       - name: 校验公共网站部署产物
         if: success()
         run: npm run build:site
-      - name: 依赖安全检查
+
+  # 依赖公告检查单独运行：前面步骤失败时也照常执行；新公告或 registry 故障只让本作业显示失败，
+  # 不阻塞 check、不让没有代码变化的 main 变红，也不阻挡等待 CI 成功的 Pages 发布。
+  dependency-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 20
+      - name: 依赖安全检查（按 lockfile，不阻塞主检查）
         run: npm audit --audit-level=moderate --registry=https://registry.npmjs.org

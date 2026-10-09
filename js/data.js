@@ -88,14 +88,19 @@ function isRetiredPlan(p) { return /已停售|已下架/.test((p && p.plan) || "
 function isOneTimePlan(p) { return /一次性|预付/.test((p && p.plan) || ""); }
 function isRenewalOnly(p) { return /老用户/.test((p && p.plan) || ""); }
 function isFourWeekPlan(p) { return /4\s*周|四周|4\s*weeks?/i.test((p && p.plan) || ""); }
-/* 在售个人月付：不含团队整包、已停售/已下架、一次性预付、仅老用户可续及4周计费档 */
+/* 同一订阅按不同入口记了两条时（如 Devin Desktop 与云 agent），重复条目用 sameAs 指向主条目：
+   保留核价记录与历史，不再单独计入免费入口、价格图、价格表和推荐。 */
+function isDuplicateListing(p) { return !!(p && p.sameAs); }
+/* 官网标明售罄、仅候补的档位：价格仍属公开标价，但当前无法下单。 */
+function isSoldOut(p) { return !!(p && p.availability === "sold-out"); }
+/* 在售个人月付：不含团队整包、已停售/已下架、一次性预付、仅老用户可续、4周计费档和重复条目 */
 function isPersonalMonthly(p) {
-  return !!(p && p.priceM > 0 && !p.seat && p.cat !== "team" && !isRetiredPlan(p) && !isOneTimePlan(p) && !isRenewalOnly(p) && !isFourWeekPlan(p));
+  return !!(p && p.priceM > 0 && !p.seat && p.cat !== "team" && !isRetiredPlan(p) && !isOneTimePlan(p) && !isRenewalOnly(p) && !isFourWeekPlan(p) && !isDuplicateListing(p));
 }
 /* 免费 Coding 入口：在售，且能当编程 Agent 或编程工具用。
    已下架不算。聊天免费档、无 API 的网页档、自家应用构建器不算。 */
 function isFreeCodingEntry(p) {
-  if (!p || p.priceM !== 0 || isRetiredPlan(p) || !isPriceConfirmed(p)) return false;
+  if (!p || p.priceM !== 0 || isRetiredPlan(p) || !isPriceConfirmed(p) || isDuplicateListing(p)) return false;
   if (p.vendor === "Lovable" || p.vendor === "Bolt.new") return false;
   if (p.plan === "Claude Free" || p.plan === "Grok Free") return false;
   if (p.vendor === "ZenMux" && p.plan === "Free") return false;
@@ -103,11 +108,12 @@ function isFreeCodingEntry(p) {
 }
 /* 在售且明码标价（用于完整数据表与「在售订阅计划」统计卡；免费档、按量/定制、已停售不计） */
 function isOnSalePlan(p) {
-  return !!(p && p.priceM > 0 && !isRetiredPlan(p));
+  return !!(p && p.priceM > 0 && !isRetiredPlan(p) && !isDuplicateListing(p));
 }
-/* 能否直接下单。只看计划名：备注里的补货限制或「限量模型」不把整档移出推荐。 */
+/* 能否直接下单。看计划名与结构化的售罄标记：备注里的补货限制或「限量模型」不把整档移出推荐。 */
 function offerable(p) {
   const name = String((p && p.plan) || "");
+  if (isSoldOut(p) || isDuplicateListing(p)) return false;
   if (/抢购/.test(name)) return false;
   return !/(?:^|[^不无])限量/.test(name);
 }
@@ -289,7 +295,7 @@ const PLANS = [
     note: "2026-09 底新增档位；Astra Ultrafast 另有部分 Enterprise/Edu 可用",
     url: "https://learn.chatgpt.com/docs/pricing" },
   { id: "plan-0014", vendor: "OpenAI", plan: "ChatGPT Business", cat: "team", region: "intl", priceM: 25, priceY: 20, cur: "USD", seat: true,
-    quota: "标准席位限额同 Plus；另有 $100 Premium 席位（同 Pro 5x）",
+    quota: "标准席位限额同 Plus；另有 $100 Premium 席位（官方未公布与 Pro 档的用量倍率）",
     models: "GPT-6 系列",
     tools: "Codex（含 CLI/IDE）、SAML SSO、MFA",
     note: "原 ChatGPT Team 计划已并入 Business；2+ 用户",
@@ -488,19 +494,19 @@ const PLANS = [
     tools: "单一端点 api.r4.codes/v1 同时支持 OpenAI/Anthropic 协议；可接 Claude Code、Codex 等",
     note: "⚠️ 2026-09-30 确认下架（用户报告 + 官方现行首页已无该档，当日缓存旧页仍显示）；同时官网新增 $50 Code Max 档",
     url: "https://r4.codes/" },
-  { id: "plan-0043", fieldRefs: {"tools":"plan-0042"}, vendor: "R4 Coder（r4.codes）", plan: "Code Max 预付包", cat: "tool", region: "cn", priceM: 50, priceY: null, cur: "USD", seat: false,
+  { id: "plan-0043", fieldRefs: {"tools":"plan-0042"}, vendor: "R4 Coder（r4.codes）", plan: "Code Max 预付包", cat: "tool", region: "cn", priceM: 50, priceY: null, cur: "USD", seat: false, availability: "sold-out",
     quota: "一次性 $50 预付含 $300 可用额度（6 倍面值），30 天有效；最高 8 并发（各档中最高）",
     models: "Kimi K3、GLM 5.3/5.3-Flash、DeepSeek V4.1 Flash（-50% 促销档）、Step 5 Preview、U2 Flash（-90%）等纯开源模型",
     tools: "同 Starter",
     note: "2026-10-04 官网 Code Max 标为 Sold out，仅提供候补名单；一次性 $50 预付含 $300 额度、30 天有效、最高 8 并发，不是自动月续订。",
     url: "https://r4.codes/" },
-  { id: "plan-0044", fieldRefs: {"models":"plan-0042","tools":"plan-0042"}, vendor: "R4 Coder（r4.codes）", plan: "Code Lite 预付包", cat: "tool", region: "cn", priceM: 10, priceY: null, cur: "USD", seat: false,
+  { id: "plan-0044", fieldRefs: {"models":"plan-0042","tools":"plan-0042"}, vendor: "R4 Coder（r4.codes）", plan: "Code Lite 预付包", cat: "tool", region: "cn", priceM: 10, priceY: null, cur: "USD", seat: false, availability: "sold-out",
     quota: "一次性 $10 预付含 $60 可用额度（6 倍面值），30 天有效；最高 6 并发",
     models: "同 Starter（Kimi K3、GLM 5.3、DeepSeek V4 系列等）",
     tools: "同 Starter",
     note: "2026-10-04 官网名称 Code Lite，标为 Sold out，仅提供候补名单；一次性 $10 预付含 $60 额度、30 天有效、最高 6 并发。",
     url: "https://r4.codes/" },
-  { id: "plan-0045", fieldRefs: {"models":"plan-0042","tools":"plan-0042"}, vendor: "R4 Coder（r4.codes）", plan: "Code Pro 预付包", cat: "tool", region: "cn", priceM: 20, priceY: null, cur: "USD", seat: false,
+  { id: "plan-0045", fieldRefs: {"models":"plan-0042","tools":"plan-0042"}, vendor: "R4 Coder（r4.codes）", plan: "Code Pro 预付包", cat: "tool", region: "cn", priceM: 20, priceY: null, cur: "USD", seat: false, availability: "sold-out",
     quota: "一次性 $20 预付含 $120 可用额度（6 倍面值），30 天有效；最高 6 并发",
     models: "同 Starter",
     tools: "同 Starter",
@@ -549,12 +555,12 @@ const PLANS = [
     models: "Claude 全系、GPT/Codex、Gemini、GLM、Kimi、Qwen、DeepSeek、Grok 等",
     tools: "Claude Code、Codex（CC 分组禁止接 Cline/OpenCode 等第三方工具，违者封号）",
     note: "注册赠 $1；首充 9 折码；退款收 5% 手续费；07-22 公告 Claude Max 倍率 2→2.5",
-    url: "https://www.helpaio.com/transit" },
+    url: "https://packyapi.com/" },
   { id: "plan-0052", vendor: "PackyCode (Codex 站)", plan: "Codex 包月（已停售）", cat: "tool", region: "cn", priceM: 60, priceY: null, cur: "CNY", seat: false,
     quota: "约 ¥60/枚（限购 1 枚/月，超出 ¥80/枚）；宣传 $60 额度可跑 Codex 约 1,500–2,500 次任务",
     models: "GPT/Codex 系列",
     tools: "Codex CLI（独立端点 codex-api.packycode.com/v1）",
-    note: "2026-10-04 官网明确已停止销售，购买按钮禁用，建议转至 PackyAPI 按量使用。库存 ¥60 为历史社区券价，现行可购买价格无法确认。",
+    note: "2026-10-04 官网明确已停止销售，购买按钮禁用，建议转至 PackyAPI 按量使用。本站原记录 ¥60 为历史社区券价，现行可购买价格无法确认。",
     url: "https://codex.packycode.com/pricing" },
   { id: "plan-0053", vendor: "AICodeMirror", plan: "PRO", cat: "tool", region: "cn", priceM: 259, priceY: 220.1, annualTotal: 2641, cur: "CNY", seat: false,
     quota: "305,000 credits/月（credit 单位口径官方未公布）；周付 ¥89、季付 ¥699",
@@ -615,24 +621,24 @@ const PLANS = [
     models: "Claude、GPT",
     tools: "Claude Code、Codex",
     note: "⚠️ 6/21 起已关闭新用户注册；退款收 5% 手续费；国内开票 ¥200 起；社区口碑'稳得一批'但仅限老用户",
-    url: "https://www.helpaio.com/transit" },
+    url: "https://www.duckcoding.ai/pricing" },
   { id: "plan-0063", vendor: "AIGoCode", plan: "Pro（4 周订阅）", cat: "tool", region: "cn", priceM: 399, priceY: null, cur: "CNY", seat: false,
     quota: "4 周总额度 440，每 7 天发放 110；额度以官网 credits 口径计。",
     models: "Claude 系列",
     tools: "Claude Code",
-    note: "2026-10-04 直接核对官网：Pro 正常价与库存相同，4 周订阅，不按自然月计算；官网称额度每 7 天发放，未列年付价。",
+    note: "2026-10-04 直接核对官网：Pro 正常价与本站原记录相同，4 周订阅，不按自然月计算；官网称额度每 7 天发放，未列年付价。",
     url: "https://www.aigocode.net/" },
   { id: "plan-0064", vendor: "AIGoCode", plan: "Max（4 周订阅）", cat: "tool", region: "cn", priceM: 899, priceY: null, cur: "CNY", seat: false,
     quota: "4 周总额度 1040，每 7 天发放 260；额度以官网 credits 口径计。",
     models: "Claude 系列",
     tools: "Claude Code",
-    note: "2026-10-04 直接核对官网：Max 正常价与库存相同，4 周订阅，不按自然月计算；官网称额度每 7 天发放，未列年付价。",
+    note: "2026-10-04 直接核对官网：Max 正常价与本站原记录相同，4 周订阅，不按自然月计算；官网称额度每 7 天发放，未列年付价。",
     url: "https://www.aigocode.net/" },
   { id: "plan-0065", vendor: "AIGoCode", plan: "Ultra（4 周订阅）", cat: "tool", region: "cn", priceM: 1799, priceY: null, cur: "CNY", seat: false,
     quota: "4 周总额度 2120，每 7 天发放 530；额度以官网 credits 口径计。",
     models: "Claude 系列",
     tools: "Claude Code",
-    note: "2026-10-04 直接核对官网：Ultra 正常价与库存相同，4 周订阅，不按自然月计算；官网称额度每 7 天发放，未列年付价。",
+    note: "2026-10-04 直接核对官网：Ultra 正常价与本站原记录相同，4 周订阅，不按自然月计算；官网称额度每 7 天发放，未列年付价。",
     url: "https://www.aigocode.net/" },
   { id: "plan-0066", vendor: "DevPass", plan: "三档月订阅（$29/$79/$179）", cat: "tool", region: "intl", priceM: 29, priceY: null, cur: "USD", seat: false,
     autoRenewMonthly: 29,
@@ -647,7 +653,7 @@ const PLANS = [
     models: "GLM-5、Kimi、DeepSeek、MiniMax、Qwen（开源模型为主，OpenAI 兼容）",
     tools: "OpenAI 兼容端点",
     note: "去中心化（Bittensor）：节点间延迟/质量波动、无 SLA；前沿模型需 $10+ 档；排序按最低档 $3",
-    url: "https://github.com/lildebil0/awesome-ai-coding-subscriptions" },
+    url: "https://chutes.ai/pricing" },
 
   /* ---- Command Code（终端编程 agent） ---- */
   { id: "plan-0068", vendor: "Command Code", plan: "Go", cat: "tool", region: "intl", priceM: 1, priceY: null, cur: "USD", seat: false,
@@ -787,14 +793,14 @@ const PLANS = [
   { id: "plan-0088", vendor: "Canopy Wave", plan: "Coding Plan Pro Bundle", cat: "tool", region: "intl", priceM: 30, priceY: null, cur: "USD", seat: false,
     windowPeriod: "month",
     codingSurface: true,
-    quota: "500 请求/天、10,000 请求/月",
+    quota: "500 请求/天、10,000 请求/月（历史口径；2026-10-04 官网改为按模型展示相对用量，未再列固定次数）",
     models: "Kimi-K2.6、MiMo-V2.5、GLM-5.2、MiniMax M3",
     tools: "OpenAI 兼容端点；适配 Kilo Code、OpenCode、Cline、Roo Code、Dify、Cherry Studio",
     note: "第三方聚合商，营销称较 Claude 按量省 91%；用户反馈稀少，谨慎选择",
     url: "https://canopywave.com/codingplan" },
   { id: "plan-0089", fieldRefs: {"models":"plan-0040","tools":"plan-0040"}, vendor: "OpenCode (Anomaly/SST)", plan: "OpenCode Go Plus", cat: "tool", region: "intl", priceM: 40, priceY: null, cur: "USD", seat: false,
     windowPeriod: "5h",
-    quota: "按模型 5h 限额 + 月度上限，约为 Go 的 3×（如 Kimi K3 440 vs 110 次/5h；GLM-5.3-Flash 18,960 vs 6,320）；29 个模型含 2 款限时免费",
+    quota: "按模型 5h 限额 + 月度上限，约为 Go 的 3–4×，倍率按模型不同（如 Kimi K3 440 vs 110 次/5h；GLM-5.3-Flash 18,960 vs 6,320）；29 个模型含 2 款限时免费",
     models: "同 Go（Kimi K3/K2.7 Code、MiniMax M3、GPT-6 Luna、GLM-5.3-Flash、DeepSeek V4.1 Flash 等）",
     tools: "同 Go（任意 agent 可用）",
     note: "2026-09 新增档位",
@@ -903,20 +909,20 @@ const PLANS = [
   { id: "plan-0104", vendor: "Cognition Devin Desktop（原 Windsurf）", plan: "Free", cat: "tool", region: "intl", priceM: 0, priceY: 0, cur: "USD", seat: false,
     quota: "每日/每周 token 配额（未公布数值）；inline edits 与 Tab 补全不限",
     models: "受限模型集（含 SWE-1.6/1.7 低成本系列）",
-    tools: "Devin Desktop IDE（原 Windsurf）",
+    tools: "Devin Desktop IDE（原 Windsurf）；同一订阅含 Devin 云 agent",
     note: "Windsurf 已更名 Devin Desktop；2026-03 起配额制取代 credits",
     url: "https://devin.ai/pricing" },
   { id: "plan-0105", vendor: "Cognition Devin Desktop（原 Windsurf）", plan: "Pro", cat: "tool", region: "intl", priceM: 20, priceY: null, cur: "USD", seat: false,
     quota: "每日 + 每周配额；超额可购 extra usage（按 API 牌价）",
     models: "全模型（含 Claude Opus 等）",
-    tools: "Devin Desktop",
-    note: "旧 Windsurf Pro $15/月用户永久保价",
+    tools: "Devin Desktop、Devin 云 agent / CLI（同一订阅）",
+    note: "旧 Windsurf Pro $15/月用户永久保价；Desktop 与云 agent 共用这一订阅",
     url: "https://docs.devin.ai/desktop/accounts/quota.md" },
   { id: "plan-0106", vendor: "Cognition Devin Desktop（原 Windsurf）", plan: "Max", cat: "tool", region: "intl", priceM: 200, priceY: null, cur: "USD", seat: false,
     quota: "显著更高的每周配额（无每日上限）",
     models: "全模型",
-    tools: "Devin Desktop",
-    note: "个人档",
+    tools: "Devin Desktop、Devin 云 agent / CLI（同一订阅）",
+    note: "个人档；Desktop 与云 agent 共用这一订阅",
     url: "https://docs.devin.ai/admin/billing/self-serve.md" },
   { id: "plan-0107", vendor: "Cognition Devin Desktop（原 Windsurf）", plan: "Teams（full seat）", cat: "team", region: "intl", priceM: 40, priceY: null, cur: "USD", seat: true,
     quota: "full seat：Pro 等值配额 + Desktop 访问",
@@ -924,19 +930,19 @@ const PLANS = [
     tools: "Devin Desktop 团队版",
     note: "$80/月底价：也可用 flex seat（免费）+ 共享按需 credits 组合",
     url: "https://docs.devin.ai/admin/billing/self-serve.md" },
-  { id: "plan-0108", vendor: "Cognition Devin（云 agent）", plan: "Free", cat: "tool", region: "intl", priceM: 0, priceY: 0, cur: "USD", seat: false,
+  { id: "plan-0108", sameAs: "plan-0104", vendor: "Cognition Devin（云 agent）", plan: "Free", cat: "tool", region: "intl", priceM: 0, priceY: 0, cur: "USD", seat: false,
     quota: "有限 Devin 用量（每日/每周配额）；含 Devin Review 与 DeepWiki；公共 PR 审查免费",
     models: "受限模型集",
     tools: "Devin 云 agent 平台",
     note: "旧 Core 档用户已迁至 Free",
     url: "https://devin.ai/pricing" },
-  { id: "plan-0109", vendor: "Cognition Devin（云 agent）", plan: "Pro", cat: "tool", region: "intl", priceM: 20, priceY: null, cur: "USD", seat: false,
+  { id: "plan-0109", sameAs: "plan-0105", vendor: "Cognition Devin（云 agent）", plan: "Pro", cat: "tool", region: "intl", priceM: 20, priceY: null, cur: "USD", seat: false,
     quota: "每日 + 每周配额，覆盖 Devin 会话 / CLI / Desktop；超额按需 credits（API 牌价）",
     models: "全模型",
     tools: "Devin、Slack/Linear/MCP 集成",
     note: "单用户",
     url: "https://docs.devin.ai/admin/billing/self-serve.md" },
-  { id: "plan-0110", vendor: "Cognition Devin（云 agent）", plan: "Max", cat: "tool", region: "intl", priceM: 200, priceY: null, cur: "USD", seat: false,
+  { id: "plan-0110", sameAs: "plan-0106", vendor: "Cognition Devin（云 agent）", plan: "Max", cat: "tool", region: "intl", priceM: 200, priceY: null, cur: "USD", seat: false,
     quota: "更大每周配额（无每日上限）",
     models: "全模型",
     tools: "Devin",
@@ -1179,7 +1185,7 @@ const PLANS = [
     quota: "3,000 Credits/人/月，1 席位起订",
     models: "Qwen、GLM、Kimi 等国产模型（Qoder CN 全系列）",
     tools: "Qoder CN 插件/CLI、个人云端知识库",
-    note: "2026 年 9 月促销：首月买一送一",
+    note: "2026 年 9 月的首月买一送一活动已结束；以下单页实际优惠为准",
     url: "https://www.aliyun.com/product/lingma" },
   { id: "plan-0147", fieldRefs: {"models":"plan-0146"}, vendor: "阿里云 Qoder CN（原通义灵码）", plan: "企业标准版", cat: "cloud", region: "cn", priceM: 149, priceY: null, cur: "CNY", seat: true,
     quota: "3,000 Credits/人/月，10 席位起订",
@@ -1194,7 +1200,7 @@ const PLANS = [
     note: "",
     url: "https://www.aliyun.com/product/lingma" },
   { id: "plan-0149", vendor: "腾讯云 CodeBuddy", plan: "企业旗舰版", cat: "cloud", region: "cn", priceM: 198, priceY: null, cur: "CNY", seat: true,
-    quota: "按席位 + Credits 订阅（公开定价未能核实）",
+    quota: "按席位 + Credits 订阅",
     models: "混元系列",
     tools: "CodeBuddy IDE / 插件",
     note: "官网公开价 ¥198/人/月，1 席起购；旗舰套餐，私有化方案仍需另询价。",
@@ -1229,8 +1235,8 @@ const PLANS = [
     quota: "每 5 小时约 2,400 次 prompt（50 并发）；无每周上限",
     models: "GLM-4.5 时代",
     tools: "Claude Code",
-    note: "¥200/月价格来自促销性质 GitHub 聚合仓库（不完全确定）",
-    url: "https://github.com/tno367/bigmodel" },
+    note: "¥200/月是历史记录，来源为第三方 GitHub 聚合仓库，官方未再公开该停售档价格",
+    url: "https://docs.bigmodel.cn/cn/coding-plan/notice/usage-revision" },
   { id: "plan-0154", vendor: "智谱 BigModel", plan: "GLM Coding V2 Lite（老用户续费）", cat: "official", region: "cn", priceM: 49, priceY: 39.2, cur: "CNY", seat: false,
     windowPeriod: "5h", quotaSharing: "shared",
     quota: "每 5 小时约 80 次 prompt + 每周约 400 次；高峰 3x/非高峰 2x 抵扣",
@@ -1260,7 +1266,7 @@ const PLANS = [
     quota: "每 5 小时 2,000 积分 + 每周 10,000 积分（积分=(输入×6.9+缓存×1.7+输出×24)/10000）",
     models: "GLM-5.3、GLM-5.3-Flash（旧版 5.2/5.1 自动路由至 5.3）",
     tools: "Claude Code、Codex、ZCode、Kilo Code、OpenCode、Roo Code、Cline、TRAE、Cursor 等 20+ 工具",
-    note: "连续包月/包季 8 折约 ¥94.4/月；连续包年 7 折 ¥82.6/月（2026-10-01 购买页在售）；工作日 14:00–18:00 高峰，非高峰积分 5 折；双节活动（09-25~10-07）全天按非高峰消耗；夜间畅用（09-03~10-07 每日 23:00–09:00）ZCode/AutoClaw 端 Flash 不限量、其他 Agent 额度翻倍；老用户可按旧价 ¥49/月续费",
+    note: "连续包月/包季 8 折约 ¥94.4/月；连续包年 7 折 ¥82.6/月（2026-10-01 购买页在售）；工作日 14:00–18:00 高峰，非高峰积分 5 折；双节活动与夜间畅用已于 10-07 结束；老用户可按旧价 ¥49/月续费",
     url: "https://docs.bigmodel.cn/cn/coding-plan/overview.md" },
   { id: "plan-0158", fieldRefs: {"tools":"plan-0157"}, vendor: "智谱 BigModel", plan: "GLM Coding V3 Pro", cat: "official", region: "cn", priceM: 538, priceY: 376.6, cur: "CNY", seat: false,
     autoRenewMonthly: 430.4,
@@ -1268,7 +1274,7 @@ const PLANS = [
     quota: "每 5 小时 12,000 积分 + 每周 60,000 积分",
     models: "GLM-5.3、GLM-5.3-Flash（抵扣系数：GLM-5.3 输入 6.9/缓存 1.7/输出 24；Flash 2.3/0.56/8）",
     tools: "同 Lite 档",
-    note: "连续包月/包季 8 折约 ¥430.4/月；连续包年 7 折 ¥376.6/月（2026-10-01 购买页在售）；双节活动（09-25~10-07）全天按非高峰消耗、夜间畅用同 Lite；老用户可按 V2 价 ¥149/月续费",
+    note: "连续包月/包季 8 折约 ¥430.4/月；连续包年 7 折 ¥376.6/月（2026-10-01 购买页在售）；双节活动与夜间畅用已于 10-07 结束；老用户可按 V2 价 ¥149/月续费",
     url: "https://docs.bigmodel.cn/cn/coding-plan/overview.md" },
   { id: "plan-0159", fieldRefs: {"tools":"plan-0157"}, vendor: "智谱 BigModel", plan: "GLM Coding V3 Max", cat: "official", region: "cn", priceM: 1078, priceY: 754.6, cur: "CNY", seat: false,
     autoRenewMonthly: 862.4,
@@ -1276,7 +1282,7 @@ const PLANS = [
     quota: "每 5 小时 28,000 积分 + 每周 140,000 积分",
     models: "GLM-5.3、GLM-5.3-Flash",
     tools: "同 Lite 档",
-    note: "连续包月/包季 8 折约 ¥862.4/月；连续包年 7 折 ¥754.6/月（2026-10-01 购买页在售）；双节活动（09-25~10-07）全天按非高峰消耗、夜间畅用同 Lite；老用户可按 ¥469/月续费；官方称较按量 API 最高省 92%",
+    note: "连续包月/包季 8 折约 ¥862.4/月；连续包年 7 折 ¥754.6/月（2026-10-01 购买页在售）；双节活动与夜间畅用已于 10-07 结束；老用户可按 ¥469/月续费；官方称较按量 API 最高省 92%",
     url: "https://docs.bigmodel.cn/cn/coding-plan/overview.md" },
   { id: "plan-0160", vendor: "智谱 BigModel", plan: "GLM Coding Plan 团队标准版", cat: "team", region: "cn", priceM: 598, priceY: 538.2, cur: "CNY", seat: true,
     windowPeriod: "5h", quotaSharing: "shared",
@@ -1473,13 +1479,13 @@ const PLANS = [
     quota: "2,000 Credits/月（续费每月加赠 1,000）",
     models: "GLM-5.3/5.3-Flash、DeepSeek-V4-Pro/Flash、Kimi-K3、K2.7-Code、MiniMax-M3、Qwen3.8-Max 等（Auto 档夜间峰谷折扣）",
     tools: "Qoder CN IDE/插件/CLI、QoderWork CN、Cloud Agents CN（全家桶共享 Credits）",
-    note: "年付 9 折约 ¥53.1/月（第三方口径）；加量包 ¥0.04/Credit",
+    note: "年付 ¥637.2，约 ¥53.1/月（官网价格页）；加量包 ¥0.04/Credit",
     url: "https://help.aliyun.com/zh/lingma/product-overview/billing-description" },
   { id: "plan-0187", fieldRefs: {"models":"plan-0186"}, vendor: "阿里云 Qoder CN（原通义灵码）", plan: "个人高级版（Pro+）", cat: "tool", region: "cn", priceM: 169, priceY: 152.1, cur: "CNY", seat: false,
     quota: "6,000 Credits/月（续费加赠至 7,000，第三方口径）",
     models: "同 Pro 档",
     tools: "Qoder CN 全家桶（IDE/CLI/Work/Wake/Mobile 共享 Credits）",
-    note: "年付 9 折约 ¥152.1/月（第三方口径）；含 QoderWork CN、写作/幻灯片/设计工作台",
+    note: "年付 ¥1,825.2，约 ¥152.1/月（官网价格页）；含 QoderWork CN、写作/幻灯片/设计工作台",
     url: "https://help.aliyun.com/zh/lingma/product-overview/billing-description" },
 
   /* ---- 腾讯云 CodeBuddy / WorkBuddy ---- */
@@ -1544,7 +1550,7 @@ const PLANS = [
     tools: "同 Lite 档",
     note: "连续包月 ¥629/月；单月购买 ¥699，到期不续订。",
     url: "https://www.trae.cn/pricing" },
-  { id: "plan-0197", vendor: "字节跳动 Trae（国际版）", plan: "Trae Pro", cat: "tool", region: "intl", priceM: 10, priceY: 7.5, cur: "USD", seat: false,
+  { id: "plan-0197", vendor: "字节跳动 Trae（国际版）", plan: "Trae Pro", cat: "tool", region: "intl", priceM: 10, priceY: 7.5, cur: "USD", seat: false, singleMonthPrice: 15,
     autoRenewMonthly: 10,
     quota: "2026-04 起改为 usage 额度制（社区反映约等值 $20 的 Basic 额度）",
     models: "Claude、GPT 系列等海外模型",
@@ -1569,7 +1575,7 @@ const PLANS = [
     quota: "100,000 积分 + 每月签到 15,000 积分",
     models: "同免费版",
     tools: "同免费版",
-    note: "首月 ¥69.9；加量包 ¥10 / 5,000 积分。计费细则见 cloud.baidu.com/doc/Dumate",
+    note: "首月 ¥69；加量包 ¥10 / 5,000 积分。计费细则见 cloud.baidu.com/doc/Dumate",
     url: "https://www.dumate.cn/" },
   { id: "plan-0201", vendor: "百度文心快码 Comate", plan: "个人标准版", cat: "tool", region: "cn", priceM: 0, priceY: 0, cur: "CNY", seat: false,
     quota: "智能补全免费；首次赠智能体请求券 ¥10",
@@ -2446,7 +2452,7 @@ const DYNAMICS = [
   { date: "2026-05-19", text: "Google 于 I/O 2026（5 月 19 日）重构订阅档位：AI Plus $7.99 / AI Pro $19.99 / AI Ultra 从 $249.99 降至 $99.99 起，且改为按计算量计费。", source: "The Verge", url: "https://www.theverge.com/tech/933233/google-ai-ultra-plan-price-change" },
   { date: "2026-09-23", checked: true, text: "OpenAI ChatGPT Pro 拆分为 $100（5x）/ $200（20x）双档；Codex 官方公布每 5 小时本地消息估算区间（Plus 用 GPT-6 Sol 约 15–150 条/5h）。", source: "OpenAI Codex 定价文档", url: "https://learn.chatgpt.com/docs/pricing" },
   { date: "2026-09-23", checked: true, text: "Anthropic 官方仍不公布 Claude Code 每 5 小时固定 prompt 数（按 token 计量 + 每周双窗口）；Claude Team 新增 $125/席的 Premium 席位；Claude Sonnet 5 API 介绍价 $2/$10 已转为标准价（原定 9 月涨价取消）。", source: "Anthropic 定价文档", url: "https://platform.claude.com/docs/en/about-claude/pricing" },
-  { date: "2026-04-30", text: "Z.ai 旧版 Coding Plan（无每周限额）于 2026-04-30 取消自动续订，新版加入每周 credits 上限；GLM-5.3 API 上 BigModel ¥8/¥28，Z.ai $1.4/$4.4，价差近 4 倍。", source: "Z.ai Docs", url: "https://docs.z.ai/devpack/transition.md" },
+  { date: "2026-04-30", text: "Z.ai 旧版 Coding Plan（无每周限额）于 2026-04-30 取消自动续订，新版加入每周 credits 上限；GLM-5.3 API 牌价 BigModel ¥8/¥28、Z.ai $1.4/$4.4。", source: "Z.ai Docs", url: "https://docs.z.ai/devpack/transition.md" },
   { date: "2026-09-23", checked: true, text: "月之暗面开放平台 platform.moonshot.cn 已 301 迁移至 platform.kimi.com；旗舰 K3 定位「长程编程」，按量计费无订阅制，Kimi K2.7-Code 为当前编程专用模型。", source: "Kimi 开放平台", url: "https://platform.kimi.com/docs/pricing/chat.md" },
   { date: "2026-09-23", checked: true, text: "DeepSeek API 现售模型为 deepseek-flash（V4.1-Flash）与 deepseek-v4-pro（V4-Pro-0813），并改为峰谷分时计价；无订阅计划。", source: "DeepSeek API 文档", url: "https://api-docs.deepseek.com/quick_start/pricing" },
   { date: "2026-05-20", text: "阿里云通义灵码体系升级为 Qoder CN：团队版 ¥99、企业标准版 ¥149、企业专属版 ¥199/人/月（均含 3,000 Credits/人/月），9 月首月买一送一。", source: "阿里云帮助文档", url: "https://help.aliyun.com/zh/lingma/billing-description" },
@@ -2465,7 +2471,7 @@ const DYNAMICS = [
   { date: "2026-09-24", checked: true, text: "OpenCode（开源终端 agent）推出 Go 订阅（$10/月，逐模型月度美元上限）与 Zen 按量网关（零加价 per-token）；Zen 余额低于 $5 自动续充 $20。", source: "OpenCode 官方文档", url: "https://opencode.ai/docs/go/" },
   { date: "2026-09-24", checked: true, text: "Command Code（旧金山，$5M 种子轮）推出终端编程 agent：$1 Go 档（含 $10 credits）到 $200 Max 20×（含 $300 credits）六档，另按 OpenAI/Anthropic 兼容 API 提供 Provider（$15/月）。", source: "commandcode.ai", url: "https://commandcode.ai/pricing" },
   { date: "2026-09-24", checked: true, text: "新玩家 9 月集中入场：AWS Kiro（$0–200 五档 credits 制）、Factory Droid（$20–200 滚动限额，9 月以 $5B 估值融资 $2 亿）、讯飞 Astron Coding Plan（¥199/999 请求制）、阶跃 Step Plan（¥49–699 月池 Credit 制）、Canopy Wave（$30 请求制聚合）；七牛云 Coding Plan 停售转向 Token Plan 按量。", source: "各官方定价页", url: "https://kiro.dev/pricing" },
-  { date: "2026-09-02", text: "智谱 9/2 入驻天猫开官方旗舰店售 GLM Coding Plan（价格与官网一致）；同期 GLM-5.3-Flash 开源并上调 API 刊例价（输入 ¥9 / 输出 ¥21.9 每百万 tokens）。", source: "新浪财经 / 智谱公告", url: "https://docs.bigmodel.cn/cn/coding-plan/notice/usage-revision" },
+  { date: "2026-09-02", text: "智谱 9/2 入驻天猫开官方旗舰店售 GLM Coding Plan（价格与官网一致）；同期 GLM-5.3-Flash 开源；其 API 牌价以 10-06 官网核对的输入 ¥0.8 / 输出 ¥2.8 每百万 tokens 为准。", source: "新浪财经 / 智谱公告", url: "https://docs.bigmodel.cn/cn/coding-plan/notice/usage-revision" },
   { date: "2026-09-11", text: "月之暗面 9/11 发布 Kimi K2.8 Preview 并全量上线 Kimi Code/Work，原 kimi-for-coding 模型无感升级（百万上下文）；K3 API 8 月提价超 3.5 倍；7/19 曾因算力紧张暂停 C 端新订阅。", source: "月之暗面官方", url: "https://platform.kimi.com/docs/pricing/chat.md" },
   { date: "2026-09-14", text: "GitHub Copilot 6/1 起全面转为用量计费，9/14 宣布 Auto 模型选择分三档（Efficiency/Balance/Power），部分模型降至约 $0.20/百万 tokens。", source: "github.blog", url: "https://github.blog" },
   { date: "2026-06-18", text: "Google 6/18 起 Antigravity CLI 取代个人版 Gemini CLI；AI Ultra 确认为 $99.99（5x）/$199.99（20x）双档；Sourcegraph Cody 个人版已于 2025-07 停售，仅随企业平台销售。", source: "Google AI Plans", url: "https://one.google.com/intl/en_us/about/google-ai-plans" },
@@ -2577,7 +2583,7 @@ const SOURCES = [
     "https://www.huaweicloud.com/product/codearts.html",
   ]},
   { group: "汇率参考（2026-09-23）", urls: [
-    "https://api.frankfurter.dev/v1/latest?from=USD&to=CNY",
+    "https://api.frankfurter.dev/v1/2026-09-23?base=USD&symbols=CNY,INR",
   ]},
   { group: "智谱 BigModel GLM Coding Plan", urls: [
     "https://docs.bigmodel.cn/cn/coding-plan/overview.md",
@@ -2693,9 +2699,9 @@ const UNCERTAIN = [
 ];
 
 /* 逐条官方核价记录；由 audit/pricing-verification-2026-10-04.json 维护。 */
-/** @type {{checkedAt:string, sources:Record<string,{url:string,evidence:string}>,rows:Record<string,PriceVerification>}} */
+/** @type {{checkedAt:string, sources:Record<string,{url:string,evidence:string,checkedAt?:string}>,rows:Record<string,PriceVerification>}} */
 const PRICE_CHECKS = {
-  "checkedAt": "2026-10-04",
+  "checkedAt": "2026-10-09",
   "sources": {
     "claude-plans": {
       "url": "https://claude.com/pricing",
@@ -3116,6 +3122,16 @@ const PRICE_CHECKS = {
     "cn-volc-agent": {
       "url": "https://docs.volcengine.com/docs/ark/agent-plan-personal-plan-overview?lang=zh",
       "evidence": "Agent Small/Medium/Large/Max 每月40/200/500/1000元；Small不支持Kimi-K3或视频生成。"
+    },
+    "google-cli-transition-20261009": {
+      "url": "https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/",
+      "evidence": "Google 开发者博客 2026-05-19：2026-06-18 起 Gemini CLI 与 Gemini Code Assist IDE 扩展停止为 Google AI Pro/Ultra 及 Code Assist 个人免费用户提供服务；Code Assist Standard/Enterprise 组织与付费 Gemini API Key 仍可使用；Antigravity CLI 向所有人开放，文中未列免费额度。",
+      "checkedAt": "2026-10-09"
+    },
+    "cn-step-plan-credits-20261009": {
+      "url": "https://platform.stepfun.com/docs/zh/step-plan/overview",
+      "evidence": "官网套餐表：Flash Mini/Plus/Pro/Max 月费49/99/199/699元、季付129/269/539/1889元、年付456/936/1860/6666元；月池 400M/1600M/8000M/40000M Credit，1M Credit = ¥1；季付与年付一次付清但 Credits 按月发放、月末清零；加油包 ¥49=400M、¥99=1600M（30 天有效）。",
+      "checkedAt": "2026-10-09"
     }
   },
   "rows": {
@@ -3243,10 +3259,9 @@ const PRICE_CHECKS = {
       "status": "changed",
       "checkedAt": "2026-10-04",
       "sourceIds": [
-        "google-plans",
-        "google-plus-us"
+        "google-plans"
       ],
-      "reason": "真实浏览器选择 United States 后，当前官网显示4.99美元/月；1月发布价7.99已过时。"
+      "reason": "真实浏览器选择 United States 后，当前官网显示4.99美元/月；1月发布博客的7.99美元已过时，不再作为现价依据。"
     },
     "plan:plan-0017": {
       "status": "changed",
@@ -3273,12 +3288,12 @@ const PRICE_CHECKS = {
       "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
     },
     "plan:plan-0020": {
-      "status": "verified",
-      "checkedAt": "2026-10-04",
+      "status": "retired",
+      "checkedAt": "2026-10-09",
       "sourceIds": [
-        "google-codeassist"
+        "google-cli-transition-20261009"
       ],
-      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
+      "reason": "官方博客确认 2026-06-18 起 Gemini CLI 与 Code Assist IDE 扩展停止为免费个人用户服务，原 1,000 次/日的个人免费档已停止；Standard/Enterprise 与付费 API Key 不受影响。"
     },
     "plan:plan-0021": {
       "status": "verified",
@@ -4450,35 +4465,39 @@ const PRICE_CHECKS = {
     },
     "plan:plan-0084": {
       "status": "verified",
-      "checkedAt": "2026-10-04",
+      "checkedAt": "2026-10-09",
       "sourceIds": [
-        "cn-step-plan"
+        "cn-step-plan",
+        "cn-step-plan-credits-20261009"
       ],
-      "reason": "直接读取官网HTML表格，年付总价除12与现有月均一致；非首购促销。"
+      "reason": "官网套餐表核对月费、季付与年付总价不变，并确认月池 400M Credit（1M Credit = ¥1，月末清零）。"
     },
     "plan:plan-0085": {
       "status": "verified",
-      "checkedAt": "2026-10-04",
+      "checkedAt": "2026-10-09",
       "sourceIds": [
-        "cn-step-plan"
+        "cn-step-plan",
+        "cn-step-plan-credits-20261009"
       ],
-      "reason": "直接读取官网HTML表格，年付总价除12与现有月均一致；非首购促销。"
+      "reason": "官网套餐表核对月费、季付与年付总价不变，并确认月池 1,600M Credit（1M Credit = ¥1，月末清零）。"
     },
     "plan:plan-0086": {
       "status": "verified",
-      "checkedAt": "2026-10-04",
+      "checkedAt": "2026-10-09",
       "sourceIds": [
-        "cn-step-plan"
+        "cn-step-plan",
+        "cn-step-plan-credits-20261009"
       ],
-      "reason": "直接读取官网HTML表格，年付总价除12与现有月均一致；非首购促销。"
+      "reason": "官网套餐表核对月费、季付与年付总价不变，并确认月池 8,000M Credit（1M Credit = ¥1，月末清零）。"
     },
     "plan:plan-0087": {
       "status": "verified",
-      "checkedAt": "2026-10-04",
+      "checkedAt": "2026-10-09",
       "sourceIds": [
-        "cn-step-plan"
+        "cn-step-plan",
+        "cn-step-plan-credits-20261009"
       ],
-      "reason": "直接读取官网HTML表格，年付总价除12与现有月均一致；非首购促销。"
+      "reason": "官网套餐表核对月费、季付与年付总价不变，并确认月池 40,000M Credit（1M Credit = ¥1，月末清零）。"
     },
     "plan:plan-0146": {
       "status": "verified",
@@ -5246,3 +5265,20 @@ function isPriceConfirmed(p, kind = "plan") {
   const check = priceCheckOf(p, kind);
   return !check || (check.status !== "unverified" && check.status !== "retired");
 }
+/* 核价台账保留维护时的字段名与内部口径；页面、导出和校验器统一经这里改写成读者能懂的说法。
+   台账里的「库存」多指本站原记录（与商品库存同字），只改写这种用法，「实际库存」「库存售罄」等保持原意。 */
+function displayPriceReason(reason) {
+  return String(reason || "")
+    .replace(/现有priceM为展示目录价/g, "当前展示的是公开目录月费")
+    .replace(/在本项目\s*seat\s*会使其退出\s*isPersonalMonthly\s*与\s*eligibleProfiles/g, "标为按席位会让它退出个人月付与推荐范围")
+    .replace(/\bseat\s*=\s*true\b/g, "按席位计费")
+    .replace(/isPersonalMonthly/g, "个人月付范围").replace(/eligibleProfiles/g, "推荐候选")
+    .replace(/priceM/g, "月付价").replace(/priceY/g, "年付折月价")
+    .replace(/(月付价|年付折月价)\s*=\s*null/g, "$1为空（官方未列）")
+    .replace(/(月付价|年付折月价)\s*=\s*0/g, "$1为 0（免费口径）")
+    .replace(/本记录\s*null/g, "本记录价格为空").replace(/保持两者\s*null/g, "两者保持为空").replace(/\bnull\b/g, "空值")
+    .replace(/与库存相同/g, "与本站原记录相同").replace(/保留库存历史值/g, "保留本站原历史值")
+    .replace(/库存(?=中的|是|没有|个人分类|\s*[¥$\d])/g, "本站原记录");
+}
+/* 用户可见文字里不应出现的内部字段名与开发用语；校验器对改写后的文字检查。 */
+const INTERNAL_TEXT_RE = /\bprice[MY]\b|\bseat\b\s*(?:=|会)|isPersonalMonthly|eligibleProfiles|fieldRefs|modelBaseRef|\bnull\b|\bundefined\b|plan-\d{4}/;

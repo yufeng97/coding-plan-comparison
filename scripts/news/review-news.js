@@ -19,10 +19,18 @@ function officialDomain(raw) {
   if (parsed.hostname !== host || parsed.port || parsed.pathname !== "/" || parsed.search || parsed.hash || SHARED_HOSTS.includes(host) || SUFFIXES.includes(host)) throw new Error("官方域名必须是独立公开主机名；不能使用共享托管裸域或公共后缀");
   return host;
 }
+/* 官方证据只按完整主机名匹配（忽略 www.）：企业大域下的开发者社区、论坛等用户内容子域不随官网自动可信。
+ * 其他官方子域须出现在计划/来源网址或已配置的官方采集来源中，或由复核者用 --official-domain 逐个声明。 */
 function officialHostMatches(host, base) {
-  if (SHARED_HOSTS.includes(base)) return false;
-  if (SHARED_HOSTS.some((shared) => base.endsWith("." + shared))) return host === base;
-  return host === base || host.endsWith("." + base);
+  return !SHARED_HOSTS.includes(base) && host === base;
+}
+/* 官方主机或其子域中的社区/用户内容栏目：即使复核者声明了主机，也只能当线索，不能作为官方证据。 */
+const COMMUNITY_SECTIONS = [["developer.aliyun.com", "/"], ["bbs.huaweicloud.com", "/"], ["cloud.tencent.com", "/developer"]];
+function communityEvidence(url) {
+  const parsed = new URL(url), host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+  let pathname = parsed.pathname.toLowerCase();
+  try { pathname = decodeURIComponent(pathname); } catch {}
+  return COMMUNITY_SECTIONS.some(([section, prefix]) => host === section && (prefix === "/" || pathname === prefix || pathname.startsWith(prefix + "/")));
 }
 /** @param {import('./inbox').InboxItem} item @param {string[]} planIds @param {ReviewContext} context */
 function trustedHosts(item, planIds, context) {
@@ -53,7 +61,8 @@ function applyReview(original, input, context) {
     const trusted = [...trustedHosts(item, planIds, context), ...officialDomains];
     for (const url of evidenceUrls) {
       const host = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
-      if (!trusted.some((domain) => officialHostMatches(host, domain.replace(/^www\./, "")))) throw new Error("证据未关联已知官方来源；新厂商须人工核对后用 --official-domain 声明官网域名：" + url);
+      if (communityEvidence(url)) throw new Error("证据位于社区或用户内容栏目，不能作为官方证据：" + url);
+      if (!trusted.some((domain) => officialHostMatches(host, domain.replace(/^www\./, "")))) throw new Error("证据主机未关联已知官方来源（按完整主机名匹配）；新厂商或其他官方子域须人工核对后用 --official-domain 声明该主机：" + url);
     }
   }
   const same = item.status === input.status && item.reason === reason && JSON.stringify(item.evidenceUrls) === JSON.stringify(evidenceUrls) &&
@@ -145,6 +154,7 @@ const HELP = `资讯候选人工复核（不修改正式价格、不发布、不
 通用：--inbox audit/news/inbox.json --config config/news-sources.json --help
 evidence/plan-id/official-domain 可重复。所有复核须理由；accepted 须官方HTTPS证据。
 新厂商可不填plan-id，但必须人工确认官网并声明official-domain（已有官方来源除外）。
+证据按完整主机名匹配官方来源；计划网址之外的官方子域也须用official-domain声明，社区/论坛栏目不能作证据。
 accepted 仅确认值得人工入库，正式数据核验、审计、验证和发布须单独完成。`;
 function parseArguments(args) {
   if (args.includes("--help")) return { command: "list", help: true };

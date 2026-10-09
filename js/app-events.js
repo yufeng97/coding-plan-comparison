@@ -28,6 +28,8 @@ function bindEvents() {
   });
   /* 静态表头补 scope；额度表 thead 由 renderMetricsHead 生成时直接带 scope="col" */
   qsa("#planTable thead th").forEach((th) => (th.scope = "col"));
+  qsa("[data-free-region]").forEach((chip) => chip.addEventListener("click", () => { freeState.region = chip.dataset.freeRegion; renderFree(); }));
+  qsa("[data-free-kind]").forEach((chip) => chip.addEventListener("click", () => { freeState.kind = chip.dataset.freeKind; renderFree(); }));
   qsa("#chipCat .chip").forEach((c) =>
     onState(c, "click", () => {
       setChipPressed(qsa("#chipCat .chip"), (x) => x === c);

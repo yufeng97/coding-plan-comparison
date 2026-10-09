@@ -84,3 +84,43 @@ test("主要导航仅保留三个任务入口，更多章节展开且旧分享�
   await expect(page.locator("#s3b")).toBeVisible();
   await expect(main.getByRole("link",{name:"选套餐"})).toHaveAttribute("aria-current","page");
 });
+
+for (const width of [1024, 1280]) {
+  test(`${width}px 默认价格表可同时看到额度和来源，展开详细字段后可以横向滚动`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/#table");
+    const wrap = page.locator("#table .table-wrap");
+    // content-visibility:auto 会跳过视口外表格的布局，测量前先进入真实阅读区。
+    await wrap.scrollIntoViewIfNeeded();
+    const measure = () => wrap.evaluate((el) => ({ client: el.clientWidth, scroll: el.scrollWidth }));
+    await expect.poll(async () => { const size = await measure(); return size.client > 0 && size.scroll <= size.client + 1; }).toBe(true);
+    await expect(page.locator("#planTable thead th").last()).toBeVisible();
+    await page.locator("#tableColsToggle").click();
+    await expect(page.locator("#planTable")).toHaveClass(/show-all-cols/);
+    await wrap.scrollIntoViewIfNeeded();
+    await expect.poll(async () => { const size = await measure(); return size.scroll > size.client; }).toBe(true);
+  });
+}
+
+for (const width of [375, 1280]) {
+  test(`${width}px 免费入口按地区与推理费用组合筛选，数量和按钮状态同步`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/#free");
+    const cards = page.locator("#freeGrid .free-card");
+    await expect(cards).toHaveCount(18);
+    await page.locator('[data-free-region="cn"]').click();
+    await page.locator('[data-free-kind="included"]').click();
+    await expect(page.locator('[data-free-region="cn"]')).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator('[data-free-kind="included"]')).toHaveAttribute("aria-pressed", "true");
+    const expected = await page.evaluate("PLANS.filter(p => isFreeCodingEntry(p) && p.region === 'cn' && hasIncludedModelQuota(p)).length");
+    await expect(cards).toHaveCount(expected);
+    await expect(page.locator("#freeCount")).toHaveText(`显示 ${expected} / 18 个免费入口`);
+    if (expected) await expect(cards.locator(".fc-region")).toHaveText(Array(expected).fill("国内"));
+    await page.locator('[data-free-region="all"]').click();
+    await page.locator('[data-free-kind="byok"]').click();
+    for (const cost of await cards.locator(".fc-cost").all()) await expect(cost).toHaveText("平台免费；推理另计");
+    await page.locator('[data-free-kind="all"]').click();
+    await expect(cards).toHaveCount(18);
+    await expect(page.locator("#freeGrid")).not.toContainText("Gemini CLI / Code Assist 个人免费版");
+  });
+}

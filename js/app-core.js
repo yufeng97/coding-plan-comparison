@@ -80,10 +80,6 @@ function safeHref(u) {
   const s = String(u ?? "").trim();
   return /^https?:\/\//i.test(s) ? esc(s) : "";
 }
-function displayPriceReason(reason) {
-  return String(reason || "").replace(/现有priceM为展示目录价/g, "当前展示的是公开目录月费")
-    .replace(/priceM/g, "月付价").replace(/priceY/g, "年付折月价");
-}
 
 /* 辅助视图的数据脚本在访问时下载；保留经典脚本以支持 file://。 */
 const optionalDataLoads = {};
@@ -147,6 +143,7 @@ function planBadges(p) {
   if (/BYOK|自备\s*API|自带\s*API|自备 Key/i.test(blob)) badges.push({ t: "要自备 Key", k: "risk" });
   if (isRenewalOnly(p)) badges.push({ t: "仅老用户", k: "risk" });
   if (isOneTimePlan(p)) badges.push({ t: "一次性", k: "risk" });
+  if (isSoldOut(p)) badges.push({ t: "售罄 · 仅候补", k: "risk" });
   if (p.purchaseCountries && p.purchaseCountries.length) {
     const countries = { IN: "印度", CN: "中国", US: "美国" };
     badges.push({ t: "仅限" + p.purchaseCountries.map((c) => countries[c] || c).join("/"), k: "risk" });

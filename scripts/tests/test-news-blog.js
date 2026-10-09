@@ -94,6 +94,17 @@ function tests() {
     for (const path of ["/news", "/news/tags", "/news/tags/models", "/news/category/models"]) assert.throws(() => parseBlogArticle(valid, "https://example.com" + path));
     for (const html of ["blocked", '<html><main><h1>Access denied</h1><p>Complete the verification challenge to continue browsing.</p></main></html>', article(paragraph), article('<h1>Model release</h1><time datetime="2026-10-07">October 7, 2026</time>')]) assert.throws(() => parseBlogArticle(html, "https://example.com/news/model"));
   });
+  test("2 MiB 恶意目录/文章页线性解析：超长无属性标签、成串注释与未闭合区块/引号均远低于1秒", () => {
+    const size = 2 * 1024 * 1024, link = '<a href="/news/launch">Launch</a>';
+    const timed = (label, run) => { const started = performance.now(); run(); const elapsed = performance.now() - started; assert.ok(elapsed < 1000, label + " 耗时 " + elapsed.toFixed(0) + "ms"); };
+    const run = (unit) => unit.repeat(Math.floor((size - 200) / unit.length));
+    timed("超长无属性 <a>", () => assert.deepEqual(parseBlogLinks("<main><a " + "a".repeat(size / 2) + ">" + link + "</main>", ANTHROPIC, PATHS).urls, ["https://www.anthropic.com/news/launch"]));
+    for (const unit of ["<!--", "<style>", "<template a>", '<a "', "<a '", "<"]) timed("目录成串 " + unit, () => parseBlogLinks("<main>" + link + run(unit) + "</main>", ANTHROPIC, PATHS));
+    timed("成串开 script 与一个结束标签", () => assert.throws(() => parseBlogLinks("<main>" + link + "<script></script>" + run("<script>") + "</script><script>", ANTHROPIC, PATHS), /script/));
+    for (const unit of ["<p>", "<nav>", "<h1>", "<time>", "<div>", "<article>", "<script data-x='", '<meta content="']) {
+      timed("文章成串 " + unit, () => { try { parseBlogArticle(article('<h1>Model release</h1><time datetime="2026-10-07">October 7, 2026</time>' + paragraph + run(unit)), "https://example.com/news/model"); } catch (error) { assert.ok(error instanceof Error); } });
+    }
+  });
   console.log(`官方博客解析：${passed} 通过，0 失败`);
 }
 

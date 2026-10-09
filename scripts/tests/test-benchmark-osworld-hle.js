@@ -70,6 +70,12 @@ async function main() {
     assert.equal(data.benchmarks.filter(row => row.family === "OSWorld" && row.name.includes("2.0")).length, 4);
   });
   await test("缺失费用为空，总评测费用不当作单次任务费", () => { const original = data.scores.find(row => row.model === "Model A" && row.steps === 500); assert.equal(original.costUSD, null); assert.match(original.costNote, /总额.*1080.*不折算/); assert.equal(data.scores.find(row => row.model === "Agent A").costUSD, 2.5); });
+  await test("HLE原版纯文本脚注*只用于分表，不留在精确模型名中", async () => {
+    assert.deepEqual(data.scores.filter(row => row.benchmarkId === "hle-cais-2025-text-only").map(row => [row.model, row.score]), [["Text Model", 8.5]]);
+    assert.deepEqual(data.scores.filter(row => row.benchmarkId === "hle-cais-2025-multimodal").map(row => row.model), ["Model A"]);
+    assert.ok(data.scores.every(row => !row.model.endsWith("*")));
+    await rejects(map => map.set(hle, map.get(hle).replace("Text Model*", "*")), /模型名/);
+  });
   await test("快照日期不代替官方更新或评测日期", () => { assert.equal(data.benchmarks.find(row => row.family === "HLE" && row.name.includes("Diamond")).sourceUpdatedAt, null); assert.equal(data.scores.every(row => row.checkedAt === time), true); });
   await test("store/deflate XLSX支持且不执行远程JS", async () => { const map = fixtures(); map.set(v1 + "static/data/osworld_verified_results.xlsx", workbook([runRow()], { deflate: true })); const next = await collect(getter(map)); assert.equal(next.scores.find(row => row.model.startsWith("Fixture")).score, 50); });
   await test("步数、实际分母、额外工具与rollout差异各有协议", async () => {

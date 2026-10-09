@@ -210,4 +210,21 @@ test("自动续费金额非法或没有说明时数据校验拒绝", () => {
   assert.ok(validateData({workspace,source:source.replace('autoRenewMonthly: 94.4','autoRenewMonthly: -1')}).errors.some(error=>error.includes('autoRenewMonthly')));
 });
 
+test("TRAE Pro 单月购买、自动续费与年付按各自价格参与预算和表格", () => {
+  const app = createApp();
+  const quote = (billing) => app.run(`pickerPaymentQuote(findPlanReference("plan-0197"),${JSON.stringify(billing)})`);
+  assert.equal(quote("M").monthlyNative, 15);
+  assert.equal(quote("M").firstNative, 15);
+  assert.equal(quote("M").annualNative, 180);
+  assert.equal(quote("A").monthlyNative, 10);
+  assert.equal(quote("Y").annualNative, 90);
+  app.run('pickerState.billing="M"; pickerState.budget="100"; pickerState.region="all";');
+  assert.equal(app.run('withinBudget(findPlanReference("plan-0197"))'), false, "$15 超过 ¥100");
+  app.run('pickerState.billing="A";');
+  assert.equal(app.run('withinBudget(findPlanReference("plan-0197"))'), true, "$10 连续续费在 ¥100 内");
+  const cell = app.run('planMonthlyPriceCell(findPlanReference("plan-0197"))');
+  assert.match(cell, /连续包月价；单月一次购买 \$15/);
+  healthy(app);
+});
+
 main();

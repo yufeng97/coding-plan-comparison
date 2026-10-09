@@ -9,6 +9,7 @@ const { syncPricingAudit, parseArgs } = require("../build/sync-pricing-audit");
 const { seededHistory } = require("../maintenance/history");
 const { validateData } = require("../build/validate-data");
 const { buildMaintenance } = require("../maintenance/build-maintenance");
+const { rewindToFullAudit } = require("./full-audit-baseline");
 const workspace = path.resolve(__dirname, "../..");
 const inputs = ["pricing-root.json", "pricing-relays.json", "pricing-tools.json", "pricing-cn.json"];
 
@@ -31,6 +32,8 @@ function fixture(run) {
     fs.mkdirSync(path.join(root, "data"));
     fs.writeFileSync(path.join(root, "data/change-history.json"), JSON.stringify(seededHistory(root), null, 2) + "\n");
     outputs.push("data/change-history.json");
+    /* 增量核查后的仓库数据先回放到全量台账基线，后续用例从一致的起点开始。 */
+    rewindToFullAudit(root, workspace);
     const snapshot = () => outputs.map((file) => fs.existsSync(path.join(root, file)) ? fs.readFileSync(path.join(root, file)).toString("base64") : null);
     const changeAudit = (patch) => {
       const file = path.join(root, "audit", inputs[0]);
@@ -39,9 +42,9 @@ function fixture(run) {
       fs.writeFileSync(file, JSON.stringify(audit));
     };
     const stages = () => ["js", "audit", "data"].flatMap((dir) => fs.readdirSync(path.join(root, dir)).filter((name) => name.startsWith(".audit-update-")).map((name) => path.join(root, dir, name)));
-    const incremental = (patch = { priceM: 21 }, checked = "2026-10-07") => ({
+    const incremental = (patch = { priceM: 21 }, checked = "2026-10-07", old = { priceM: 20 }) => ({
       sources: [{ id: "claude-update-test", url: "https://claude.com/pricing", evidence: "测试：官网明确月费及权益变化。" }],
-      records: [{ kind: "plan", id: "plan-0002", vendor: "Anthropic", name: "Claude Pro", status: "changed", checkedAt: checked, old: { priceM: 20 }, patch, sourceIds: ["claude-update-test"], reason: "测试：人工核对官网月费与权益。" }],
+      records: [{ kind: "plan", id: "plan-0002", vendor: "Anthropic", name: "Claude Pro", status: "changed", checkedAt: checked, old, patch, sourceIds: ["claude-update-test"], reason: "测试：人工核对官网月费与权益。" }],
     });
     const writeIncremental = (audit) => { fs.writeFileSync(path.join(root, "audit/incremental.json"), JSON.stringify(audit)); return { incremental: true, input: "audit/incremental.json" }; };
     const allOutputs = () => [...outputs, ...fs.readdirSync(path.join(root, "audit")).filter((name) => /^pricing-incremental-/.test(name)).map((name) => "audit/" + name)].sort().map((file) => [file, fs.existsSync(path.join(root, file)) ? fs.readFileSync(path.join(root, file)).toString("base64") : null]);
@@ -216,7 +219,7 @@ test("纯内存校验使用同一套模型schema和ISO日期规则", ({ root }) 
 test("增量仅更新查到的记录，逐行日期和旧来源保持原样", ({ root, incremental, writeIncremental }) => {
   const file = path.join(root, "js/data.js");
   const before = dataOf(fs.readFileSync(file, "utf8"));
-  const audit = incremental({ priceM: 21, quota: "官网明确新权益：每周额度与原池共享。" });
+  const audit = incremental({ priceM: 21, quota: "官网明确新权益：每周额度与原池共享。" }, "2026-10-07", { priceM: 20, quota: before.PLANS.find((p) => p.id === "plan-0002").quota });
   audit.sources.push({ id: "claude-max-update", url: "https://claude.com/pricing", evidence: "测试：Max官方月费101美元。" });
   audit.records.push({ kind: "plan", id: "plan-0003", vendor: "Anthropic", name: "Claude Max 5x", status: "changed", checkedAt: "2026-10-08", old: { priceM: 100 }, patch: { priceM: 101 }, sourceIds: ["claude-max-update"], reason: "测试：核对Max月费。" });
   syncPricingAudit(root, writeIncremental(audit));
@@ -304,8 +307,8 @@ test("API与按量对照以原币一致增量更新，型号更名清理旧核�
   const audit = {
     sources: [{ id: "deepseek-update-test", url: "https://api-docs.deepseek.com/quick_start/pricing", evidence: "测试：新型号输入每百万0.2美元，输出与缓存价不变。" }],
     records: [
-      { ...shared, id: apiKey, name: apiModel, kind: "api", old: { inUSD: 0.15 }, patch: { model: renamed, inUSD: 0.2 } },
-      { ...shared, kind: "payg", old: { apiIn: 0.15 }, patch: { model: renamed, apiIn: 0.2 } },
+      { ...shared, id: apiKey, name: apiModel, kind: "api", old: { model: apiModel, inUSD: 0.15 }, patch: { model: renamed, inUSD: 0.2 } },
+      { ...shared, kind: "payg", old: { model: "deepseek-flash", apiIn: 0.15 }, patch: { model: renamed, apiIn: 0.2 } },
     ],
   };
   const options = writeIncremental(audit);
@@ -356,7 +359,7 @@ test("同日增量权益也拒绝旧full重放，新的full需声明当前基值
   const plan = dataOf(fs.readFileSync(file, "utf8")).PLANS.find((item) => item.id === "plan-0002");
   changeAudit({ note: plan.note });
   const note = "测试：同日官方已确认新版权益说明。";
-  syncPricingAudit(root, writeIncremental(incremental({ note }, checkedAt)));
+  syncPricingAudit(root, writeIncremental(incremental({ note }, checkedAt, { note: plan.note })));
   const before = allOutputs();
   assert.throws(() => syncPricingAudit(root), /同日旧全量权益 patch/);
   assert.deepEqual(allOutputs(), before);
@@ -389,7 +392,7 @@ test("增量必须有逐行有效日期、明确本次来源与原因，不能�
 
 test("显式完整new才能增加永久计划，重复入库无变化，复用ID与不完整schema拒绝", ({ root, incremental, writeIncremental, allOutputs }) => {
   const audit = incremental();
-  const plan = { id: "plan-test-new", vendor: "New Vendor", plan: "Coding Pro", cat: "tool", region: "intl", priceM: 9, priceY: null, cur: "USD", seat: false, quota: "每月明确包含100美元模型额度。", models: "GPT-6 Sol", tools: "独立CLI", note: "官方月费及编程额度已核对。", url: "https://example.com/pricing", ownClient: true };
+  const plan = { id: "plan-test-new", vendor: "New Vendor", plan: "Coding Pro", cat: "tool", region: "intl", priceM: 9, priceY: null, singleMonthPrice: 12, availability: "sold-out", sameAs: null, cur: "USD", seat: false, quota: "每月明确包含100美元模型额度。", models: "GPT-6 Sol", tools: "独立CLI", note: "官方月费及编程额度已核对。", url: "https://example.com/pricing", ownClient: true };
   Object.assign(audit.records[0], { id: plan.id, vendor: plan.vendor, name: plan.plan, new: plan, status: "verified" });
   delete audit.records[0].patch; delete audit.records[0].old;
   const before = allOutputs();
@@ -402,6 +405,8 @@ test("显式完整new才能增加永久计划，重复入库无变化，复用ID
   syncPricingAudit(root, options);
   const after = dataOf(fs.readFileSync(path.join(root, "js/data.js"), "utf8"));
   assert.equal(after.PLANS.length, 213);
+  assert.equal(after.PLANS.find((p) => p.id === plan.id).singleMonthPrice, 12);
+  assert.equal(after.PLANS.find((p) => p.id === plan.id).availability, "sold-out");
   assert.equal(after.PRICE_CHECKS.rows["plan:plan-test-new"].checkedAt, "2026-10-07");
   assert.equal(validateData({ workspace: root }).errors.length, 0);
   assert.equal(syncPricingAudit(root, options).filesChanged, 0);
@@ -493,4 +498,99 @@ test("maintenance读取历史期间持有共享锁", ({ root, incremental, write
   syncPricingAudit(root,options);
   const accepted=fs.readFileSync(historyFile);buildMaintenance(root,{asOf:"2026-10-08"});assert.deepEqual(fs.readFileSync(historyFile),accepted);
 });
+
+test("未来核查日期（记录/来源/批次）在落盘前拒绝，按 Asia/Shanghai 当日并容许 1 天时差", ({ root, incremental, writeIncremental, allOutputs, stages }) => {
+  const before = allOutputs();
+  assert.throws(() => syncPricingAudit(root, writeIncremental(incremental({ priceM: 21 }, "2062-10-09"))), /逐行核查日期（plan:plan-0002） 2062-10-09 晚于今天/);
+  const futureSource = incremental();
+  futureSource.sources[0].checkedAt = "2062-10-09";
+  assert.throws(() => syncPricingAudit(root, writeIncremental(futureSource)), /来源 claude-update-test 的核查日期 2062-10-09 晚于今天/);
+  for (const file of inputs) {
+    const target = path.join(root, "audit", file), audit = JSON.parse(fs.readFileSync(target, "utf8"));
+    audit.checkedAt = "2062-10-09";
+    fs.writeFileSync(target, JSON.stringify(audit));
+  }
+  assert.throws(() => syncPricingAudit(root), /批次核查日期 2062-10-09 晚于今天/);
+  assert.deepEqual(allOutputs(), before);
+  assert.deepEqual(stages(), []);
+  // 上海 10-08 23:59:59 最多接受 10-09；10-09 00:00 起接受 10-10。
+  assert.throws(() => syncPricingAudit(root, { ...writeIncremental(incremental({ priceM: 21 }, "2026-10-10")), now: new Date("2026-10-08T15:59:59Z") }), /Asia\/Shanghai 2026-10-08/);
+  const now = new Date("2026-10-08T16:00:00Z");
+  syncPricingAudit(root, { ...writeIncremental(incremental({ priceM: 21 }, "2026-10-10")), now });
+  assert.equal(dataOf(fs.readFileSync(path.join(root, "js/data.js"), "utf8")).PRICE_CHECKS.checkedAt, "2026-10-10");
+  assert.throws(() => syncPricingAudit(root, { ...writeIncremental(incremental({ priceM: 22 }, "2026-10-11", { priceM: 21 })), now }), /晚于今天/);
+  assert.throws(() => syncPricingAudit(root, { ...writeIncremental(incremental()), now: new Date("invalid") }), /同步时间无效/);
+});
+
+test("custom 等任何状态改变事实（改为询价）都写入变更历史与 RSS，unverified 仍不能改事实", ({ root, writeIncremental }) => {
+  const audit = {
+    sources: [{ id: "gemini-enterprise-quote-test", url: "https://codeassist.google/products/business", evidence: "测试：官网 Enterprise 改为联系销售询价，不再公开席位价。" }],
+    records: [{ kind: "plan", id: "plan-0022", vendor: "Google", name: "Gemini Code Assist Enterprise", status: "custom", checkedAt: "2026-10-07", old: { priceM: 54, priceY: 45 }, patch: { priceM: null, priceY: null }, sourceIds: ["gemini-enterprise-quote-test"], reason: "测试：官网改为询价，价格保留 null。" }],
+  };
+  syncPricingAudit(root, writeIncremental(audit));
+  const plan = dataOf(fs.readFileSync(path.join(root, "js/data.js"), "utf8")).PLANS.find((item) => item.id === "plan-0022");
+  assert.deepEqual([plan.priceM, plan.priceY], [null, null]);
+  const history = JSON.parse(fs.readFileSync(path.join(root, "data/change-history.json"), "utf8"));
+  const change = history.changes.find((row) => row.id === "plan-0022" && row.checkedAt === "2026-10-07");
+  assert.ok(change, "custom 改价必须进入历史");
+  assert.deepEqual(change.fields, ["priceM", "priceY"]);
+  assert.deepEqual([change.before.priceM, change.after.priceM, change.before.priceY, change.after.priceY], [54, null, 45, null]);
+  buildMaintenance(root, { asOf: "2026-10-08" });
+  assert.ok(fs.readFileSync(path.join(root, "changes.xml"), "utf8").includes(change.changeId));
+  const unverified = structuredClone(audit);
+  Object.assign(unverified.sources[0], { id: "gemini-unverified-test" });
+  Object.assign(unverified.records[0], { status: "unverified", checkedAt: "2026-10-08", old: { priceM: null, priceY: null }, patch: { priceM: 60, priceY: 50 }, sourceIds: ["gemini-unverified-test"] });
+  assert.throws(() => syncPricingAudit(root, writeIncremental(unverified)), /未核实记录不能修改/);
+});
+
+test("同日增量重放：缺 old 的改值记录被拒绝，不能把较新的同日价格改回并写出伪历史", ({ root, incremental, allOutputs }) => {
+  const write = (name, audit) => { fs.writeFileSync(path.join(root, "audit", name), JSON.stringify(audit)); return { incremental: true, input: "audit/" + name }; };
+  const first = write("first.json", incremental({ priceM: 21 }));
+  syncPricingAudit(root, first);
+  const withoutOld = incremental({ priceM: 21 });
+  delete withoutOld.records[0].old;
+  const replay = write("replay.json", withoutOld);
+  syncPricingAudit(root, write("second.json", incremental({ priceM: 22 }, "2026-10-07", { priceM: 21 })));
+  const before = allOutputs();
+  assert.throws(() => syncPricingAudit(root, replay), /增量修改须在 old 中提供该字段的当前值.*plan:plan-0002\/priceM/);
+  assert.throws(() => syncPricingAudit(root, first), /旧审计 patch 与现值不符/);
+  assert.deepEqual(allOutputs(), before);
+  assert.equal(dataOf(fs.readFileSync(path.join(root, "js/data.js"), "utf8")).PLANS.find((item) => item.id === "plan-0002").priceM, 22);
+  const history = JSON.parse(fs.readFileSync(path.join(root, "data/change-history.json"), "utf8"));
+  assert.ok(!history.changes.some((change) => change.id === "plan-0002" && change.before.priceM === 22 && change.after.priceM === 21), "不得写出 22→21 的伪历史");
+  // 未改值的复核记录（以及新增缺失字段的 old:null）不需要额外基值。
+  const recheck = incremental({ priceM: 22 }, "2026-10-08");
+  delete recheck.records[0].old;
+  Object.assign(recheck.records[0], { status: "verified", sourceIds: ["claude-recheck-test"] });
+  Object.assign(recheck.sources[0], { id: "claude-recheck-test" });
+  syncPricingAudit(root, write("recheck.json", recheck));
+  assert.equal(dataOf(fs.readFileSync(path.join(root, "js/data.js"), "utf8")).PRICE_CHECKS.rows["plan:plan-0002"].checkedAt, "2026-10-08");
+});
+
+test("单月价、售罄与重复入口标记可增量维护，历史完整且非法引用不落盘", ({ root, incremental, writeIncremental, allOutputs }) => {
+  const audit = incremental({ singleMonthPrice: 25, availability: "sold-out" }, "2026-10-07", { singleMonthPrice: null, availability: null });
+  const options = writeIncremental(audit);
+  syncPricingAudit(root, options);
+  const read = () => dataOf(fs.readFileSync(path.join(root, "js/data.js"), "utf8"));
+  const plan = () => read().PLANS.find((p) => p.id === "plan-0002");
+  assert.equal(plan().singleMonthPrice, 25);
+  assert.equal(plan().availability, "sold-out");
+  const history = JSON.parse(fs.readFileSync(path.join(root, "data/change-history.json"), "utf8"));
+  assert.ok(history.changes.some((row) => row.id === "plan-0002" && row.fields.includes("singleMonthPrice") && row.fields.includes("availability")));
+  const snapshot = allOutputs();
+  assert.equal(syncPricingAudit(root, options).filesChanged, 0);
+  assert.deepEqual(allOutputs(), snapshot);
+  const invalid = incremental({ sameAs: "plan-missing" }, "2026-10-08", { sameAs: null });
+  assert.throws(() => syncPricingAudit(root, writeIncremental(invalid)), /sameAs 必须指向/);
+  assert.deepEqual(allOutputs(), snapshot);
+  // 相同币种和月价的另一条主记录可作为同一订阅的永久入口引用。
+  const duplicate = incremental({ sameAs: "plan-0010", availability: null }, "2026-10-08", { sameAs: null, availability: "sold-out" });
+  syncPricingAudit(root, writeIncremental(duplicate));
+  assert.equal(plan().sameAs, "plan-0010");
+  assert.equal(plan().availability, null);
+  const restored = incremental({ sameAs: null }, "2026-10-09", { sameAs: "plan-0010" });
+  syncPricingAudit(root, writeIncremental(restored));
+  assert.equal(plan().sameAs, null);
+});
+
 console.log("核价同步回归：" + passed + " 通过");

@@ -43,8 +43,8 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - name: 按 lockfile 安装开发依赖
-        run: npm ci
+      - name: 按 lockfile 安装开发依赖（不执行依赖安装脚本）
+        run: npm ci --ignore-scripts
       - name: 检查代码、数据与回归
         run: |
           npm run check
@@ -56,6 +56,11 @@ jobs:
           npm run cache:check
       - name: 生成白名单公共站点
         run: npm run build:site
+      # .site-build 与 Vercel 部署共用；vercel.json 只对 Vercel 有意义，不随 Pages 公开。
+      - name: 移除仅供 Vercel 使用的配置
+        run: |
+          rm -f .site-build/vercel.json
+          test ! -e .site-build/vercel.json
       - name: 读取 GitHub Pages 配置
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
       - name: 上传公共站点产物

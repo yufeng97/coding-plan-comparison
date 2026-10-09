@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { createAssetPlan, writeAssetPlan } = require("../lib/public-assets");
-const { updateFonts } = require("../build/vendor-fonts");
+const { updateFonts, get: fontGet } = require("../build/vendor-fonts");
 const { stageSite } = require("../build/stage-site");
 const { deployment, deploySite, resolveDeploymentToken } = require("../build/deploy-site");
 const { main: bump } = require("../build/bump-versions");
@@ -26,7 +26,7 @@ async function fixture(fn) {
   }
 }
 const snapshot = (dir) => Object.fromEntries(fs.readdirSync(dir).sort().map((file) => [file, fs.readFileSync(path.join(dir, file)).toString("base64")]));
-const fontCss = Buffer.from('a{src:url(https://fonts.test/a)}b{src:url(https://fonts.test/b)}');
+const fontCss = Buffer.from('a{src:url(https://fonts.gstatic.com/s/a)}b{src:url(https://fonts.gstatic.com/s/b)}');
 const fetchFonts = async (url) => url.includes("googleapis") ? fontCss : Buffer.from("wOF2" + url);
 let passed = 0;
 async function test(name, fn) { await fn(); passed++; console.log("  ✓ " + name); }
@@ -155,6 +155,22 @@ async function main() {
     assert.equal(files.length, 1);
     const refs = [...fs.readFileSync(path.join(dir, "fonts.css"), "utf8").matchAll(/url\(([^)]+)\)/g)].map((match) => match[1]);
     assert.deepEqual(refs, [files[0], files[0]]);
+  }));
+  await test("字体 CSS 只接受 fonts.gstatic.com 的 HTTPS 字体，外部主机/HTTP/@import 在下载前拒绝", () => fixture(async (root) => {
+    const dir = path.join(root, "libs/fonts"), before = snapshot(dir);
+    for (const css of ["a{src:url(https://evil.example/a.woff2)}", 'a{src:url("http://fonts.gstatic.com/s/a")}', "a{src:url('https://fonts.gstatic.com.evil.example/a')}",
+      "a{src:url(https://user@fonts.gstatic.com/s/a)}", "a{src:url(https://fonts.gstatic.com:8443/s/a)}", "a{src:url(/local/a.woff2)}",
+      "@import url(https://fonts.gstatic.com/s/x.css);a{src:url(https://fonts.gstatic.com/s/a)}", "a{src:url(https://fonts.gstatic.com/s/a)}b{src:url(https://fonts.googleapis.com/s/b)}"]) {
+      const requested = [];
+      await assert.rejects(updateFonts({ dir, fetcher: async (url) => { requested.push(url); return url.includes("googleapis.com/css2") ? Buffer.from(css) : Buffer.from("wOF2font"); } }), /fonts\.gstatic\.com|@import/, css);
+      assert.deepEqual(requested.filter((url) => !url.includes("googleapis.com/css2")), [], "拒绝前不得下载任何字体：" + css);
+    }
+    assert.deepEqual(snapshot(dir), before);
+    assert.deepEqual(fs.readdirSync(path.dirname(dir)), ["fonts"]);
+    const quoted = await updateFonts({ dir, fetcher: async (url) => url.includes("googleapis.com/css2") ? Buffer.from('a{src:url("https://fonts.gstatic.com/s/a")}') : Buffer.from("wOF2quoted") });
+    assert.equal(quoted.count, 1);
+    assert.match(fs.readFileSync(path.join(dir, "fonts.css"), "utf8"), /url\("gf-[a-f0-9]{64}\.woff2"\)/);
+    for (const url of ["https://evil.example/font.woff2", "http://fonts.gstatic.com/s/a", "https://fonts.gstatic.com.evil.example/s/a"]) await assert.rejects(fontGet(url), /Google Fonts/, url);
   }));
   await test("字体 CSS 为空或响应非 WOFF2 拒绝替换旧目录", () => fixture(async (root) => {
     const dir = path.join(root, "libs/fonts"), before = snapshot(dir);

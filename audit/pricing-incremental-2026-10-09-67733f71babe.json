@@ -1,0 +1,167 @@
+{
+  "checkedAt": "2026-10-09",
+  "incremental": true,
+  "totals": {
+    "plans": 212,
+    "api": 36,
+    "payg": 10
+  },
+  "sources": [
+    {
+      "id": "google-plans",
+      "url": "https://one.google.com/about/google-ai-plans/",
+      "evidence": "真实浏览器切到United States：Plus月4.99美元；Pro月19.99/年199.99；Ultra5x月99.99、20x月199.99且仅月付。"
+    },
+    {
+      "id": "google-cli-transition-20261009",
+      "url": "https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/",
+      "evidence": "Google 开发者博客 2026-05-19：2026-06-18 起 Gemini CLI 与 Gemini Code Assist IDE 扩展停止为 Google AI Pro/Ultra 及 Code Assist 个人免费用户提供服务；Code Assist Standard/Enterprise 组织与付费 Gemini API Key 仍可使用；Antigravity CLI 向所有人开放，文中未列免费额度。"
+    },
+    {
+      "id": "cn-step-plan",
+      "url": "https://platform.stepfun.com/docs/zh/step-plan/overview",
+      "evidence": "官网HTML套餐表：Flash Mini/Plus/Pro/Max月费49/99/199/699元；年总价456/936/1860/6666元，月均38/78/155/555.5。"
+    },
+    {
+      "id": "cn-step-plan-credits-20261009",
+      "url": "https://platform.stepfun.com/docs/zh/step-plan/overview",
+      "evidence": "官网套餐表：Flash Mini/Plus/Pro/Max 月费49/99/199/699元、季付129/269/539/1889元、年付456/936/1860/6666元；月池 400M/1600M/8000M/40000M Credit，1M Credit = ¥1；季付与年付一次付清但 Credits 按月发放、月末清零；加油包 ¥49=400M、¥99=1600M（30 天有效）。"
+    }
+  ],
+  "records": [
+    {
+      "kind": "plan",
+      "id": "plan-0016",
+      "vendor": "Google",
+      "name": "Google AI Plus",
+      "status": "changed",
+      "checkedAt": "2026-10-04",
+      "sourceIds": [
+        "google-plans"
+      ],
+      "reason": "真实浏览器选择 United States 后，当前官网显示4.99美元/月；1月发布博客的7.99美元已过时，不再作为现价依据。",
+      "patch": {},
+      "current": {
+        "vendor": "Google",
+        "plan": "Google AI Plus",
+        "priceM": 4.99,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0020",
+      "vendor": "Google",
+      "name": "Gemini CLI / Code Assist 个人免费版",
+      "status": "retired",
+      "checkedAt": "2026-10-09",
+      "sourceIds": [
+        "google-cli-transition-20261009"
+      ],
+      "reason": "官方博客确认 2026-06-18 起 Gemini CLI 与 Code Assist IDE 扩展停止为免费个人用户服务，原 1,000 次/日的个人免费档已停止；Standard/Enterprise 与付费 API Key 不受影响。",
+      "patch": {},
+      "current": {
+        "vendor": "Google",
+        "plan": "Gemini CLI / Code Assist 个人免费版",
+        "priceM": 0,
+        "priceY": 0,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0084",
+      "vendor": "阶跃星辰 StepFun",
+      "name": "Step Plan Flash Mini",
+      "status": "verified",
+      "checkedAt": "2026-10-09",
+      "sourceIds": [
+        "cn-step-plan",
+        "cn-step-plan-credits-20261009"
+      ],
+      "reason": "官网套餐表核对月费、季付与年付总价不变，并确认月池 400M Credit（1M Credit = ¥1，月末清零）。",
+      "patch": {},
+      "current": {
+        "vendor": "阶跃星辰 StepFun",
+        "plan": "Step Plan Flash Mini",
+        "priceM": 49,
+        "priceY": 38,
+        "annualTotal": 456,
+        "cur": "CNY",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0085",
+      "vendor": "阶跃星辰 StepFun",
+      "name": "Step Plan Flash Plus",
+      "status": "verified",
+      "checkedAt": "2026-10-09",
+      "sourceIds": [
+        "cn-step-plan",
+        "cn-step-plan-credits-20261009"
+      ],
+      "reason": "官网套餐表核对月费、季付与年付总价不变，并确认月池 1,600M Credit（1M Credit = ¥1，月末清零）。",
+      "patch": {},
+      "current": {
+        "vendor": "阶跃星辰 StepFun",
+        "plan": "Step Plan Flash Plus",
+        "priceM": 99,
+        "priceY": 78,
+        "annualTotal": 936,
+        "cur": "CNY",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0086",
+      "vendor": "阶跃星辰 StepFun",
+      "name": "Step Plan Flash Pro",
+      "status": "verified",
+      "checkedAt": "2026-10-09",
+      "sourceIds": [
+        "cn-step-plan",
+        "cn-step-plan-credits-20261009"
+      ],
+      "reason": "官网套餐表核对月费、季付与年付总价不变，并确认月池 8,000M Credit（1M Credit = ¥1，月末清零）。",
+      "patch": {},
+      "current": {
+        "vendor": "阶跃星辰 StepFun",
+        "plan": "Step Plan Flash Pro",
+        "priceM": 199,
+        "priceY": 155,
+        "annualTotal": 1860,
+        "cur": "CNY",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0087",
+      "vendor": "阶跃星辰 StepFun",
+      "name": "Step Plan Flash Max",
+      "status": "verified",
+      "checkedAt": "2026-10-09",
+      "sourceIds": [
+        "cn-step-plan",
+        "cn-step-plan-credits-20261009"
+      ],
+      "reason": "官网套餐表核对月费、季付与年付总价不变，并确认月池 40,000M Credit（1M Credit = ¥1，月末清零）。",
+      "patch": {},
+      "current": {
+        "vendor": "阶跃星辰 StepFun",
+        "plan": "Step Plan Flash Max",
+        "priceM": 699,
+        "priceY": 555.5,
+        "annualTotal": 6666,
+        "cur": "CNY",
+        "seat": false
+      }
+    }
+  ]
+}

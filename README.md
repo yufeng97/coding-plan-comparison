@@ -15,7 +15,7 @@
 - **云厂商/企业档**：AWS Q Developer、Google Gemini Code Assist、阿里云通义灵码（Qoder CN）、腾讯云、华为云 CodeArts、讯飞星辰 Astron Coding Plan 等
 - **API 按量计费**：36 款主流编程模型的输入/输出单价（USD 与 CNY 原币，统一折算对比）
 
-数据版本：**2026-10-09**；覆盖 57 家厂商、212 档订阅计划、27 个免费档（其中 20 个是编程工具免费档或免费模型入口）、84 行套餐额度深度对比（官方数据 + 标注置信度的估算）、36 行 API 定价，另有 10 行 API 按量对照。工具免费档中，BYOK/按量推理的费用会单独注明。页面与导出的更新日期指整份数据的版本日期；每条价格另记官网核查日期和结果。
+数据版本：**2026-10-09**；覆盖 57 家厂商、212 档订阅计划、27 个免费档（去掉已停售和同一订阅的重复入口后，18 个是可用的编程工具免费档或免费模型入口）、84 行套餐额度深度对比（官方数据 + 标注置信度的估算）、36 行 API 定价，另有 10 行 API 按量对照。免费入口可按国内／国际和是否含免费推理组合筛选；BYOK/按量推理的费用会单独注明。页面与导出的更新日期指整份数据的版本日期；每条价格另记官网核查日期和结果。
 
 模型公开评测独立于价格版本：**2026-10-08 核查**，5 类评测、85 个独立协议、438 条成绩（DeepSWE 70、CursorBench 68、OSWorld 224、HLE 46、SWE-bench 30）。同一模型的多个配置和 OSWorld 的完整/部分得分均各算一条，不表示 438 个模型；版本、样本分母、工具与步骤预算不同不混排。
 
@@ -218,7 +218,7 @@ npm run serve
 5. **团队/企业/云厂商**：席位价与整包价对比
 6. **每周可用 tokens 对比**：并列展示按官方额度规则折算的周 tokens 与其他估算，支持地区/厂商筛选，悬停查看模型、范围与依据；当前没有厂商直接公布可跨家比较的每周 tokens
 7. **API 按量计费**：36 款模型每百万 tokens 输入/输出单价 + $10 购买力对比，地区颜色按模型地区分类。图例支持键盘切换，完整数值和来源可在下方明细表查看；附按工作量计算月费、预算购买力和套餐参考月量的计算器
-8. **免费 Coding 入口**：20 个编程 Agent / 编程工具免费档与免费模型额度卡片，平台免费、推理另计会明确标注
+8. **免费 Coding 入口**：18 个可用的编程 Agent / 编程工具免费档与免费模型额度卡片，支持地区与推理费用筛选，平台免费、推理另计会明确标注
 9. **数据表**：公开标价记录（164 档，含明确标注的待核历史价），支持搜索/筛选/排序及核查来源
 10. **重要动态**：已核对的行业与套餐消息
 11. **核查与变更服务**：核查时效、复核日历、历史变化、本机关注与 RSS
@@ -293,7 +293,7 @@ npm run deploy -- --dry-run
 
 此部署脚本读取现有 token，不自动刷新 CLI 的 OAuth 登录会话。返回 401/403 时先检查账号的项目权限和凭据有效期；必要时使用[官方 CLI 登录](https://vercel.com/docs/cli/login)（`npx vercel login`）更新会话，或在运行环境提供有效 `VERCEL_TOKEN` 后重试。不要把 token 写进仓库、README 或公开产物。发布后访问正式域名，核对资源版本和桌面/手机核心操作；Vercel 的部署专属网址可能受登录保护。
 
-GitHub Pages 作为第二个公开部署入口：[coding-plan-comparison](https://yufeng97.github.io/coding-plan-comparison/)。Source 使用 **GitHub Actions**。[Pages 工作流](.github/workflows/pages.yml) 等待 `main` 推送的完整 CI 成功（含 Linux／Windows 三种浏览器与依赖审计），明确检出该次 CI 通过的 `head_sha`，再检查和构建 `.site-build/`。手动发布也要求同一提交已有成功的完整 CI；PR、失败或取消的 CI 不发布。构建作业只读代码、CI 状态与 Pages 配置，发布作业使用 `pages: write` / `id-token: write`，无需个人 token 或 Vercel 凭据。Actions 固定到完整 SHA，由 Dependabot 每周检查更新。
+GitHub Pages 作为第二个公开部署入口：[coding-plan-comparison](https://yufeng97.github.io/coding-plan-comparison/)。Source 使用 **GitHub Actions**。[Pages 工作流](.github/workflows/pages.yml) 等待 `main` 推送的 CI 必需检查成功（含 Linux／Windows 三种浏览器），明确检出该次 CI 通过的 `head_sha`，再检查和构建 `.site-build/`。依赖审计为独立非阻断作业，公告或 registry 故障会在该作业报告，不影响其他检查与 Pages 发布。手动发布也要求同一提交已有成功的 CI；PR、失败或取消的 CI 不发布。构建作业只读代码、CI 状态与 Pages 配置，安装依赖时禁用安装脚本，并在上传前移除 Vercel 专用配置。发布作业使用 `pages: write` / `id-token: write`，无需个人 token 或 Vercel 凭据。Actions 固定到完整 SHA，由 Dependabot 每周检查更新。
 
 两个站点共用页面中的 CSP（禁止内联脚本）与 Referrer Policy；主题引导使用外链脚本。Vercel 额外通过响应头提供 `frame-ancestors`、X-Frame-Options、nosniff 和 Permissions-Policy。原生 GitHub Pages 不解释 `vercel.json`，meta CSP 也不支持 `frame-ancestors`，因此这些响应头仍是部署平台差异；若要求完全对齐，应使用可配置响应头的代理或统一托管平台。
 

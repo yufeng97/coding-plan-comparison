@@ -4,10 +4,10 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { parseFeed, parseHN } = require("../news/feed");
+const { plainText, parseFeed, parseHN } = require("../news/feed");
 const { fetchSource, publicURL, publicAddress, validateSourceURL, MAX_BYTES } = require("../news/network");
 const { collectNews, runCollection, normalizeURL, readKnownVendors, parseArguments, main, withNewsLock } = require("../news/collect-news");
-const { stableId, validateInbox } = require("../news/inbox");
+const { stableId, validateInbox, contentHash } = require("../news/inbox");
 const { applyReview, runReview, triageData, parseArguments: reviewArguments } = require("../news/review-news");
 
 const NOW = new Date("2026-10-07T00:00:00Z");
@@ -53,6 +53,16 @@ async function tests() {
     assert.deepEqual(parseFeed(rss(), "https://news.example.com", "rss"), []);
     assert.deepEqual(parseFeed('<feed/>', "https://news.example.com", "atom"), []);
     for (const xml of ['<rss><channel></rss>', '<rss><channel><item><title>x</title></channel></rss>', rss('<item><title>x</title></item>'), '<!DOCTYPE rss [<!ENTITY x SYSTEM "file:///private">]>' + rss()]) assert.throws(() => parseFeed(xml, "https://news.example.com", "rss"));
+  });
+  await test("2 MiB 恶意文本线性解析：成串<、注释/脚本开标签、CDATA内<与超长无属性标签均远低于1秒", async () => {
+    const size = 2 * 1024 * 1024, feedURL = "https://news.example.com/feed";
+    const timed = async (label, run) => { const started = performance.now(); await run(); const elapsed = performance.now() - started; assert.ok(elapsed < 1000, label + " 耗时 " + elapsed.toFixed(0) + "ms"); };
+    await timed("成串<", () => assert.equal(plainText("<".repeat(size)).length, size));
+    await timed("成串注释/脚本/样式开标签", () => { for (const unit of ["<!--", "<script>", "<style a", "<![CDATA["]) plainText(unit.repeat(Math.floor(size / unit.length))); });
+    await timed("CDATA 内成串<", () => assert.equal(parseFeed(rss("<item><title><![CDATA[" + "<".repeat(size) + "]]></title><link>https://new.example.com/a</link></item>"), feedURL, "rss")[0].title, "<".repeat(500)));
+    await timed("兆字节无属性标签", () => assert.throws(() => parseFeed(rss("<item " + "a".repeat(size / 2) + "><title>Coding plan</title><link>https://new.example.com/a</link></item>"), feedURL, "rss"), /8 KiB/));
+    await timed("上限内大量无属性长标签", () => assert.deepEqual(parseFeed(rss(("<x " + "a".repeat(8000) + "></x>").repeat(256)), feedURL, "rss"), []));
+    await timed("页面成串 head/svg 开标签", async () => { const { report } = await collect([source("page", "page")], async () => new Response("<head><svg>".repeat(180000) + " visible product feature text".repeat(4))); assert.equal(report.sources[0].status, "baseline"); });
   });
   await test("URL归一去fragment和跟踪，保留业务参数且拒绝本地/非HTTP链接", () => {
     assert.equal(normalizeURL("https://NEWS.example.com/a?utm_source=x&id=3&fbclid=y#top"), "https://news.example.com/a?id=3");
@@ -280,6 +290,19 @@ async function tests() {
     assert.deepEqual(current.items[0].planIds, ["plan-existing"]);
     const triage = triageData(current, { now: OCT8 }); assert.equal(triage.purpose, "manual-review-only"); assert.ok(triage.workflow.some((line) => line.includes("不改价")));
   });
+  await test("官方证据按完整主机匹配：企业大域下的社区子域、未声明子域与社区栏目不能冒充官方证据", async () => {
+    const first = await collect([source("discovery", "rss", "discovery")], async () => new Response(rss(itemXML("Unknown coding plan update", "https://fresh.example.com/update"))), { now: OCT8 });
+    const id = first.inbox.items[0].id;
+    const context = { config: config(source("discovery", "rss", "discovery")), now: OCT8,
+      knownVendors: [{ vendor: "阿里云", domains: ["aliyun.com", "help.aliyun.com"] }, { vendor: "华为云", domains: ["huaweicloud.com"] }, { vendor: "腾讯云", domains: ["cloud.tencent.com"] }],
+      plans: [{ id: "plan-ali", vendor: "阿里云", url: "https://www.aliyun.com/product/lingma" }, { id: "plan-hw", vendor: "华为云", url: "https://www.huaweicloud.com/product/codearts.html" }, { id: "plan-tx", vendor: "腾讯云", url: "https://cloud.tencent.com/product/tokenhub" }] };
+    const review = (planId, url, officialDomains = []) => applyReview(first.inbox, { id, status: "accepted", reason: "已核对官方页面", planIds: [planId], evidenceUrls: [url], officialDomains }, context);
+    for (const [planId, url] of [["plan-ali", "https://developer.aliyun.com/article/123"], ["plan-hw", "https://bbs.huaweicloud.com/forum/thread-1"], ["plan-tx", "https://cloud.tencent.com/developer/article/123"], ["plan-tx", "https://cloud.tencent.com/Develop%65r/article/1"], ["plan-ali", "https://lingma.aliyun.com/pricing"]]) assert.throws(() => review(planId, url), /官方/, url);
+    assert.throws(() => review("plan-ali", "https://developer.aliyun.com/article/123", ["developer.aliyun.com"]), /社区/);
+    assert.throws(() => review("plan-hw", "https://docs.support.huaweicloud.com/price", ["support.huaweicloud.com"]), /完整主机/);
+    for (const [planId, url] of [["plan-ali", "https://www.aliyun.com/product/lingma"], ["plan-ali", "https://help.aliyun.com/zh/lingma/"], ["plan-hw", "https://huaweicloud.com/pricing"], ["plan-tx", "https://cloud.tencent.com/document/product/1"], ["plan-tx", "https://cloud.tencent.com/developers-guide"]]) assert.doesNotThrow(() => review(planId, url), url);
+    assert.equal(review("plan-hw", "https://support.huaweicloud.com/codearts/price.html", ["support.huaweicloud.com"]).items[0].status, "accepted");
+  });
   await test("来源失败不更新候选lastSeen，连续失败持久记录，恢复后清零；旧缓存字节内容保留", async () => {
     const first = await collect([source()], async () => new Response(rss(itemXML("Coding plan launch", "https://new.example.com/a"))), { now: OCT8 });
     const fail1 = await collect([source()], async () => new Response("down", { status: 503 }), { state: first.state, inbox: first.inbox, now: new Date("2026-10-09T00:00:00Z") });
@@ -324,7 +347,7 @@ async function tests() {
     const disabled = await collect([source("new")], async () => new Response(rss()), { state: later.state, now: new Date("2026-11-09T00:00:00Z") });
     const old = disabled.health.sources.find((health) => health.id === "page"); assert.equal(old.enabled, false); assert.equal(old.checkedAt, "2026-11-08T00:00:00.000Z");
   });
-  await test("同URL多源中陈旧缓存不能盖过新鲜内容，重复失败不让已复核修订反复重开", async () => {
+  await test("同URL多源按固定优先级展示，陈旧缓存不掩盖其他来源修订，重复失败不让已复核修订反复重开", async () => {
     const sources = [source("old"), source("fresh")], url = "https://new.example.com/same";
     const knownVendors = [{ vendor: "Existing", domains: ["existing.example.com"] }];
     const first = await collect(sources, async () => new Response(rss(itemXML("Existing coding plan original", url))), { now: OCT8, knownVendors });
@@ -332,11 +355,75 @@ async function tests() {
     const reviewed = applyReview(first.inbox, decision, context);
     const nextFetcher = async (raw) => String(raw).endsWith("old") ? new Response("down", { status: 503 }) : new Response(rss(itemXML("Coding plan revised pricing", url)));
     const next = await collect(sources, nextFetcher, { now: OCT8, state: first.state, inbox: reviewed, knownVendors });
-    assert.equal(next.report.candidates[0].title, "Coding plan revised pricing"); assert.equal(next.inbox.items[0].title, "Coding plan revised pricing"); assert.equal(next.inbox.items[0].needsReReview, true);
-    assert.equal(next.report.candidates[0].needsVendorReview, true);
+    const [item] = next.inbox.items;
+    // 展示取配置靠前来源的最后已知内容，不因其本次失败改选；另一来源自身的修订照常重开复核并记录来源。
+    assert.equal(next.report.candidates[0].title, "Existing coding plan original"); assert.equal(item.title, "Existing coding plan original"); assert.equal(item.needsReReview, true);
+    assert.equal(item.variants.find((variant) => variant.sourceId === "fresh").title, "Coding plan revised pricing");
+    assert.deepEqual(item.revisions.map((revision) => [revision.sourceId, revision.change, revision.title]), [["fresh", "updated", "Existing coding plan original"]]);
+    assert.deepEqual(next.report.candidates[0].vendorMatches, [{ vendor: "Existing", match: "name" }]);
     const revised = applyReview(next.inbox, { ...decision, reason: "已复核新修订仍不入库" }, context);
     const repeat = await collect(sources, nextFetcher, { now: OCT8, state: next.state, inbox: revised, knownVendors });
     assert.equal(repeat.inbox.items[0].needsReReview, false); assert.equal(repeat.inbox.items[0].contentHash, revised.items[0].contentHash); assert.equal(repeat.inbox.items[0].reviewHistory.length, 2);
+    const recovered = await collect(sources, async (raw) => new Response(rss(itemXML(String(raw).endsWith("old") ? "Existing coding plan original" : "Coding plan revised pricing", url))), { now: OCT8, state: repeat.state, inbox: repeat.inbox, knownVendors });
+    assert.equal(recovered.inbox.items[0].needsReReview, false); assert.equal(recovered.inbox.items[0].revisions.length, 1);
+  });
+  await test("同URL的RSS与HN副本：来源失败、恢复及副本移出窗口都不重开已驳回候选，展示稳定；来源自身修订或新内容才重开", async () => {
+    const url = "https://vendor.example.com/coding-plan", feed = source("feed", "rss", "discovery"), hn = source("hn", "hn-search", "discovery");
+    const hnTitle = (title = "Show HN: Vendor coding plan is out") => Response.json({ nbPages: 1, hits: [{ objectID: "1", title, url, created_at: "2026-10-06T09:00:00.000Z" }] });
+    const fetcher = (feedDown = false, title = undefined) => async (raw) => !String(raw).startsWith(feed.url) ? hnTitle(title)
+      : feedDown ? new Response("down", { status: 503 }) : new Response(rss(itemXML("Vendor launches coding plan", url, "Mon, 05 Oct 2026 08:00:00 GMT", "Official post")));
+    let run = await collect([feed, hn], fetcher(), { now: NOW });
+    const context = { config: config(feed, hn), knownVendors: [], plans: [], now: NOW }, id = stableId(url);
+    let inbox = applyReview(run.inbox, { id, status: "rejected", reason: "不是编程套餐" }, context);
+    const shown = { title: inbox.items[0].title, contentHash: inbox.items[0].contentHash };
+    assert.equal(shown.title, "Vendor launches coding plan"); assert.deepEqual(inbox.items[0].variants.map((variant) => variant.sourceId), ["feed", "hn"]);
+    const steps = [{ label: "feed 暂时失败", down: true, at: "2026-10-08T00:00:00Z", days: 14 }, { label: "feed 恢复且内容未变", down: false, at: "2026-10-08T12:00:00Z", days: 14 }, { label: "feed 副本移出窗口仅剩 HN", down: false, at: "2026-10-09T00:00:00Z", days: 3 }];
+    for (const { label, down, at, days } of steps) {
+      run = await collect([feed, hn], fetcher(down), { now: new Date(at), days, state: run.state, inbox });
+      const [item] = run.inbox.items;
+      assert.equal(item.needsReReview, false, label); assert.equal(item.status, "rejected", label); assert.equal(item.revisions.length, 0, label);
+      assert.equal(item.title, shown.title, label); assert.equal(item.contentHash, shown.contentHash, label);
+      inbox = run.inbox;
+    }
+    assert.deepEqual(run.report.candidates[0].sources.map((ref) => ref.id), ["hn"]);
+    run = await collect([feed, hn], fetcher(false, "Show HN: Vendor coding plan now $10"), { now: new Date("2026-10-09T06:00:00Z"), state: run.state, inbox });
+    assert.equal(run.inbox.items[0].needsReReview, true); assert.deepEqual(run.inbox.items[0].revisions.map((revision) => [revision.sourceId, revision.change]), [["hn", "updated"]]);
+    assert.equal(run.inbox.items[0].title, shown.title);
+    inbox = applyReview(run.inbox, { id, status: "rejected", reason: "调价线索仍不入库" }, { ...context, now: new Date("2026-10-09T06:00:00Z") });
+    const mirror = source("mirror", "rss", "discovery"), mirrorFetcher = (summary) => async (raw) => String(raw).startsWith(mirror.url) ? new Response(rss(itemXML("Vendor launches coding plan", url, "Mon, 05 Oct 2026 08:00:00 GMT", summary))) : fetcher(false, "Show HN: Vendor coding plan now $10")(raw);
+    run = await collect([feed, hn, mirror], mirrorFetcher("Official post"), { now: new Date("2026-10-09T07:00:00Z"), state: run.state, inbox });
+    assert.equal(run.inbox.items[0].needsReReview, false, "新来源内容与已知来源相同不重开"); assert.equal(run.inbox.items[0].variants.length, 3);
+    const novel = await collect([feed, hn, source("other", "rss", "discovery")], async (raw) => String(raw).endsWith("other") ? new Response(rss(itemXML("Vendor coding plan adds annual billing", url))) : mirrorFetcher("Official post")(raw), { now: new Date("2026-10-09T08:00:00Z"), state: run.state, inbox: run.inbox });
+    assert.equal(novel.inbox.items[0].needsReReview, true); assert.equal(novel.inbox.items[0].revisions.at(-1).change, "added");
+    assert.doesNotThrow(() => validateInbox(novel.inbox));
+  });
+  await test("无时区pubDate统一按UTC解释，UTC与UTC+8机器得到相同发布时间与内容哈希", () => {
+    const xml = rss(itemXML("Coding plan zoneless", "https://new.example.com/zoneless", "2026-10-06 10:00:00"), itemXML("Coding plan RFC", "https://new.example.com/rfc", "Mon, 05 Oct 2026 08:00:00"),
+      itemXML("Coding plan offset", "https://new.example.com/offset", "Mon, 05 Oct 2026 08:00:00 +0800"), itemXML("Coding plan iso", "https://new.example.com/iso", "2026-10-06T10:00:00"));
+    const script = "const { collectNews } = require(" + JSON.stringify(require.resolve("../news/collect-news")) + ");" +
+      "collectNews({ config: { schemaVersion: 1, sources: [" + JSON.stringify(source()) + "] }, now: new Date(" + JSON.stringify(NOW.toISOString()) + "), resolver: async () => [{ address: '8.8.8.8' }], fetcher: async () => new Response(" + JSON.stringify(xml) + ") })" +
+      ".then(({ report, inbox }) => process.stdout.write(JSON.stringify({ offset: new Date(" + JSON.stringify(NOW.toISOString()) + ").getTimezoneOffset(), dates: Object.fromEntries(report.candidates.map((item) => [item.url, item.publishedAt])), hashes: inbox.items.map((item) => item.contentHash) })));";
+    const [utc, shanghai] = ["UTC", "Asia/Shanghai"].map((zone) => {
+      const child = require("node:child_process").spawnSync(process.execPath, ["-e", script], { env: { ...process.env, TZ: zone }, encoding: "utf8" });
+      assert.equal(child.status, 0, child.stderr); return JSON.parse(child.stdout);
+    });
+    assert.equal(utc.offset, 0); assert.equal(shanghai.offset, -480);
+    assert.deepEqual(shanghai.dates, utc.dates); assert.deepEqual(shanghai.hashes, utc.hashes);
+    assert.deepEqual(utc.dates, { "https://new.example.com/zoneless": "2026-10-06T10:00:00.000Z", "https://new.example.com/rfc": "2026-10-05T08:00:00.000Z", "https://new.example.com/offset": "2026-10-05T00:00:00.000Z", "https://new.example.com/iso": "2026-10-06T10:00:00.000Z" });
+  });
+  await test("旧版无逐来源记录的已决条目升级时，内容与任一来源一致不重开，确有变化才重开", async () => {
+    const url = "https://vendor.example.com/legacy", feed = source("feed", "rss", "discovery"), hn = source("hn", "hn-search", "discovery");
+    const fetcher = async (raw) => String(raw).startsWith(feed.url) ? new Response(rss(itemXML("Vendor launches coding plan", url, "Mon, 05 Oct 2026 08:00:00 GMT", "Official post")))
+      : Response.json({ nbPages: 1, hits: [{ objectID: "1", title: "Show HN: Vendor coding plan is out", url, created_at: "2026-10-06T09:00:00.000Z" }] });
+    const first = await collect([feed, hn], fetcher, { now: NOW });
+    const reviewed = applyReview(first.inbox, { id: stableId(url), status: "rejected", reason: "不是编程套餐" }, { config: config(feed, hn), knownVendors: [], plans: [], now: NOW });
+    const legacy = (change) => { const inbox = structuredClone(reviewed), [item] = inbox.items; delete item.variants; change(item); item.contentHash = contentHash(item); return validateInbox(inbox); };
+    // 旧合并规则在 feed 失败时取 HN 内容：升级后与 HN 来源内容一致，不重开。
+    const hnShown = legacy((item) => { Object.assign(item, { title: "Show HN: Vendor coding plan is out", summary: "", kind: "hn-story", publishedAt: "2026-10-06T09:00:00.000Z", dateMeaning: "hn-post-created" }); });
+    const upgraded = await collect([feed, hn], fetcher, { now: OCT8, state: first.state, inbox: hnShown });
+    assert.equal(upgraded.inbox.items[0].needsReReview, false); assert.equal(upgraded.inbox.items[0].variants.length, 2); assert.equal(upgraded.inbox.items[0].title, "Vendor launches coding plan");
+    const changed = await collect([feed, hn], fetcher, { now: OCT8, state: first.state, inbox: legacy((item) => { item.title = "Vendor coding plan (older wording)"; }) });
+    assert.equal(changed.inbox.items[0].needsReReview, true); assert.equal(changed.inbox.items[0].revisions[0].title, "Vendor coding plan (older wording)");
   });
   await test("HN后续分页失败不替换旧缓存或丢候选，显式失败并记健康错误", async () => {
     const hn = source("hn", "hn-search", "discovery");

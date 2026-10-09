@@ -7,6 +7,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 const { buildMaintenance, parseArgs, rssOf } = require("./build-maintenance");
 const { seededHistory, canonical, changeOf, validateHistory } = require("./history");
+const { rewindToFullAudit } = require("../tests/full-audit-baseline");
 const workspace = path.resolve(__dirname, "../..");
 const outputs = ["data/change-history.json", "data/maintenance.json", "js/maintenance-data.js", "changes.xml"];
 
@@ -17,6 +18,8 @@ function fixture(run) {
     fs.mkdirSync(path.join(root, "audit"));
     fs.mkdirSync(path.join(root, "config"));
     fs.copyFileSync(path.join(workspace, "audit/pricing-verification-2026-10-04.json"), path.join(root, "audit/pricing-verification-2026-10-04.json"));
+    /* 用例按 10-04 全量台账的快照断言；增量核查后的仓库数据先回放到该基线。 */
+    rewindToFullAudit(root, workspace);
     const snapshot = () => outputs.map((file) => fs.existsSync(path.join(root, file)) ? fs.readFileSync(path.join(root, file)).toString("base64") : null);
     const calendar = (events) => fs.writeFileSync(path.join(root, "config/review-calendar.json"), JSON.stringify({ schemaVersion: 1, events }));
     // Generated files copied as part of js must not affect the initial output snapshot.

@@ -1,28 +1,63 @@
 "use strict";
 
 const { plainText } = require("./feed");
+const { replaceDelimited, elements, firstElement, stripElements, quotedTags, quotedElements } = require("./html-scan");
 const { normalizeURL } = require("./urls");
 
 const NON_ARTICLE_PATHS = new Set(["news", "blog", "index", "all", "archive", "archives", "category", "categories", "tag", "tags", "announcements", "company", "research", "product", "safety", "engineering"]);
 const MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
-const TAG = /<(?:[^>"']|"[^"]*"|'[^']*')*>/g;
+/* 文章与目录页最多 2 MiB：标签、属性与区块均用 html-scan 的线性扫描，结果与原正则逐项相同。 */
 
 function htmlText(value) {
   return plainText(String(value || "").replace(/&(lsquo|rsquo|ldquo|rdquo|ensp|emsp|thinsp);/gi, (whole, name) => ({ lsquo:"‘", rsquo:"’", ldquo:"“", rdquo:"”", ensp:" ", emsp:" ", thinsp:" " })[name.toLowerCase()] || whole));
 }
-/** @returns {Record<string,string>} */
+/** 线性属性扫描，同 /([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g：引号未闭合时按无引号值读取。
+ * @returns {Record<string,string>} */
 function attributes(tag) {
   /** @type {Record<string,string>} */
   const result = {};
-  for (const match of tag.matchAll(/([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g)) result[match[1].toLowerCase()] = htmlText(match[2] ?? match[3] ?? match[4]);
+  const names = /[\w:-]+/g, equals = /\s*=\s*/y, bare = /[^\s>]+/y, unclosed = new Set();
+  for (let match; (match = names.exec(tag));) {
+    equals.lastIndex = names.lastIndex;
+    if (!equals.exec(tag)) continue;
+    const start = equals.lastIndex, quote = tag[start];
+    let value = null, end = -1;
+    if ((quote === '"' || quote === "'") && !unclosed.has(quote)) {
+      end = tag.indexOf(quote, start + 1);
+      if (end < 0) unclosed.add(quote); else { value = tag.slice(start + 1, end); end++; }
+    }
+    if (value === null) {
+      bare.lastIndex = start;
+      const plain = bare.exec(tag);
+      if (!plain) continue;
+      value = plain[0]; end = bare.lastIndex;
+    }
+    result[match[0].toLowerCase()] = htmlText(value);
+    names.lastIndex = end;
+  }
   return result;
+}
+/** 同 /<script\b[^>]*>(?![\s\S]*<\/script\s*>)/i：某个开标签之后再没有结束标签。 @param {string} html */
+function unclosedScript(html) {
+  const open = /<script\b/gi, close = /<\/script\s*>/gi;
+  let lastClose = -1, tagEnd = -1;
+  for (let match; (match = close.exec(html));) lastClose = match.index;
+  while (open.exec(html)) {
+    if (tagEnd < open.lastIndex) tagEnd = html.indexOf(">", open.lastIndex);
+    if (tagEnd < 0) return false;
+    if (lastClose < tagEnd + 1) return true;
+  }
+  return false;
 }
 function documentHTML(html) {
   if (typeof html !== "string" || !/<(?:html|main|article|h1|a|meta)\b/i.test(html)) throw new Error("博客响应不是可解析的 HTML");
   if (html.length > 8 * 1024 * 1024) throw new Error("博客 HTML 超过解析上限");
-  if (/<script\b[^>]*>(?![\s\S]*<\/script\s*>)/i.test(html)) throw new Error("博客 script 标签不完整");
+  if (unclosedScript(html)) throw new Error("博客 script 标签不完整");
   return html;
 }
+/** 去掉注释与不可见/导航区块（同原先的 /<!--[^]*?-->/g 与 /<(a|b)\b[^>]*>[^]*?<\/\1\s*>/gi 两次替换）。
+ * @param {string} html @param {string[]} names */
+const visibleHTML = (html, names) => stripElements(replaceDelimited(html, "<!--", "-->", () => " "), names);
 function articlePath(pathname) {
   const parts = pathname.toLowerCase().split("/").filter(Boolean);
   return parts.length > 0 && !NON_ARTICLE_PATHS.has(parts.at(-1)) && !parts.some((part) => ["category", "categories", "tag", "tags", "page"].includes(part));
@@ -39,10 +74,10 @@ function parseBlogLinks(html, indexURL, articlePaths, options = {}) {
   const maxArticles = options.maxArticles ?? 20;
   if (!Number.isInteger(maxArticles) || maxArticles < 1 || maxArticles > 100) throw new Error("博客文章上限必须在 1–100 之间");
   const index = new URL(normalizeURL(indexURL)), urls = [], seen = new Set();
-  const visible = html.replace(/<!--[^]*?-->/g, " ").replace(/<(script|style|template)\b[^>]*>[^]*?<\/\1\s*>/gi, " ");
-  for (const match of visible.matchAll(TAG)) {
-    if (!/^<a\b/i.test(match[0])) continue;
-    const href = attributes(match[0]).href;
+  const visible = visibleHTML(html, ["script", "style", "template"]);
+  for (const tag of quotedTags(visible)) {
+    if (!/^<a\b/i.test(tag.text)) continue;
+    const href = attributes(tag.text).href;
     if (!href || href.startsWith("#")) continue;
     let url;
     try { url = new URL(normalizeURL(new URL(href, index).href)); } catch { continue; }
@@ -104,11 +139,11 @@ function parseBlogArticle(html, articleURL) {
   if (!articlePath(new URL(url).pathname)) throw new Error("博客导航或分类页不能作为文章");
   /** @type {Array<Record<string,any>>} */
   const nodes = [];
-  for (const match of html.matchAll(/<script\b((?:[^>"']|"[^"]*"|'[^']*')*)>([\s\S]*?)<\/script\s*>/gi)) {
-    if (attributes(match[1]).type?.toLowerCase() !== "application/ld+json") continue;
+  for (const script of quotedElements(html, "script")) {
+    if (attributes(script.attrs).type?.toLowerCase() !== "application/ld+json") continue;
     let json;
-    try { json = JSON.parse(match[2]); }
-    catch { try { json = JSON.parse(htmlText(match[2])); } catch { throw new Error("文章 JSON-LD 无效"); } }
+    try { json = JSON.parse(script.inner); }
+    catch { try { json = JSON.parse(htmlText(script.inner)); } catch { throw new Error("文章 JSON-LD 无效"); } }
     articleNodes(json, nodes);
   }
   const matching = nodes.filter((node) => {
@@ -118,40 +153,40 @@ function parseBlogArticle(html, articleURL) {
   });
   if (matching.length > 1) throw new Error("文章 JSON-LD 主文章不明确");
   const structured = matching[0];
-  const visible = html.replace(/<!--[^]*?-->/g, " ").replace(/<(script|style|template|nav|footer|aside)\b[^>]*>[^]*?<\/\1\s*>/gi, " ");
-  const scope = /<(?:article|main)\b[^>]*>([\s\S]*?)<\/(?:article|main)\s*>/i.exec(visible)?.[1] || visible;
+  const visible = visibleHTML(html, ["script", "style", "template", "nav", "footer", "aside"]);
+  const scope = firstElement(visible, ["article", "main"], { anyClose: true })?.inner || visible;
   /** @type {Record<string,string>} */
   const meta = {};
-  for (const match of visible.matchAll(TAG)) {
-    if (!/^<meta\b/i.test(match[0])) continue;
-    const attrs = attributes(match[0]), key = (attrs.property || attrs.name || attrs.itemprop || "").toLowerCase();
+  for (const tag of quotedTags(visible)) {
+    if (!/^<meta\b/i.test(tag.text)) continue;
+    const attrs = attributes(tag.text), key = (attrs.property || attrs.name || attrs.itemprop || "").toLowerCase();
     if (key && attrs.content) meta[key] = attrs.content;
   }
   // Some official layouts put the hero heading before <main>, with only the body in <article>.
-  const scopedHeading = /<h1\b[^>]*>([\s\S]*?)<\/h1\s*>/i.exec(scope);
+  const scopedHeading = firstElement(scope, ["h1"]);
   const headingScope = scopedHeading ? scope : visible;
-  const heading = scopedHeading || /<h1\b[^>]*>([\s\S]*?)<\/h1\s*>/i.exec(headingScope);
-  const title = htmlText((typeof structured?.headline === "string" ? structured.headline : "") || (typeof structured?.name === "string" ? structured.name : "") || meta["og:title"] || heading?.[1]);
+  const heading = scopedHeading || firstElement(headingScope, ["h1"]);
+  const title = htmlText((typeof structured?.headline === "string" ? structured.headline : "") || (typeof structured?.name === "string" ? structured.name : "") || meta["og:title"] || heading?.inner);
   if (!title || (!structured && !heading)) throw new Error("博客文章缺少主标题或文章结构");
   let rawDate = structured?.datePublished || meta["article:published_time"] || meta["og:published_time"] || meta.datepublished || meta.pubdate;
   if (!rawDate) {
-    const header = heading ? headingScope.slice(Math.max(0, heading.index - 1500), heading.index + heading[0].length + 1500) : scope;
-    for (const match of header.matchAll(/<time\b([^>]*)>([\s\S]*?)<\/time\s*>/gi)) {
-      const attrs = attributes(match[1]);
+    const header = heading ? headingScope.slice(Math.max(0, heading.index - 1500), heading.end + 1500) : scope;
+    for (const match of elements(header, ["time"])) {
+      const attrs = attributes(match.attrs);
       const before = htmlText(header.slice(Math.max(0, match.index - 100), match.index));
-      if (/modified|updated/i.test(attrs.itemprop || "") || /updated|last\s+modified/i.test(htmlText(match[2])) || /(?:updated|last\s+modified)\s*[:：]?\s*$/i.test(before)) continue;
-      rawDate = attrs.datetime || htmlText(match[2]); if (rawDate) break;
+      if (/modified|updated/i.test(attrs.itemprop || "") || /updated|last\s+modified/i.test(htmlText(match.inner)) || /(?:updated|last\s+modified)\s*[:：]?\s*$/i.test(before)) continue;
+      rawDate = attrs.datetime || htmlText(match.inner); if (rawDate) break;
     }
     if (!rawDate) {
-      for (const match of header.matchAll(/<(p|span|div)\b[^>]*>([\s\S]*?)<\/\1\s*>/gi)) {
-        const text = htmlText(match[2]);
+      for (const match of elements(header, ["p", "span", "div"])) {
+        const text = htmlText(match.inner);
         if (/^(?:Published\s+(?:on\s+)?)?(?:January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4}$/i.test(text)) { rawDate = text; break; }
       }
     }
   }
   const publishedAt = rawDate ? publicationDate(rawDate) : null;
   if (!structured && !/<article\b/i.test(scope) && !/<article\b/i.test(visible) && meta["og:type"] !== "article" && !(publishedAt && /<main\b/i.test(visible))) throw new Error("博客页面没有可确认的文章结构");
-  const paragraphs = [...scope.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p\s*>/gi)].map((match) => htmlText(match[1])).filter((text) => text.length >= 20 && !/^(?:Published|Updated|Last modified)\b/i.test(text));
+  const paragraphs = [...elements(scope, ["p"])].map((match) => htmlText(match.inner)).filter((text) => text.length >= 20 && !/^(?:Published|Updated|Last modified)\b/i.test(text));
   const summary = htmlText((typeof structured?.description === "string" ? structured.description : "") || meta["og:description"] || meta.description || paragraphs[0] || "").slice(0, 360);
   if (!summary) throw new Error("博客文章没有可解析的摘要或正文");
   return { title:title.slice(0, 500), url, summary, ...(publishedAt ? { publishedAt } : {}), dateMeaning:publishedAt ? "article-published" : "unknown", kind:"blog-article" };

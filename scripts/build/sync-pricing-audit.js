@@ -8,6 +8,11 @@ const { loadData, canonical, changeOf, readHistory, mergeHistory } = require("..
 const crypto = require("node:crypto");
 const { withFileLockSync } = require("../lib/file-lock");
 
+/** Asia/Shanghai 的当日日期 YYYY-MM-DD。 @param {Date} now */
+function shanghaiDate(now) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+}
+
 /** Stage all outputs before replacing any file; restore existing or remove newly created files on failure.
  * @param {Map<string,Buffer>} outputs
  * @param {{rename?:(from:string,to:string)=>void,writeBytes?:(file:string,bytes:Buffer)=>void}} options */
@@ -46,11 +51,18 @@ function commitOutputs(outputs, options = {}) {
 }
 
 /** @param {string} workspace
- * @param {{incremental?:boolean,input?:string,rename?:(from:string,to:string)=>void,writeBytes?:(file:string,bytes:Buffer)=>void}} options */
+ * @param {{incremental?:boolean,input?:string,now?:Date,rename?:(from:string,to:string)=>void,writeBytes?:(file:string,bytes:Buffer)=>void}} options
+ *   now 仅供测试注入“今天”；核查日期以 Asia/Shanghai 当日为准。 */
 function syncPricingAuditUnlocked(workspace, options = {}) {
   const root = path.resolve(workspace);
   const auditDir = path.join(root, "audit");
   if (!!options.incremental !== !!options.input) throw new Error("增量同步必须同时提供 --incremental 和 --input");
+  const now = options.now || new Date();
+  if (!(now instanceof Date) || !Number.isFinite(now.getTime())) throw new Error("同步时间无效");
+  /* 未来日期会把 META.updated / PRICE_CHECKS.checkedAt 推到未来，之后正确的核查都被判为“日期倒退”。
+   * 允许 1 天时差，覆盖跨时区录入；更晚的日期视为输入错误。 */
+  const today = shanghaiDate(now), latest = new Date(Date.parse(today + "T00:00:00Z") + 86400000).toISOString().slice(0, 10);
+  const notFuture = (date, label) => { if (date > latest) throw new Error(label + " " + date + " 晚于今天（Asia/Shanghai " + today + "，最多容许 1 天时差），疑似输入错误"); };
   let input = null;
   if (options.input) {
     input = path.resolve(root, options.input);
@@ -66,6 +78,7 @@ function syncPricingAuditUnlocked(workspace, options = {}) {
   if (!options.incremental) {
     if (audits.some((audit) => audit.checkedAt !== checkedAt)) throw new Error("核查日期不一致");
     if (!isISODate(checkedAt)) throw new Error("核查日期必须为有效 YYYY-MM-DD 日期");
+    notFuture(checkedAt, "批次核查日期");
   }
   const sources = audits.flatMap((a) => a.sources);
   if (new Set(sources.map((s) => s.id)).size !== sources.length) throw new Error("来源 ID 重复");
@@ -75,6 +88,7 @@ function syncPricingAuditUnlocked(workspace, options = {}) {
     if (typeof entry.id !== "string" || !entry.id.trim() || typeof entry.url !== "string" || !/^https:\/\//.test(entry.url)) throw new Error("核价来源 URL 非法或缺 ID");
     if (typeof entry.evidence !== "string" || !entry.evidence.trim()) throw new Error("核价来源缺少证据");
     if (entry.checkedAt != null && !isISODate(entry.checkedAt)) throw new Error("来源核查日期非法");
+    if (entry.checkedAt != null) notFuture(entry.checkedAt, "来源 " + entry.id + " 的核查日期");
   }
   const dataFile = path.join(root, "js/data.js");
   let source = fs.readFileSync(dataFile, "utf8");
@@ -96,12 +110,12 @@ function syncPricingAuditUnlocked(workspace, options = {}) {
     }
   }
   const arrays = { plan: "PLANS", api: "API_PRICES", payg: "PAYG_REFERENCES" };
-  const allowed = new Set(["priceM", "priceY", "annualTotal", "autoRenewMonthly", "cur", "seat", "plan", "model", "label", "quota", "models", "tools", "note", "url", "inUSD", "outUSD", "inCNY", "outCNY", "apiIn", "apiOut", "apiCache", "source", "windowPeriod", "quotaSharing", "codingSurface", "includedModelQuota", "modelAccess", "purchaseCountries", "modelBaseRef", "modelIncludes", "modelExcludes", "ownClient"]);
+  const allowed = new Set(["priceM", "priceY", "annualTotal", "autoRenewMonthly", "singleMonthPrice", "availability", "sameAs", "cur", "seat", "plan", "model", "label", "quota", "models", "tools", "note", "url", "inUSD", "outUSD", "inCNY", "outCNY", "apiIn", "apiOut", "apiCache", "source", "windowPeriod", "quotaSharing", "codingSurface", "includedModelQuota", "modelAccess", "purchaseCountries", "modelBaseRef", "modelIncludes", "modelExcludes", "ownClient"]);
   const edits = [];
   const newPlans = [];
   const changes = [];
   const identity = new Map();
-  const allowedNew = new Set(["id", "vendor", "cat", "region", "fieldRefs", "plan", "priceM", "priceY", "annualTotal", "autoRenewMonthly", "cur", "seat", "quota", "models", "tools", "note", "url", "windowPeriod", "quotaSharing", "codingSurface", "includedModelQuota", "modelAccess", "purchaseCountries", "modelBaseRef", "modelIncludes", "modelExcludes", "ownClient"]);
+  const allowedNew = new Set(["id", "vendor", "cat", "region", "fieldRefs", "plan", "priceM", "priceY", "annualTotal", "autoRenewMonthly", "singleMonthPrice", "availability", "sameAs", "cur", "seat", "quota", "models", "tools", "note", "url", "windowPeriod", "quotaSharing", "codingSurface", "includedModelQuota", "modelAccess", "purchaseCountries", "modelBaseRef", "modelIncludes", "modelExcludes", "ownClient"]);
   function validateNewPlan(plan, record) {
     if (!plan || typeof plan !== "object" || Array.isArray(plan) || Object.keys(plan).some((key) => !allowedNew.has(key))) throw new Error("新增计划必须为完整 Plan schema");
     if (plan.id !== record.id || plan.vendor !== record.vendor || plan.plan !== record.name) throw new Error("新增计划永久 ID、厂商或名称与审计身份不一致");
@@ -130,6 +144,7 @@ function syncPricingAuditUnlocked(workspace, options = {}) {
     const rowDate = options.incremental ? record.checkedAt : (record.checkedAt || checkedAt);
     if (!isISODate(rowDate)) throw new Error("逐行核查日期必须为有效 YYYY-MM-DD 日期");
     if (!options.incremental && rowDate > checkedAt) throw new Error("逐行核查日期不能晚于批次日期");
+    notFuture(rowDate, "逐行核查日期（" + record.kind + ":" + record.id + "）");
     const name = arrays[record.kind];
     if (!name) throw new Error("未知记录类型：" + record.kind);
     const declaration = declarations.get(name);
@@ -158,9 +173,14 @@ function syncPricingAuditUnlocked(workspace, options = {}) {
     for (const id of record.sourceIds) if (sourceMap[id].checkedAt && sourceMap[id].checkedAt > rowDate) throw new Error("来源核查日期不能晚于记录日期：" + key);
     for (const [field, value] of Object.entries(record.patch)) {
       if (!allowed.has(field)) throw new Error("不支持的 patch 字段：" + field);
-      if (record.old && Object.hasOwn(record.old, field) && canonical(item[field]) !== canonical(value) && canonical(item[field]) !== canonical(record.old[field])) throw new Error("旧审计 patch 与现值不符，拒绝覆盖：" + originalKey + "/" + field);
-      const explicitCurrentBase = record.old && Object.hasOwn(record.old, field) && canonical(record.old[field]) === canonical(item[field]);
-      if (!options.incremental && previous && rowDate === previous.checkedAt && !explicitCurrentBase && canonical(item[field]) !== canonical(value) && priorHistory.changes.some((change) => change.kind === record.kind && change.id === originalKey.slice(record.kind.length + 1) && change.checkedAt >= rowDate && change.fields.includes(field) && canonical(change.after[field]) === canonical(item[field]))) throw new Error("同日旧全量权益 patch 重放，须显式提供当前基值：" + originalKey + "/" + field);
+      // 缺失字段与 null 等价（与变更历史口径一致），因此新增字段可用 old:null 声明当前基值。
+      const current = Object.hasOwn(item, field) ? item[field] : null, changed = canonical(current) !== canonical(value);
+      const hasOld = !!record.old && Object.hasOwn(record.old, field);
+      if (hasOld && changed && canonical(current) !== canonical(record.old[field])) throw new Error("旧审计 patch 与现值不符，拒绝覆盖：" + originalKey + "/" + field);
+      /* 同日可能有多批增量：每个改值字段都要以 old 声明当前值，未声明基值的旧文件重放不能把新值改回去。 */
+      if (options.incremental && changed && !hasOld) throw new Error("增量修改须在 old 中提供该字段的当前值，拒绝无基值的 patch（防止旧审计重放覆盖新值）：" + originalKey + "/" + field);
+      const explicitCurrentBase = hasOld && canonical(record.old[field]) === canonical(current);
+      if (!options.incremental && previous && rowDate === previous.checkedAt && !explicitCurrentBase && changed && priorHistory.changes.some((change) => change.kind === record.kind && change.id === originalKey.slice(record.kind.length + 1) && change.checkedAt >= rowDate && change.fields.includes(field) && canonical(change.after[field]) === canonical(current))) throw new Error("同日旧全量权益 patch 重放，须显式提供当前基值：" + originalKey + "/" + field);
     }
     if (record.status === "unverified" && (index < 0 || Object.keys(record.patch).some((field) => canonical(item[field]) !== canonical(record.patch[field])))) throw new Error("未核实记录不能修改价格或权益事实：" + key);
     const after = record.new || { ...item, ...record.patch };
@@ -168,7 +188,9 @@ function syncPricingAuditUnlocked(workspace, options = {}) {
     if (originalKey !== key) delete rows[originalKey];
     rows[key] = { status: record.status, checkedAt: rowDate, sourceIds: record.sourceIds, reason: record.reason };
     identity.set(record, { key, name, id: record.kind === "plan" ? record.id : originalKey.slice(record.kind.length + 1) });
-    if (["verified", "changed", "retired"].includes(record.status)) changes.push(changeOf(item, after, {
+    /* 任何状态只要改变事实都要进入真实变更历史（custom 也可能把价格改为询价）；无差异时 changeOf 返回 null。
+     * unverified 已在上方禁止修改事实。 */
+    changes.push(changeOf(item, after, {
       id: identity.get(record).id, kind: record.kind, vendor: record.vendor,
       name: after.plan || after.model, checkedAt: rowDate,
       sourceUrls: [...new Set(record.sourceIds.map((id) => sourceMap[id].url))].sort(),
@@ -197,7 +219,7 @@ function syncPricingAuditUnlocked(workspace, options = {}) {
   for (const edit of edits) source = source.slice(0, edit.start) + edit.text + source.slice(edit.end);
   source = source.replace("全部价格经网络核实，来源见 SOURCES", "价格逐条核查状态见 PRICE_CHECKS；待核实历史价仅作参考");
   const current = loadData(source);
-  const validation = validateData({ workspace: root, source });
+  const validation = validateData({ workspace: root, source, now });
   if (validation.errors.length) throw new Error("核价同步候选数据校验失败：\n" + validation.errors.join("\n"));
   for (const record of records) {
     const currentId = identity.get(record).key.slice(record.kind.length + 1);

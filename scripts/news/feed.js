@@ -1,4 +1,5 @@
 "use strict";
+const { replaceDelimited, stripElements } = require("./html-scan");
 
 const ENTITIES = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", ndash: "–", mdash: "—", hellip: "…", copy: "©" };
 function decodeEntities(text) {
@@ -8,19 +9,31 @@ function decodeEntities(text) {
     return code > 0 && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff) ? String.fromCodePoint(code) : whole;
   });
 }
+/* 与原正则管线（CDATA → 实体 → 注释 → script/style → 标签）逐字节同义，但各步都是线性扫描（见 html-scan.js）。 */
 function plainText(text) {
-  return decodeEntities(String(text || "").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1"))
-    .replace(/<!--[\s\S]*?-->/g, " ").replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, " ")
-    .replace(/<[^>]*>/g, " ").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "")
-    .replace(/\s+/g, " ").trim();
+  const decoded = decodeEntities(replaceDelimited(String(text || ""), "<![CDATA[", "]]>", (inner) => inner));
+  const visible = replaceDelimited(stripElements(replaceDelimited(decoded, "<!--", "-->", () => " "), ["script", "style"]), "<", ">", () => " ");
+  return visible.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "").replace(/\s+/g, " ").trim();
 }
+/** 引号感知的线性属性扫描（同 /([\w:-]+)\s*=\s*(["'])(.*?)\2/gs），未闭合引号只查找一次。 */
 function attributes(tag) {
   /** @type {Record<string,string>} */
   const result = {};
-  for (const match of tag.matchAll(/([\w:-]+)\s*=\s*(["'])(.*?)\2/gs)) result[match[1].toLowerCase()] = decodeEntities(match[3]);
+  const names = /[\w:-]+/g, equals = /\s*=\s*/y, unclosed = new Set();
+  for (let match; (match = names.exec(tag));) {
+    equals.lastIndex = names.lastIndex;
+    if (!equals.exec(tag)) continue;
+    const start = equals.lastIndex, quote = tag[start];
+    if ((quote !== '"' && quote !== "'") || unclosed.has(quote)) continue;
+    const end = tag.indexOf(quote, start + 1);
+    if (end < 0) { unclosed.add(quote); continue; }
+    result[match[0].toLowerCase()] = decodeEntities(tag.slice(start + 1, end));
+    names.lastIndex = end + 1;
+  }
   return result;
 }
 /** @typedef {{name:string,attrs:Record<string,string>,base:string,children:Array<XMLNode|string>}} XMLNode */
+const MAX_TAG_LENGTH = 8192;
 /** Minimal structural XML parser: CDATA is text, direct child fields retain their meaning, and malformed tags fail closed.
  * @returns {XMLNode} */
 function parseXML(xml, baseURL) {
@@ -48,6 +61,7 @@ function parseXML(xml, baseURL) {
     if (xml.startsWith("<!", cursor)) throw new Error("Feed 不支持 DTD 或自定义实体");
     let end = cursor + 1, quote = "";
     for (; end < xml.length; end++) {
+      if (end - cursor >= MAX_TAG_LENGTH) throw new Error("Feed 标签超过 8 KiB");
       const ch = xml[end];
       if (quote) { if (ch === quote) quote = ""; }
       else if (ch === '"' || ch === "'") quote = ch;

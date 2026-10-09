@@ -367,6 +367,7 @@ function renderTokensChart() {
   byId("tokenInsight").innerHTML = `
     <div class="token-insight-list" tabindex="0" role="region" aria-label="全部厂商的每周 tokens 性价比明细">
     <h3>💡 性价比：每 ¥100/月 能买到多少每周 tokens（全部厂商）</h3>
+    <p class="token-insight-count">共 ${byValue.length} 档，按性价比排序；列表可在框内滚动查看。</p>
     <table class="mini-table">
       ${byValue.map((r) => {
         const per100 = r.priceCNY > 0 ? (r.midM / r.priceCNY * 100).toFixed(1) : "—";
@@ -502,8 +503,17 @@ function renderApiChart() {
 }
 
 /* ---------- 免费入口 ---------- */
+/* 免费入口按地区和类型筛选（本页内状态，不写入分享链接）；手机上 20 张卡不必整页滚完。 */
+const freeState = { region: "all", kind: "all" };
+function freeKind(p) { return hasIncludedModelQuota(p) ? "included" : "byok"; }
 function renderFree() {
-  const rows = PLANS.filter(isFreeCodingEntry);
+  const all = PLANS.filter(isFreeCodingEntry);
+  const rows = all.filter((p) => (freeState.region === "all" || p.region === freeState.region) && (freeState.kind === "all" || freeKind(p) === freeState.kind));
+  setChipPressed(qsa("[data-free-region]"), (chip) => chip.dataset.freeRegion === freeState.region);
+  setChipPressed(qsa("[data-free-kind]"), (chip) => chip.dataset.freeKind === freeState.kind);
+  const count = byId("freeCount");
+  if (count) count.textContent = `显示 ${rows.length} / ${all.length} 个免费入口`;
+  if (!rows.length) { byId("freeGrid").innerHTML = '<p class="chart-empty">没有符合条件的免费入口，可以切换地区或类型。</p>'; return; }
   byId("freeGrid").innerHTML = rows
     .map((p) => {
       const href = safeHref(p.url);

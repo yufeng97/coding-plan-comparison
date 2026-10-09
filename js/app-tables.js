@@ -27,8 +27,10 @@ function syncSortHeader(th, label, key, dir, firstDir = 1) {
 
 function planMonthlyPriceCell(p) {
   const sub = p.priceM > 0 ? `<br><span class="sub">≈${fmtCNY(cnyOf(p, "M"))}/${esc(priceUnit(p))}</span>` : "";
+  /* 主标价为连续包月价的档位，另列不续费的单月价，便于和以单月价为标价的套餐对照。 */
+  const single = p.singleMonthPrice > 0 ? `<br><span class="sub">连续包月价；单月一次购买 ${esc(priceText({ ...p, priceM:p.singleMonthPrice }, "priceM"))}</span>` : "";
   const chosen = tableState.fromPicker ? `<br><span class="sub">选购口径：${esc(priceLine(p))}；首次 ${esc(pickerFirstPaymentText(p))}</span>` : "";
-  return esc(planPriceLabel(p)) + sub + chosen;
+  return esc(planPriceLabel(p)) + sub + single + chosen;
 }
 function planAnnualPriceCell(p) {
   if (p.priceY == null) return isOneTimePlan(p) ? "—" : '<span class="sub">未列年付价</span>';
@@ -566,7 +568,7 @@ function renderMisc() {
     ).join("") + `<details class="method-box audit-sources"><summary>本次逐条核价来源（${Object.keys(PRICE_CHECKS.sources).length} 页）</summary><ul>` +
     Object.values(PRICE_CHECKS.sources).map((s) => {
       const href = safeHref(s.url);
-      return href ? `<li><a href="${href}" tabindex="0" target="_blank" rel="noopener">${esc(s.url)}</a> — ${esc(s.evidence)}</li>` : "";
+      return href ? `<li><a href="${href}" tabindex="0" target="_blank" rel="noopener">${esc(s.url)}</a> — ${esc(displayPriceReason(s.evidence))}</li>` : "";
     }).join("") + `</ul></details>`;
   const pendingPrices = [
     ...PLANS.map((p) => ({ p, kind: "plan" })),
@@ -809,9 +811,10 @@ function renderMetricsTable() {
   renderMetricsSortHint();
 
   byId("metricsNote").innerHTML =
-    `<b>当前范围：</b>${metricsState.tier === "all" ? "含轻量模型" : "只看旗舰模型"}；${metricsState.offer === "all" ? "含历史与仅老用户续费档，购买前请核对来源" : "仅新用户当前可购买的套餐，与排行使用相同购买筛选"}。API 按量是参照行，不进入套餐排行。<br>` +
-    METRICS_NOTE_LEGEND +
-    `当前 ${shownRows.length} 行（含 <b>${payg.length}</b> 行官方按量、<b>${rows.filter((r) => r.m.isEst).length}</b> 行「≈估」），按${sortDescription}排序。`;
+    `<b>当前范围：</b>${metricsState.tier === "all" ? "含轻量模型" : "只看旗舰模型"}；${metricsState.offer === "all" ? "含历史与仅老用户续费档，购买前请核对来源" : "仅新用户当前可购买的套餐，与排行使用相同购买筛选"}。API 按量是参照行，不进入套餐排行。` +
+    `当前 ${shownRows.length} 行（含 <b>${payg.length}</b> 行官方按量、<b>${rows.filter((r) => r.m.isEst).length}</b> 行「≈估」），按${sortDescription}排序。` +
+    /* 各列口径与置信度说明较长，默认收起，避免表格下方出现整屏文字。 */
+    `<details class="metrics-legend"><summary>各列口径、计算假设与置信度说明</summary>${METRICS_NOTE_LEGEND}</details>`;
 }
 
 function showMoreMetricsRows() {

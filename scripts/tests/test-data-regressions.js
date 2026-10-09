@@ -30,7 +30,7 @@ const withPrice = (d, m) => {
 };
 
 /* 用虚拟 readFileSync 注入数据变体，运行真实 validate-data.js；真实文件始终只读。 */
-function validateFixture(mutation) {
+function validateFixture(mutation, options = {}) {
   const output = [];
   const stopped = {};
   let exitCode = 0;
@@ -43,7 +43,7 @@ function validateFixture(mutation) {
     },
   };
   try {
-    vm.runInNewContext(validatorSource + "\n;if (!printReport(module.exports.validateData())) process.exit(1);", {
+    vm.runInNewContext(validatorSource + `\n;if (!printReport(module.exports.validateData(${JSON.stringify(options)}))) process.exit(1);`, {
       __dirname: path.join(root, "scripts", "build"),
       require(name) { return name === "fs" ? fakeFs : require(name); },
       module: { exports: {} },
@@ -345,6 +345,15 @@ const invalidFixtures = [
   ["负输出价", "METRICS_RAW[0].apiOut=-1;", /缺完整有限牌价/],
   ["过高缓存价", "METRICS_RAW[0].apiCache=METRICS_RAW[0].apiIn+1;", /缺完整有限牌价/],
   ["倒置官方条数区间", "ESTIMATES.find(m=>m.model==='GPT-6.1 Sol').reqHighPer5h=1;", /区间上下限颠倒/],
+  ["用户可见文字含内部字段名", "PLANS.find(p=>p.id==='plan-0149').quota='按席位订阅（priceY=null）';", /内部字段名或开发用语/],
+  ["核查说明含开发用语", "PRICE_CHECKS.rows['plan:plan-0002'].reason='确认后 seat 会使其退出 isPersonalMonthly';", /内部字段名或开发用语/],
+  ["晚于今天的数据版本", "META.updated='2062-10-09';", /META\.updated 2062-10-09 晚于今天/],
+  ["晚于今天的逐行核查日期", "PRICE_CHECKS.rows['plan:plan-0002'].checkedAt='2062-10-09';", /核查日期晚于今天/],
+  ["sameAs 指向不存在的主条目", "PLANS.find(p=>p.id==='plan-0109').sameAs='plan-9999';", /sameAs 必须指向/],
+  ["sameAs 与主条目价格不一致", "PLANS.find(p=>p.id==='plan-0109').priceM=25;", /sameAs 的主条目价格与币种必须相同/],
+  ["单月价低于连续包月标价", "PLANS.find(p=>p.id==='plan-0197').singleMonthPrice=5;", /singleMonthPrice/],
+  ["非法售罄标记", "PLANS.find(p=>p.id==='plan-0043').availability='maybe';", /availability 只能是 sold-out/],
+  ["厂商自估周额度不成对", "delete METRICS_RAW.find(m=>m.ref==='plan-0031'&&m.model==='GLM-5.3').vendorWkHighM;", /vendorWkLowM\/vendorWkHighM/],
 ];
 for (const [label, mutation, expected] of invalidFixtures) {
   test("校验器拒绝 " + label + " fixture", () => {
@@ -353,6 +362,64 @@ for (const [label, mutation, expected] of invalidFixtures) {
     assert.match(result.output, expected);
   });
 }
+
+test("校验器提示已结束的限时活动、复制的周额度与过期首页日期，但不阻断同步", () => {
+  const result = validateFixture([
+    "PLANS.find(p=>p.id==='plan-0157').note+='；双节活动（09-25~10-07）全天按非高峰消耗';",
+    "PLANS.find(p=>p.id==='plan-0066').note+='；截至 2026-10-04 的用量说明';",
+    "METRICS_RAW.find(m=>m.ref==='plan-0032'&&m.model==='GLM-5.3').wkLowM=METRICS_RAW.find(m=>m.ref==='plan-0031'&&m.model==='GLM-5.3').wkLowM;",
+    "METRICS_RAW.find(m=>m.ref==='plan-0032'&&m.model==='GLM-5.3').wkHighM=METRICS_RAW.find(m=>m.ref==='plan-0031'&&m.model==='GLM-5.3').wkHighM;",
+    "META.updated='2026-10-10';",
+  ].join("\n"));
+  assert.equal(result.exitCode, 0, result.output);
+  assert.match(result.output, /已结束的限时活动日期.*plan-0157（09-25~10-07）/);
+  assert.doesNotMatch(result.output, /plan-0066（至/, "「截至」是时点说明，不是活动截止");
+  assert.match(result.output, /相同周额度但额度原文不同.*plan-0031.*plan-0032/);
+  assert.match(result.output, /#heroDate 的静态日期 .* 与 META\.updated 2026-10-10 不一致/);
+});
+
+test("核查说明改写去掉字段名与「库存」术语，保留真实商品库存的说法", () => {
+  const box = { console };
+  vm.createContext(box);
+  vm.runInContext(dataSource + "\n;globalThis.__R={displayPriceReason,INTERNAL_TEXT_RE,PRICE_CHECKS};", box);
+  const { displayPriceReason, INTERNAL_TEXT_RE, PRICE_CHECKS } = box.__R;
+  assert.equal(displayPriceReason("官方订阅表未列年付价，保持 priceY=null。"), "官方订阅表未列年付价，保持 年付折月价为空（官方未列）。");
+  assert.equal(displayPriceReason("确认美元正常月费与库存相同"), "确认美元正常月费与本站原记录相同");
+  assert.equal(displayPriceReason("实际库存及活动以下单页为准"), "实际库存及活动以下单页为准");
+  const kiro = displayPriceReason(PRICE_CHECKS.rows["plan:plan-0075"].reason);
+  assert.doesNotMatch(kiro, INTERNAL_TEXT_RE);
+  assert.match(kiro, /个人月付与推荐范围/);
+  assert.match(kiro, /保持本站原记录个人分类/);
+  assert.doesNotMatch(displayPriceReason("full seat $40/月；flex seat 无固定费"), INTERNAL_TEXT_RE, "产品席位名称仍可正常显示");
+  for (const row of Object.values(PRICE_CHECKS.rows)) assert.doesNotMatch(displayPriceReason(row.reason), INTERNAL_TEXT_RE);
+});
+
+test("同一订阅的重复条目、售罄预付包与已停止的 Gemini CLI 免费档不再作为可购或免费入口", () => {
+  const box = { console };
+  vm.createContext(box);
+  vm.runInContext(dataSource + "\n;globalThis.__R={PLANS,isFreeCodingEntry,isOnSalePlan,isPersonalMonthly,offerable,isSoldOut,isDuplicateListing,isRetiredPlan};", box);
+  const d = box.__R;
+  const byId = (id) => d.PLANS.find((p) => p.id === id);
+  for (const id of ["plan-0108", "plan-0109", "plan-0110"]) {
+    assert.ok(d.isDuplicateListing(byId(id)), id);
+    assert.equal(d.isFreeCodingEntry(byId(id)) || d.isOnSalePlan(byId(id)) || d.isPersonalMonthly(byId(id)) || d.offerable(byId(id)), false, id);
+  }
+  assert.ok(d.isFreeCodingEntry(byId("plan-0104")) && d.isOnSalePlan(byId("plan-0105")), "Devin Desktop 主条目保留");
+  for (const id of ["plan-0043", "plan-0044", "plan-0045"]) assert.ok(d.isSoldOut(byId(id)) && !d.offerable(byId(id)) && d.isOnSalePlan(byId(id)), id);
+  assert.ok(d.isRetiredPlan(byId("plan-0020")) && !d.isFreeCodingEntry(byId("plan-0020")), "Gemini CLI 个人免费档 2026-06-18 已停止服务");
+  assert.equal(byId("plan-0197").singleMonthPrice, 15);
+});
+
+test("核查日期容差按北京时间跨日，注入无效时间报告校验错误", () => {
+  const mutation = "META.updated='2026-10-10';";
+  const beforeMidnight = validateFixture(mutation, { now: "2026-10-08T15:59:59Z" });
+  assert.equal(beforeMidnight.exitCode, 1, beforeMidnight.output);
+  assert.match(beforeMidnight.output, /META\.updated 2026-10-10 晚于今天/);
+  const afterMidnight = validateFixture(mutation, { now: "2026-10-08T16:00:00Z" });
+  assert.equal(afterMidnight.exitCode, 0, afterMidnight.output);
+  assert.match(validateFixture("", { now: "invalid" }).output, /校验时间无效/);
+  assert.doesNotMatch(validateFixture("", { now: 0 }).output, /校验时间无效/, "Unix epoch 是有效的注入时间");
+});
 
 console.log(`\n数据回归：${passed} 通过，${failed} 失败`);
 process.exit(failed ? 1 : 0);

@@ -34,6 +34,12 @@ interface Plan {
   modelAccess?: "included" | "byok" | "metered";
   purchaseCountries?: string[];
   fieldRefs?: Partial<Record<"models" | "tools" | "quota", string | [string, string]>>;
+  /** 官网标明售罄、仅候补：仍是公开标价，但不能下单。 */
+  availability?: "sold-out";
+  /** 同一订阅的重复条目指向主条目永久 ID；保留核价与历史，不再单独展示和推荐。 */
+  sameAs?: string;
+  /** 主标价为连续包月价时，另记不续费的单月购买价，供「月付标价」口径对照。 */
+  singleMonthPrice?: number;
 }
 
 interface PriceVerification {

@@ -1,8 +1,12 @@
 .vercel
+.claude/
 audit/.pricing.lock
 **/.audit-update-*/
 .site-stage-*/
 .site-backup-*/
+**/.asset-update-*/
+**/.fonts-stage-*/
+**/.fonts-backup-*/
 js/data.js.bak
 node_modules/
 .site-build/

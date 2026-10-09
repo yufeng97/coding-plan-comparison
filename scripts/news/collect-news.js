@@ -5,10 +5,11 @@ const path = require("node:path");
 const vm = require("node:vm");
 const crypto = require("node:crypto");
 const { plainText, parseFeed, parseHN } = require("./feed");
+const { stripElements } = require("./html-scan");
 const { parseBlogLinks, parseBlogArticle } = require("./blog");
 const { publicURL, fetchSource } = require("./network");
 const { normalizeURL } = require("./urls");
-const { validateInbox, updateInbox, validInstant } = require("./inbox");
+const { validateInbox, updateInbox, validInstant, variantOf, mergeVariants } = require("./inbox");
 const { withFileLock } = require("../lib/file-lock");
 
 const DEFAULT_KEYWORDS = ["coding plan", "token plan", "编程套餐", "编程订阅", "AI编程", "AI 编程", "编程助手", "编码助手",
@@ -28,7 +29,7 @@ const MAX_STATE_ITEMS = 5000;
 /** @typedef {{schemaVersion:number,sources:Record<string,SourceCache>,health?:Record<string,SourceHealth>}} NewsState */
 /** @typedef {{fetcher?:typeof fetch,resolver?:(hostname:string)=>Promise<Array<{address:string}>>,timeoutMs?:number}} NetworkOptions */
 /** @typedef {{id:string,name:string,url:string,authority:string,dateMeaning:string}} SourceReference */
-/** @typedef {NewsItem & {dateStatus:string,sources:SourceReference[],vendorMatches:Array<{vendor:string,match:string}>,needsVendorReview:boolean}} Candidate */
+/** @typedef {NewsItem & {dateStatus:string,sources:SourceReference[],vendorMatches:Array<{vendor:string,match:string}>,needsVendorReview:boolean,variants?:import('./inbox').SourceVariant[]}} Candidate */
 /** @typedef {{id:string,name:string,kind:string,url:string,authority:string,status:string,itemsFetched:number,candidatesEligible:number,cacheReused?:boolean,cacheStale?:boolean,truncated?:boolean,sourceDate?:string,error?:string,pagesFetched?:number,pageLimit?:number,missingPublicationDates?:string[],futurePublicationDates?:string[],requestURL?:string,lastSuccess?:string|null,consecutiveFailures?:number,baselineAt?:string,baselineExpired?:boolean,freshness?:string}} SourceResult */
 /** @typedef {{schemaVersion:number,checkedAt:string,window:{days:number,start:string,end:string},status:string,reviewRequired:boolean,sources:SourceResult[],errors:Array<{sourceId:string,message:string}>,candidates:Candidate[],stats:{candidates:number,knownVendor:number,vendorReviewCandidates:number,sourcesSucceeded:number,sourcesFailed:number},queue?:import('./inbox').InboxStats}} NewsReport */
 const folded = (text) => String(text || "").toLowerCase().replace(/[\s_\-\u2010-\u2015\u2212]+/g, " ");
@@ -47,7 +48,17 @@ function publicationTime(raw) {
   const months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
   const rfc = /(?:^|\s)(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})(?:\s|$)/i.exec(raw);
   if (rfc && !calendarDate(Number(rfc[3]), months.indexOf(rfc[2].toLowerCase()) + 1, Number(rfc[1]))) return NaN;
-  return Date.parse(raw);
+  const text = raw.trim(), parsed = Date.parse(text);
+  if (!Number.isFinite(parsed) || /^\d{4}-\d{2}-\d{2}$/.test(text) || hasZone(text)) return parsed;
+  /* Date.parse 按本机时区解释无时区时间；UTC 的 CI 与 UTC+8 的本机会得到不同发布时间与内容哈希。
+   * 统一按 UTC 解释；已确认无时区标识，追加 UTC 不会覆盖原有时区。仍无法解析的格式按无效日期处理。 */
+  for (const suffix of [" UTC", "Z"]) { const utc = Date.parse(text + suffix); if (Number.isFinite(utc)) return utc; }
+  return NaN;
+}
+/** 末尾的 Z/GMT/UTC/UT/美国时区缩写（可带偏移）或数字偏移视为显式时区；忽略末尾括号注释。 @param {string} text */
+function hasZone(text) {
+  const value = text.replace(/\([^()]*\)$/, "").trimEnd();
+  return /(?:^|[\s\d])(?:z|gmt|utc?|[ecmp][sd]t)(?:\s*[+-]\d{2}(?::?\d{2})?)?$/i.test(value) || /\d\s*[+-]\d{2}:?\d{2}$/.test(value);
 }
 
 /** Execute only the repository's trusted local data source, never source responses or imported content.
@@ -162,7 +173,8 @@ function candidateFrom(item, source, start, end, vendors) {
 }
 
 function visiblePageText(text) {
-  const visible = plainText(text.replace(/<head\b[^>]*>[\s\S]*?<\/head\s*>/gi, " ").replace(/<svg\b[^>]*>[\s\S]*?<\/svg\s*>/gi, " "));
+  // 线性移除 head 与 svg 区块，顺序与原先两次正则替换相同，保持既有页面基线哈希。
+  const visible = plainText(stripElements(stripElements(text, ["head"]), ["svg"]));
   if (visible.length < 40 || /^(?:please )?(?:enable|turn on) javascript/i.test(visible)) throw new Error("页面缺少足够的可见文本，可能需要浏览器加载");
   return visible;
 }
@@ -174,7 +186,7 @@ async function collectNews(options) {
   const now = options.now || new Date(), days = options.days ?? 14;
   if (!Number.isFinite(now.getTime()) || !Number.isInteger(days) || days < 1 || days > 365) throw new Error("days 必须是 1–365 的整数，checkedAt 必须有效");
   const checkedAt = now.toISOString(), end = now.getTime(), start = end - days * 86400000;
-  const errors = [...(options.initialErrors || [])], sources = [], candidates = new Map(), candidateFreshness = new Map();
+  const errors = [...(options.initialErrors || [])], sources = [], candidates = new Map();
   const oldState = options.state || { schemaVersion: 1, sources: {} };
   /** @type {NewsState} */
   const nextState = { schemaVersion: 1, sources: { ...oldState.sources }, health: Object.fromEntries(Object.entries(oldState.health || {}).map(([id, health]) => [id, { ...health, enabled: false, freshness: "disabled" }])) };
@@ -290,25 +302,14 @@ async function collectNews(options) {
     }
   }
   await Promise.all(Array.from({ length: Math.min(3, configured.length) }, () => worker()));
+  /** 同一网址按来源分别保留（同一来源重复链接取第一条），全部来源处理完再按固定优先级合并。 */
   function add(item, source, result) {
     const candidate = candidateFrom(item, source, start, end, options.knownVendors || []);
     if (!candidate) return;
     result.candidatesEligible++;
-    const existing = candidates.get(candidate.url);
-    const fresh = !result.cacheStale;
-    if (!existing) { candidates.set(candidate.url, candidate); candidateFreshness.set(candidate.url, fresh); return; }
-    const existingFresh = candidateFreshness.get(candidate.url);
-    if (fresh && !existingFresh) {
-      const previousSources = existing.sources;
-      for (const key of ["publishedAt", "observedAt", "previousHash", "currentHash"]) if (!(key in candidate)) delete existing[key];
-      Object.assign(existing, candidate, { sources: previousSources });
-    }
-    for (const ref of candidate.sources) if (!existing.sources.some((value) => value.id === ref.id)) existing.sources.push(ref);
-    if (!existingFresh || fresh) for (const vendor of candidate.vendorMatches) if (!existing.vendorMatches.some((value) => value.vendor === vendor.vendor)) existing.vendorMatches.push(vendor);
-    existing.needsVendorReview = existing.vendorMatches.length === 0;
-    if ((!existingFresh || fresh) && existing.dateStatus !== "known" && candidate.dateStatus === "known") { existing.dateStatus = candidate.dateStatus; existing.publishedAt = candidate.publishedAt; existing.dateMeaning = candidate.dateMeaning; }
-    if ((!existingFresh || fresh) && !existing.summary && candidate.summary) existing.summary = candidate.summary;
-    candidateFreshness.set(candidate.url, existingFresh || fresh);
+    const copies = candidates.get(candidate.url) || [];
+    if (!copies.some((copy) => copy.sources[0].id === source.id)) copies.push(candidate);
+    candidates.set(candidate.url, copies);
   }
   for (let index = 0; index < resultSlots.length; index++) {
     const result = resultSlots[index], slot = itemSlots[index];
@@ -332,7 +333,13 @@ async function collectNews(options) {
     }
     sources.push(result);
   }
-  const list = [...candidates.values()].sort((a, b) => (b.publishedAt || b.observedAt || "").localeCompare(a.publishedAt || a.observedAt || "") || a.url.localeCompare(b.url));
+  // 合并内容只按固定来源优先级取值，不因某来源本次失败（陈旧缓存）或副本移出窗口而改选其他来源。
+  const order = new Map(sources.map((source, index) => [source.id, index]));
+  /** @type {Candidate[]} */
+  const list = [...candidates.values()].map((copies) => {
+    const { display, ranked } = mergeVariants(copies.map(variantOf), order);
+    return { ...display, url: copies[0].url, sources: copies.map((copy) => copy.sources[0]), variants: ranked };
+  }).sort((a, b) => (b.publishedAt || b.observedAt || "").localeCompare(a.publishedAt || a.observedAt || "") || a.url.localeCompare(b.url));
   const successful = sources.filter((source) => !["error", "partial"].includes(source.status) && source.kind !== "import").length;
   const report = { schemaVersion: 1, checkedAt, window: { days, start: new Date(start).toISOString(), end: checkedAt },
     status: errors.length ? successful || sources.some((source) => source.status === "partial" && source.itemsFetched > 0) ? "partial" : "failed" : "ok", reviewRequired: true, sources, errors, candidates: list,

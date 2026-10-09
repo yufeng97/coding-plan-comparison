@@ -244,9 +244,10 @@ function originalHLE(source) {
   const boards = new Map(), scores = [];
   for (const row of tables[0].slice(1)) {
     if (row.length !== 3 || !/^[\d.]+$/.test(row[1]) || !/^[\d.]+$/.test(row[2])) fail("HLE 表格行");
-    const textOnly = row[0].endsWith("*"), id = textOnly ? "hle-cais-2025-text-only" : "hle-cais-2025-multimodal";
+    // 末尾 * 是官网“仅文本子集”的脚注标记：只用于分表，不属于模型精确名称。
+    const textOnly = row[0].endsWith("*"), model = textOnly ? row[0].replace(/\s*\*$/, "") : row[0], id = textOnly ? "hle-cais-2025-text-only" : "hle-cais-2025-multimodal";
     if (!boards.has(id)) boards.set(id, board(id, "HLE", "HLE · CAIS 原始量化表 · " + (textOnly ? "纯文本" : "多模态"), "Finalized dataset / 2025-04-03", "正确率", "专家知识与推理的闭卷问答，o3-mini 判卷；仅该站现有量化示例，未声称覆盖最新全部模型。", "CAIS 公布量化表；无工具闭卷；模型精确 API ID、推理档位及 trials 未全部注明；显示值保留官网一位小数精度", textOnly ? "仅文本子集，不能与 2,500 项多模态全集横比；官网未在表中注明分母。2025-04-03 为试题版本日期，并非榜单更新时间。" : "2,500 项公开多模态题；不含私有保留集，不与 Preview、Rolling 或 Diamond 混合。2025-04-03 为试题更新日期，非每个模型运行日期或榜单更新时间。", source));
-    const result = scoreRow(id, row[0], Number(row[1]), source);
+    const result = scoreRow(id, model, Number(row[1]), source);
     result.uncertainty = "官网显示为一位小数；RMS Calibration Error=" + number(Number(row[2]), "校准误差", 100) + "%（不是正确率的置信区间）；未提供日期与推理档位。";
     scores.push(result);
   }

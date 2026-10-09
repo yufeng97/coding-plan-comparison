@@ -18,7 +18,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <script src="js/theme-init.js?v=6414a56"></script>
   <link rel="stylesheet" href="libs/fonts/fonts.css?v=17da4b4">
-  <link rel="stylesheet" href="css/style.css?v=05e9a6a">
+  <link rel="stylesheet" href="css/style.css?v=fcea866">
 </head>
 <body>
 <div id="loadFailure" class="load-failure" role="alert" hidden>
@@ -48,7 +48,7 @@
       <span class="prompt-mark" aria-hidden="true">&gt;_</span>
       <h1><span>全球 Coding Plan</span><span>价格与额度对比。</span></h1>
       <p class="hero-lede">按预算与工具选编程订阅，比较费用和额度，核对购买条件。</p>
-      <p class="hero-meta">数据版本 <strong id="heroDate">2026-10-06</strong> · USD/CNY <span id="rateText">6.71</span></p>
+      <p class="hero-meta">数据版本 <strong id="heroDate">2026-10-09</strong> · USD/CNY <span id="rateText">6.71</span></p>
       <a class="hero-start" href="#quick">查看适合我的方案 ↓</a>
       <details class="hero-details" id="heroDetails">
         <summary>查看数据覆盖与核价信息</summary>
@@ -360,6 +360,19 @@
       <h2><span class="sec-no">08</span>免费 Coding 入口</h2>
       <p>官方免费模型额度与编程工具免费档。卡片会区分免费推理和平台免费；需要自备 API Key（BYOK）或按量付费的工具，使用模型仍会产生费用。</p>
     </div>
+    <div class="controls free-controls">
+      <div class="chip-group" id="chipFreeRegion" role="group" aria-label="免费入口地区">
+        <button type="button" class="chip active" data-free-region="all" aria-pressed="true">全部地区</button>
+        <button type="button" class="chip" data-free-region="cn" aria-pressed="false">国内</button>
+        <button type="button" class="chip" data-free-region="intl" aria-pressed="false">国际</button>
+      </div>
+      <div class="chip-group" id="chipFreeKind" role="group" aria-label="免费类型">
+        <button type="button" class="chip active" data-free-kind="all" aria-pressed="true">全部类型</button>
+        <button type="button" class="chip" data-free-kind="included" aria-pressed="false">含免费推理</button>
+        <button type="button" class="chip" data-free-kind="byok" aria-pressed="false">平台免费，推理另计</button>
+      </div>
+      <span class="table-count" id="freeCount" role="status" aria-live="polite"></span>
+    </div>
     <div class="free-grid" id="freeGrid"></div>
   </section>
 
@@ -566,24 +579,24 @@
     <a class="view-tab" href="#sources" data-site-view="sources">来源说明</a>
     <a class="view-tab" href="#contribute" data-site-view="contribute">提交纠错</a>
   </nav>
-  <p>Coding Plan 全球比价中心 · 数据调研与核实日期 <span id="footDate">2026-10-01</span> · 仅供参考，以各厂商官方页面为准 · 纯静态页面：无统计、无跟踪，主题、常用条件与关注记录仅存于本机</p>
+  <p>Coding Plan 全球比价中心 · 数据调研与核实日期 <span id="footDate">2026-10-09</span> · 仅供参考，以各厂商官方页面为准 · 纯静态页面：无统计、无跟踪，主题、常用条件与关注记录仅存于本机</p>
 </footer>
 
 <template id="chartLibraryTemplate"><script src="libs/echarts.min.js?v=14c5497"></script></template>
 <script src="js/app-loader.js?v=0127d10"></script>
-<script src="js/data.js?v=3a40f26"></script>
-<script id="maintenanceDataSource" type="application/json" src="js/maintenance-data.js?v=c50b525"></script>
+<script src="js/data.js?v=192f666"></script>
+<script id="maintenanceDataSource" type="application/json" src="js/maintenance-data.js?v=50c547d"></script>
 <script id="benchmarkDataSource" type="application/json" src="js/benchmark-data.js?v=f435fdd"></script>
 <script src="js/project-data.js?v=b9931ec"></script>
 <script src="js/metrics.js?v=29891c5"></script>
-<script src="js/app-core.js?v=57d19cc"></script>
+<script src="js/app-core.js?v=d211796"></script>
 <script src="js/app-state.js?v=aca5130"></script>
-<script src="js/app-charts.js?v=ce99991"></script>
-<script src="js/app-picker.js?v=f0012c3"></script>
-<script src="js/app-tables.js?v=9d5b024"></script>
+<script src="js/app-charts.js?v=7c5af65"></script>
+<script src="js/app-picker.js?v=340de6c"></script>
+<script src="js/app-tables.js?v=4221aa5"></script>
 <script src="js/app-service.js?v=c0fef88"></script>
 <script src="js/app-maintenance.js?v=1484984"></script>
-<script src="js/app-events.js?v=0eac016"></script>
+<script src="js/app-events.js?v=4d88383"></script>
 <script src="js/app-init.js?v=c0a790c"></script>
 </body>
 </html>

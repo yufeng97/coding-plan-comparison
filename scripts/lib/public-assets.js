@@ -2,7 +2,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
-const { insideRoot } = require("./paths");
+const { insideRoot, publicSiteFile, hiddenSegment } = require("./paths");
 
 const hash = (bytes) => crypto.createHash("sha1").update(bytes).digest("hex").slice(0, 7);
 const slash = (file) => file.split(path.sep).join("/");
@@ -24,8 +24,8 @@ function localAsset(root, owner, raw) {
   if (!within(real)) throw new Error(`资源链接越出项目目录：${raw}`);
   const assertPublic = (target) => {
     const rel = slash(path.relative(root, target));
-    if (!["index.html", "changes.xml"].includes(rel) && !/^(?:css|js|libs)\//.test(rel)) throw new Error(`资源不在公共目录白名单：${rel}`);
-    if (rel.split("/").some((part) => part.startsWith("."))) throw new Error(`资源包含隐藏目录：${rel}`);
+    if (!publicSiteFile(rel)) throw new Error(`资源不在公共目录白名单：${rel}`);
+    if (hiddenSegment(rel)) throw new Error(`资源包含隐藏目录：${rel}`);
   };
   assertPublic(absolute);
   assertPublic(real); // Public aliases must not expose private or hidden files inside the root.

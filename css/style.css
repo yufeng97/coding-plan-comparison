@@ -353,7 +353,7 @@ html[data-theme="dark"] .quick-card .qc-value em { color: var(--brand); }
 .quick-card .qc-miss { color: var(--gold); }
 .picker { display: flex; flex-direction: column; gap: 10px; margin: 0 0 16px; padding: 16px 18px; border: 1px solid var(--line); border-radius: var(--radius-l); background: var(--panel-2); }
 .picker-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.picker-label { flex: 0 0 3.2em; font-size: 12px; font-weight: 700; color: var(--muted); }
+.picker-label { flex: 0 0 4.4em; font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; }
 @media (min-width: 1181px) {
   .picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px; }
 }
@@ -405,7 +405,9 @@ html[data-theme="dark"] .quick-card .qc-value em { color: var(--brand); }
    两张默认长表均达到 780px 上限，浏览器进入阅读区后缓存实际高度。 */
 #table .table-wrap, .metrics-wrap { content-visibility: auto; contain-intrinsic-size: auto 780px; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
-#planTable { min-width: 1080px; }
+/* 默认 8 列可在小桌面容器内放下；展开模型/工具/备注后保留横向滚动。 */
+#planTable { min-width: 900px; }
+#planTable.show-all-cols { min-width: 1080px; }
 .card-text .mini-table, .mini-table { min-width: 0; }
 thead th {
   position: sticky; top: 0; z-index: 5;
@@ -701,6 +703,8 @@ table.is-empty thead { display: none; }
 #planTable td[data-column="priceY"] { min-width: 8.5em; }
 #planTable td.td-trust { white-space: normal; min-width: 7.5em; }
 #planTable .plan-name, #planTable .tag { white-space: normal; }
+/* 小桌面（768–1180px）收窄额度列下限，默认 8 列在容器内放下，不出现横向滚动。 */
+@media (max-width: 1180px) { #planTable .td-quota { min-width: 160px; } }
 
 /* ---------- 移动端适配（≤700px） ---------- */
 /* 中等屏幕也将品牌/主题和导航分为两行，避免主题按钮单独落在第三行。 */
@@ -871,4 +875,21 @@ table.is-empty thead { display: none; }
   #planTable.show-all-cols tbody td.col-opt { display: block; grid-column: 1 / -1; }
   #metricsTable.is-compact tbody td.col-more { display: none; }
   #metricsTable .model-price, #metricsTable td.model-cell { max-width: none; }
+}
+
+/* ---------- 审查修复：推荐卡档位对比、排行分组、额度表说明、免费入口筛选 ---------- */
+.qc-tiers { width: 100%; margin: 10px 0 4px; border-collapse: collapse; font-size: 12px; }
+.qc-tiers caption { text-align: left; font-weight: 700; color: var(--muted); padding-bottom: 4px; }
+.qc-tiers th, .qc-tiers td { padding: 5px 6px; border-top: 1px solid var(--line); text-align: left; vertical-align: top; }
+.qc-tiers thead th { color: var(--faint); font-weight: 600; border-top: 0; }
+.qc-tiers tr.is-current th, .qc-tiers tr.is-current td { color: var(--ink); font-weight: 700; background: color-mix(in srgb, var(--accent-2, #34d399) 12%, transparent); }
+.qc-tier-price { white-space: nowrap; }
+#rankDetailTable tr.rank-divider th { padding: 10px 12px 6px; color: var(--muted); font-weight: 700; background: var(--panel); border-top: 2px solid var(--line-strong); }
+.metrics-legend { margin-top: 8px; }
+.metrics-legend > summary { cursor: pointer; color: var(--muted); font-weight: 600; }
+.token-insight-count { margin: -4px 0 8px; color: var(--faint); font-size: 12px; }
+.free-controls { margin-bottom: 14px; }
+@media (max-width: 700px) {
+  .qc-tiers { font-size: 11.5px; }
+  .free-controls .chip-group { flex-wrap: wrap; }
 }

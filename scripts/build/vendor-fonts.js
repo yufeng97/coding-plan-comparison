@@ -6,21 +6,31 @@ const path = require("node:path");
 const crypto = require("node:crypto");
 const { swapDirectory } = require("../lib/atomic-swap");
 const FONT_CSS_URL = "https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap";
-/* 只接受 Google Fonts 的响应域；构建脚本不走代理场景下的任意重定向 */
+/* 只接受 Google Fonts 的 HTTPS 地址：CSS 来自 fonts.googleapis.com，字体文件只能来自 fonts.gstatic.com；
+ * 请求、重定向与 CSS 中解析出的地址都校验主机，构建脚本不走代理场景下的任意重定向。 */
 const FONT_HOSTS = new Set(["fonts.googleapis.com", "fonts.gstatic.com"]);
+const FONT_FILE_HOST = "fonts.gstatic.com";
 const MAX_FONT_BYTES = 4 * 1024 * 1024;
+
+/** @param {URL} url @param {Set<string>|string[]} hosts */
+function googleFontsURL(url, hosts) {
+  return url.protocol === "https:" && !url.username && !url.password && !url.port && [...hosts].includes(url.hostname);
+}
 
 /** @returns {Promise<Buffer>} */
 function get(url, headers = {}, redirects = 0) {
+  let target;
+  try { target = new URL(url); } catch { return Promise.reject(new Error("字体下载地址无效：" + url)); }
+  if (!googleFontsURL(target, FONT_HOSTS)) return Promise.reject(new Error("字体下载只允许 Google Fonts HTTPS 地址：" + url));
   return new Promise((resolve, reject) => {
-    const req = https.get(url, { headers }, (response) => {
+    const req = https.get(target, { headers }, (response) => {
       response.on("error", reject);
       const status = response.statusCode || 0;
       if (status >= 300 && status < 400 && response.headers.location) {
         response.resume();
         if (redirects >= 5) { reject(new Error("字体下载重定向过多")); return; }
-        const next = new URL(response.headers.location, url);
-        if (!FONT_HOSTS.has(next.hostname)) { reject(new Error("字体下载重定向到非 Google Fonts 域：" + next.hostname)); return; }
+        const next = new URL(response.headers.location, target);
+        if (!googleFontsURL(next, FONT_HOSTS)) { reject(new Error("字体下载重定向到非 Google Fonts HTTPS 地址：" + next.href)); return; }
         get(next.href, headers, redirects + 1).then(resolve, reject);
         return;
       }
@@ -58,7 +68,15 @@ async function updateFonts(options = {}) {
     const fetcher = options.fetcher || get;
     const headers = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" };
     let css = (await fetcher(FONT_CSS_URL, headers)).toString("utf8");
-    const urls = [...new Set([...css.matchAll(/url\((https:\/\/[^)]+)\)/g)].map((match) => match[1]))];
+    /* 下载任何字体前先校验 CSS 中的全部引用：只能是 fonts.gstatic.com 的 HTTPS 地址，也不允许 @import 外部样式。 */
+    if (/@import\b/i.test(css)) throw new Error("Google Fonts CSS 含 @import，拒绝引入外部样式");
+    const refs = [...css.matchAll(/url\(\s*(["']?)([^"')]*)\1\s*\)/gi)].map((match) => match[2].trim());
+    for (const ref of refs) {
+      let parsed = null;
+      try { parsed = new URL(ref); } catch {}
+      if (!parsed || !googleFontsURL(parsed, [FONT_FILE_HOST])) throw new Error("字体 CSS 只允许 fonts.gstatic.com 的 HTTPS 字体地址：" + ref);
+    }
+    const urls = [...new Set(refs)];
     if (!urls.length) throw new Error("Google Fonts 响应不含字体文件");
     const byDigest = new Map();
     for (const url of urls) {

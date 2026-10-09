@@ -16,6 +16,8 @@ function pickerPaymentQuote(p, billing = pickerState.billing) {
   const label = PICKER_BILLING_LABELS[mode];
   let monthlyNative = p.priceM;
   let inferred = false;
+  /* 月付标价按不连续续费也能买到的单月价比较；少数档的主标价是连续包月价，另记 singleMonthPrice。 */
+  if (p.priceM > 0 && mode === "M" && p.singleMonthPrice > 0) monthlyNative = p.singleMonthPrice;
   if (p.priceM > 0 && mode === "A") {
     if (p.autoRenewMonthly != null) monthlyNative = p.autoRenewMonthly;
     else if (renewsAtListPrice(p)) inferred = true;
@@ -539,7 +541,7 @@ function pickerVerificationHtml(p) {
   if (!check) return lineHtml("本档核查", "暂无逐条核查记录，请在官网核对价格与权益。");
   const sources = check.sourceIds.map((id) => PRICE_CHECKS.sources[id]).filter(Boolean);
   const date = lineHtml("本档核查", `${check.checkedAt} · ${priceCheckLabel(p)}${check.reason ? "。" + displayPriceReason(check.reason) : ""}`);
-  const evidence = sources.map((s) => `<li>${esc(s.evidence || "来源页面记录")} ${safeHref(s.url) ? `<a href="${safeHref(s.url)}" target="_blank" rel="noopener">核查来源 ↗</a>` : ""}</li>`).join("");
+  const evidence = sources.map((s) => `<li>${esc(displayPriceReason(s.evidence) || "来源页面记录")} ${safeHref(s.url) ? `<a href="${safeHref(s.url)}" target="_blank" rel="noopener">核查来源 ↗</a>` : ""}</li>`).join("");
   return date + (evidence ? `<details class="qc-verification"><summary>查看核查依据（${sources.length} 项）</summary><ul>${evidence}</ul></details>` : "");
 }
 function pickerPlanActions(p) {
