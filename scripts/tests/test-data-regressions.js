@@ -101,6 +101,22 @@ test("Gemini Pro、连字符 Kimi 为旗舰，轻量变体仍排除", () => {
   for (const name of ["Gemini 3.1 Flash", "Kimi-K2.6-mini", "Kimi-K3-Flash"]) assert.equal(d.isFlagshipModelName(name), false, name);
 });
 
+test("排行旗舰与帮我选复杂任务共用 MODEL_ROLES，连字符/空格写法一致，口径差异只剩 Sonnet 与上一代主力", () => {
+  const d = load();
+  const ids = (text) => d.matchModelRoles(text).map((r) => r.id);
+  for (const [text, id] of [["Gemini-3.1-Pro", "gemini-pro"], ["Gemini 3.1 Pro", "gemini-pro"], ["MiMo Pro", "mimo-pro"], ["MiMo V2.5 Pro", "mimo-pro"], ["MiMo-V2.5-Pro", "mimo-pro"],
+    ["Doubao Seed 2.0 Pro", "doubao-pro"], ["doubao-seed-2.1-pro", "doubao-pro"], ["Doubao-Seed-Code", "doubao-pro"], ["Step 5 Preview", "step-5"], ["step-5", "step-5"], ["Qwen 3.7 Max", "qwen-max"]]) {
+    assert.ok(ids(text).includes(id), `${text} 应匹配 ${id}`);
+    assert.ok(d.isFlagshipModelName(text), `${text} 应算排行旗舰`);
+  }
+  for (const text of ["Step 50", "MiMo Flash", "Seed-2.1-Turbo", "GLM-5.3-Flash"]) assert.equal(ids(text).some((id) => ["step-5", "mimo-pro", "doubao-pro", "glm-5"].includes(id)), false, text);
+  /* 真实额度行：两处结论不同的只允许是 Sonnet、Kimi K2.x、GPT-5.x（非轻量、但不是复杂任务首选）。 */
+  const rows = d.METRICS_RAW.concat(d.ESTIMATES).filter((m) => m.model);
+  const differs = rows.filter((m) => d.isFlagshipModelName(m.model) !== d.matchModelRoles(m.model).some((r) => r.task === "hard"));
+  assert.ok(differs.length > 0);
+  for (const m of differs) assert.match(m.model, /sonnet|kimi[\s-]*k2|gpt-5/i, `${m.model} 的口径差异未登记`);
+});
+
 /** @type {[string, number][]} */
 const modelRanges = [["GPT-6 Sol", 150], ["GPT-6.1 Sol", 160]];
 for (const [model, upper] of modelRanges) {
@@ -347,6 +363,7 @@ const invalidFixtures = [
   ["倒置官方条数区间", "ESTIMATES.find(m=>m.model==='GPT-6.1 Sol').reqHighPer5h=1;", /区间上下限颠倒/],
   ["用户可见文字含内部字段名", "PLANS.find(p=>p.id==='plan-0149').quota='按席位订阅（priceY=null）';", /内部字段名或开发用语/],
   ["核查说明含开发用语", "PRICE_CHECKS.rows['plan:plan-0002'].reason='确认后 seat 会使其退出 isPersonalMonthly';", /内部字段名或开发用语/],
+  ["核查说明含未改写的开发用语", "PRICE_CHECKS.rows['plan:plan-0002'].reason='模型继承改用 fieldRefs 指向 plan-0001';", /内部字段名或开发用语/],
   ["晚于今天的数据版本", "META.updated='2062-10-09';", /META\.updated 2062-10-09 晚于今天/],
   ["晚于今天的逐行核查日期", "PRICE_CHECKS.rows['plan:plan-0002'].checkedAt='2062-10-09';", /核查日期晚于今天/],
   ["sameAs 指向不存在的主条目", "PLANS.find(p=>p.id==='plan-0109').sameAs='plan-9999';", /sameAs 必须指向/],

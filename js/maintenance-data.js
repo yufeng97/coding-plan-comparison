@@ -6,7 +6,7 @@ const MAINTENANCE = {
   "staleAfterDays": 14,
   "rssSite": "https://coding-plan-comparison-tau.vercel.app/",
   "inputHashes": {
-    "data": "74ca1c919b72eddc2bf9c81a9dd126c4ff82db2be9177188550bd9d6c910e985",
+    "data": "398c7b58a4c4e2f725720c57991d2482ae01f556f5030ce3dbfee17d5bad6836",
     "history": "baaaed71f81b976497cbe4898ffab6b5935d17422490a51a76722547286baa86",
     "calendar": "c59316c1df1af85df4bfe1e41dd78a01d089f6806e32f52e499111fe0fa1ed26"
   },

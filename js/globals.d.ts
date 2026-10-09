@@ -78,3 +78,7 @@ interface PublicBenchmarkScore {
 }
 interface PublicBenchmarkSnapshot { schemaVersion: number; checkedAt: string; benchmarks: PublicBenchmarkProtocol[]; scores: PublicBenchmarkScore[]; }
 interface BenchmarkSnapshot { schemaVersion: number; generatedAt: string; tasks: BenchmarkTask[]; runs: BenchmarkRun[]; methodology: string | string[]; public?: PublicBenchmarkSnapshot; }
+/** 帮我选卡片的编程评测摘要（js/benchmark-summary.js，由 npm run benchmark:build 生成，随首屏加载）。 */
+interface BenchmarkSummaryRow { model: string; reasoning: string | null; score: number; rank: number; }
+interface BenchmarkSummaryProtocol { id: string; family: string; name: string; version: string; metric: string; unit: string; checkedAt: string; total: number; rows: BenchmarkSummaryRow[]; }
+interface BenchmarkSummary { schemaVersion: number; checkedAt: string; protocols: BenchmarkSummaryProtocol[]; }

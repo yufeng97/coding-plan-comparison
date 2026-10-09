@@ -12,7 +12,10 @@ const vm = require("node:vm");
 const { Blob } = require("node:buffer");
 const root = path.resolve(__dirname, "..", "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const scripts = [...html.matchAll(/<script\b[^>]*\bsrc="(js\/[^"?]+)(?:\?[^"]*)?"[^>]*>/g)].map((m) => m[1]);
+/* type="application/json" 的脚本是按需数据的入口描述，页面在访问相应标签时才下载。 */
+const scriptTags = [...html.matchAll(/<script\b([^>]*)\bsrc="(js\/[^"?]+)(?:\?[^"]*)?"([^>]*)>/g)]
+  .map((m) => ({ file: m[2], optional: /\btype="application\/json"/.test(m[1] + m[3]) }));
+const scripts = scriptTags.map((tag) => tag.file);
 assert.equal(scripts.at(-1), "js/app-init.js", "页面启动脚本必须按真实顺序加载");
 
 function decodeHtml(s) {
@@ -28,6 +31,29 @@ function createApp(options = {}) {
   const timeline = [], scrolls = [], errors = [], warnings = [], downloads = [], objectUrls = new Map();
   const documentEvents = new Map(), windowEvents = new Map(), timers = new Map(), timeoutIds = new Set(), animationFrames = [];
   const width = options.width || 1280;
+  const lazyData = !!options.lazyData;
+  const scriptLoads = [], pendingScripts = [];
+  /* 只模拟页面运行时追加的脚本（按需数据）；解析 index.html 得到的 <script> 不在这里执行。
+     下载完成与页面的超时计时器相互独立：finishDataLoads 推进下载，flushTimeouts 推进超时。
+     failData(src, attempt) 返回 true 时，该次下载触发 onerror。 */
+  function loadScriptElement(script) {
+    if (!lazyData || !script.dynamic) return;
+    const src = String(script.src || script.getAttribute("src") || "").replace(/[?#].*$/, "");
+    if (!/^js\/[\w.-]+\.js$/.test(src)) return;
+    scriptLoads.push(src);
+    pendingScripts.push({ script, src, attempt: scriptLoads.filter((item) => item === src).length });
+  }
+  function finishDataLoads() {
+    for (const { script, src, attempt } of pendingScripts.splice(0)) {
+      if (options.failData && options.failData(src, attempt)) { if (typeof script.onerror === "function") script.onerror(); continue; }
+      const source = fs.readFileSync(path.join(root, src), "utf8");
+      vm.runInContext(source, sandbox, { filename: src, timeout: 30000 });
+      /* Node vm 的全局带拦截器：已预热的函数看不到之后脚本新声明的顶层 const（浏览器可以）。
+         把数据脚本的顶层绑定镜像到全局对象上，恢复与浏览器一致的可见性；值是同一对象。 */
+      for (const [, name] of source.matchAll(/^(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=/gm)) sandbox[name] = vm.runInContext(name, sandbox);
+      if (typeof script.onload === "function") script.onload();
+    }
+  }
   let nextTimer = 0, nextObjectUrl = 0, auditCalls = 0, documentRoot = null;
   let currentUrl = new URL(options.url || "http://127.0.0.1:8123/index.html");
   const historyEntries = [{ url: currentUrl.href, state: null }];
@@ -107,6 +133,7 @@ function createApp(options = {}) {
       this.textContent = "";
       this._html = "";
       this.listeners = new Map();
+      this.dynamic = false; /* document.createElement 创建的节点；只有这些 <script> 会模拟下载 */
       this.open = false;
       this.hidden = this.attrs.has("hidden");
       this.disabled = this.attrs.has("disabled");
@@ -136,7 +163,7 @@ function createApp(options = {}) {
     get isConnected() { for (let e = this; e; e = e.parentNode) if (e === documentRoot) return true; return false; }
     get options() { return this.descendants().filter((e) => e.tagName === "OPTION"); }
     descendants() { return this.children.flatMap((e) => [e, ...e.descendants()]); }
-    appendChild(child) { child.parentNode = this; this.children.push(child); return child; }
+    appendChild(child) { child.parentNode = this; this.children.push(child); if (child.tagName === "SCRIPT") loadScriptElement(child); return child; }
     remove() { if (this.parentNode) this.parentNode.children = this.parentNode.children.filter((x) => x !== this); detach(this); }
     addEventListener(type, fn) { addListener(this.listeners, type, fn); }
     removeEventListener(type, fn) { this.listeners.set(type, (this.listeners.get(type) || []).filter((listener) => listener !== fn)); }
@@ -187,12 +214,12 @@ function createApp(options = {}) {
   documentElement.clientHeight = 800;
   documentElement.scrollTop = 0;
   const document = {
-    documentElement, body: allElements.find((e) => e.tagName === "BODY"),
+    documentElement, body: allElements.find((e) => e.tagName === "BODY"), head: allElements.find((e) => e.tagName === "HEAD"),
     getElementById: (id) => elements.get(id) || null,
     activeElement: allElements.find((e) => e.tagName === "BODY"),
     querySelectorAll: (selector) => [documentElement, ...documentElement.descendants()].filter((e) => matchesSelector(e, selector)),
     querySelector(selector) { return this.querySelectorAll(selector)[0] || null; },
-    createElement: (name) => new Element(name),
+    createElement: (name) => { const element = new Element(name); element.dynamic = true; return element; },
     addEventListener: (type, fn) => addListener(documentEvents, type, fn),
     removeEventListener(type, fn) { documentEvents.set(type, (documentEvents.get(type) || []).filter((listener) => listener !== fn)); },
     execCommand: () => true,
@@ -281,7 +308,9 @@ function createApp(options = {}) {
   vm.createContext(sandbox);
   const run = (code) => vm.runInContext(code, sandbox, { filename: "app-flow-test", timeout: 30000 });
   for (const m of html.matchAll(/<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)) run(m[1]);
-  for (const file of scripts) {
+  for (const { file, optional } of scriptTags) {
+    /* lazyData：按需数据不在启动时载入，由页面追加 <script> 后经 loadScriptElement 模拟下载。 */
+    if (lazyData && optional) continue;
     if (file === "js/app-init.js") {
       sandbox.countAudit = () => auditCalls++;
       run("const originalTestAudit = auditProfiles; auditProfiles = function () { countAudit(); return originalTestAudit(); };");
@@ -289,6 +318,7 @@ function createApp(options = {}) {
     vm.runInContext(fs.readFileSync(path.join(root, file), "utf8"), sandbox, { filename: file, timeout: 30000 });
   }
   return { run, elements, charts, timeline, scrolls, errors, warnings, downloads, location, history, fire, fireWindow, get auditCalls() { return auditCalls; },
+    get scriptLoads() { return scriptLoads.slice(); }, finishDataLoads,
     flushTimeouts() { for (const id of [...timeoutIds]) { const fn = timers.get(id); timers.delete(id); timeoutIds.delete(id); if (fn) fn(); } },
     flushAnimationFrames() { for (const fn of animationFrames.splice(0)) fn(0); },
     anchor: (hash) => allElements.find((e) => e.tagName === "A" && e.getAttribute("href") === hash) };

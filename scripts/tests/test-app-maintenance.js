@@ -262,4 +262,117 @@ test("评测与套餐的Claude共享品牌、GPT全系简称保留精确版本�
   healthy(app);
 });
 
+/* lazyData：评测与维护数据经页面自己的加载器按需进入，下载完成（finishDataLoads）与超时计时器分别推进。 */
+const settle = () => new Promise((resolve) => setImmediate(resolve));
+
+test("评测数据进入标签才下载，失败可重试，成功后渲染榜单与任务", async () => {
+  const app = createApp({ lazyData: true, failData: (_src, attempt) => attempt === 1 });
+  assert.deepEqual(app.scriptLoads, [], "首屏不应下载评测或维护数据");
+  healthy(app);
+  app.anchor("#benchmarks").click();
+  const status = app.elements.get("benchmarkDataStatus");
+  assert.deepEqual(app.scriptLoads, ["js/benchmark-data.js"]);
+  assert.match(status.textContent, /正在加载本标签的数据/);
+  /* 未就绪时不下「没有记录」类结论。 */
+  assert.match(app.elements.get("publicBenchmarkMeta").innerHTML, /将在数据加载后显示/);
+  assert.equal(app.elements.get("publicBenchmarkEmpty").hidden, true);
+  assert.equal(app.elements.get("publicBenchmarkCount").textContent, "");
+  assert.doesNotMatch(app.elements.get("benchmarkResults").innerHTML, /尚未收录/);
+  app.finishDataLoads(); await settle();
+  assert.match(status.innerHTML, /数据文件下载失败/);
+  assert.equal(app.run("optionalDataLoaded('benchmark')"), false);
+  app.run("document.querySelector('#benchmarkDataStatus [data-retry-data]')").click();
+  assert.match(status.textContent, /正在加载本标签的数据/);
+  assert.deepEqual(app.scriptLoads, ["js/benchmark-data.js", "js/benchmark-data.js"]);
+  app.finishDataLoads(); await settle();
+  assert.equal(status.textContent, "");
+  assert.ok(app.run("publicBenchmarkRows().length") > 0, "加载后应有公开榜单");
+  assert.equal(app.elements.get("publicBenchmarkWrap").hidden, false);
+  assert.match(app.elements.get("benchmarkTasks").innerHTML, /cached-cost/);
+  assert.match(app.elements.get("benchmarkResults").innerHTML, /尚未收录贡献者任务记录/);
+  healthy(app);
+});
+
+test("评测数据下载超时后可重试；迟到的数据已就绪时重试不再重复下载", async () => {
+  const app = createApp({ lazyData: true, url: "http://127.0.0.1:8123/#benchmarks" });
+  assert.deepEqual(app.scriptLoads, ["js/benchmark-data.js"]);
+  app.flushTimeouts(); await settle();
+  assert.match(app.elements.get("benchmarkDataStatus").innerHTML, /数据下载超时，请重试/);
+  /* 超时后浏览器仍可能执行已发出的脚本；它的 onload 已解绑。 */
+  app.finishDataLoads(); await settle();
+  assert.equal(app.run("optionalDataLoaded('benchmark')"), true);
+  app.run("document.querySelector('#benchmarkDataStatus [data-retry-data]')").click();
+  await settle();
+  assert.deepEqual(app.scriptLoads, ["js/benchmark-data.js"]);
+  assert.equal(app.elements.get("benchmarkDataStatus").textContent, "");
+  assert.match(app.elements.get("benchmarkTasks").innerHTML, /cached-cost/);
+  healthy(app);
+});
+
+test("关注页按需加载维护数据，公开JSON下载先补齐两份数据", async () => {
+  const id = "plan-0002";
+  const app = createApp({ lazyData: true, url: "http://127.0.0.1:8123/#updates", storage: { "cp-followed-plans-v1": JSON.stringify({ planIds: [id], readChangeIds: [] }) } });
+  assert.deepEqual(app.scriptLoads, ["js/maintenance-data.js"]);
+  assert.match(app.elements.get("maintenanceSummary").innerHTML, /将在数据加载后显示/);
+  assert.match(app.elements.get("maintenanceReviews").innerHTML, /将在数据加载后显示/);
+  assert.match(app.elements.get("followedChanges").innerHTML, /将在数据加载后显示/);
+  assert.equal(app.elements.get("followUnreadCount").textContent, "1 档关注");
+  app.finishDataLoads(); await settle();
+  assert.equal(app.elements.get("maintenanceDataStatus").textContent, "");
+  assert.match(app.elements.get("maintenanceSummary").innerHTML, /维护快照 \d{4}-\d{2}-\d{2}/);
+  assert.match(app.elements.get("followUnreadCount").textContent, /^1 档关注 · \d+ 条未读变更$/);
+  assert.deepEqual(plain(app.run("followState.planIds")), [id], "加载后清理关注状态不应丢掉有效套餐");
+  app.elements.get("downloadPublicDataBtn").click();
+  assert.match(app.elements.get("publicDataFeedback").textContent, /正在加载完整公开数据/);
+  assert.deepEqual(app.scriptLoads, ["js/maintenance-data.js", "js/benchmark-data.js"]);
+  assert.equal(app.downloads.length, 0);
+  app.finishDataLoads(); await settle();
+  assert.equal(app.downloads.length, 1);
+  const data = JSON.parse(await app.downloads[0].blob.text());
+  assert.ok(data.maintenance.changes.length > 0 && data.benchmarks.tasks.length > 0);
+  assert.match(app.elements.get("publicDataFeedback").textContent, /已生成公开数据 JSON/);
+  healthy(app);
+});
+
+test("展开完整权益里的历史时才加载，失败后重新展开可恢复，summary 节点与焦点保留", async () => {
+  const app = createApp({ lazyData: true, failData: (_src, attempt) => attempt === 1 });
+  app.run("showPlanDetails('plan-0002')");
+  const details = app.run("document.querySelector('#planDetailsBody [data-plan-history]')");
+  const summary = details.querySelector("summary");
+  assert.equal(summary.textContent, "已确认价格与权益历史");
+  assert.deepEqual(app.scriptLoads, []);
+  summary.focus(); details.open = true; app.fire(details, "toggle");
+  assert.deepEqual(app.scriptLoads, ["js/maintenance-data.js"]);
+  assert.match(details.querySelector(".plan-history-body").innerHTML, /正在加载历史数据/);
+  app.finishDataLoads(); await settle();
+  assert.match(details.querySelector(".plan-history-body").innerHTML, /加载失败，请关闭后重新展开/);
+  details.open = false; app.fire(details, "toggle");
+  details.open = true; app.fire(details, "toggle");
+  assert.deepEqual(app.scriptLoads, ["js/maintenance-data.js", "js/maintenance-data.js"]);
+  app.finishDataLoads(); await settle();
+  assert.equal(details.querySelector("summary"), summary);
+  assert.match(summary.textContent, /^已确认价格与权益历史（\d+ 条）$/);
+  assert.equal(app.run("document.activeElement"), summary);
+  assert.doesNotMatch(details.querySelector(".plan-history-body").innerHTML, /正在加载|加载失败/);
+  healthy(app);
+});
+
+test("关注页选中套餐后展开历史，数据迟到也不重建面板或丢焦点", async () => {
+  const app = createApp({ lazyData: true, url: "http://127.0.0.1:8123/#updates", failData: (_src, attempt) => attempt === 1 });
+  app.finishDataLoads(); await settle();
+  assert.match(app.elements.get("maintenanceDataStatus").innerHTML, /数据文件下载失败/);
+  const select = app.elements.get("maintenancePlan"); select.value = "plan-0002"; app.fire(select, "change");
+  assert.match(app.elements.get("maintenanceHistory").innerHTML, /将在数据加载后显示/);
+  const details = app.run("document.querySelector('#maintenanceHistory [data-plan-history]')");
+  const summary = details.querySelector("summary");
+  summary.focus(); details.open = true; app.fire(details, "toggle");
+  app.finishDataLoads(); await settle();
+  assert.equal(app.run("document.querySelector('#maintenanceHistory [data-plan-history]')"), details);
+  assert.equal(details.open, true);
+  assert.equal(app.run("document.activeElement"), summary);
+  assert.match(summary.textContent, /（\d+ 条）$/);
+  assert.match(app.run("document.querySelector('#maintenanceHistory .maintenance-plan-status').innerHTML"), /^核查 \d{4}-\d{2}-\d{2}/);
+  healthy(app);
+});
+
 main();

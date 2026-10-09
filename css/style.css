@@ -884,6 +884,13 @@ table.is-empty thead { display: none; }
 .qc-tiers thead th { color: var(--faint); font-weight: 600; border-top: 0; }
 .qc-tiers tr.is-current th, .qc-tiers tr.is-current td { color: var(--ink); font-weight: 700; background: color-mix(in srgb, var(--accent-2, #34d399) 12%, transparent); }
 .qc-tier-price { white-space: nowrap; }
+.qc-bench { margin: -6px 0 12px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 12px; line-height: 1.55; color: var(--muted); }
+.qc-bench-title { margin: 0 0 4px; font-weight: 700; color: var(--ink); }
+.qc-bench-title span { margin-left: 6px; font-weight: 400; color: var(--faint); }
+.qc-bench ul { margin: 0; padding-left: 16px; display: grid; gap: 2px; }
+.qc-bench b { color: var(--ink); font-weight: 600; }
+.qc-bench-note { margin: 4px 0 0; color: var(--faint); }
+.qc-bench-note a { margin-left: 4px; }
 #rankDetailTable tr.rank-divider th { padding: 10px 12px 6px; color: var(--muted); font-weight: 700; background: var(--panel); border-top: 2px solid var(--line-strong); }
 .metrics-legend { margin-top: 8px; }
 .metrics-legend > summary { cursor: pointer; color: var(--muted); font-weight: 600; }

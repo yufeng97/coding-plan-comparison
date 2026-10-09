@@ -351,4 +351,63 @@ test("真实推荐卡的对比按钮可操作且重绘后保留选择与自身�
   healthy(app);
 });
 
+const plain = (value) => JSON.parse(JSON.stringify(value));
+/* 替身 DOM 只在容器上保存 innerHTML；按卡片切分整块推荐区的标记。 */
+const mainCardHtml = (app) => app.elements.get("quickGrid").innerHTML.split('<div class="quick-card"')[1] || "";
+
+test("首屏评测摘要与评测页「每模型最佳配置」的模型、分数和名次逐行一致", () => {
+  const app = createApp();
+  const protocols = plain(app.run("BENCHMARK_SUMMARY.protocols"));
+  assert.deepEqual(protocols.map((p) => p.family), ["deepswe", "cursorbench", "SWE-bench"]);
+  for (const protocol of protocols) {
+    app.run(`publicBenchmarkState = { id: ${JSON.stringify(protocol.id)}, family: ${JSON.stringify(protocol.family)}, search: "", mode: "best" }`);
+    assert.deepEqual(plain(app.run("publicBenchmarkRows().map(r => [r.model, r.score, r.rank])")), protocol.rows.map((r) => [r.model, r.score, r.rank]), protocol.id);
+    assert.equal(protocol.total, protocol.rows.length);
+  }
+  healthy(app);
+});
+
+test("推荐卡评测行只列本档明确包含的精确版本，转义文案且不改变推荐", () => {
+  const app = createApp();
+  app.run(`Object.assign(pickerState, { region: "intl", budget: "200", tool: "any", task: "hard", billing: "M" }); renderPicker();`);
+  const id = app.run("chooseMain(eligibleProfiles()).p.id");
+  const plan = `PLANS.find(p => p.id === ${JSON.stringify(id)})`;
+  /* 前提：主计划列出 Opus 5.5，不含 Opus 4.1。 */
+  assert.equal(app.run(`publicModelIncluded(${plan}, "Claude Opus 5.5")`), true);
+  assert.equal(app.run(`publicModelIncluded(${plan}, "Claude Opus 4.1")`), false);
+  app.run(`BENCHMARK_SUMMARY.protocols = [{ id: "fixture-coding", family: "deepswe", name: "Fixture <b>Coding</b>", version: "1", metric: "pass@1", unit: "%", checkedAt: "2026-10-08", total: 3, rows: [
+    { model: "claude-opus-4-1", reasoning: null, score: 90, rank: 1 },
+    { model: "claude-opus-5-5", reasoning: "max", score: 80, rank: 2 },
+    { model: "Fixture Unlisted", reasoning: null, score: 70, rank: 3 }] }]; renderPicker();`);
+  assert.equal(app.run("chooseMain(eligibleProfiles()).p.id"), id, "评测摘要不参与推荐排序");
+  const bench = (mainCardHtml(app).match(/<div class="qc-bench">[\s\S]*?<\/div>/) || [""])[0];
+  assert.ok(bench, "主计划应显示评测行");
+  assert.match(bench, /Fixture &lt;b&gt;Coding&lt;\/b&gt;<\/b> 第 2\/3 名 · Claude Opus 5\.5 80%/);
+  assert.doesNotMatch(bench, /Opus 4\.1|Fixture Unlisted|<b>Coding/);
+  assert.match(bench, /不参与推荐排序/);
+  assert.match(bench, /href="#benchmarks"/);
+  assert.match(app.run(`pickerChoiceReason(planProfile(${plan}))`), /公开编程评测只作模型能力参考/);
+  app.run("BENCHMARK_SUMMARY.schemaVersion = 2; renderPicker();");
+  assert.doesNotMatch(app.elements.get("quickGrid").innerHTML, /qc-bench/, "摘要格式不认识时不显示评测行");
+  healthy(app);
+});
+
+test("同档候选的额度都无法折算时，主卡写明按月费较低选出", () => {
+  const app = createApp();
+  const state = (region, budget) => app.run(`Object.assign(pickerState, { region: ${JSON.stringify(region)}, budget: ${JSON.stringify(budget)}, tool: "any", task: "hard", billing: "M" }); renderPicker();
+    (() => { const pool = eligibleProfiles(), main = chooseMain(pool);
+      const ties = hardRepresentatives(pool).filter(x => x.p !== main.p && hardMainOrder(main, x, false) === 0 && pickerMonthlyCNY(x.p) > pickerMonthlyCNY(main.p));
+      return { tokens: knownTokens(main.p, main.headline), ties: ties.length, decided: priceDecidedMain(main, pool) }; })()`);
+  const cheap = plain(state("intl", "100"));
+  assert.deepEqual({ ...cheap, ties: cheap.ties > 0 }, { tokens: 0, ties: true, decided: true });
+  assert.match(mainCardHtml(app), /<li>同档候选的额度都无法折算，按月费较低选出/);
+  /* 档位更高的唯一候选不是靠月费胜出。 */
+  assert.deepEqual(plain(state("intl", "200")), { tokens: 0, ties: 0, decided: false });
+  assert.doesNotMatch(mainCardHtml(app), /按月费较低选出/);
+  /* 有可折算额度时按额度说明。 */
+  assert.equal(plain(state("cn", "200")).decided, false);
+  assert.match(mainCardHtml(app), /<li>按官方额度规则折算，保守参考下限/);
+  healthy(app);
+});
+
 if (require.main === module) main();

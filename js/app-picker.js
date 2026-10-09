@@ -326,22 +326,28 @@ function betterDailyTier(a, b) {
   if (ma !== mb) return ma > mb;
   return (pickerMonthlyCNY(a.p) || 0) < (pickerMonthlyCNY(b.p) || 0);
 }
+/* 复杂任务主计划的排序：模型档位 → 可折算额度 → 倍率 → 套餐类别 → 编程入口 → 月费。 */
+function hardMainOrder(a, b, withPrice = true) {
+  return bandRank(b.headline.band) - bandRank(a.headline.band)
+    || knownTokens(b.p, b.headline) - knownTokens(a.p, a.headline)
+    || multiplier(b.p) - multiplier(a.p)
+    || catRank(b.p) - catRank(a.p)
+    || (hasCodingSurface(b.p) ? 1 : 0) - (hasCodingSurface(a.p) ? 1 : 0)
+    || (withPrice ? (pickerMonthlyCNY(a.p) || 0) - (pickerMonthlyCNY(b.p) || 0) : 0);
+}
+function hardRepresentatives(pool) {
+  return representatives(pool.filter((x) => x.headline), (x) => x.p.vendor + "|" + x.headline.id);
+}
 function chooseHardMain(pool) {
-  const reps = representatives(pool.filter((x) => x.headline), (x) => x.p.vendor + "|" + x.headline.id);
-  reps.sort((a, b) => {
-    const band = bandRank(b.headline.band) - bandRank(a.headline.band);
-    if (band) return band;
-    const tok = knownTokens(b.p, b.headline) - knownTokens(a.p, a.headline);
-    if (tok) return tok;
-    const mult = multiplier(b.p) - multiplier(a.p);
-    if (mult) return mult;
-    const cat = catRank(b.p) - catRank(a.p);
-    if (cat) return cat;
-    const coding = (hasCodingSurface(b.p) ? 1 : 0) - (hasCodingSurface(a.p) ? 1 : 0);
-    if (coding) return coding;
-    return (pickerMonthlyCNY(a.p) || 0) - (pickerMonthlyCNY(b.p) || 0);
-  });
+  const reps = hardRepresentatives(pool);
+  reps.sort((a, b) => hardMainOrder(a, b));
   return reps[0] || null;
+}
+/* 额度都无法折算、其余条件也打平时，实际由月费决定；主卡要直说，避免把「更便宜」读成能力或额度更好。 */
+function priceDecidedMain(main, pool) {
+  if (pickerState.task === "daily" || !main.headline || knownTokens(main.p, main.headline) > 0) return false;
+  return hardRepresentatives(pool).some((x) => x.p !== main.p && hardMainOrder(main, x, false) === 0 &&
+    (pickerMonthlyCNY(x.p) || 0) > (pickerMonthlyCNY(main.p) || 0) + BUDGET_EPS);
 }
 function chooseDailyMain(pool) {
   const reps = representatives(pool.filter((x) => x.loose.length), (x) => x.p.vendor + "|" + x.loose[0].id, betterDailyTier);
@@ -577,7 +583,8 @@ function mainCard(main, pool) {
   const role = dailyLead || !main.headline ? main.loose[0] : main.headline;
   const reasons = [role ? `${role.name} 适合${dailyLead || !main.headline ? "日常编码" : "复杂编码任务"}` : "附赠编程推理额度"];
   const evidence = tokenEvidence(p, role);
-  reasons.push(evidence ? `按官方额度规则折算，保守参考下限约 ${fmtTok(evidence.tokens)} tokens/月（统一假设，置信${evidence.conf}）` : "可用 token 总量未公开，购买前核对额度规则");
+  reasons.push(evidence ? `按官方额度规则折算，保守参考下限约 ${fmtTok(evidence.tokens)} tokens/月（统一假设，置信${evidence.conf}）`
+    : priceDecidedMain(main, pool) ? "同档候选的额度都无法折算，按月费较低选出；可展开其他候选对照模型与评测" : "可用 token 总量未公开，购买前核对额度规则");
   if (dailyLead && main.headline) reasons.push(`同档已包含 ${main.headline.name}，可用于复杂任务`);
   else if (!dailyLead && main.headline && main.loose.length) reasons.push(`日常已包含 ${main.loose.map((r) => r.name).join("、")}；${main.shared || main.sharing === "shared" ? "共用额度池" : main.sharing === "separate" ? "模型额度分池" : "共享关系未公开"}`);
   else if (pickerState.task === "both" && !main.headline) reasons.push("当前条件仅匹配日常模型，复杂任务需另找方案");
@@ -613,7 +620,14 @@ function mainCard(main, pool) {
   bits.push(pickerUsageGuide(p));
   if (p.region === "intl" && pickerState.region !== "cn") bits.push(`<div class="qc-avoid">需要外币或国际账号支付。</div>`);
   const title = dailyLead || !main.headline ? "主计划 · 日常" : "主计划 · 复杂任务";
-  return quickCard(PICK_ACCENT[0], title, moneyHtml(p), reasons, p, bits.join(""), tierComparisonHtml(main, role));
+  return quickCard(PICK_ACCENT[0], title, moneyHtml(p), reasons, p, bits.join(""), pickerBenchmarkHtml(p) + tierComparisonHtml(main, role));
+}
+/* 公开编程评测只作模型能力参考，不参与推荐排序；成绩对应评测时的推理与 Agent 配置。 */
+function pickerBenchmarkHtml(p) {
+  const hits = typeof planCodingBenchmarks === "function" ? planCodingBenchmarks(p) : [];
+  if (!hits.length) return "";
+  const items = hits.map(({ protocol, row }) => `<li><b>${esc(protocol.name)}</b> 第 ${row.rank}/${protocol.total} 名 · ${esc(publicModelDisplayName(row.model))} ${esc(publicScoreText(row.score, protocol.unit))}</li>`).join("");
+  return `<div class="qc-bench"><p class="qc-bench-title">公开编程评测<span>本档所含模型的最佳名次，不参与推荐排序</span></p><ul>${items}</ul><p class="qc-bench-note">成绩对应评测时的推理与 Agent 配置，套餐内未必能用同样配置。<a href="#benchmarks">查看评测</a></p></div>`;
 }
 /* 同厂商、同一主力模型的各档位并排列出，预算不限时也能看到更便宜的档位与额度差。 */
 function tierComparisonHtml(main, role) {
@@ -723,7 +737,7 @@ function ownVendorCard(main) {
     regionMiss ? "当前地区不符合；此卡仅供参考" : !quote.available ? "所选付款方式未列价格；此卡仅供参考" : overBudget ? "高于当前预算；此卡仅供参考" : "价格符合预算，比较模型与额度后再选",
   ];
   return quickCard(PICK_ACCENT[3], `${shortVendor(vendor)} 自家订阅`, moneyHtml(plan), reasons, plan,
-    bits.join("") + pickerVerificationHtml(plan) + pickerUsageGuide(plan));
+    bits.join("") + pickerVerificationHtml(plan) + pickerUsageGuide(plan), pickerBenchmarkHtml(plan));
 }
 function windowNoteShort(prof) {
   if (prof.windowPeriod === "none") return "目前没有 5 小时上限；总体用量仍需查看官方仪表盘。";
@@ -768,6 +782,7 @@ function pickerChoiceReason(profile) {
   const evidence = tokenEvidenceText(profile.p, role);
   if (evidence) parts.push(`额度可按官方规则折算：${evidence}，可核对用量`);
   else parts.push("可用 token 总量没有可按官方规则折算的依据，主要按模型用途、公开额度规则和月费比较");
+  if (typeof planCodingBenchmarks === "function" && planCodingBenchmarks(profile.p).length) parts.push("卡片上的公开编程评测只作模型能力参考，不参与排序");
   return parts.join("；") + "。";
 }
 /* 先给省钱候选，再给排序中的另一选择；尽量来自不同厂商，单厂商筛选仍可比较不同档位。 */
@@ -798,7 +813,7 @@ function alternativeCards(main, pool, shownIds) {
     const role = pickerState.task === "daily" ? x.loose[0] : x.headline || x.loose[0];
     const reasons = [tradeoff, `${role.name} 适合当前任务`, "满足当前预算、地区与工具条件"];
     const body = lineHtml("模型与额度", `${role.name}。${windowSentence(x.p, role)}`) + pickerVerificationHtml(x.p) + pickerUsageGuide(x.p);
-    return quickCard(PICK_ACCENT[3], "预算内候选", moneyHtml(x.p), reasons, x.p, body);
+    return quickCard(PICK_ACCENT[3], "预算内候选", moneyHtml(x.p), reasons, x.p, body, pickerBenchmarkHtml(x.p));
   }).join("");
   return `<details class="picker-alternatives method-box"><summary>其他候选（${alternatives.length} 档，均在预算内）</summary><div class="picker-alternatives-grid">${cards}</div></details>`;
 }

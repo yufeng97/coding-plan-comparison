@@ -124,3 +124,25 @@ for (const width of [375, 1280]) {
     await expect(page.locator("#freeGrid")).not.toContainText("Gemini CLI / Code Assist 个人免费版");
   });
 }
+
+for (const width of [375, 1280]) {
+  test(`${width}px 推荐卡的公开编程评测留在卡内，链接进入评测标签`, async ({ page }) => {
+    await page.setViewportSize({ width, height:900 });
+    await page.goto("/?budget=200&region=intl&task=hard#quick");
+    const card = page.locator("#quickGrid .quick-card").first();
+    const bench = card.locator(".qc-bench");
+    await expect(bench).toBeVisible();
+    await expect(bench.locator("li").first()).toContainText(/第 \d+\/\d+ 名/);
+    await expect(bench).toContainText("不参与推荐排序");
+    const fits = await card.evaluate((el) => {
+      const box = el.getBoundingClientRect(), inner = /** @type {HTMLElement} */ (el.querySelector(".qc-bench")).getBoundingClientRect();
+      return inner.left >= box.left - 1 && inner.right <= box.right + 1 && el.scrollWidth <= el.clientWidth + 1;
+    });
+    expect(fits).toBe(true);
+    const widths = await page.evaluate(() => ({ doc:document.documentElement.scrollWidth, viewport:window.innerWidth }));
+    expect(widths.doc).toBeLessThanOrEqual(widths.viewport + 1);
+    await bench.getByRole("link", { name:"查看评测" }).click();
+    await expect(page).toHaveURL(/#benchmarks$/);
+    await expect(page.locator("#publicBenchmarkBody tr").first()).toBeVisible();
+  });
+}

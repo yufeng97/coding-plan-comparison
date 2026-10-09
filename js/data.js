@@ -21,7 +21,8 @@ const META = {
    task: hard=复杂任务  daily=日常
    burn: fast=窗口打得快  slow=慢烧  same=比旗舰耐用，但通常仍是同一个窗口
    band: 只用来在预算内选主计划（A 高于 B），页面不展示字母或分数
-   ceiling: 同套餐里更吃额度的上限模型，不拿来当默认复杂任务模型 */
+   ceiling: 同套餐里更吃额度的上限模型，不拿来当默认复杂任务模型
+   re 同时供 metrics.js 的 isFlagshipModelName（排行「旗舰」筛选）复用，须兼容连字符与空格写法。 */
 const MODEL_ROLES = [
   { id: "claude-fable", name: "Claude Fable", re: /fable/i, task: "hard", burn: "fast", band: "A", ceiling: true,
     reason: "能做更难的任务，但会占掉每周限额的一大块", asOf: "2026-09-30" },
@@ -31,7 +32,7 @@ const MODEL_ROLES = [
     reason: "能做复杂任务，官方 5 小时条数比 Sol 和 Luna 少很多", asOf: "2026-09-30" },
   { id: "gpt-sol", name: "GPT-6 Sol", re: /gpt-(?:6|5\.6)\s*sol|(?:^|[^a-z])sol(?:[^a-z]|$)/i, task: "hard", burn: "fast", band: "B",
     reason: "复杂编码可用，5 小时条数明显紧于 Luna", asOf: "2026-09-30" },
-  { id: "gemini-pro", name: "Gemini Pro", re: /gemini\s*3(?:\.\d+)?\s*pro|deep\s*think/i, task: "hard", burn: "fast", band: "B",
+  { id: "gemini-pro", name: "Gemini Pro", re: /gemini[\s-]*\d+(?:\.\d+)?[\s-]*pro|deep\s*think/i, task: "hard", burn: "fast", band: "B",
     reason: "复杂任务可用，官方没有单列可折算的 5 小时 tokens", asOf: "2026-09-30" },
   { id: "kimi-k3", name: "Kimi K3", re: /kimi\s*[- ]?k3|(?:^|[^a-z0-9])k3(?:[^a-z0-9]|$)/i, task: "hard", burn: "fast", band: "B",
     reason: "国内复杂任务的主力之一，和同套餐里的小模型共用窗口", asOf: "2026-09-30" },
@@ -43,11 +44,11 @@ const MODEL_ROLES = [
     reason: "复杂任务可用的国产旗舰", asOf: "2026-09-30" },
   { id: "minimax-m3", name: "MiniMax M3", re: /minimax[\s-]*m3/i, task: "hard", burn: "fast", band: "B",
     reason: "复杂任务能用，官方按 5 小时窗口计，没有公布 token 总量", asOf: "2026-09-30" },
-  { id: "mimo-pro", name: "MiMo Pro", re: /mimo[\w.-]*pro/i, task: "hard", burn: "fast", band: "B",
+  { id: "mimo-pro", name: "MiMo Pro", re: /mimo[\w.-]*(?:\s+v?[\d.]+)?[\s-]*pro/i, task: "hard", burn: "fast", band: "B",
     reason: "复杂任务用 Pro，Flash 是同一额度里更省的档", asOf: "2026-09-30" },
-  { id: "doubao-pro", name: "Doubao Seed", re: /doubao-seed-[\d.]+-(?:pro|code)|seed-[\d.]+-(?:pro|code)/i, task: "hard", burn: "fast", band: "B",
+  { id: "doubao-pro", name: "Doubao Seed", re: /(?:doubao[\s-]*)?seed[\s-]*[\d.]+[\s-]*(?:pro|code)|doubao[\s-]*seed[\s-]*code/i, task: "hard", burn: "fast", band: "B",
     reason: "复杂任务可用的豆包编程模型", asOf: "2026-09-30" },
-  { id: "step-5", name: "Step 5", re: /step-5/i, task: "hard", burn: "fast", band: "B",
+  { id: "step-5", name: "Step 5", re: /step[\s-]?5(?!\d)/i, task: "hard", burn: "fast", band: "B",
     reason: "复杂任务用 Step 5，Flash 是同一月池里的慢烧档", asOf: "2026-09-30" },
   { id: "hy", name: "混元 Hy3/Hy4", re: /hy[34](?:\b|[.-])/i, task: "hard", burn: "fast", band: "B",
     reason: "腾讯云里可以拿来做复杂任务的混元档", asOf: "2026-09-30" },

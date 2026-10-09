@@ -111,17 +111,36 @@ function atomicWrite(file, content) {
   try { fs.writeFileSync(temp,content); fs.renameSync(temp,file); }
   finally { if(fs.existsSync(temp)) fs.unlinkSync(temp); }
 }
+/* 帮我选卡片随首屏加载的编程评测摘要：每个准确模型名的最佳已公布配置与本协议名次；完整榜单仍按需下载。
+   排序、去重与并列名次须与 js/app-maintenance.js 的 publicBenchmarkRows（每模型最佳配置）一致，回归测试逐行比对。 */
+const SUMMARY_FAMILIES = ["deepswe", "cursorbench", "swe-bench"];
+function benchmarkSummary(data) {
+  const protocols = data.benchmarks.filter((b) => SUMMARY_FAMILIES.includes(b.family.toLowerCase()))
+    .sort((a, b) => SUMMARY_FAMILIES.indexOf(a.family.toLowerCase()) - SUMMARY_FAMILIES.indexOf(b.family.toLowerCase()))
+    .map((b) => {
+      const seen = new Set();
+      const best = data.scores.filter((r) => r.benchmarkId === b.id && typeof r.score === "number" && Number.isFinite(r.score))
+        .sort((x, y) => y.score - x.score || x.model.localeCompare(y.model))
+        .filter((r) => !seen.has(r.model) && Boolean(seen.add(r.model)));
+      let rank = 0, previous = null;
+      const rows = best.map((r, i) => { if (previous !== r.score) rank = i + 1; previous = r.score; return { model: r.model, reasoning: r.reasoning, score: r.score, rank }; });
+      return { id: b.id, family: b.family, name: b.name, version: b.version, metric: b.metric, unit: b.unit, checkedAt: b.checkedAt, total: rows.length, rows };
+    });
+  return { schemaVersion: 1, checkedAt: data.checkedAt, protocols };
+}
 function build(workspace = root, options = {check:false}) {
   return withFileLockSync(lockFile(workspace), () => {
   const data = validateRuns(JSON.parse(fs.readFileSync(path.join(workspace,"benchmarks/results.json"),"utf8")),tasks(workspace));
   const output = {schemaVersion:1,tasks:tasks(workspace),runs:data.runs,methodology:"固定任务与版本；同一解答在独立暂存目录重复验收至少 3 次，不代表独立模型尝试。断言由独立于解答的 checker 执行，导入须提供原解答并复验其哈希与通过状态。生成耗时由贡献者记录，展示的验收耗时为导入时本机重跑结果；费用为生成该解答的真实 API 账单金额，订阅内/未知不记零。解答仅运行维护者选择的可信本机代码，独立进程不构成恶意代码安全沙箱。不同工具、任务、版本和费用口径分别比较。",generatedAt:data.runs.reduce((date,run)=>run.reviewedAt.slice(0,10)>date?run.reviewedAt.slice(0,10):date,"2026-10-08")};
   const snapshot = { ...output, public: readPublic(workspace) };
-  const content = "/* 自动生成：npm run benchmark:build */\nconst BENCHMARKS = "+JSON.stringify(snapshot,null,2)+";\n";
-  const file = path.join(workspace,"js/benchmark-data.js");
-  if (!fs.existsSync(file) || fs.readFileSync(file,"utf8")!==content) {
-    if (options.check) throw new Error("测评公共数据过期，请运行 npm run benchmark:build");
-    atomicWrite(file,content);
-  }
+  const outputs = [
+    ["js/benchmark-data.js", "/* 自动生成：npm run benchmark:build */\nconst BENCHMARKS = "+JSON.stringify(snapshot,null,2)+";\n"],
+    ["js/benchmark-summary.js", "/* 自动生成：npm run benchmark:build。帮我选卡片的编程评测摘要；完整榜单见 benchmark-data.js（按需加载）。 */\n/** @type {BenchmarkSummary} */\nconst BENCHMARK_SUMMARY = "+JSON.stringify(benchmarkSummary(snapshot.public))+";\n"],
+  ];
+  const stale = outputs.filter(([name, content]) => { const file = path.join(workspace,name); return !fs.existsSync(file) || fs.readFileSync(file,"utf8")!==content; });
+  if (stale.length && options.check) throw new Error(`测评公共数据过期（${stale.map(([name]) => name).join("、")}），请运行 npm run benchmark:build`);
+  /* 两份都由同一快照派生；中途失败时 check 会继续报过期，重跑 build 即可恢复。 */
+  for (const [name, content] of stale) atomicWrite(path.join(workspace,name),content);
   return snapshot;
   }, lockOptions);
 }
@@ -181,4 +200,4 @@ function main(argv) {
   throw new Error("使用 benchmark.js build | validate | run --task ID --solution 目录 [--model 名称 --tool 工具 --evidence HTTPS地址] | import --input 文件 --reviewer 维护者 --solution 原解答目录");
 }
 if(require.main===module) {try {main(process.argv.slice(2));} catch(error) {console.error(error.message);process.exitCode=1;}}
-module.exports={tasks,validateRuns,runTask,importRun,build,main};
+module.exports={tasks,validateRuns,runTask,importRun,benchmarkSummary,build,main};

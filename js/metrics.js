@@ -228,13 +228,15 @@ function computeMetricsUncached(m) {
   };
 }
 
-/* 性价比排行的旗舰判定：多模型字段按分隔符拆开，任一命中旗舰即算；
-   Flash/Haiku/Luna/Nano/mini 等轻量名显式排除（\bmini\b 不误伤 MiniMax）。
-   旗舰正则同时接受连字符与空格写法（MiniMax M3 / MiMo Pro / Step 5 / Doubao Seed 2.0 Pro）。 */
+/* 性价比排行的「旗舰」筛选只排除轻量模型，与「帮我选」的复杂任务角色共用 data.js 的 MODEL_ROLES 正则，不再另维护一套。
+   有意的口径差异只在 RANK_MAIN_EXTRA：Sonnet 与仍在售的上一代主力（Kimi K2.x、GPT-5.x）在「帮我选」里不当复杂任务首选，
+   但不是轻量模型，排行里与旗舰一起比较。多模型字段按分隔符拆开，任一命中即算；
+   Flash/Haiku/Luna/Nano/mini 等轻量名显式排除（\bmini\b 不误伤 MiniMax）。 */
+const RANK_MAIN_EXTRA = /sonnet|kimi[\s-]*k2(?:\.\d+)?|gpt-5(?:\.\d+)?/i;
 function isFlagshipModelName(name) {
   return String(name || "").split(/[、,，/|；;]+/).some((part) => {
     const t = part.trim();
     if (!t || /flash|haiku|luna|nano|\bmini\b/i.test(t)) return false;
-    return /opus|fable|sonnet|gpt-6(?:\.\d+)?\s*sol|gpt-5|gemini[\s-]*\d+(?:\.\d+)?[\s-]*pro|kimi[\s-]*k[23]|\bk3\b|deepseek[\w.\s-]*pro|minimax[\s-]*m3|mimo[\w.\s-]*pro|qwen3(?:\.\d+)?-max|qwen3-coder-(?:plus|next)|doubao[\s-]?seed[\s-]?[\d.]+[\s-]?(?:pro|code)|glm-?\s*5|step[\s-]?5|hy[34]/i.test(t);
+    return RANK_MAIN_EXTRA.test(t) || matchModelRoles(t).some((role) => role.task === "hard");
   });
 }

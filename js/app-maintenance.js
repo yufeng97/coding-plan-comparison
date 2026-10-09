@@ -22,6 +22,8 @@ function benchmarkData() {
     ? /** @type {BenchmarkSnapshot} */ (BENCHMARKS)
     : { schemaVersion: 1, generatedAt: "", tasks: [], runs: [], methodology: "" };
 }
+/* 按需数据未就绪（加载中或下载失败）时只说明待加载，不显示「没有记录」一类结论；进度与重试见标签顶部状态行。 */
+function optionalPendingText(what) { return `${what}将在数据加载后显示。`; }
 /** @returns {PublicBenchmarkSnapshot} */
 function publicBenchmarkData() {
   const data = benchmarkData().public;
@@ -188,6 +190,15 @@ function publicNewerVersionHint(model, plans) {
   const names = newer.filter((x) => x.version === version).slice(0, 3).map((x) => `<a href="?q=${encodeURIComponent(x.p.vendor + " " + x.p.plan)}#table" data-benchmark-plan="${esc(x.p.id)}">${esc(planTitle(x.p))}</a>`);
   return `<p class="public-model-plans">同系列较新的 ${esc(family)} ${esc(String(version))} 在 ${names.join(" · ")} 等官方套餐中，不是本评测版本，成绩不能直接套用。</p>`;
 }
+/* 帮我选卡片：本档明确列出的模型在各编程协议中的最佳名次，读首屏摘要，不依赖完整榜单。
+   与「可用套餐」同一精确版本匹配；协议分别列出，不合成总分。摘要行已按分数降序，find 即本档最佳。 */
+function planCodingBenchmarks(p) {
+  if (typeof BENCHMARK_SUMMARY === "undefined" || BENCHMARK_SUMMARY.schemaVersion !== 1 || !p || !publicPlanEligible(p)) return [];
+  return BENCHMARK_SUMMARY.protocols.map((protocol) => {
+    const row = protocol.rows.find((r) => publicModelIncluded(p, publicModelDisplayName(r.model)));
+    return row ? { protocol, row } : null;
+  }).filter(Boolean);
+}
 function publicModelPlansHtml(model) {
   const plans = publicModelPlans(model);
   const links = plans.map((p) => `<a href="?q=${encodeURIComponent(p.vendor + " " + p.plan)}#${isFreeCodingEntry(p) ? "free" : "table"}" data-benchmark-plan="${esc(p.id)}">${esc(planTitle(p))}</a>`);
@@ -209,17 +220,17 @@ function publicBenchmarkConfiguration(row) {
 function renderPublicBenchmarks() {
   const meta = byId("publicBenchmarkMeta"), body = byId("publicBenchmarkBody"), empty = byId("publicBenchmarkEmpty"), table = byId("publicBenchmarkWrap");
   if (!meta || !body || !empty || !table) return;
-  const benchmark = selectedPublicBenchmark(), rows = publicBenchmarkRows();
+  const benchmark = selectedPublicBenchmark(), rows = publicBenchmarkRows(), loaded = optionalDataLoaded("benchmark");
   const select = byId("publicBenchmarkSelect");
   if (benchmark) { publicBenchmarkState.id = benchmark.id; publicBenchmarkState.family = benchmark.family; if (select) select.value = benchmark.id; }
-  meta.innerHTML = benchmark ? `<h3>${esc(benchmark.name)}</h3><p>${esc(benchmark.description)}</p><dl class="public-benchmark-meta"><div><dt>版本与协议</dt><dd>${esc(benchmark.version)} · <code>${esc(benchmark.id)}</code></dd></div><div><dt>指标与范围</dt><dd>${esc(benchmark.metric)}（${esc(benchmark.unit)}） · ${esc(benchmark.scope)}</dd></div><div><dt>评测配置</dt><dd>${esc(benchmark.configuration)}</dd></div><div><dt>官方标注日期与核查</dt><dd>官方标注 ${esc(publicBenchmarkDate(benchmark.sourceUpdatedAt))} · 本站核查 ${esc(publicBenchmarkDate(benchmark.checkedAt))} · ${publicBenchmarkSource(benchmark.sourceUrl, "原始评测")}</dd></div></dl>` : "<p>公开评测数据暂未加载，请刷新重试。</p>";
+  meta.innerHTML = benchmark ? `<h3>${esc(benchmark.name)}</h3><p>${esc(benchmark.description)}</p><dl class="public-benchmark-meta"><div><dt>版本与协议</dt><dd>${esc(benchmark.version)} · <code>${esc(benchmark.id)}</code></dd></div><div><dt>指标与范围</dt><dd>${esc(benchmark.metric)}（${esc(benchmark.unit)}） · ${esc(benchmark.scope)}</dd></div><div><dt>评测配置</dt><dd>${esc(benchmark.configuration)}</dd></div><div><dt>官方标注日期与核查</dt><dd>官方标注 ${esc(publicBenchmarkDate(benchmark.sourceUpdatedAt))} · 本站核查 ${esc(publicBenchmarkDate(benchmark.checkedAt))} · ${publicBenchmarkSource(benchmark.sourceUrl, "原始评测")}</dd></div></dl>` : `<p>${loaded ? "公开评测数据暂不可用。" : optionalPendingText("公开评测协议与成绩")}</p>`;
   const count = byId("publicBenchmarkCount");
-  if (count) count.textContent = benchmark ? `${rows.length} 条匹配记录 · ${publicBenchmarkState.mode === "all" ? "全部已公布配置" : "每模型最佳已公布配置"} · 本协议分数降序` : "暂无公开记录";
+  if (count) count.textContent = benchmark ? `${rows.length} 条匹配记录 · ${publicBenchmarkState.mode === "all" ? "全部已公布配置" : "每模型最佳已公布配置"} · 本协议分数降序` : loaded ? "暂无公开记录" : "";
   const modeNote = byId("publicBenchmarkModeNote");
   if (modeNote) modeNote.textContent = publicBenchmarkState.mode === "all" ? "同一模型的不同推理与 Agent 配置分别列出；名次仅适用于当前协议，搜索不改变原名次。" : "每个准确模型名称取当前协议已公布配置中的最高分；同分保留来源首项。名次在本协议这些配置中计算，搜索不改变原名次；切换「全部配置」可查看其他配置。";
   const caption = byId("publicBenchmarkCaption"); if (caption) caption.textContent = benchmark ? `${benchmark.name} · ${benchmark.metric} · ${benchmark.scope}` : "公开模型评测";
   body.innerHTML = rows.map((r) => `<tr><td class="public-score-rank">${r.rank}</td><th scope="row"><strong>${esc(publicModelDisplayName(r.model))}</strong><span class="public-score-config">${esc([r.reasoning ? "推理：" + r.reasoning : "推理未公布", r.agent ? "Agent：" + r.agent : "Agent 未公布"].join(" · "))}</span>${publicModelPlansHtml(r.model)}<details class="public-score-more"><summary>配置与评测说明</summary><p>来源模型 ID：<code>${esc(r.model)}</code></p><p>${esc(publicBenchmarkConfiguration(r))}</p>${r.uncertainty ? `<p>区间 / 不确定性：${esc(r.uncertainty)}</p>` : ""}<p>${esc(r.costNote || "评测每任务成本；来源未提供其他费用说明。未公布费用不能记作零，也不能换算为订阅月费。")}</p></details></th><td class="public-score-value">${esc(publicScoreText(r.score, benchmark.unit))}${publicUncertaintyHtml(r)}</td><td>${esc(publicCostText(r.costUSD))}</td><td>${publicBenchmarkSource(r.sourceUrl, "成绩来源")}<span class="public-score-config" title="${esc(r.checkedAt)}">核查 ${esc(publicBenchmarkDate(r.checkedAt))}</span></td></tr>`).join("");
-  empty.hidden = rows.length > 0; table.hidden = !rows.length;
+  empty.hidden = rows.length > 0 || !loaded; table.hidden = !rows.length;
   empty.textContent = benchmark ? "当前协议没有匹配的模型或配置。请调整关键词，或清除搜索。" : "公开数据暂不可用；本站不会用本地验收示例填充模型分数。";
   const reset = byId("publicModelClearBtn"); if (reset) reset.disabled = !publicBenchmarkState.search;
   const csv = byId("downloadPublicBenchmarkCsvBtn"); if (csv) csv.disabled = !rows.length;
@@ -376,10 +387,10 @@ function renderFollowedChanges() {
   if (!list || !changes || !count || !read) return;
   const plans = followState.planIds.map((id) => PLANS.find((p) => p.id === id)).filter(Boolean);
   list.innerHTML = plans.length ? plans.map((p) => `<div class="followed-plan"><button type="button" class="chip" data-view-plan="${esc(p.id)}">${esc(planTitle(p))}</button>${watchButtonHtml(p)}</div>`).join("") : `<p>在推荐卡、数据表或完整权益里点击「关注」，下次访问即可查看这些套餐的变更。</p>`;
-  const unread = unreadFollowedChanges();
-  count.textContent = `${plans.length} 档关注 · ${unread.length} 条未读变更`;
+  const unread = unreadFollowedChanges(), loaded = optionalDataLoaded("maintenance");
+  count.textContent = `${plans.length} 档关注` + (loaded ? ` · ${unread.length} 条未读变更` : "");
   read.disabled = !unread.length;
-  changes.innerHTML = unread.length ? `<ul class="change-list">${unread.map((c) => changeCardHtml(c, true)).join("")}</ul>` : `<p>${plans.length ? "当前关注套餐没有未读的已确认变更。" : "关注后会展示本站收录的已确认变更。"}</p>`;
+  changes.innerHTML = unread.length ? `<ul class="change-list">${unread.map((c) => changeCardHtml(c, true)).join("")}</ul>` : `<p>${!plans.length ? "关注后会展示本站收录的已确认变更。" : loaded ? "当前关注套餐没有未读的已确认变更。" : optionalPendingText("关注套餐的已确认变更")}</p>`;
   const storage = byId("followStorageNote");
   if (storage) storage.textContent = followStorageMessage || "只在当前浏览器保存关注与已读记录；不上传，不跨设备同步，清理浏览器数据后会消失。";
 }
@@ -390,8 +401,17 @@ function renderMaintenanceHistory() {
   select.value = maintenancePlanId;
   if (!p) { el.innerHTML = "<p>选择套餐，查看当前核查状态与已确认变更。</p>"; return; }
   const record = maintenanceData().records.find((r) => r.id === p.id);
+  const status = esc(record ? `核查 ${record.checkedAt || "日期未记录"} · ${maintenanceStatusLabel(record.status)}${record.stale ? " · 已超过复查间隔" : ""}。日期为本站核查日。`
+    : optionalDataLoaded("maintenance") ? "暂无逐条维护记录。" : optionalPendingText("核查日期与状态"));
+  /* 同一套餐重绘（如展开历史后数据才加载完）时原地更新，保留展开状态和 summary 焦点。 */
+  const statusLine = el.querySelector(".maintenance-plan-status"), history = el.querySelector("[data-plan-history]");
+  if (statusLine && history && history.dataset.planHistory === p.id) {
+    statusLine.innerHTML = status;
+    fillPlanHistory(history, planHistoryParts(p.id));
+    return;
+  }
   el.innerHTML = `<div class="maintenance-plan-actions">${watchButtonHtml(p)}<button type="button" class="chip" data-view-plan="${esc(p.id)}">完整权益</button></div>` +
-    `<p>${esc(record ? `核查 ${record.checkedAt || "日期未记录"} · ${maintenanceStatusLabel(record.status)}${record.stale ? " · 已超过复查间隔" : ""}` : "暂无逐条维护记录")}。日期为本站核查日。</p>${planHistoryHtml(p.id)}`;
+    `<p class="maintenance-plan-status">${status}</p>${planHistoryHtml(p.id)}`;
 }
 function maintenanceStatusLabel(status) {
   return { verified: "已核实", changed: "核价信息已校正", unverified: "待核实", custom: "定制询价", retired: "已停售" }[status] || status || "待核实";
@@ -399,7 +419,7 @@ function maintenanceStatusLabel(status) {
 function renderMaintenanceRecords() {
   const el = byId("maintenanceRecords"); if (!el) return;
   const rows = maintenanceData().records.filter((r) => maintenanceRecordFilter === "all" || (maintenanceRecordFilter === "stale" ? r.stale : r.status === "unverified"));
-  el.innerHTML = rows.length ? `<ul class="maintenance-records">${rows.map((r) => `<li><strong>${esc(r.vendor + " · " + r.name)}</strong><span>${esc(maintenanceStatusLabel(r.status))}${r.stale ? " · 超期" : ""} · ${esc(r.checkedAt || "未核查")}</span>${maintenanceSources(r.sourceUrls)}</li>`).join("")}</ul>` : "<p>当前条件没有记录。</p>";
+  el.innerHTML = rows.length ? `<ul class="maintenance-records">${rows.map((r) => `<li><strong>${esc(r.vendor + " · " + r.name)}</strong><span>${esc(maintenanceStatusLabel(r.status))}${r.stale ? " · 超期" : ""} · ${esc(r.checkedAt || "未核查")}</span>${maintenanceSources(r.sourceUrls)}</li>`).join("")}</ul>` : `<p>${optionalDataLoaded("maintenance") ? "当前条件没有记录。" : optionalPendingText("逐条维护状态")}</p>`;
 }
 function todayLocalIso() {
   const d = new Date();
@@ -407,13 +427,13 @@ function todayLocalIso() {
 }
 function renderMaintenance() {
   const data = maintenanceData(), el = byId("maintenanceSummary"); if (!el) return;
-  const s = data.summary;
-  el.innerHTML = data.generatedAt ? `<p>维护快照 ${esc(data.generatedAt)} · 核查覆盖至 ${esc(data.checkedThrough || "未记录")}。快照按 ${esc(data.staleAfterDays || 14)} 天复查间隔标记超期。</p><dl class="trust-counts"><div><dt>覆盖记录</dt><dd>${s.total}</dd></div><div><dt>已核实</dt><dd>${s.verified}</dd></div><div><dt>待核实</dt><dd>${s.unverified}</dd></div><div><dt>需复查</dt><dd>${s.stale}</dd></div></dl>` : "<p>维护快照暂未生成，请在完整数据表核对逐条来源。</p>";
+  const s = data.summary, loaded = optionalDataLoaded("maintenance");
+  el.innerHTML = data.generatedAt ? `<p>维护快照 ${esc(data.generatedAt)} · 核查覆盖至 ${esc(data.checkedThrough || "未记录")}。快照按 ${esc(data.staleAfterDays || 14)} 天复查间隔标记超期。</p><dl class="trust-counts"><div><dt>覆盖记录</dt><dd>${s.total}</dd></div><div><dt>已核实</dt><dd>${s.verified}</dd></div><div><dt>待核实</dt><dd>${s.unverified}</dd></div><div><dt>需复查</dt><dd>${s.stale}</dd></div></dl>` : `<p>${loaded ? "维护快照暂未生成，请在完整数据表核对逐条来源。" : optionalPendingText("维护快照与核查统计")}</p>`;
   const select = byId("maintenancePlan");
   if (select) select.innerHTML = '<option value="">选择套餐</option>' + PLANS.map((p) => `<option value="${esc(p.id)}">${esc(planTitle(p))}</option>`).join("");
   const due = data.reviews.filter((r) => /^\d{4}-\d{2}-\d{2}$/.test(r.reviewOn) && r.reviewOn <= todayLocalIso());
   const reviews = byId("maintenanceReviews");
-  if (reviews) reviews.innerHTML = due.length ? `<ul class="review-list">${due.map((r) => `<li><strong>${esc(r.title)}</strong> · 复查日 ${esc(r.reviewOn)}${r.reviewOn < todayLocalIso() ? "（已到期）" : "（今天到期）"}<p>${esc(r.note || "到期需人工复查，不能据此认定价格或权益已变化。")}</p>${maintenanceSources([r.source])}</li>`).join("")}</ul>` : "<p>当前没有已到期的复查安排。复查提示按本机日期计算，不代表已重新核验。</p>";
+  if (reviews) reviews.innerHTML = due.length ? `<ul class="review-list">${due.map((r) => `<li><strong>${esc(r.title)}</strong> · 复查日 ${esc(r.reviewOn)}${r.reviewOn < todayLocalIso() ? "（已到期）" : "（今天到期）"}<p>${esc(r.note || "到期需人工复查，不能据此认定价格或权益已变化。")}</p>${maintenanceSources([r.source])}</li>`).join("")}</ul>` : `<p>${loaded ? "当前没有已到期的复查安排。复查提示按本机日期计算，不代表已重新核验。" : optionalPendingText("到期复查提示")}</p>`;
   renderMaintenanceHistory(); renderMaintenanceRecords(); renderFollowedChanges();
 }
 function benchmarkFilterOptions(key) {
@@ -432,7 +452,7 @@ function renderBenchmarks() {
   const el = byId("benchmarkResults"); if (!el) return;
   const data = benchmarkData();
   const rows = data.runs.filter((r) => (benchmarkFilter.task === "all" || r.taskId === benchmarkFilter.task) && (benchmarkFilter.tool === "all" || r.tool === benchmarkFilter.tool) && (benchmarkFilter.model === "all" || r.model === benchmarkFilter.model));
-  el.innerHTML = rows.length ? `<p>符合条件 ${rows.length} 条贡献者解答记录。不同任务、环境与币种分别展示，不合并成成功率或性能排名。</p><ul class="benchmark-runs">${rows.map(benchmarkRunHtml).join("")}</ul>` : `<p class="benchmark-empty">${data.runs.length ? "当前筛选没有贡献者记录。" : "尚未收录贡献者任务记录。这里的验收工具用于复现提交的单份解答，未测量的数据不填充分数。"}</p>`;
+  el.innerHTML = rows.length ? `<p>符合条件 ${rows.length} 条贡献者解答记录。不同任务、环境与币种分别展示，不合并成成功率或性能排名。</p><ul class="benchmark-runs">${rows.map(benchmarkRunHtml).join("")}</ul>` : `<p class="benchmark-empty">${!optionalDataLoaded("benchmark") ? optionalPendingText("贡献者任务与记录") : data.runs.length ? "当前筛选没有贡献者记录。" : "尚未收录贡献者任务记录。这里的验收工具用于复现提交的单份解答，未测量的数据不填充分数。"}</p>`;
   const tasks = byId("benchmarkTasks");
   if (tasks) tasks.innerHTML = data.tasks.filter((t) => benchmarkFilter.task === "all" || t.id === benchmarkFilter.task).map((t) => `<details class="method-box"><summary>${esc(t.title)}</summary><p>${esc(t.description)}</p><p><strong>验收条件：</strong>${esc(benchmarkText(t.acceptance))}</p><p>任务标识：<code>${esc(t.id)}</code></p></details>`).join("");
   const method = byId("benchmarkMethodology"); if (method) method.textContent = benchmarkText(data.methodology);

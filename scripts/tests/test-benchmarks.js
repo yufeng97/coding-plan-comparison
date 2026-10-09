@@ -5,9 +5,19 @@ const path = require("node:path");
 const os = require("node:os");
 const crypto = require("node:crypto");
 const { acquireFileLock } = require("../lib/file-lock");
-const {tasks,runTask,validateRuns,importRun,build} = require("../benchmarks/benchmark");
+const {tasks,runTask,validateRuns,importRun,benchmarkSummary,build} = require("../benchmarks/benchmark");
 const catalog=tasks();
 const root=path.resolve(__dirname,"../..");
+{
+  /* 首屏摘要：只取编程协议并按固定顺序；每个准确模型名保留最高分配置，同分共享名次，非有限分数不入榜。 */
+  const protocol=(id,family,category)=>({id,family,category,name:id,version:"1",metric:"pass@1",unit:"%",checkedAt:"2026-10-08"});
+  const score=(benchmarkId,model,value,reasoning=null)=>({benchmarkId,model,score:value,reasoning});
+  const summary=benchmarkSummary({checkedAt:"2026-10-08",benchmarks:[protocol("os","OSWorld","电脑操作"),protocol("swe","SWE-bench","编程"),protocol("deep","deepswe","coding")],
+    scores:[score("deep","b",70,"low"),score("deep","b",80,"high"),score("deep","a",80),score("deep","c",Number.NaN),score("deep","d",60),score("os","x",99),score("swe","e",50)]});
+  assert.deepEqual(summary.protocols.map(p=>p.id),["deep","swe"]);
+  assert.deepEqual(summary.protocols[0].rows.map(r=>[r.model,r.score,r.rank,r.reasoning]),[["a",80,1,null],["b",80,1,"high"],["d",60,3,null]]);
+  assert.equal(summary.protocols[0].total,3);
+}
 for(const task of catalog) {
   const result=runTask({task:task.id,solution:path.join(root,"benchmarks/fixtures",task.id)});
   assert.equal(result.passed,false,"起始实现应无法通过全部验收");
@@ -66,6 +76,13 @@ try {
   fs.writeFileSync(publicFile,"stale-public-data");
   assert.throws(()=>build(workspace,{check:true}),/过期/);
   assert.equal(fs.readFileSync(publicFile,"utf8"),"stale-public-data","检查模式必须只读");
+  build(workspace);
+  assert.doesNotThrow(()=>build(workspace,{check:true}));
+  const summaryFile=path.join(workspace,"js/benchmark-summary.js");
+  assert.match(fs.readFileSync(summaryFile,"utf8"),/\nconst BENCHMARK_SUMMARY = \{"schemaVersion":1,/);
+  fs.writeFileSync(summaryFile,"stale-summary");
+  assert.throws(()=>build(workspace,{check:true}),/过期（js\/benchmark-summary\.js）/);
+  assert.equal(fs.readFileSync(summaryFile,"utf8"),"stale-summary","检查模式必须只读");
   build(workspace);
   assert.doesNotThrow(()=>build(workspace,{check:true}));
   fs.writeFileSync(path.join(dir,"solution.cjs"),goodCost);

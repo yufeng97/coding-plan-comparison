@@ -169,7 +169,7 @@ npm run bump
 npm run cache:check
 ```
 
-`collect` 只写忽略目录 `audit/benchmark-sources/`，保留原始下载 SHA-256、完整历史候选和来源连续失败；变化比较按协议/精确模型/推理/Agent 的稳定 ID，日期刷新不会冒充成绩变化。任何必需来源失败或格式改变均返回非零码，保留正式数据与上一份完整候选。`publish` 要求审核者、理由及哈希匹配的原始证据，然后原子替换 `benchmarks/public-results.json`；`benchmark:build` 生成浏览器可离线读取的 `BENCHMARKS.public`，`benchmark:check` 在 CI 只读核对产物。采集不直接提交或部署；可从 [手动采集工作流](.github/workflows/benchmark-collect.yml) 下载待审材料。
+`collect` 只写忽略目录 `audit/benchmark-sources/`，保留原始下载 SHA-256、完整历史候选和来源连续失败；变化比较按协议/精确模型/推理/Agent 的稳定 ID，日期刷新不会冒充成绩变化。任何必需来源失败或格式改变均返回非零码，保留正式数据与上一份完整候选。`publish` 要求审核者、理由及哈希匹配的原始证据，然后原子替换 `benchmarks/public-results.json`；`benchmark:build` 生成浏览器可离线读取的 `BENCHMARKS.public`（按需加载），并从中派生首屏加载的 `js/benchmark-summary.js`：仅编程协议的每模型最佳配置与本协议名次，供「帮我选」卡片显示本档明确包含的模型成绩，只作参考、不参与推荐排序；`benchmark:check` 在 CI 只读核对两份产物。采集不直接提交或部署；可从 [手动采集工作流](.github/workflows/benchmark-collect.yml) 下载待审材料。
 
 核查日期是本站本次下载/核对时间，官方更新日另记；未公布的运行日、工具、费用或样本数保留未知。费用列属于评测任务或 rollout 的官方成本，DeepSWE 的部分模型按官网当前价格修正表折算，CursorBench 按公布的 token 价格计算；不把原始费用、折算费用或未知费用混为真实账单，不等同订阅月费。不跨模型/协议推断未公布的成绩，也不把空值补成零。
 
@@ -211,7 +211,7 @@ npm run serve
 
 ## 页面结构
 
-1. **帮我选**：按预算 / 地区 / 支付方式 / 工具 / 任务结构（复杂、日常或两者都有），给出主计划、日常覆盖，以及预算再往上一档会解开什么。同套餐包含的日常模型标「已包含」；加购时列合计月费并遵守预算。额度周期与共享关系未公开时明确保留未知，不据此建议加购
+1. **帮我选**：按预算 / 地区 / 支付方式 / 工具 / 任务结构（复杂、日常或两者都有），给出主计划、日常覆盖，以及预算再往上一档会解开什么。同套餐包含的日常模型标「已包含」；加购时列合计月费并遵守预算。额度周期与共享关系未公开时明确保留未知，不据此建议加购。卡片列出本档明确包含的模型在公开编程评测中的最佳名次，只作参考、不参与排序；同档候选额度都无法折算时，主卡写明由月费决定
 2. **满额使用折算成本**：按参考月额度中点的每百万 tokens 折算成本排序，两档口径可切换：「官方口径折算」（`credits`，含积分系数、credits 面值及官方区间折算，中置信及以上）和默认「含全部估算」（再纳入低置信估算，仅供量级参考）。两档都不含已停售、已下架、一次性预付和仅老用户续费。默认月付标价，可局部应用当前选购条件，按所选支付方式重算及筛选；标题与明细注明支付口径。推荐额度取区间下限作保守比较，排行成本取中点且同时展示上下界对应成本；中点不代表保证可用额度或实际使用分布
 3. **额度深度对比**：TPS + 5h/周/月的 Tokens·额度价值·额度倍率（含 Command Code / 阶跃 credits 制与智谱 V1/V2/V3 各版本，附推算方法论）
 4. **个人订阅价格全景**：个人档月费横向条形图（无筛选默认 20 档，可展开全部和收起；可按类别/地区筛选，月付/年付切换，统一折算人民币；一次性与每 4 周档只在数据表显示，窄屏标签缩略，点按价格柱查看完整信息；无结果时显示提示并可清除筛选）
@@ -233,7 +233,7 @@ npm run serve
 | `index.html` | 页面结构 |
 | `css/style.css` | 样式（亮色默认；支持暗色与跟随系统；`--cat-*` 类别色变量是图表/图例/标签的单一色源） |
 | `js/data.js` | 全部数据与共享资格函数（订阅计划使用永久 ID；额度数据经 `ref` 引用 `PLANS` 的名称、币种和价格，改价只改一处） |
-| `js/metrics.js` | 额度换算纯计算（`computeMetrics`、`blendPrice`、旗舰判定等；无 DOM，测试与校验器共用） |
+| `js/metrics.js` | 额度换算纯计算（`computeMetrics`、`blendPrice`、旗舰判定等；无 DOM，测试与校验器共用）。排行「旗舰」复用 `data.js` 的 `MODEL_ROLES` 正则，只另登记 Sonnet、Kimi K2.x、GPT-5.x 为非轻量主力 |
 | `js/app-loader.js` | 主数据与功能脚本加载失败提示、重新加载入口 |
 | `js/app-core.js` | 常量、工具、主题、统计卡、内联 SVG 图标、ECharts 按需加载及图表错误恢复 |
 | `js/app-charts.js` | 五组 ECharts 渲染（API 组含两个画布）、排行/API 文字明细与免费入口卡 |
@@ -251,15 +251,15 @@ npm run serve
 | `scripts/server/serve.js` | 本地预览静态服务器（只监听 127.0.0.1，只读项目根内文件并拒绝隐藏路径） |
 | `scripts/news/collect-news.js` | 联网采集资讯候选与页面变化；保留缓存和来源错误，不改正式数据 |
 | `config/news-sources.json` / `review-calendar.json` | 官方监测、开放发现与有来源的复核日历 |
-| `js/app-maintenance.js` / `*-data.js` | 时效、变更、关注、贡献和测评服务及生成的公共数据 |
+| `js/app-maintenance.js` / `*-data.js` | 时效、变更、关注、贡献和测评服务及生成的公共数据（按需加载；`benchmark-summary.js` 为首屏评测摘要） |
 | `scripts/maintenance/` / `data/` | 维护摘要、真实变更历史、RSS 构建与回归 |
 | `scripts/benchmarks/` / `benchmarks/` | 官方公开评测 adapter、带哈希证据的采集/审核、public-results.json 快照、固定任务验收与公共测评构建 |
-| `scripts/tests/` | Node 回归套件：metrics / data-regressions / app-{history,picker,charts,tables,service} / server / tools / pricing / pricing-sync / news / runners；共享页面替身在 app-harness.js；Chromium、Firefox、WebKit 用例在 scripts/tests/browser/ |
+| `scripts/tests/` | Node 回归套件：metrics / data-regressions / app-{history,picker,charts,tables,service} / server / tools / pricing / pricing-sync / news / runners；共享页面替身在 app-harness.js（`lazyData` 模式经页面加载器按需载入数据，可分别推进下载完成、失败与超时）；Chromium、Firefox、WebKit 用例在 scripts/tests/browser/ |
 | `audit/` | 258 条价格的原始库存、分组官网证据与 JSON/CSV 合并台账；不复制到公共部署产物 |
 
 ## 开发与架构约定
 
-- **零构建、双击可用**：页面使用按序加载的经典脚本，保留 `file://` 直开。`app-loader → data.js → maintenance/benchmark/project-data → metrics.js → app-core → app-state → app-charts → app-picker → app-tables → app-service → app-maintenance → app-events → app-init`，以 `index.html` 实际顺序为准；服务和控件监听显式注册，初始化由 `app-init.js` 驱动。
+- **零构建、双击可用**：页面使用按序加载的经典脚本，保留 `file://` 直开。`app-loader → data.js →（maintenance/benchmark 按需数据入口）→ benchmark-summary → project-data → metrics.js → app-core → app-state → app-charts → app-picker → app-tables → app-service → app-maintenance → app-events → app-init`，以 `index.html` 实际顺序为准；服务和控件监听显式注册，初始化由 `app-init.js` 驱动。
 - **图表库按需加载**：ECharts 地址保留在 `index.html` 的 inert template 中，公共资产工具仍会发现、版本化和发布它；首屏不执行该脚本。所有首次图表请求共用加载 Promise，重绘使用最新状态；文字明细独立渲染。章节导航等待库和已有待渲染图表，再确定滚动位置；较新的导航和回到顶部动作取消旧请求。API 两个画布按同组处理错误和重试。
 - **永久套餐 ID**：每条 `PLANS` 的 `id` 一经发布便不可变、不可复用；改名称、改价、调整顺序时保留原 ID，新计划使用新 ID。额度行的 `ref` 使用此 ID，名称、币种和价格统一由引用计划引入；周期优先保留额度行的明确口径，否则沿用计划。旧 `[vendor, plan]` 引用仍可解析，仅用于兼容。`weeklyChart: false` 标记与 `PLAN_TOKENS` 档位同额度的重复行（如智谱国内版），每周 tokens 图据此排除，不靠厂商名硬编码。
 - **厂商名规范**：同一厂商在 `PLANS`、`API_PRICES`、`PAYG_REFERENCES`、指标行中使用同一 `vendor` 字符串（同一厂商的不同产品线各用专名，如 腾讯云 CodeBuddy / 腾讯云 TokenHub / 腾讯云（LKEAP 知识引擎））；图表缩写由 `VENDOR_SHORT` 承担，校验器会对同厂商同型号的牌价做币种与数值交叉校验。
