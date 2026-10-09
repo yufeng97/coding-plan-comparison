@@ -199,20 +199,33 @@ test("无原生dialog时完整权益可循环焦点并还原背景", async ({ pa
 });
 
 test("排行明细包含当前口径全部行，并同步口径切换", async ({ page }) => {
-  await page.goto("/#rank");
-  await expect.poll(() => page.locator("#rankDetailBody tr").count()).toBe(await page.evaluate("rankRows().length"));
+  await page.goto("/?rscope=credits#rank");
+  const dataRows = page.locator("#rankDetailBody tr:not(.rank-divider)");
+  await expect(dataRows).toHaveCount(await page.evaluate("rankRows().length"));
+  await expect(page.locator('#chipRScope [data-rscope="credits"]')).toHaveAttribute("aria-pressed","true");
+  expect(await page.evaluate("rankRows().every(r => !rankIsEstimate(r.m))")).toBe(true);
+  await expect(page.locator("#rankDetailBody .rank-divider")).toHaveCount(0);
+  const officialCount = await dataRows.count();
   await page.locator('#chipRScope [data-rscope="all"]').click();
-  await expect.poll(() => page.locator("#rankDetailBody tr").count()).toBe(await page.evaluate("rankRows().length"));
-  expect(await page.locator("#rankDetailBody tr").count()).toBeGreaterThan(20);
+  await expect(dataRows).toHaveCount(await page.evaluate("rankRows().length"));
+  await expect(page.locator('#chipRScope [data-rscope="all"]')).toHaveAttribute("aria-pressed","true");
+  expect(await dataRows.count()).toBeGreaterThan(officialCount);
+  expect(await dataRows.count()).toBeGreaterThan(20);
+  expect(await page.evaluate("rankRows().some(r => rankIsEstimate(r.m))")).toBe(true);
+  await expect(page.locator("#rankDetailBody .rank-divider")).toHaveCount(1);
+  await expect(page.locator("#rankDetailBody .rank-divider")).toContainText("以下为第三方或请求次数估算");
 });
 
 test("选购用量入口打开计算器并带入精确模型，示例预设和三情景可编辑且可分享", async ({ page }) => {
   await page.goto("/?budget=200&region=cn&task=hard");
+  const recommendedPlanId = await page.locator("#quickGrid > .quick-card").first().locator(".cmp-add").getAttribute("data-plan-id");
+  const expectedModel = await page.evaluate("(() => { const api = recommendedApi(planProfile(findPlanReference(" + JSON.stringify(recommendedPlanId) + "))); return api ? api.vendor + '|' + api.model : null; })()");
+  expect(expectedModel).not.toBeNull();
   await page.locator("#checkWorkloadBtn").click();
   await expect(page).toHaveURL(/#s4$/);
   await expect(page.locator("#costCalculator")).toHaveAttribute("open","");
   await expect(page.locator("#costBudget")).toHaveValue("200");
-  await expect(page.locator("#costModel")).toHaveValue("智谱 BigModel|GLM-5.3");
+  await expect(page.locator("#costModel")).toHaveValue(expectedModel);
   await expect(page.locator("[data-cost-scenario-result]")).toHaveCount(3);
   await expect(page.locator("#costResult")).toContainText("不代表真实用户用量");
   await page.locator('[data-cost-preset="light"]').click();
@@ -229,6 +242,7 @@ test("选购用量入口打开计算器并带入精确模型，示例预设和�
   await expect(page.locator("#costRequests")).toHaveValue("20");
   await page.locator("#costInput").fill("75");
   await expect(page.locator('[data-cost-scenario="conservative"]')).toHaveAttribute("aria-pressed","false");
+  await expect(page).not.toHaveURL(/cscenario=conservative/);
   await page.locator("#costTokens").fill("0");
   await page.locator("#costDays").fill("21");
   await expect(page.locator("#costTokens")).toHaveValue("0");

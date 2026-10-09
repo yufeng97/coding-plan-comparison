@@ -47,6 +47,7 @@ test("每个新增自动续费金额均来自对应官方证据，原目录价�
       assert.match(source.evidence, evidence, `${id}: ${sourceId}`);
     }
     assert.equal(quote.available, true, id);
+    assert.equal(quote.inferred, false, id);
     assert.equal(quote.cur, cur, id);
     assert.equal(quote.monthlyNative, amount, id);
     assert.equal(quote.firstNative, amount, id);
@@ -62,23 +63,27 @@ test("每个新增自动续费金额均来自对应官方证据，原目录价�
   healthy(app);
 });
 
-test("Trae Lite与Pro首月优惠不作为自动续费金额", () => {
-  const app = createApp();
+test("Trae Lite与Pro未单列续费价时按标价估算，首月优惠不作续费金额", () => {
+  const app = createApp({ url:"http://127.0.0.1:8123/?billing=A" });
   for (const { id, firstMonth } of [{ id:"plan-0193", firstMonth:39 }, { id:"plan-0194", firstMonth:69 }]) {
     const p = app.run(`findPlanReference(${JSON.stringify(id)})`);
     const quote = app.run(`pickerPaymentQuote(findPlanReference(${JSON.stringify(id)}),"A")`);
     assert.equal(p.autoRenewMonthly, undefined, id);
     assert.match(p.note, new RegExp(`首月低至 ¥${firstMonth}`), id);
-    assert.equal(quote.available, false, id);
-    assert.equal(quote.monthlyNative, null, id);
-    assert.equal(quote.firstNative, null, id);
-    assert.equal(quote.renewalNative, null, id);
+    assert.equal(quote.available, true, id);
+    assert.equal(quote.inferred, true, id);
+    assert.equal(quote.monthlyNative, p.priceM, id);
+    assert.equal(quote.firstNative, p.priceM, id);
+    assert.equal(quote.renewalNative, p.priceM, id);
+    assert.equal(quote.annualNative, p.priceM * 12, id);
+    assert.notEqual(quote.renewalNative, firstMonth, id);
+    assert.match(app.run(`pickerPaymentSummaryHtml(findPlanReference(${JSON.stringify(id)}))`), /未单列连续包月价，按月付标价计/, id);
   }
   assert.match(app.run('PRICE_CHECKS.sources["cn-trae-cn"].evidence'), /首月Lite39、Pro69/);
   healthy(app);
 });
 
-test("已记录连续包月金额参与预算，缺少证据的方式不会挪用月价", () => {
+test("已记录连续包月金额参与预算，普通月订阅标价估算明确标注，缺少年价保留未知", () => {
   const app = createApp({ url:"http://127.0.0.1:8123/?budget=100" });
   assert.equal(app.run('eligibleProfiles().some(x=>x.p.id === "plan-0157")'), false);
   app.run('pickerState.billing="A";renderPicker();');
@@ -86,10 +91,32 @@ test("已记录连续包月金额参与预算，缺少证据的方式不会挪�
   near(app.run('pickerMonthlyCNY(findPlanReference("plan-0157"))'),94.4);
   assert.match(app.elements.get("quickGrid").innerHTML,/首次 ¥94.4/);
   assert.match(app.elements.get("quickGrid").innerHTML,/1,132.8/);
-  assert.equal(app.run('pickerPaymentQuote(findPlanReference("plan-0010"),"A").available'),false);
-  app.run('Object.assign(pickerState,{region:"intl",tool:"codex",budget:"any"});renderPicker();');
+  const inferred = app.run('pickerPaymentQuote(findPlanReference("plan-0010"),"A")');
+  assert.equal(inferred.available,true);
+  assert.equal(inferred.inferred,true);
+  assert.equal(inferred.monthlyNative,20);
+  near(inferred.monthlyCNY,app.run('toCNY(20,"USD")'));
+  assert.match(app.run('pickerPaymentSummaryHtml(findPlanReference("plan-0010"))'),/未单列连续包月价，按月付标价计/);
+  assert.match(app.elements.get("pickerBillingNote").textContent,/按标价计作为上限/);
+  app.run('Object.assign(pickerState,{billing:"Y",region:"intl",tool:"codex",budget:"any"});renderPicker();');
   assert.doesNotMatch(app.elements.get("quickGrid").innerHTML,/价格符合预算/);
   assert.doesNotMatch(app.elements.get("quickGrid").innerHTML,/NaN|Infinity|¥∞/);
+  healthy(app);
+});
+
+test("一次性预付、4周和老用户续费档不会自动推定为普通月续订", () => {
+  const app = createApp();
+  for (const id of ["plan-0043", "plan-0057", "plan-0063", "plan-0036"]) {
+    const p = app.run(`findPlanReference(${JSON.stringify(id)})`);
+    const quote = app.run(`pickerPaymentQuote(findPlanReference(${JSON.stringify(id)}),"A")`);
+    assert.ok(p.priceM > 0, id);
+    assert.equal(p.autoRenewMonthly, undefined, id);
+    assert.equal(quote.available, false, id);
+    assert.equal(quote.inferred, false, id);
+    for (const key of ["monthlyNative", "monthlyCNY", "firstNative", "renewalNative", "annualNative"]) {
+      assert.equal(quote[key], null, `${id}: ${key}`);
+    }
+  }
   healthy(app);
 });
 

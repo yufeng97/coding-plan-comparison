@@ -50,9 +50,30 @@ function syncPublicBenchmarkChoices() {
   }
   const select = byId("publicBenchmarkSelect");
   if (select) {
-    select.innerHTML = `<optgroup label="${esc(publicBenchmarkFamilyLabel(publicBenchmarkState.family || "评测协议"))}">` + protocols.filter((b) => b.family === publicBenchmarkState.family).map((b) => `<option value="${esc(b.id)}">${esc(b.name)} · ${esc(b.version)}</option>`).join("") + `</optgroup>`;
+    const labels = publicBenchmarkLabels(protocols.filter((b) => b.family === publicBenchmarkState.family));
+    select.innerHTML = `<optgroup label="${esc(publicBenchmarkFamilyLabel(publicBenchmarkState.family || "评测协议"))}">` + labels.map(([b, label]) => `<option value="${esc(b.id)}">${esc(label)}</option>`).join("") + `</optgroup>`;
     if (selected) select.value = selected.id;
   }
+}
+/* 名称与版本相同的协议补上各自不同的配置项（如 a11y、coding action），仍相同时加官方更新日期或序号。 */
+function publicBenchmarkLabels(list) {
+  const base = (b) => `${b.name} · ${b.version}`;
+  const groups = new Map();
+  list.forEach((b) => groups.set(base(b), [...(groups.get(base(b)) || []), b]));
+  const labels = new Map();
+  groups.forEach((group, key) => {
+    if (group.length === 1) { labels.set(group[0], key); return; }
+    const tokens = group.map((b) => String(b.configuration || "").split(/[；;]/).map((t) => t.trim()).filter(Boolean));
+    const common = tokens[0].filter((t) => tokens.every((list) => list.includes(t)));
+    group.forEach((b, i) => {
+      const diff = tokens[i].filter((t) => !common.includes(t));
+      labels.set(b, diff.length ? `${key} · ${diff.join(" · ")}` : key);
+    });
+    const seen = new Map();
+    group.forEach((b) => seen.set(labels.get(b), (seen.get(labels.get(b)) || 0) + 1));
+    group.forEach((b, i) => { if (seen.get(labels.get(b)) > 1) labels.set(b, `${labels.get(b)} · 官方更新 ${publicBenchmarkDate(b.sourceUpdatedAt)} · #${i + 1}`); });
+  });
+  return list.map((b) => [b, labels.get(b)]);
 }
 function publicBenchmarkRows() {
   const benchmark = selectedPublicBenchmark(); if (!benchmark) return [];
@@ -82,19 +103,29 @@ function publicModelDisplayName(model) {
     .replace(/^(GPT|GLM|Gemini|Qwen|DeepSeek|MiniMax|MiMo|Grok)-([\d.]+)-/i, "$1-$2 ")
     .replace(/^(Opus|Sonnet|Haiku|Fable)[\s-]+(\d)/i, "Claude $1 $2");
 }
+/* 模式只取决于名称本身（无 g 标志、无 lastIndex 状态），可安全复用；搜索重绘不再逐行逐套餐重新编译正则。 */
+const publicPatternCache = new Map();
 function publicModelExactPattern(name) {
-  const pattern = name.split(/[\s-]+/).map(escRe).join("[\\s-]*");
-  return new RegExp("(^|[^a-z0-9])" + pattern + "(?![a-z0-9.-]|\\s+(?:pro|flash|lite|mini|nano|preview|exp|plus|ultra|max|fast|turbo|thinking)\\b)", "i");
+  let re = publicPatternCache.get(name);
+  if (!re) {
+    const pattern = name.split(/[\s-]+/).map(escRe).join("[\\s-]*");
+    re = new RegExp("(^|[^a-z0-9])" + pattern + "(?![a-z0-9.-]|\\s+(?:pro|flash|lite|mini|nano|preview|exp|plus|ultra|max|fast|turbo|thinking)\\b)", "i");
+    publicPatternCache.set(name, re);
+  }
+  return re;
 }
 function publicModelClauseIncludes(part, label) {
   const match = publicModelExactPattern(label).exec(part);
   if (!match) return false;
-  const prefix = part.slice(0, match.index + match[1].length).split(/[）)，,；;：:]/).pop();
+  /* 冒号不截断否定语境：「本档不支持：Kimi-K3」整句仍是否定。 */
+  const prefix = part.slice(0, match.index + match[1].length).split(/[）)，,；;]/).pop();
   const suffix = part.slice(match.index + match[0].length);
   return !/不含|不支持|不可用/.test(prefix) &&
     !/^[\s（(]*(?:需\s*(?:usage\s*credits|按量|额外付费)|(?:不支持|不可用|未包含)(?=[）),，;；]|$))/i.test(suffix);
 }
 function publicModelIncluded(p, name) {
+  /* 结构化排除优先于文本匹配。 */
+  if (Array.isArray(p.modelExcludes) && p.modelExcludes.some((x) => publicModelExactPattern(name).test(String(x)) || publicModelExactPattern(String(x)).test(name))) return false;
   const included = splitModelAccess(resolvedField(p, "models")).included;
   const parts = included.split(/[/、；]/);
   const names = [name];
@@ -121,16 +152,48 @@ function publicModelIncluded(p, name) {
   }
   return false;
 }
+/* 模型出品方的官方订阅排在前面，再按月费；第三方工具与云厂商随后。 */
+/** @type {[RegExp, string[]][]} */
+const PUBLIC_MODEL_MAKERS = [
+  [/^claude/i, ["Anthropic"]], [/^gpt/i, ["OpenAI"]], [/^gemini/i, ["Google"]], [/^glm/i, ["智谱 BigModel", "Z.ai"]],
+  [/^kimi/i, ["月之暗面 Kimi"]], [/^minimax/i, ["MiniMax"]], [/^mimo/i, ["小米 MiMo"]], [/^qwen/i, ["阿里云百炼"]],
+  [/^deepseek/i, ["DeepSeek"]], [/^grok/i, ["xAI"]], [/^step/i, ["阶跃星辰 StepFun"]],
+];
+function publicModelMakers(name) { return (PUBLIC_MODEL_MAKERS.find(([re]) => re.test(name)) || [null, []])[1]; }
+function publicPlanEligible(p) {
+  return metricOfferOk({ ref:p.id }) && !isRelay(p) && (p.priceM > 0 || isFreeCodingEntry(p)) && p.includedModelQuota !== false && p.modelAccess !== "byok" && p.modelAccess !== "metered";
+}
 function publicModelPlans(model) {
-  const name = publicModelDisplayName(model);
-  return PLANS.filter((p) => metricOfferOk({ ref:p.id }) && !isRelay(p) && (p.priceM > 0 || isFreeCodingEntry(p)) && p.includedModelQuota !== false && p.modelAccess !== "byok" && p.modelAccess !== "metered" &&
-    publicModelIncluded(p, name));
+  const name = publicModelDisplayName(model), makers = publicModelMakers(name);
+  return PLANS.filter((p) => publicPlanEligible(p) && publicModelIncluded(p, name))
+    .sort((a, b) => Number(!makers.includes(a.vendor)) - Number(!makers.includes(b.vendor)) || (cnyOf(a, "M") || 0) - (cnyOf(b, "M") || 0));
+}
+/* 套餐只列出同系列较新版本时（如 Opus 5.5 之于 Opus 5），提示出品方官方套餐，避免误以为只有第三方能用该系列。 */
+function publicNewerVersionHint(model, plans) {
+  const name = publicModelDisplayName(model), makers = publicModelMakers(name);
+  if (!makers.length || plans.some((p) => makers.includes(p.vendor))) return "";
+  const m = name.match(/^(.*?)[\s-]*(\d+(?:\.\d+)?)$/);
+  if (!m) return "";
+  const family = m[1].replace(/^Claude\s+/i, ""), current = Number(m[2]);
+  const re = new RegExp("(?:^|[^a-z0-9])" + family.split(/[\s-]+/).map(escRe).join("[\\s-]*") + "[\\s-]*(\\d+(?:\\.\\d+)?)(?![\\d.])", "gi");
+  const newer = PLANS.filter((p) => makers.includes(p.vendor) && publicPlanEligible(p)).map((p) => {
+    /* 与精确匹配同一条款判断：被否定或「需 usage credits / 按量」的版本不算包含。 */
+    const versions = splitModelAccess(resolvedField(p, "models")).included.split(/[/、；;]/).flatMap((part) =>
+      [...part.matchAll(re)].map((x) => Number(x[1]))
+        .filter((v) => v > current && Math.floor(v) === Math.floor(current) && publicModelClauseIncludes(part, `${family} ${v}`)));
+    return versions.length ? { p, version: Math.max(...versions) } : null;
+  }).filter(Boolean);
+  if (!newer.length) return "";
+  const version = Math.max(...newer.map((x) => x.version));
+  const names = newer.filter((x) => x.version === version).slice(0, 3).map((x) => `<a href="?q=${encodeURIComponent(x.p.vendor + " " + x.p.plan)}#table" data-benchmark-plan="${esc(x.p.id)}">${esc(planTitle(x.p))}</a>`);
+  return `<p class="public-model-plans">同系列较新的 ${esc(family)} ${esc(String(version))} 在 ${names.join(" · ")} 等官方套餐中，不是本评测版本，成绩不能直接套用。</p>`;
 }
 function publicModelPlansHtml(model) {
   const plans = publicModelPlans(model);
   const links = plans.map((p) => `<a href="?q=${encodeURIComponent(p.vendor + " " + p.plan)}#${isFreeCodingEntry(p) ? "free" : "table"}" data-benchmark-plan="${esc(p.id)}">${esc(planTitle(p))}</a>`);
-  return plans.length ? `<div class="public-model-plans">可用套餐：${links.slice(0, 3).join(" · ")}${plans.length > 3 ? `<details><summary>另外 ${plans.length - 3} 档</summary>${links.slice(3).join(" · ")}</details>` : ""}</div>`
-    : `<p class="public-model-plans">在售套餐未明确列出此评测版本。</p>`;
+  const hint = publicNewerVersionHint(model, plans);
+  return (plans.length ? `<div class="public-model-plans">可用套餐：${links.slice(0, 3).join(" · ")}${plans.length > 3 ? `<details><summary>另外 ${plans.length - 3} 档</summary>${links.slice(3).join(" · ")}</details>` : ""}</div>`
+    : `<p class="public-model-plans">在售套餐未明确列出此评测版本。</p>`) + hint;
 }
 function publicUncertaintyHtml(row) {
   if (!row.uncertainty) return `<span class="public-score-uncertainty">置信区间未公布</span>`;
@@ -189,7 +252,13 @@ function bindPublicBenchmarkEvents() {
   if (select) {
     select.addEventListener("change", () => { if (publicBenchmarkData().benchmarks.some((b) => b.id === select.value)) publicBenchmarkState.id = select.value; renderPublicBenchmarks(); });
   }
-  if (search) search.addEventListener("input", () => { publicBenchmarkState.search = search.value.slice(0, 200); renderPublicBenchmarks(); });
+  /* 与数据表搜索一致：输入停顿 150ms 再重绘。 */
+  let searchTimer = null;
+  if (search) search.addEventListener("input", () => {
+    publicBenchmarkState.search = search.value.slice(0, 200);
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => { searchTimer = null; renderPublicBenchmarks(); }, 150);
+  });
   const mode = byId("publicBenchmarkMode"); if (mode) mode.addEventListener("change", () => { publicBenchmarkState.mode = mode.value === "all" ? "all" : "best"; renderPublicBenchmarks(); });
   const clear = byId("publicModelClearBtn"); if (clear) clear.addEventListener("click", () => { publicBenchmarkState.search = ""; if (search) search.value = ""; renderPublicBenchmarks(); focusTableControl(search); });
   [["downloadPublicBenchmarkCsvBtn", downloadPublicBenchmarkCsv], ["downloadPublicBenchmarkJsonBtn", downloadPublicBenchmarkJson]].forEach(([id, handler]) => { const button = byId(id); if (button) button.addEventListener("click", handler); });
@@ -286,14 +355,21 @@ function changeFieldsHtml(change) {
 function changeCardHtml(change, unread = false) {
   return `<li class="change-card"><div><strong>${esc(change.vendor + " · " + change.name)}</strong>${unread ? '<span class="change-unread">未读</span>' : ""}</div><p class="maintenance-meta">确认于 ${esc(change.checkedAt)} · ${esc(change.kind === "plan" ? "套餐" : change.kind === "api" ? "API" : "按量参考")}</p>${changeFieldsHtml(change)}<p>${maintenanceSources(change.sourceUrls)}</p></li>`;
 }
-function planHistoryHtml(id) {
-  return `<details class="method-box plan-history" data-plan-history="${esc(id)}">${planHistoryContent(id)}</details>`;
-}
-function planHistoryContent(id) {
-  if (!optionalDataLoaded("maintenance")) return `<summary>已确认价格与权益历史</summary><p>展开后加载本档的已确认变更。</p>`;
+function planHistoryParts(id) {
+  if (!optionalDataLoaded("maintenance")) return { summary: "已确认价格与权益历史", body: "<p>展开后加载本档的已确认变更。</p>" };
   const changes = maintenanceData().changes.filter((c) => c.id === id);
-  return `<summary>已确认价格与权益历史（${changes.length} 条）</summary>` +
-    (changes.length ? `<ul class="change-list">${changes.map((c) => changeCardHtml(c)).join("")}</ul>` : `<p>尚未收录本档的已确认变更；当前值与核查日期见完整权益。首次收录是基线，不代表曾经涨价或降价。</p>`);
+  return { summary: `已确认价格与权益历史（${changes.length} 条）`,
+    body: changes.length ? `<ul class="change-list">${changes.map((c) => changeCardHtml(c)).join("")}</ul>` : `<p>尚未收录本档的已确认变更；当前值与核查日期见完整权益。首次收录是基线，不代表曾经涨价或降价。</p>` };
+}
+function planHistoryHtml(id) {
+  const parts = planHistoryParts(id);
+  return `<details class="method-box plan-history" data-plan-history="${esc(id)}"><summary>${esc(parts.summary)}</summary><div class="plan-history-body">${parts.body}</div></details>`;
+}
+/* 只更新摘要文字和正文容器，保留可能正获得焦点的 summary 节点，键盘与读屏位置不丢失。 */
+function fillPlanHistory(details, parts) {
+  const summary = details.querySelector("summary"), body = details.querySelector(".plan-history-body");
+  if (summary && parts.summary != null && summary.textContent !== parts.summary) summary.textContent = parts.summary;
+  if (body) body.innerHTML = parts.body;
 }
 function renderFollowedChanges() {
   const list = byId("followedPlans"), changes = byId("followedChanges"), count = byId("followUnreadCount"), read = byId("markFollowReadBtn");
@@ -423,7 +499,8 @@ function refreshOptionalViews(kind) {
   if (kind === "maintenance") {
     followState = cleanFollowState(followState);
     renderMaintenance(); syncWatchButtons();
-    qsa("[data-plan-history]").forEach((details) => { if (details.open) details.innerHTML = planHistoryContent(details.dataset.planHistory); });
+    /* 加载期间可能已收起；成功后也填充关闭的正文，避免再次展开仍停留在加载提示。 */
+    qsa("[data-plan-history]").forEach((details) => fillPlanHistory(details, planHistoryParts(details.dataset.planHistory)));
   } else {
     refreshBenchmarkTaskChoices(); syncPublicBenchmarkChoices(); renderPublicBenchmarks(); renderBenchmarks(); renderContribution();
   }
@@ -454,12 +531,11 @@ function bindMaintenanceEvents() {
   document.addEventListener("toggle", (event) => {
     const details = evtTarget(event);
     if (!details || !details.open || !details.dataset.planHistory || optionalDataLoaded("maintenance")) return;
-    details.innerHTML = `<summary>已确认价格与权益历史</summary><p>正在加载历史数据…</p>`;
+    fillPlanHistory(details, { summary: null, body: "<p>正在加载历史数据…</p>" });
     ensureOptionalData("maintenance").then(() => {
-      details.innerHTML = planHistoryContent(details.dataset.planHistory);
       refreshOptionalViews("maintenance");
     }, () => {
-      details.innerHTML = `<summary>已确认价格与权益历史</summary><p>历史数据加载失败，请关闭后重新展开。</p>`;
+      fillPlanHistory(details, { summary: null, body: "<p>历史数据加载失败，请关闭后重新展开。</p>" });
     });
   }, true);
   bindPublicBenchmarkEvents(); renderBenchmarks(); renderContribution();

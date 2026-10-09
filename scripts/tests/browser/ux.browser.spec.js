@@ -187,7 +187,7 @@ test("评测显示合理精度和来源区间，套餐匹配不把5.5误当5", a
   expect(versions).toEqual({ wrong:false, exact:true, excluded:false });
   expect(await page.evaluate("publicModelPlans('glm-5.3').some(p=>['plan-0174','plan-0175','plan-0176','plan-0177','plan-0039'].includes(p.id))")).toBe(false);
   expect(await page.evaluate("publicModelPlans('glm-5.3-flash').some(p=>p.id==='plan-0174')")).toBe(true);
-  expect(await page.evaluate("publicModelPlans('claude-fable-5.1').filter(p=>p.vendor==='Anthropic').map(p=>p.id)")).toEqual(["plan-0003", "plan-0004", "plan-0006"]);
+  expect(await page.evaluate("publicModelPlans('claude-fable-5.1').filter(p=>p.vendor==='Anthropic').map(p=>p.id)")).toEqual(["plan-0003", "plan-0006", "plan-0004"]);
   expect(await page.evaluate("publicModelPlans('GPT-6.1 Sol').filter(p=>p.vendor==='OpenAI').map(p=>p.id)")).toEqual(["plan-0010", "plan-0011", "plan-0012", "plan-0013"]);
   expect(await page.evaluate("publicModelPlans('GPT-6.2 Sol').some(p=>p.vendor==='OpenAI')")).toBe(false);
   expect(await page.evaluate("publicModelPlans('GPT-6 Luna').some(p=>p.id==='plan-0010')")).toBe(true);

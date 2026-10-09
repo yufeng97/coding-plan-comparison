@@ -150,7 +150,7 @@ test("待核官方和推算额度退出周 tokens、成本排行和默认额度�
     renderTokensChart(); renderRankChart(); renderMetricsTable();
   })()`);
   assert.equal(app.run("chartCache.chartTokens.option.series.flatMap(s => s.data).filter(Boolean).some(d => /Z\\.ai Lite|Anthropic Claude Pro/.test(d._r.label))"), false);
-  assert.equal(app.run("chartCache.chartRank.option.series[0].data.some(d => ['plan-0031', 'plan-0002'].includes(findPlanReference(d._r.m.ref)?.id))"), false);
+  assert.equal(app.run("chartCache.chartRank.option.series[0].data.filter(d => d._r).some(d => ['plan-0031', 'plan-0002'].includes(findPlanReference(d._r.m.ref)?.id))"), false);
   assert.equal(app.run("metricsTableRows().rows.some(r => ['plan-0031', 'plan-0002'].includes(findPlanReference(r.m.ref)?.id))"), false);
   app.run('metricsState.offer = "all"; metricsState.model = METRICS_ALL.find(m => findPlanReference(m.ref)?.id === "plan-0002").model; renderMetricsTable();');
   assert.match(app.elements.get("metricsBody").innerHTML, /历史价折算 · 价格待核/);

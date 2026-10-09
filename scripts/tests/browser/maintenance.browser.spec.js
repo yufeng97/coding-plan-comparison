@@ -1,5 +1,42 @@
 const { test, expect } = require("@playwright/test");
 
+test("历史加载中收起再展开显示结果，保留摘要节点与键盘焦点", async ({ page }) => {
+  let releaseHistory = () => {};
+  const historyReady = new Promise((resolve) => { releaseHistory = () => resolve(undefined); });
+  let requested = false;
+  await page.route("**/js/maintenance-data.js*", async (route) => {
+    requested = true;
+    await historyReady;
+    await route.continue();
+  });
+  await page.goto("/");
+  await page.waitForFunction(() => window["codingPlanReady"] === true);
+  const card = page.locator("#quickGrid .quick-card").first();
+  await card.locator(".qc-details > summary").click();
+  await card.locator("[data-view-plan]").click();
+  const history = page.locator("#planDetailsBody .plan-history");
+  const summary = history.locator("summary");
+  const summaryNode = await summary.elementHandle();
+  const body = history.locator(".plan-history-body");
+  await summary.focus();
+  await page.keyboard.press("Enter");
+  await expect(body).toContainText("正在加载历史数据");
+  await expect.poll(() => requested).toBe(true);
+  await expect(summary).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(history).not.toHaveAttribute("open", "");
+  releaseHistory();
+  await page.waitForFunction("optionalDataLoaded('maintenance')");
+  await expect(body).toContainText(/确认于|尚未收录本档/);
+  expect(await summary.evaluate((node, original) => node === original, summaryNode)).toBe(true);
+  await expect(summary).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(history).toHaveAttribute("open", "");
+  await expect(body).toBeVisible();
+  await expect(body).not.toContainText("正在加载历史数据");
+  await expect(summary).toBeFocused();
+});
+
 test("关注永久套餐跨刷新保留，已确认历史与已读记录一致", async ({ page }) => {
   await page.goto("/#updates");
   await page.waitForFunction(() => window["codingPlanReady"] === true);

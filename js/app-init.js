@@ -36,6 +36,8 @@ function activatePageForTarget(target) {
   });
   if (view === "updates") loadViewData("maintenance");
   if (view === "benchmarks") loadViewData("benchmark");
+  /* 其他视图期间的主题、历史恢复或延迟加载可能已在隐藏容器里重绘图表。 */
+  if (view === "compare") markChartsForResize();
   if (typeof requestAnimationFrame === "function") requestAnimationFrame(() => { resizeVisibleCharts(); updateActiveNav(); });
 }
 

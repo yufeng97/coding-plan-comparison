@@ -16,7 +16,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%23b9ff00'/%3E%3Ctext%20x='16'%20y='22'%20font-family='monospace'%20font-size='15'%20font-weight='bold'%20text-anchor='middle'%20fill='%2310110f'%3E%26lt;/%26gt;%3C/text%3E%3C/svg%3E">
   <script>try{var __m=localStorage.getItem("cp-theme")||"system";var __d=matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.dataset.theme=__m==="system"?(__d?"dark":"light"):__m;}catch(e){}</script>
   <link rel="stylesheet" href="libs/fonts/fonts.css?v=17da4b4">
-  <link rel="stylesheet" href="css/style.css?v=c5ff885">
+  <link rel="stylesheet" href="css/style.css?v=05e9a6a">
 </head>
 <body>
 <div id="loadFailure" class="load-failure" role="alert" hidden>
@@ -134,7 +134,7 @@
   <section class="section" id="rank">
     <div class="section-head">
       <h2><span class="sec-no">02</span>每百万 tokens 满额使用折算成本</h2>
-      <p>月费 ÷ 参考月 tokens，假设参考额度全部用满；用量较少时实际每百万成本更高。默认看旗舰模型与新用户可购买套餐，包含官方数据、官方折算及第三方估算。实心柱表示官方公布的高置信数据，斜纹柱表示折算或估算。估算区间不代表等效模型质量或保证可用额度；可收紧到「官方每周 tokens」核对。</p>
+      <p>月费 ÷ 参考月 tokens，假设参考额度全部用满；用量较少时实际每百万成本更高。默认看旗舰模型与新用户可购买套餐，包含官方口径折算及第三方估算。目前没有厂商直接公布可跨家比较的每周 tokens，所有 tokens 都按统一的 80/20、95% 缓存假设折算：实心柱依据官方额度规则（积分系数、credits 面值或官方区间，置信中），斜纹柱为第三方或请求次数估算（置信低）。估算区间不代表等效模型质量或保证可用额度；可收紧到「官方口径折算」核对。</p>
     </div>
     <div class="controls">
       <div class="chip-group" id="chipRank" role="group" aria-label="模型档">
@@ -142,8 +142,7 @@
         <button type="button" class="chip" data-rank="all" aria-pressed="false">含轻量模型</button>
       </div>
       <div class="chip-group" id="chipRScope" role="group" aria-label="排行口径">
-        <button type="button" class="chip" data-rscope="official" aria-pressed="false">官方每周 tokens</button>
-        <button type="button" class="chip" data-rscope="credits" aria-pressed="false">含官方折算</button>
+        <button type="button" class="chip" data-rscope="credits" aria-pressed="false">官方口径折算</button>
         <button type="button" class="chip active" data-rscope="all" aria-pressed="true">含全部估算</button>
       </div>
       <select id="rankVendor" class="select" aria-label="排行厂商"><option value="all">全部厂商</option></select>
@@ -272,13 +271,13 @@
   <!-- ======== 06 每周可用 tokens 对比 ======== -->
   <section class="section" id="s3">
     <div class="section-head">
-      <h2><span class="sec-no">06</span>每周可用 tokens 对比（官方公布 + 社区推算）</h2>
-      <p>跨厂商比较「一周能用多少 token」：<strong class="text-green">绿色柱</strong>为官方公布的每周 tokens 区间；<strong class="text-gold">黄色柱</strong>为折算或社区推算。官方条数折成 tokens 仍属于估算，方法与置信度见「额度深度对比」。不同模型的 token 数不能代表产出质量，点按柱形查看月费与依据。</p>
+      <h2><span class="sec-no">06</span>每周可用 tokens 对比（官方额度折算 + 社区推算）</h2>
+      <p>跨厂商比较「一周能用多少 token」：<strong class="text-green">绿色柱</strong>为官方每周额度上限按官方积分系数、统一的 80/20 与 95% 缓存假设折成 tokens（上限含非高峰 5 折）；<strong class="text-gold">黄色柱</strong>为其他折算或社区推算。厂商按自身用量假设给出的估算只在提示中对照，不参与比较。方法与置信度见「额度深度对比」。不同模型的 token 数不能代表产出质量，点按柱形查看月费与依据。</p>
     </div>
     <div class="grid-2">
       <div class="chart-card">
         <div class="chart-legend" id="tokensLegend" role="group" aria-label="每周 tokens 图例">
-          <button type="button" class="chip active" data-series="官方公布" aria-pressed="true">官方公布</button>
+          <button type="button" class="chip active" data-series="官方额度折算" aria-pressed="true">官方额度折算</button>
           <button type="button" class="chip active" data-series="折算 / 社区推算" aria-pressed="true">折算 / 社区推算</button>
         </div>
         <div id="chartTokens" class="chart chart-fixed"></div>
@@ -560,19 +559,19 @@
 
 <template id="chartLibraryTemplate"><script src="libs/echarts.min.js?v=14c5497"></script></template>
 <script src="js/app-loader.js?v=0127d10"></script>
-<script src="js/data.js?v=b448264"></script>
-<script id="maintenanceDataSource" type="application/json" src="js/maintenance-data.js?v=b331f84"></script>
+<script src="js/data.js?v=f412618"></script>
+<script id="maintenanceDataSource" type="application/json" src="js/maintenance-data.js?v=6ae99da"></script>
 <script id="benchmarkDataSource" type="application/json" src="js/benchmark-data.js?v=08b3c8e"></script>
 <script src="js/project-data.js?v=b9931ec"></script>
 <script src="js/metrics.js?v=436b915"></script>
-<script src="js/app-core.js?v=676e153"></script>
-<script src="js/app-state.js?v=a29b9c2"></script>
-<script src="js/app-charts.js?v=ee59d11"></script>
-<script src="js/app-picker.js?v=f067c2e"></script>
-<script src="js/app-tables.js?v=aac5d22"></script>
-<script src="js/app-service.js?v=34615df"></script>
-<script src="js/app-maintenance.js?v=db63a71"></script>
+<script src="js/app-core.js?v=5198411"></script>
+<script src="js/app-state.js?v=e845486"></script>
+<script src="js/app-charts.js?v=0006633"></script>
+<script src="js/app-picker.js?v=a2ca9a8"></script>
+<script src="js/app-tables.js?v=3b08dfc"></script>
+<script src="js/app-service.js?v=c4544dc"></script>
+<script src="js/app-maintenance.js?v=1484984"></script>
 <script src="js/app-events.js?v=eedecb3"></script>
-<script src="js/app-init.js?v=ee6c408"></script>
+<script src="js/app-init.js?v=c0a790c"></script>
 </body>
 </html>

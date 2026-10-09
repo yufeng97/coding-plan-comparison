@@ -203,19 +203,23 @@ test("付费主计划可配免费推理入口，合计预算和地区工具资�
   healthy(app);
 });
 
-test("200元预算的升级最多到500元，538元档不出现为推荐且含价核查不泄漏字段", () => {
+test("200元预算的升级与档位对比最多到500元，538元档不出现且含价核查不泄漏字段", () => {
   const app = createApp();
   app.run('Object.assign(pickerState, { budget: "200", region: "cn", tool: "any", task: "hard" }); renderPicker();');
-  assert.equal(app.run("chooseMain(eligibleProfiles()).p.id"), "plan-0157");
+  /* GLM 改按官方积分系数统一折算后，同为 B 档模型且额度更大的小米 Standard 胜出。 */
+  assert.equal(app.run("chooseMain(eligibleProfiles()).p.id"), "plan-0168");
   assert.equal(app.run("upgradeBudgetCeiling()"), 500);
-  assert.equal(app.run("nextTier(chooseMain(eligibleProfiles()))"), null);
+  const next = app.run("(() => { const n = nextTier(chooseMain(eligibleProfiles())); return n ? pickerMonthlyCNY(n.p) : null; })()");
+  assert.ok(next == null || next <= 500.05, String(next));
   const grid = app.elements.get("quickGrid");
   assert.doesNotMatch(grid.innerHTML, /GLM Coding V3 Pro|priceM|priceY/);
+  const tierPrices = [...grid.querySelectorAll(".qc-tiers .qc-tier-price")].map((td) => Number(td.getAttribute("data-cny")));
+  assert.ok(tierPrices.length >= 2 && tierPrices.every((price) => price <= 500.05), tierPrices.join(","));
   assert.match(grid.innerHTML, /页面月费|月付价|月费/);
   assert.equal(grid.querySelectorAll(".qc-details[open]").length, 0);
   assert.equal(grid.querySelectorAll(".qc-primary").length, Number(grid.dataset.cardCount) + grid.querySelectorAll(".picker-alternatives-grid .quick-card").length);
   app.run('Object.assign(pickerState, { budget: "500" }); renderPicker();');
-  assert.equal(app.run("nextTier(chooseMain(eligibleProfiles())).p.id"), "plan-0158");
+  assert.ok(app.run("pickerMonthlyCNY(nextTier(chooseMain(eligibleProfiles())).p)") > 500);
   assert.match(grid.innerHTML, /高于当前预算/);
   healthy(app);
 });
@@ -242,8 +246,10 @@ test("真实缺省周期历史估算不冒充5h额度，明确官方周窗口仍
     assert.ok(row.c.moLow > 0 && row.c.costPerM > 0, row.ref);
     assert.match(row.cell, /未公布/);
   }
+  /* 智谱/Z.ai 每周 10,000 积分按官方抵扣系数与统一假设（636.8 积分/百万 tokens）折算，不再采用厂商自估的 48M。 */
   const official = app.run('computeMetrics(METRICS_ALL.find(m => m.ref === "plan-0031"))');
-  assert.equal(official.fLow, 9.6);
+  assert.equal(official.fLow, 3.1407);
+  assert.equal(app.run('METRICS_ALL.find(m => m.ref === "plan-0031").vendorWkLowM'), 48);
   healthy(app);
 });
 

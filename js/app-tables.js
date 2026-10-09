@@ -127,11 +127,16 @@ function renderTable() {
     if (col) syncSortHeader(th, col.label, k, tableState.sortDir);
   });
   const filters = [tableState.search.trim() ? `关键词「${tableState.search.trim()}」` : "",
-    tableState.cat === "all" ? "" : CAT_LABEL[tableState.cat], tableState.region === "all" ? "" : REGION_LABEL[tableState.region]].filter(Boolean).join(" · ");
+    tableState.cat === "all" ? "" : CAT_LABEL[tableState.cat], tableState.region === "all" ? "" : REGION_LABEL[tableState.region],
+    tableState.fromPicker ? "选购条件" : ""].filter(Boolean).join(" · ");
+  /* 价格表只收有公开标价的付费档；选购条件为「免费」时说明去处，而不是让用户改关键词。 */
+  const freeScope = tableState.fromPicker && pickerState.budget === "0";
   byId("tableBody").innerHTML = rows.length ? visibleRows.map((p) => `<tr>${PLAN_TABLE_COLUMNS.map((col) => {
     const cls = col.tdClass ? col.tdClass(p) : col.cls || "";
     return `<td data-column="${esc(col.id)}" data-label="${esc(col.label)}"${cls ? ` class="${cls}"` : ""}>${col.cell ? col.cell(p) : esc(col.value(p))}</td>`;
-  }).join("")}</tr>`).join("") : `<tr><td colspan="${PLAN_TABLE_COLUMNS.length}" class="table-empty"><b>没有匹配的公开标价记录</b><p>${esc(filters || "当前筛选")}没有结果。可以调整关键词或清除筛选。${cmpState.items.length ? "已选的对比方案仍保留。" : ""}</p><button type="button" class="chip" id="tableEmptyResetBtn" data-reset-table>清除筛选</button></td></tr>`;
+  }).join("")}</tr>`).join("") : freeScope
+    ? `<tr><td colspan="${PLAN_TABLE_COLUMNS.length}" class="table-empty"><b>选购预算为「免费」，公开标价表不含免费档</b><p>免费档在<a href="#free">免费 Coding 入口</a>；取消选购条件可查看全部标价记录。</p><button type="button" class="chip" data-apply-picker="table">取消选购条件</button></td></tr>`
+    : `<tr><td colspan="${PLAN_TABLE_COLUMNS.length}" class="table-empty"><b>没有匹配的公开标价记录</b><p>${esc(filters || "当前筛选")}没有结果。可以${tableState.fromPicker ? "调整「帮我选」条件、" : ""}调整关键词或清除筛选。${cmpState.items.length ? "已选的对比方案仍保留。" : ""}</p><button type="button" class="chip" id="tableEmptyResetBtn" data-reset-table>清除筛选</button></td></tr>`;
   ["exportCsvBtn", "copyMdBtn"].forEach((id) => {
     const btn = byId(id);
     if (!btn) return;
@@ -154,9 +159,13 @@ function showMoreTableRows() {
   const previousCount = Math.min(tableVisibleLimit, computeTableRows().length);
   tableVisibleLimit += responsivePageSize();
   renderTable();
-  /* 新增记录的第一项是继续浏览的位置；最后一页也不把焦点丢给已隐藏的按钮。 */
+  /* 新增记录的第一项是继续浏览的位置；对比已满时按钮禁用、最后一页「显示更多」也已隐藏，
+     依次回退到新增行本身和搜索框，焦点不丢到页面顶部。 */
   const firstNew = [...qsa("#tableBody .cmp-add")][previousCount];
-  if (!focusTableControl(firstNew)) focusTableControl(byId("tableMoreBtn"));
+  if (focusTableControl(firstNew)) return;
+  const firstRow = [...qsa("#tableBody tr")][previousCount];
+  if (firstRow) { firstRow.setAttribute("tabindex", "-1"); if (focusTableControl(firstRow)) return; }
+  if (!focusTableControl(byId("tableMoreBtn"))) focusTableControl(byId("searchInput"));
 }
 
 function revealTablePlan(planId) {
@@ -776,7 +785,9 @@ function renderMetricsTable() {
       return `<td data-column="${esc(col.id)}" data-label="${esc(col.label)}" class="${cls}"${title}>${col.cell(ctx)}</td>`;
     }).join("");
     return `<tr class="${m.isEst ? "est-row" : ""}${isPayg ? " payg-row" : ""}">${tds}</tr>`;
-  }).join("") : `<tr><td colspan="${METRICS_COLUMNS.length}" class="table-empty"><b>当前模型与版本没有可展示的额度</b><p>可以调整模型、版本或购买范围；查看轻量模型时选择「全部模型档」。</p><button type="button" class="chip" id="metricsEmptyResetBtn" data-reset-metrics>清除筛选</button></td></tr>`;
+  }).join("") : metricsState.fromPicker && pickerState.budget === "0"
+    ? `<tr><td colspan="${METRICS_COLUMNS.length}" class="table-empty"><b>选购预算为「免费」，额度表只列付费套餐</b><p>免费档的额度见<a href="#free">免费 Coding 入口</a>；取消选购条件可查看全部额度。</p><button type="button" class="chip" data-apply-picker="metrics">取消选购条件</button></td></tr>`
+    : `<tr><td colspan="${METRICS_COLUMNS.length}" class="table-empty"><b>当前模型与版本没有可展示的额度</b><p>可以${metricsState.fromPicker ? "调整「帮我选」条件、" : ""}调整模型、版本或购买范围；查看轻量模型时选择「全部模型档」。</p><button type="button" class="chip" id="metricsEmptyResetBtn" data-reset-metrics>清除筛选</button></td></tr>`;
 
   qsa("#metricsTable th.sortable").forEach((th) => {
     const col = METRICS_COLUMNS.find((c) => c.sortKey === th.dataset.sort);

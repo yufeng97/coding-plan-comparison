@@ -101,8 +101,7 @@ const URL_VALID = {
   pbilling: new Set(["M", "Y"]),
   plimit: new Set([String(PERSONAL_DEFAULT_LIMIT), "all"]),
   rank: new Set(["flagship", "all"]),
-  rscope: new Set(["official", "credits", "all"]),
-  rvendor: new Set(["all", ...METRICS_ALL.map((m) => m.vendor)]),
+  rscope: new Set(["credits", "all"]),
   tcat: new Set(["all", "official", "tool", "cloud", "team"]),
   tregion: new Set(["all", "cn", "intl"]),
   tsortKeys: new Set(["priceM", "priceY"]),
@@ -143,8 +142,12 @@ function applyUrlState(search = location.search) {
   if (p.get("pq") != null) personalState.q = p.get("pq");
   if (URL_VALID.plimit.has(p.get("plimit"))) personalState.limit = p.get("plimit") === "all" ? null : PERSONAL_DEFAULT_LIMIT;
   pick("rank", URL_VALID.rank, rankState, "tier");
+  /* 旧链接的 official 口径已并入官方口径折算。 */
+  if (p.get("rscope") === "official") rankState.scope = "credits";
   pick("rscope", URL_VALID.rscope, rankState, "scope");
-  pick("rvendor", URL_VALID.rvendor, rankState, "vendor");
+  /* 只接受当前确有可排行档位的厂商（中转站、仅历史档厂商不进下拉）；页面脚本全部加载后才解析。 */
+  const rankVendors = new Set(["all", ...rankCandidateRows().map((r) => r.m.vendor)]);
+  pick("rvendor", rankVendors, rankState, "vendor");
   if (p.get("q") != null) tableState.search = p.get("q");
   pick("tcat", URL_VALID.tcat, tableState, "cat");
   pick("tregion", URL_VALID.tregion, tableState, "region");

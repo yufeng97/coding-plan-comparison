@@ -322,7 +322,7 @@ function deferChartRender(id, render) {
   if (!scheduled) ensureChartLibrary().then(() => {
     const latest = queuedChartRenders.get(id); queuedChartRenders.delete(id);
     if (el) { el.removeAttribute("aria-busy"); el.innerHTML = ""; }
-    try { if (latest) latest(); }
+    try { if (latest) latest(); markChartsForResize(); resizeVisibleCharts(); }
     catch (err) { showChartError(id,err); }
   }, (err) => { queuedChartRenders.delete(id); showChartError(id,err); });
   return true;
@@ -359,9 +359,14 @@ function resizeVisibleCharts() {
     }
   });
 }
+/* 隐藏视图里重绘的画布会按 100px 默认宽度绘制；重绘、视图切换和缩放后统一标记待测量，
+   进入可视区时再按实际尺寸补齐，不依赖窗口缩放事件。 */
+function markChartsForResize(ids = Object.keys(chartCache)) {
+  ids.forEach((id) => { if (chartCache[id]) pendingChartResizes.add(id); });
+}
 function bindChartResize() {
   window.addEventListener("resize", () => {
-    Object.keys(chartCache).forEach((id) => pendingChartResizes.add(id));
+    markChartsForResize();
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(resizeVisibleCharts, 150);
   }, { passive: true });
@@ -534,6 +539,8 @@ function rerenderCharts() {
     try { render(); }
     catch (err) { console.error("[chart] " + id, err); }
   });
+  markChartsForResize();
+  resizeVisibleCharts();
 }
 /* 测量固定页头，供锚点间距和当前章节判断共用；不读取或渲染图表内容。 */
 let headerHeight = 0;

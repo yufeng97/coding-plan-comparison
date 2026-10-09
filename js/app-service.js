@@ -63,10 +63,14 @@ function syncPickerScopeControls() {
   });
   for (const { name,state } of [{ name:"personal",state:personalState },{ name:"metrics",state:metricsState },{ name:"table",state:tableState }]) {
     const applied = !!state.fromPicker;
+    /* 价格图、额度表和价格表只收付费档；选购预算为「免费」时不能应用，已应用的仍可取消。 */
+    const freeBudget = pickerState.budget === "0";
     qsa(`[data-apply-picker="${name}"]`).forEach((button) => {
       button.textContent = applied ? "取消选购条件" : "应用当前选购条件";
       button.classList.toggle("active", applied);
       button.setAttribute("aria-pressed", applied ? "true" : "false");
+      button.disabled = freeBudget && !applied;
+      button.title = freeBudget && !applied ? "选购预算为「免费」：这里只列付费档，免费档见「免费 Coding 入口」" : "";
     });
     const scope = byId(name + "Scope");
     const pricing = {
@@ -181,6 +185,12 @@ function calculateCostScenarios(state, api) {
     return result ? { id,...scenario,...result,lowCNY:result.costCNY * 0.8,highCNY:result.costCNY * 1.2 } : null;
   }).filter(Boolean);
 }
+/* 计算器的小额（如每次请求）保留两位有效数字，避免把 ¥0.032 显示成 ¥0；常规金额沿用页面精度。 */
+function fmtCalcCNY(n) {
+  if (!Number.isFinite(n)) return "—";
+  return n > 0 && n < 1 ? "¥" + Number(n.toPrecision(2)) : fmtCNY(n);
+}
+function fmtCalcNative(n) { return n > 0 && n < 1 ? String(Number(n.toPrecision(2))) : String(Number(n.toFixed(2))); }
 function renderCostCalculator() {
   const el = byId("costResult");
   if (!el) return;
@@ -194,7 +204,7 @@ function renderCostCalculator() {
   if (!result) { el.textContent = "请输入有效的工作量和预算；缓存单价不能高于普通输入单价。"; return; }
   const currency = currencySymbol(api.cur);
   const cap = result.monthlyBudgetM == null ? "当前单价为零，预算不构成token上限" : "预算可覆盖约 " + fmtTok(result.monthlyBudgetM) + " 总 tokens/月";
-  const cache = calcState.cachePrice === "" ? "未填写缓存单价，按普通输入价估算；填写官网缓存价后可计算节省。" : "缓存按所填命中率计费，无缓存时约 " + fmtCNY(result.noCacheCNY) + "/月。";
+  const cache = calcState.cachePrice === "" ? "未填写缓存单价，按普通输入价估算；填写官网缓存价后可计算节省。" : "缓存按所填命中率计费，无缓存时约 " + fmtCalcCNY(result.noCacheCNY) + "/月。";
   const check = priceCheckOf(api, "api");
   const main = chooseMain(eligibleProfiles());
   let quota = "";
@@ -214,16 +224,16 @@ function renderCostCalculator() {
       quota = `<p>当前推荐 ${esc(planTitle(main.p))} · ${esc(displayModelName(metric.m.model))}：参考月量 ${esc(tokSpan(c,"moLow","moHigh"))}（置信${esc(metric.conf)}；表内基准：80% 输入、95% 输入缓存、请求折算 20K tokens/次）。${condition}${context}跨模型 token 不代表等效产出；仍需核对窗口、共享池与工具费用。</p>`;
     } else quota = `<p>当前推荐 ${esc(planTitle(main.p))} 未公开可对照的月 tokens，无法据此保证额度够用。</p>`;
     const quote = typeof pickerPaymentQuote === "function" ? pickerPaymentQuote(main.p) : null;
-    if (quote && quote.available && Number.isFinite(quote.monthlyCNY)) quota += `<p>订阅价格参照：${esc(quote.label || "当前支付方式")}月均 ${esc(fmtCNY(quote.monthlyCNY))}。API 账单与订阅分别计费，年付还需核对全年一次支付金额。</p>`;
+    if (quote && quote.available && Number.isFinite(quote.monthlyCNY)) quota += `<p>订阅价格参照：${esc(quote.label || "当前支付方式")}月均 ${esc(fmtCalcCNY(quote.monthlyCNY))}。API 账单与订阅分别计费，年付还需核对全年一次支付金额。</p>`;
   }
   const scenarios = calculateCostScenarios(calcState,api);
   const scenarioTable = `<div class="cost-scenario-results"><table class="mini-table"><caption>三种示例计费情景（总工作量上下浮动 20%）</caption><thead><tr><th scope="col">情景与假设</th><th scope="col">基准月费</th><th scope="col">月费范围</th></tr></thead><tbody>` +
-    scenarios.map((scenario) => `<tr data-cost-scenario-result="${esc(scenario.id)}"><th scope="row">${esc(scenario.label)}：输入 ${esc(scenario.input)}% / 输出 ${esc(100 - Number(scenario.input))}%，输入缓存 ${esc(scenario.cache)}%</th><td>${esc(fmtCNY(scenario.costCNY))}</td><td>${esc(fmtCNY(scenario.lowCNY))}–${esc(fmtCNY(scenario.highCNY))}</td></tr>`).join("") + `</tbody></table></div>`;
-  el.innerHTML = `<p><strong>预计月费 ${esc(currency + Number(result.costNative.toFixed(2)))} ≈ ${esc(fmtCNY(result.costCNY))}</strong> · ${esc(fmtTok(result.monthlyM))} 总 tokens/月</p>` +
+    scenarios.map((scenario) => `<tr data-cost-scenario-result="${esc(scenario.id)}"><th scope="row">${esc(scenario.label)}：输入 ${esc(scenario.input)}% / 输出 ${esc(100 - Number(scenario.input))}%，输入缓存 ${esc(scenario.cache)}%</th><td>${esc(fmtCalcCNY(scenario.costCNY))}</td><td>${esc(fmtCalcCNY(scenario.lowCNY))}–${esc(fmtCalcCNY(scenario.highCNY))}</td></tr>`).join("") + `</tbody></table></div>`;
+  el.innerHTML = `<p><strong>预计月费 ${esc(currency + fmtCalcNative(result.costNative))} ≈ ${esc(fmtCalcCNY(result.costCNY))}</strong> · ${esc(fmtTok(result.monthlyM))} 总 tokens/月</p>` +
     `<p>${esc(cap)}。${result.costCNY > Number(calcState.budget) ? "当前工作量超出月预算。" : "当前工作量在月预算内。"}</p><p>${esc(cache)}</p>` +
-    `<p>按 ${esc(calcState.days)} 个工作日、每天 ${esc(calcState.requests)} 次请求，每个工作日约 ${esc(fmtCNY(result.costCNY / Number(calcState.days)))}${Number(calcState.requests) > 0 ? `，每次约 ${esc(fmtCNY(result.costCNY / Number(calcState.days) / Number(calcState.requests)))}` : ""}。${result.costCNY <= Number(calcState.budget) ? `月预算剩余约 ${esc(fmtCNY(Number(calcState.budget) - result.costCNY))}` : `月预算需补约 ${esc(fmtCNY(result.costCNY - Number(calcState.budget)))}`}。</p>` +
+    `<p>按 ${esc(calcState.days)} 个工作日、每天 ${esc(calcState.requests)} 次请求，每个工作日约 ${esc(fmtCalcCNY(result.costCNY / Number(calcState.days)))}${Number(calcState.requests) > 0 ? `，每次约 ${esc(fmtCalcCNY(result.costCNY / Number(calcState.days) / Number(calcState.requests)))}` : ""}。${result.costCNY <= Number(calcState.budget) ? `月预算剩余约 ${esc(fmtCalcCNY(Number(calcState.budget) - result.costCNY))}` : `月预算需补约 ${esc(fmtCalcCNY(result.costCNY - Number(calcState.budget)))}`}。</p>` +
     `<p>工具与地区沿用「帮我选」：${esc(SERVICE_TOOL_LABELS[pickerState.tool] || "不限工具")} · ${esc(REGION_LABEL[pickerState.region] || "不限地区")}。这里估算所选模型的 API 推理账单，工具订阅、税费和支付手续费需另行核对；套餐内额度不能直接抵扣 API 账单。</p>` +
-    `<p>上方费用按当前输入 ${esc(calcState.input)}% / 输出 ${esc(100 - Number(calcState.input))}%、输入缓存命中 ${esc(calcState.cache)}% 计算。工作量上下浮动 20% 时约 ${esc(fmtCNY(result.costCNY * 0.8))}–${esc(fmtCNY(result.costCNY * 1.2))}/月。</p>` + scenarioTable +
+    `<p>上方费用按当前输入 ${esc(calcState.input)}% / 输出 ${esc(100 - Number(calcState.input))}%、输入缓存命中 ${esc(calcState.cache)}% 计算。工作量上下浮动 20% 时约 ${esc(fmtCalcCNY(result.costCNY * 0.8))}–${esc(fmtCalcCNY(result.costCNY * 1.2))}/月。</p>` + scenarioTable +
     `<p>轻度、日常、重度及三种情景都是可编辑的示例假设，不代表真实用户用量，也不是费用预测或套餐额度承诺。典型沿用页面的 80% 输入 / 95% 缓存基准；缓存单价未填写时，三个情景均按普通输入价计费。范围只模拟总工作量 ±20%，不包含价格变动、动态限流、工具费和税费。牌价核查 ${esc(check ? check.checkedAt : "未核实")} · <a href="${safeHref(api.url)}" target="_blank" rel="noopener">官网计费规则</a></p>` + quota;
 }
 
@@ -285,7 +295,15 @@ function bindServiceEvents() {
     const input = byId(id); if (!input) continue;
     input.addEventListener(key === "model" ? "change" : "input", () => {
       if (!validCalcValue(key,input.value)) { byId("costResult").textContent = "请输入输入框范围内的有效数字。"; syncCostChips(); return; }
-      updateAppState(() => { calcState[key] = input.value; if (key === "model") { calcState.cachePrice = ""; byId("costCachePrice").value = ""; } }, () => { renderCostCalculator(); syncCostChips(); });
+      updateAppState(() => {
+        calcState[key] = input.value;
+        if (key === "model") { calcState.cachePrice = ""; byId("costCachePrice").value = ""; }
+        /* 手动改输入占比或缓存率后，只有仍与某个示例情景完全一致时才保留该情景；否则回到默认，分享链接不残留旧情景。 */
+        if (key === "input" || key === "cache") {
+          const match = Object.entries(COST_SCENARIOS).find(([, s]) => String(s.input) === String(calcState.input) && String(s.cache) === String(calcState.cache));
+          calcState.scenario = match ? match[0] : APP_DEFAULTS.calc.scenario;
+        }
+      }, () => { renderCostCalculator(); syncCostChips(); });
     });
   }
   const reset = byId("costResetBtn"); if (reset) reset.addEventListener("click", () => updateAppState(() => { Object.assign(calcState,APP_DEFAULTS.calc); syncServiceControls(); },renderCostCalculator));

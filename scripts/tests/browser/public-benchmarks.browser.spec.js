@@ -45,6 +45,19 @@ test("手机切换独立协议且CSV和JSON保留公开来源与费用口径", a
   const id = await select.inputValue();
   await expect(page.locator("#publicBenchmarkMeta")).toContainText(id);
   expect(await page.evaluate("publicBenchmarkRows().every(r=>r.benchmarkId===publicBenchmarkState.id)")).toBe(true);
+  const longest = await select.locator("option").evaluateAll((options) => options.map((option) => ({ value:option.getAttribute("value"), length:option.textContent.length })).sort((a,b) => b.length - a.length)[0]);
+  await select.focus();
+  await select.selectOption(longest.value);
+  await expect(select).toBeFocused();
+  await expect(select).toHaveValue(longest.value);
+  await expect(page.locator("#publicBenchmarkMeta")).toContainText(longest.value);
+  const controlsBounds = await select.evaluate((el) => {
+    const controls = el.closest(".public-benchmark-controls"), box = el.getBoundingClientRect(), parent = controls.getBoundingClientRect();
+    return { left:box.left, right:box.right, parentLeft:parent.left, parentRight:parent.right, clientWidth:controls.clientWidth, scrollWidth:controls.scrollWidth };
+  });
+  expect(controlsBounds.left).toBeGreaterThanOrEqual(controlsBounds.parentLeft - 1);
+  expect(controlsBounds.right).toBeLessThanOrEqual(controlsBounds.parentRight + 1);
+  expect(controlsBounds.scrollWidth).toBeLessThanOrEqual(controlsBounds.clientWidth + 1);
   const wrapper = page.locator("#publicBenchmarkWrap");
   expect(await wrapper.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
   await wrapper.evaluate((el) => { el.scrollLeft = el.scrollWidth; });

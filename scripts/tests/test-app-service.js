@@ -78,7 +78,7 @@ test("修改缓存率、输入比例或每次token假设后不宣称套餐额度
   const app = createApp();
   app.run(`Object.assign(pickerState, { budget: "100", region: "cn", tool: "any", task: "hard" });
     Object.assign(calcState, { model: "小米 MiMo|mimo-v2.6-pro", requests: "75", tokens: "20000", days: "10", input: "80", cache: "95", cachePrice: "0.025" });`);
-  assert.equal(app.run("chooseMain(eligibleProfiles()).p.id"), "plan-0167");
+  assert.equal(app.run("chooseMain(eligibleProfiles()).p.id"), "plan-0168");
   for (const changes of [{ cache: "0" }, { input: "60" }, { tokens: "10000" }]) {
     app.run(`Object.assign(calcState, { input: "80", cache: "95", tokens: "20000" }, ${JSON.stringify(changes)}); renderCostCalculator();`);
     const text = app.elements.get("costResult").innerHTML;
@@ -94,12 +94,13 @@ test("同模型额度优先匹配，daily回退使用日常角色且跨模型不
   app.run(`Object.assign(pickerState, { budget: "100", region: "cn", tool: "any", task: "daily" });
     Object.assign(calcState, { model: "小米 MiMo|mimo-v2.6-flash", requests: "75", tokens: "20000", days: "30", input: "80", cache: "95", cachePrice: "0.02" }); renderCostCalculator();`);
   const specific = app.elements.get("costResult").innerHTML;
-  assert.match(specific, /MiMo-V2\.6-Flash：参考月量 90M/);
+  /* 官方系数折算的中置信额度参与排序，≤¥100 的日常主计划是额度更大的 Standard（¥99）。 */
+  assert.match(specific, /MiMo Token Plan Standard · MiMo-V2\.6-Flash：参考月量 242M/);
   assert.match(specific, /低于参考区间下限/);
   assert.doesNotMatch(specific, /MiMo-V2\.6-Pro：|高于参考区间上限/);
   app.run('Object.assign(calcState, { model: APP_DEFAULTS.calc.model, cachePrice: "" }); renderCostCalculator();');
   const fallback = app.elements.get("costResult").innerHTML;
-  assert.match(fallback, /MiMo-V2\.6-Flash：参考月量 90M/);
+  assert.match(fallback, /MiMo-V2\.6-Flash：参考月量 242M/);
   assert.match(fallback, /所选 API 模型未匹配到该套餐的逐模型额度，无法判断是否够用/);
   assert.doesNotMatch(fallback, /按相同基准，你的总量/);
   healthy(app);
@@ -214,7 +215,7 @@ test("选购用量CTA带入预算和精确匹配模型，模型改变清除旧�
   app.fire(app.elements.get("checkWorkloadBtn"),"click");
   assert.equal(app.elements.get("costCalculator").open,true);
   assert.equal(app.elements.get("costBudget").value,"200");
-  assert.equal(app.elements.get("costModel").value,"智谱 BigModel|GLM-5.3");
+  assert.equal(app.elements.get("costModel").value,"小米 MiMo|mimo-v2.6-pro");
   assert.equal(app.elements.get("costCachePrice").value,"");
   assert.equal(app.location.hash,"#s4");
   assert.match(app.elements.get("serviceFeedback").textContent,/同名的 API 模型/);

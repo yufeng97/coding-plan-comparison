@@ -1,24 +1,22 @@
 "use strict";
 const { test, expect } = require("@playwright/test");
 
-for (const width of [701, 750, 767, 768]) {
+for (const width of [701, 750, 767, 768, 1280]) {
   test(`${width}px 数据表详细字段始终有可见入口`, async ({ page }) => {
     await page.setViewportSize({ width, height:900 });
     await page.goto("/?q=OpenAI%20Plus#table");
     const fields = page.locator("#tableBody tr").first().locator("td.col-opt");
     await expect(fields).toHaveCount(3);
-    if (width < 768) {
-      await expect(page.locator("#tableColsToggle")).toBeVisible();
-      await expect(fields.first()).toBeHidden();
-      await page.locator("#tableColsToggle").click();
-      await expect(page.locator("#tableColsToggle")).toHaveAttribute("aria-expanded", "true");
-      for (const field of await fields.all()) await expect(field).toBeVisible();
-      await page.locator("#tableColsToggle").click();
-      await expect(fields.first()).toBeHidden();
-    } else {
-      await expect(page.locator("#tableColsToggle")).toBeHidden();
-      for (const field of await fields.all()) await expect(field).toBeVisible();
-    }
+    const toggle = page.locator("#tableColsToggle");
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    for (const field of await fields.all()) await expect(field).toBeHidden();
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    for (const field of await fields.all()) await expect(field).toBeVisible();
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    for (const field of await fields.all()) await expect(field).toBeHidden();
   });
 }
 

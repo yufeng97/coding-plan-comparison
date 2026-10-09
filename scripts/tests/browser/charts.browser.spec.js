@@ -101,6 +101,22 @@ test("个人图表空态清除后恢复20档和真实画布", async ({ page }) =
   expect(errors).toEqual([]);
 });
 
+test("图表在其他视图中切换主题和屏宽后，返回套餐视图恢复实际尺寸", async ({ page }) => {
+  const errors = trackErrors(page);
+  await openPersonal(page);
+  const main = page.getByRole("navigation", { name:"主要内容" });
+  await main.getByRole("link", { name:"模型评测" }).click();
+  await expect(page.locator("#s1")).toBeHidden();
+  await page.locator("#themeBtn").click();
+  await page.setViewportSize({ width:375, height:900 });
+  await main.getByRole("link", { name:"选套餐" }).click();
+  await page.locator("#chartPersonal").scrollIntoViewIfNeeded();
+  await expect.poll(() => page.evaluate("chartCache.chartPersonal.getWidth() === document.getElementById('chartPersonal').clientWidth")).toBe(true);
+  expect(await page.evaluate("chartCache.chartPersonal.getWidth()")).toBeGreaterThan(100);
+  expect(await page.evaluate("chartCache.chartPersonal.getOption().series[0].data.length")).toBe(20);
+  expect(errors).toEqual([]);
+});
+
 test("年付图表的读屏摘要报告当前人民币价格", async ({ page }) => {
   await page.goto("/?pq=CursorPro&pbilling=Y#s1");
   const summary = await page.locator("#chartPersonal").getAttribute("aria-label");

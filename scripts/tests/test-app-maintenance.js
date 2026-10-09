@@ -187,6 +187,9 @@ test("公开模型搜索空态可清除，下载按钮状态与结果一致且�
   const app = createApp({url:"http://127.0.0.1:8123/#benchmarks"}); fixturePublicBenchmarks(app);
   const input = app.elements.get("publicModelSearch"); input.value = "missing fixture model";
   app.fire(input, "input");
+  /* 搜索输入防抖：停顿后才重绘，连续输入不逐键重算套餐映射。 */
+  assert.equal(app.elements.get("publicBenchmarkWrap").hidden, false);
+  app.flushTimeouts();
   assert.equal(app.elements.get("publicBenchmarkWrap").hidden, true);
   assert.equal(app.elements.get("publicBenchmarkEmpty").hidden, false);
   assert.equal(app.elements.get("downloadPublicBenchmarkCsvBtn").disabled, true);
@@ -236,7 +239,11 @@ test("评测与套餐的Claude共享品牌、GPT全系简称保留精确版本�
   assert.deepEqual(plain(app.run("publicModelPlans('claude-opus-5').map(p=>p.id)")), plain(app.run("publicModelPlans('Opus 5').map(p=>p.id)")));
   assert.equal(app.run("publicModelPlans('claude-opus-5').some(p=>p.id==='plan-0075')"), true);
   assert.equal(app.run("publicModelDisplayName('Opus 5')"), "Claude Opus 5");
-  assert.deepEqual(plain(app.run("publicModelPlans('claude-fable-5.1').filter(p=>p.vendor==='Anthropic').map(p=>p.id)")), ["plan-0003", "plan-0004", "plan-0006"]);
+  assert.deepEqual(plain(app.run("publicModelPlans('claude-fable-5.1').filter(p=>p.vendor==='Anthropic').map(p=>p.id).sort()")), ["plan-0003", "plan-0004", "plan-0006"]);
+  /* 出品方官方订阅排在第三方工具之前，组内按月费。 */
+  assert.equal(app.run("publicModelPlans('claude-fable-5.1')[0].vendor"), "Anthropic");
+  assert.equal(app.run("publicModelPlans('kimi-k3').some(p => (p.modelExcludes || []).includes('Kimi-K3'))"), false);
+  assert.match(app.run("publicModelPlansHtml('claude-opus-5')"), /同系列较新的 Opus 5\.5/);
   assert.deepEqual(plain(app.run("publicModelPlans('GPT-6.1 Sol').filter(p=>p.vendor==='OpenAI').map(p=>p.id)")), ["plan-0010", "plan-0011", "plan-0012", "plan-0013"]);
   assert.equal(app.run("publicModelPlans('GPT-6.2 Sol').some(p=>p.vendor==='OpenAI')"), false);
   assert.equal(app.run("publicModelPlans('claude-fable-5').some(p=>p.vendor==='Anthropic')"), false);

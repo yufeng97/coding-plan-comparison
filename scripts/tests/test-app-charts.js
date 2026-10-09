@@ -327,15 +327,30 @@ test("排行套餐名读取主表，估算柱用斜纹并保留原始精确成�
     renderRankChart();
   `);
   const chart = app.charts.get("chartRank").option;
+  const estimates = [];
   for (const [i, point] of chart.series[0].data.entries()) {
-    const approx = app.run(`provenance(METRICS_ALL.find(m => m.ref === ${JSON.stringify(point._r.m.ref)} && m.model === ${JSON.stringify(point._r.m.model)})).conf !== "高"`) || point._r.m.isEst;
-    assert.equal(Boolean(point.itemStyle.decal), Boolean(approx));
+    if (!point._r) {
+      /* 官方口径折算组与估算组之间的分隔行：无柱值、标签说明分组。 */
+      assert.equal(point.value, null);
+      assert.match(chart.yAxis.data[i], /以下为第三方或请求次数估算/);
+      continue;
+    }
+    const low = app.run(`provenance(METRICS_ALL.find(m => m.ref === ${JSON.stringify(point._r.m.ref)} && m.model === ${JSON.stringify(point._r.m.model)})).conf === "低"`);
+    assert.equal(Boolean(point.itemStyle.decal), Boolean(low), "斜纹只标低置信估算");
     assert.equal(point.value, point._r.c.costPerM, "绘制原值，标签负责小数显示");
     assert.ok(chart.yAxis.data[i].includes(point._r.m.plan));
+    estimates.push(low);
   }
+  /* 依据官方额度规则折算的档位整体排在估算之前。 */
+  assert.ok(estimates.indexOf(true) > 0 && estimates.slice(estimates.indexOf(true)).every(Boolean));
+  assert.ok(chart.series[0].data.some((p) => !p._r), "两组之间有分隔行");
   assert.ok(app.elements.get("rankDetailBody").innerHTML.includes("统一名称回归"));
+  assert.match(app.elements.get("rankDetailBody").innerHTML, /rank-divider/);
   assert.doesNotMatch(chart.yAxis.data.join(" "), / · Coding (?:Lite|Pro|Max)/);
   assert.match(app.elements.get("rankNote").innerHTML, /实色柱.*斜纹柱/);
+  /* 中转站不和官方订阅比单价，排行与厂商下拉都不出现。 */
+  assert.equal(app.run("rankRows().filter(r => isRelay(findPlanReference(r.m.ref))).length"), 0);
+  assert.doesNotMatch(app.elements.get("rankVendor").innerHTML, /DevPass/);
   healthy(app);
 });
 
@@ -350,8 +365,9 @@ test("默认排行含估算，Claude/ChatGPT/Kimi可按厂商定位并分享，�
     select.value = vendor;
     app.fire(select, "change");
     const chart = app.charts.get("chartRank").option;
-    assert.ok(chart.series[0].data.length > 0, vendor);
-    assert.ok(chart.series[0].data.every((p) => p._r.m.vendor === vendor));
+    const bars = chart.series[0].data.filter((p) => p._r);
+    assert.ok(bars.length > 0, vendor);
+    assert.ok(bars.every((p) => p._r.m.vendor === vendor));
     assert.equal(select.value, vendor);
     assert.equal(new URLSearchParams(app.location.search).get("rvendor"), vendor);
     assert.match(app.elements.get("rankNote").innerHTML, /当前口径全厂商共/);
@@ -361,8 +377,13 @@ test("默认排行含估算，Claude/ChatGPT/Kimi可按厂商定位并分享，�
   assert.equal(app.run("document.activeElement.id"), "rankDetailsSummary");
   const restored = createApp({ url: "http://127.0.0.1:8123/index.html?rvendor=OpenAI#rank" });
   assert.equal(restored.elements.get("rankVendor").value, "OpenAI");
-  assert.ok(restored.charts.get("chartRank").option.series[0].data.every((p) => p._r.m.vendor === "OpenAI"));
-  healthy(app); healthy(restored);
+  assert.ok(restored.charts.get("chartRank").option.series[0].data.filter((p) => p._r).every((p) => p._r.m.vendor === "OpenAI"));
+  /* 只有历史/限量档的厂商与旧 official 口径的分享链接被安全回退。 */
+  const legacy = createApp({ url: "http://127.0.0.1:8123/index.html?rscope=official&rvendor=%E9%98%BF%E9%87%8C%E4%BA%91%E7%99%BE%E7%82%BC#rank" });
+  assert.equal(legacy.run("rankState.scope"), "credits");
+  assert.equal(legacy.run("rankState.vendor"), "all");
+  assert.doesNotMatch(legacy.elements.get("rankVendor").innerHTML, /value="阿里云百炼"/);
+  healthy(app); healthy(restored); healthy(legacy);
 });
 
 test("亮暗主题的图表tooltip读取当前语义配色，切换后已加载图表同步", () => {

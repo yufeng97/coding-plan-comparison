@@ -111,7 +111,11 @@ function renderPersonalChart() {
   const shown = limit ? rows.slice(0, limit) : rows;
 
   const el = byId("chartPersonal");
-  byId("chartPersonalEmpty").hidden = shown.length > 0;
+  const emptyEl = byId("chartPersonalEmpty");
+  emptyEl.hidden = shown.length > 0;
+  emptyEl.innerHTML = personalState.fromPicker && pickerState.budget === "0"
+    ? '选购预算为「免费」，这张图只画付费月付档。免费档见<a href="#free">免费 Coding 入口</a>。<button type="button" class="linkish" data-apply-picker="personal">取消选购条件</button>'
+    : "没有匹配的个人月付套餐。请更换关键词或清除筛选。";
   /* 初始化/缩放时需要真实容器宽度，空态在完成配置后再隐藏 canvas。 */
   el.hidden = false;
   el.style.height = chartHeight(shown.length, 30, 130, 420) + "px";
@@ -148,9 +152,12 @@ function renderPersonalChart() {
   el.hidden = shown.length === 0;
 
   const billingLabel = personalState.fromPicker ? PICKER_BILLING_LABELS[pickerState.billing] + "月均" : personalState.billing === "Y" ? "年付折月" : "月付";
+  /* 应用选购条件时金额来自帮我选的付款口径，说明也按同一口径写。 */
+  const priceBasis = (p) => personalState.fromPicker
+    ? (pickerPaymentQuote(p).inferred ? "（未单列自动续费价，按标价）" : "")
+    : (personalState.billing === "Y" && p.priceY == null ? "（未列年付价，按月付）" : "");
   describeChart("chartPersonal", "个人订阅价格全景（" + billingLabel + "，人民币/月）" + shown.length + " 档，最低三档：" + shown.slice(0, 3).map((p) =>
-    shortVendor(p.vendor) + " " + p.plan + " " + fmtCNY(personalChartPrice(p)) +
-    (personalState.billing === "Y" && p.priceY == null ? "（未列年付价，按月付）" : "")
+    shortVendor(p.vendor) + " " + p.plan + " " + fmtCNY(personalChartPrice(p)) + priceBasis(p)
   ).join("、"));
   const hidden = rows.length - shown.length;
   const excluded = q1 ? PLANS.filter((p) => {
@@ -167,11 +174,16 @@ function renderPersonalChart() {
     if (p.priceM === 0) return "免费档";
     return "按量或定制";
   };
+  /* 价格表只收有公开标价的记录：免费档在免费入口，按量或询价档没有可列的价格，链接只承诺表里确有的档位。 */
+  const inTable = excluded.filter((p) => isOnSalePlan(p));
+  const freeTiers = excluded.filter((p) => p.priceM === 0);
+  const quoteOnly = excluded.filter((p) => !inTable.includes(p) && !freeTiers.includes(p));
+  const listOf = (list) => list.slice(0, 6).map((p) => `${esc(shortVendor(p.vendor))} ${esc(p.plan)}（${reasonOf(p)}）`).join("、") + (list.length > 6 ? ` 等 ${list.length} 档` : "");
   const excludedHtml = excluded.length
-    ? `<br>这张图只画已核实价格的个人月付。同名模型还有 ${excluded.length} 档不在图上：` +
-      excluded.slice(0, 8).map((p) => `${esc(shortVendor(p.vendor))} ${esc(p.plan)}（${reasonOf(p)}）`).join("、") +
-      (excluded.length > 8 ? ` 等 ${excluded.length} 档` : "") +
-      `。<button type="button" id="showExcludedInTable" class="linkish">在完整表里看</button>`
+    ? `<br>这张图只画已核实价格的个人月付。同名模型还有 ${excluded.length} 档不在图上` +
+      (inTable.length ? `；价格表里有 ${inTable.length} 档：${listOf(inTable)}，<button type="button" id="showExcludedInTable" class="linkish">在完整表里看</button>` : "") +
+      (freeTiers.length ? `；免费档见<a href="#free">免费入口</a>：${listOf(freeTiers)}` : "") +
+      (quoteOnly.length ? `；无公开价、需按量或询价：${listOf(quoteOnly)}` : "") + "。"
     : "";
   byId("notePersonal").innerHTML =
     `当前筛选：${rows.length} 个档位（显示 ${shown.length}） ｜ 汇率 1 USD ≈ ${RATE} CNY，1 INR ≈ ${Number(RATE_INR_CNY.toFixed(6))} CNY（${META.rateAsOf}，<a href="${safeHref(META.rateSource)}" target="_blank" rel="noopener">汇率来源</a>） ｜ 红色是中转站，不和官方订阅、工具订阅放在同一类颜色里 ｜ 搜索按空格分词，各词均须匹配；词内忽略大小写与连字符，支持产品别名并展开「同某档」` +
@@ -230,12 +242,16 @@ function renderTeamChart() {
 /* ---------- 每周可用 tokens 对比（官方公布 + 社区推算，厂商中立） ---------- */
 const TOKEN_OFFICIAL_COLOR = "#34d399";
 const TOKEN_EST_COLOR = "#fbbf24";
+const TOKEN_OFFICIAL_SERIES = "官方额度折算";
+const TOKEN_EST_SERIES = "折算 / 社区推算";
 
 function renderTokensChart() {
   if (deferChartRender("chartTokens",renderTokensChart)) return;
   const chart = makeChart("chartTokens");
   const el = byId("chartTokens");
 
+  /** @typedef {{label: string, model: string, lowM: number, highM: number, priceCNY: number, isOfficial: boolean, url: string, note?: string, method?: string, conf?: string, vendorLowM?: number, vendorHighM?: number}} TokenChartSource */
+  /** @type {TokenChartSource[]} */
   const official = PLAN_TOKENS.flatMap((t) => {
     const p = findPlanReference(t.ref);
     if (!p) {
@@ -246,14 +262,15 @@ function renderTokensChart() {
     return [{
       label: planLabel(p) + " · " + displayModelName(t.model),
       model: t.model,
-      lowM: t.lowM, highM: t.highM,
+      lowM: t.lowM, highM: t.highM, vendorLowM: t.vendorLowM, vendorHighM: t.vendorHighM,
       priceCNY: toCNY(p.priceM, p.cur),
-      isOfficial: true, url: t.url,
+      isOfficial: true, url: t.url, note: t.note, conf: "中",
     }];
   });
   /* 已在 PLAN_TOKENS 里的档不重复。智谱国内 V3 与 Z.ai 每周额度相同，也不再画一遍。
-     系数折算（小米 / 腾讯积分）不进本图。其余带每周 tokens 的行按出处着色：
-     高置信且非估算视为官方公布，新厂商不会被默认涂成低置信社区估算。
+     PLAN_TOKENS 是公布每周额度上限的档位，按官方积分系数与统一假设折算；小米 / 腾讯是月度积分池，
+     摊到周并非真实周额度，不进本图。其余带每周 tokens 的行按出处着色：
+     高置信且非估算视为官方额度，新厂商不会被默认涂成低置信社区估算。
      官方条数区间按结构化公式折算，其余请求数制只在额度深度对比表里呈现。 */
   const coveredPlan = new Set(PLAN_TOKENS.map((t) => findPlanReference(t.ref)?.id).filter(Boolean));
   const weeklyExtra = METRICS_ALL.filter((m) => {
@@ -283,7 +300,7 @@ function renderTokensChart() {
   });
   const community = weeklyExtra.filter((r) => !r.isOfficial);
   const officialBars = official.concat(weeklyExtra.filter((r) => r.isOfficial));
-  /** @typedef {{label: string, model: string, lowM: number, highM: number, midM: number, priceCNY: number, isOfficial: boolean, url: string, note?: string, method?: string, conf?: string}} TokenRow */
+  /** @typedef {TokenChartSource & {midM: number}} TokenRow */
   const rows = /** @type {TokenRow[]} */ ([...officialBars, ...community].map((r) => ({ ...r, midM: (r.lowM + r.highM) / 2 })));
   rows.sort((a, b) => b.midM - a.midM);
 
@@ -293,7 +310,7 @@ function renderTokensChart() {
   /* 对数轴不堆叠 high-low（差值不能当作单独的 log 值）。先画到上限的淡色柱，
      再叠到下限的实色柱；每段直接使用真实端点，定额的 high=low 也能显示标签。 */
   const series = [true, false].flatMap((isOfficial) => {
-    const name = isOfficial ? "官方公布" : "折算 / 社区推算";
+    const name = isOfficial ? TOKEN_OFFICIAL_SERIES : TOKEN_EST_SERIES;
     const color = isOfficial ? TOKEN_OFFICIAL_COLOR : TOKEN_EST_COLOR;
     const data = (upper) => rows.map((r) => r.isOfficial === isOfficial && (upper ? r.highM : r.lowM) > 0
       ? { value: upper ? r.highM : r.lowM, _r: r } : null);
@@ -316,18 +333,19 @@ function renderTokensChart() {
           const r = d.data && d.data._r;
           if (!r) return "";
           const prov = r.isOfficial
-            ? '<span class="conf conf-hi">官方公布</span>'
+            ? '<span class="conf conf-hi">官方额度折算</span>'
             : `<span class="conf conf-${r.conf === "低" ? "lo" : "mid"}">折算/推算·${esc(r.conf || "低")}</span>`;
           const per100 = r.priceCNY > 0 ? (r.midM / r.priceCNY * 100).toFixed(1) : "—";
+          const vendor = r.vendorLowM != null ? `厂商按自身用量假设另给出 ${weeklyTokenRange(r.vendorLowM, r.vendorHighM)}/周，未用于比较<br/>` : "";
           return `<b>${esc(r.label)}</b> ${prov}<br/>
             每周可用：${weeklyTokenRange(r.lowM, r.highM)} tokens（${esc(displayModelName(r.model))}）<br/>
-            月费：${fmtCNY(r.priceCNY)} ｜ 每 ¥100/月 ≈ <b>${per100}${per100 === "—" ? "" : "M"}</b> tokens/周<br/>
+            ${vendor}月费：${fmtCNY(r.priceCNY)} ｜ 每 ¥100/月 ≈ <b>${per100}${per100 === "—" ? "" : "M"}</b> tokens/周<br/>
             ${r.note ? `<span style="color:${PAL.dim}">${esc(trunc(r.note, 120))}</span><br/>` : ""}
             ${safeHref(r.url) ? `<span style="color:${PAL.dim};font-size:11.5px">来源：${safeHref(r.url)}</span>` : ""}`;
         },
       },
       grid: { left: 12, right: 88, top: 20, bottom: 44, containLabel: true },
-      legend: { data: ["官方公布", "折算 / 社区推算"], show: false },
+      legend: { data: [TOKEN_OFFICIAL_SERIES, TOKEN_EST_SERIES], show: false },
       xAxis: chartLogAxis(rows.flatMap((r) => [r.lowM, r.highM]), "百万 tokens/周"),
       yAxis: { type: "category", data: cats, inverse: true, ...axisStyle(),
         axisLabel: chartAxisLabel(el, 11.5),
@@ -337,8 +355,8 @@ function renderTokensChart() {
     true
   );
   chart.resize();
-  bindChartLegend(chart, "tokensLegend", { "官方公布": TOKEN_OFFICIAL_COLOR, "折算 / 社区推算": TOKEN_EST_COLOR });
-  describeChart("chartTokens", "每周可用 tokens 对比 " + rows.length + " 行：官方公布 " + officialBars.length + " 行、社区推算 " + community.length + " 行。采用对数刻度，相邻主刻度为十倍，淡色段表示区间上限，数值见柱尾和提示。");
+  bindChartLegend(chart, "tokensLegend", { [TOKEN_OFFICIAL_SERIES]: TOKEN_OFFICIAL_COLOR, [TOKEN_EST_SERIES]: TOKEN_EST_COLOR });
+  describeChart("chartTokens", "每周可用 tokens 对比 " + rows.length + " 行：官方额度折算 " + officialBars.length + " 行、折算或社区推算 " + community.length + " 行。采用对数刻度，相邻主刻度为十倍，淡色段表示区间上限，数值见柱尾和提示。");
 
   /* 洞察卡：全厂商性价比排行（厂商中立） */
   const valueOf = (r) => (r.priceCNY > 0 ? r.midM / r.priceCNY : -1);
@@ -352,14 +370,14 @@ function renderTokensChart() {
         return `
         <tr>
           <td>${esc(r.label)}<br><span style="color:${PAL.dim};font-size:11px">${fmtCNY(r.priceCNY)}/月 · ${r.isOfficial
-            ? '<span class="conf conf-hi">官方公布</span>'
+            ? '<span class="conf conf-hi">官方额度折算</span>'
             : `<span class="conf conf-${r.conf === "低" ? "lo" : "mid"}">估算·${esc(r.conf || "低")}</span>`}</span></td>
           <td><b>${per100}${per100 === "—" ? "" : "M"}</b> tokens/周</td>
         </tr>`;
       }).join("")}
     </table>
     </div>
-    <p class="token-insight-note">公平比较提示：不同模型的 token 数不能代表产出质量。<span class="text-green">绿色柱</span>为官方公布的每周 tokens 区间，<span class="text-gold">黄色柱</span>为折算或社区推算。横轴为对数刻度，相邻主刻度为十倍。估算受单次用量、缓存率和动态限流影响，仅供量级参考；完整方法与置信度见「额度深度对比」。</p>`;
+    <p class="token-insight-note">公平比较提示：不同模型的 token 数不能代表产出质量。<span class="text-green">绿色柱</span>为官方每周额度按官方积分系数折算（80/20、95% 缓存；上限含非高峰 5 折），<span class="text-gold">黄色柱</span>为其他折算或社区推算。厂商自己的估算另见提示。横轴为对数刻度，相邻主刻度为十倍。估算受单次用量、缓存率和动态限流影响，仅供量级参考；完整方法与置信度见「额度深度对比」。</p>`;
 }
 
 /* ---------- API 按量价格 ---------- */
@@ -504,15 +522,16 @@ function renderFree() {
 
 
 /* ---------- 性价比排行图（每 M tokens 成本） ---------- */
-/* scope: official=官方公布每周 tokens（高置信）；credits=再加官方口径折算（credits 面值/系数/官方区间，中置信）；all=含全部估算（低置信） */
+/* scope: credits=官方口径折算（积分系数/credits 面值/官方区间，中置信及以上）；all=含全部估算（低置信）。
+   目前没有厂商直接公布可跨家比较的每周 tokens，旧的 official 口径并入 credits。 */
 function rankScopeOk(m) {
+  /* 无牌价的 credits 面值只能按假设单价折算，说明里承诺不进入排行，任何口径都排除。 */
+  if ((m.creditCNY != null || m.creditUSD != null) && typeof m.apiIn !== "number") return false;
   if (rankState.scope === "all") return true;
-  const conf = provenance(m).conf;
-  /* credits：高置信官方每周 tokens，再加中置信的官方折算（credits 面值/系数/官方区间，含 ESTIMATES 中置信行）；低置信只在 all */
-  if (rankState.scope === "credits") return conf !== "低";
-  /* official：非估算、有官方每周 tokens、高置信。无牌价的「官方 credits」置信度也是高，但不能进默认排行 */
-  return !m.isEst && m.wkLowM != null && conf === "高";
+  return provenance(m).conf !== "低";
 }
+/* 实心柱：依据官方额度规则（中置信及以上）；斜纹柱与 ≈：第三方或请求次数估算。 */
+function rankIsEstimate(m) { return provenance(m).conf === "低"; }
 /* 排行两组 chip 的高亮与 aria-pressed 以 rankState 为准（URL 恢复与点击共用） */
 function syncRankChips() {
   qsa("#chipRank .chip").forEach((chip) => {
@@ -533,9 +552,8 @@ function populateRankVendor() {
   const select = byId("rankVendor");
   if (!select) return;
   const priority = ["Anthropic", "OpenAI", "月之暗面 Kimi"];
-  const vendors = [...new Set(METRICS_ALL.map((m) => (resolvePlan(m) || m).vendor))];
-  /* 兼容分享链接选中尚无可折算额度的在售厂商，空态会明确说明。 */
-  if (rankState.vendor && rankState.vendor !== "all" && PLANS.some((p) => p.vendor === rankState.vendor) && !vendors.includes(rankState.vendor)) vendors.push(rankState.vendor);
+  /* 只列在任一口径下确有可排行档位的厂商；中转站、仅历史档的厂商不进下拉。 */
+  const vendors = [...new Set(rankCandidateRows().map((r) => r.m.vendor))];
   vendors.sort((a, b) => {
     const ai = priority.indexOf(a), bi = priority.indexOf(b);
     return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi) || rankVendorLabel(a).localeCompare(rankVendorLabel(b), "zh-CN");
@@ -543,24 +561,48 @@ function populateRankVendor() {
   select.innerHTML = '<option value="all">全部厂商</option>' + vendors.map((v) => `<option value="${esc(v)}">${esc(rankVendorLabel(v))}</option>`).join("");
   select.value = rankState.vendor || "all";
 }
-function rankRows(vendor = rankState.vendor || "all") {
-  return METRICS_ALL
-    .flatMap((m) => { const p = resolvePlan(m); return p ? [p] : []; })
-    .filter((m) => vendor === "all" || m.vendor === vendor)
-    .filter(rankScopeOk)
-    .filter(metricOfferOk)
-    .map((m) => ({ m, c: computeMetrics(m) }))
-    .filter((r) => r.c && r.c.costPerM != null)
-    .filter((r) => rankState.tier !== "flagship" || isFlagshipModelName(r.m.model))
-    .sort((a, b) => a.c.costPerM - b.c.costPerM);
+/* 名称和价格每次从主表解析；额度成本按原始指标行缓存，价格或币种变化时重算，
+   避免每次重绘对同一行重复计算。中转站不和官方订阅比单价（个人价格图与帮我选同一规则）。 */
+const rankCostCache = new WeakMap();
+function rankCandidateRows() {
+  return METRICS_ALL.flatMap((raw) => {
+    const plan = raw.ref != null ? findPlanReference(raw.ref) : null;
+    if (plan && isRelay(plan)) return [];
+    const m = resolvePlan(raw);
+    if (!m || !metricOfferOk(m)) return [];
+    const key = m.priceM + "|" + m.cur;
+    let hit = rankCostCache.get(raw);
+    if (!hit || hit.key !== key) { hit = { key, c: computeMetrics(m) }; rankCostCache.set(raw, hit); }
+    return hit.c && hit.c.costPerM != null ? [{ m, c: hit.c }] : [];
+  });
 }
+/* 先按官方额度规则折算的档位排，再排第三方或请求次数估算；低置信估算不会排在可靠数据之前。 */
+function rankRows(vendor = rankState.vendor || "all") {
+  return rankCandidateRows()
+    .filter((r) => vendor === "all" || r.m.vendor === vendor)
+    .filter((r) => rankScopeOk(r.m))
+    .filter((r) => rankState.tier !== "flagship" || isFlagshipModelName(r.m.model))
+    .sort((a, b) => Number(rankIsEstimate(a.m)) - Number(rankIsEstimate(b.m)) || a.c.costPerM - b.c.costPerM);
+}
+/* 图高有限：两组都有时至少给估算 8 个位置，Claude、ChatGPT 等只有估算的厂商仍能在图上看到。 */
+const RANK_CHART_LIMIT = 20;
+function rankChartRows(all) {
+  const official = all.filter((r) => !rankIsEstimate(r.m));
+  const estimates = all.filter((r) => rankIsEstimate(r.m));
+  if (!official.length || !estimates.length) return all.slice(0, RANK_CHART_LIMIT);
+  const estimateSlots = Math.min(estimates.length, Math.max(RANK_CHART_LIMIT - official.length, 8));
+  return official.slice(0, RANK_CHART_LIMIT - estimateSlots).concat(estimates.slice(0, estimateSlots));
+}
+const RANK_ESTIMATE_DIVIDER = "以下为第三方或请求次数估算（置信低）";
 function renderRankDetails() {
   const body = byId("rankDetailBody");
   if (!body) return;
   const rows = rankRows();
-  body.innerHTML = rows.length ? rows.map((r) => {
+  body.innerHTML = rows.length ? rows.map((r, i) => {
     const prov = provenance(r.m), c = r.c;
-    return `<tr><th scope="row">${esc(planLabel(r.m))}<br>${esc(displayModelName(r.m.model))}</th>` +
+    const divider = rankIsEstimate(r.m) && i > 0 && !rankIsEstimate(rows[i - 1].m)
+      ? `<tr class="rank-divider"><th scope="rowgroup" colspan="5">${esc(RANK_ESTIMATE_DIVIDER)}</th></tr>` : "";
+    return divider + `<tr><th scope="row">${esc(planLabel(r.m))}<br>${esc(displayModelName(r.m.model))}</th>` +
       `<td>${esc(fmtCNY(c.priceCNY))}/月</td><td>¥${c.costPerM.toFixed(3)}${fullUseCostRangeText(c) ? `<br><span class="sub">${esc(fullUseCostRangeText(c))}</span>` : ""}</td><td>${esc(tokSpan(c,"moLow","moHigh"))}</td><td>${esc(prov.text)} · 置信${esc(prov.conf)}</td></tr>`;
   }).join("") : '<tr><td colspan="5" class="table-empty">当前口径没有可比较的套餐，请调整模型档或排行口径。</td></tr>';
 }
@@ -569,24 +611,24 @@ function renderRankChart() {
   renderRankDetails();
   if (deferChartRender("chartRank",renderRankChart)) return;
   const all = rankRows();
-  const rows = all.slice(0, 20); /* 图高有限，最多展示前 20 档 */
+  const rows = rankChartRows(all);
   describeChart("chartRank", "每百万 tokens 成本排行（¥，越低越划算）前三：" +
-    rows.slice(0, 3).map((r) => planLabel(r.m) + " ¥" + r.c.costPerM.toFixed(3)).join("、") + "。实色柱为高置信官方口径，斜纹柱为折算或估算，不确定区间见提示及完整明细。");
+    rows.slice(0, 3).map((r) => planLabel(r.m) + " ¥" + r.c.costPerM.toFixed(3)).join("、") + "。先列依据官方额度规则折算的档位（实色柱），再列第三方或请求次数估算（斜纹柱），不确定区间见提示及完整明细。");
 
   const el = byId("chartRank");
-  el.style.height = chartHeight(rows.length, 30, 130, 420) + "px";
+  /* 两组之间插入一行分隔标签，柱值为空。 */
+  const firstEstimate = rows.findIndex((r) => rankIsEstimate(r.m));
+  const items = firstEstimate > 0 ? [...rows.slice(0, firstEstimate), null, ...rows.slice(firstEstimate)] : rows;
+  el.style.height = chartHeight(items.length, 30, 130, 420) + "px";
   const chart = makeChart("chartRank");
 
-  const labels = rows.map((r) => {
-    /* 非「官方每周 tokens」口径的行加 ≈ 前缀，提示 tokens 为折算/估算值 */
-    const approx = provenance(r.m).conf !== "高" || r.m.isEst;
-    return (approx ? "≈" : "") + metricChartLabel(r.m);
-  });
-  const data = rows.map((r) => {
+  const labels = items.map((r) => r ? (rankIsEstimate(r.m) ? "≈" : "") + metricChartLabel(r.m) : "— " + RANK_ESTIMATE_DIVIDER + " —");
+  const data = items.map((r) => {
+    if (!r) return { value: null };
     const cp = r.c.costPerM;
     const tier = cpmTier(cp);
     const color = tier === "lo" ? "#34d399" : tier === "mid" ? "#f59e0b" : "#f87171";
-    const approx = provenance(r.m).conf !== "高" || r.m.isEst;
+    const approx = rankIsEstimate(r.m);
     return { value: cp, itemStyle: { color, borderRadius: [0, 4, 4, 0],
       ...(approx ? { decal: { symbol: "rect", symbolSize: 1, dashArrayX: [1, 0], dashArrayY: [2, 5], rotation: -Math.PI / 4,
         color: "rgba(255,255,255,.65)", backgroundColor: "transparent" } } : {}) }, _r: r };
@@ -598,7 +640,8 @@ function renderRankChart() {
       tooltip: {
         trigger: "item", ...tipStyle(el),
         formatter: (d) => {
-          const r = d.data._r;
+          const r = d.data && d.data._r;
+          if (!r) return "";
           const prov = provenance(r.m);
           const cp = r.c.costPerM;
           const tier = cpmTier(cp);
@@ -612,7 +655,8 @@ function renderRankChart() {
             ${fullUseCostRangeText(r.c) ? esc(fullUseCostRangeText(r.c)) + "（用尽对应额度）<br/>" : ""}
             月费：${fmtCNY(r.c.priceCNY)} ｜ 月倍率：<b>${rate}</b><br/>
             月 tokens：${mo}<br/>
-            <span style="color:${PAL.dim}">依据：${esc(prov.text)} · 置信${esc(prov.conf)}${prov.conf !== "高" ? "（tokens 为折算/估算值）" : ""}</span>`;
+            <span style="color:${PAL.dim}">依据：${esc(prov.text)} · 置信${esc(prov.conf)}${prov.conf !== "高" ? "（tokens 为折算/估算值）" : ""}</span>
+            ${r.m.vendorWkLowM != null ? `<br/><span style="color:${PAL.dim}">厂商按自身用量假设另给出 ${weeklyTokenRange(r.m.vendorWkLowM, r.m.vendorWkHighM)}/周，未用于排行</span>` : ""}`;
         },
       },
       grid: { left: 12, right: 76, top: 20, bottom: 44, containLabel: true },
@@ -624,7 +668,7 @@ function renderRankChart() {
       },
       series: [{
         type: "bar", data, barWidth: 18,
-        label: { show: true, position: "right", color: PAL.text, fontSize: 12, formatter: (d) => "¥" + d.value.toFixed(3) },
+        label: { show: true, position: "right", color: PAL.text, fontSize: 12, formatter: (d) => typeof d.value === "number" ? "¥" + d.value.toFixed(3) : "" },
       }],
     },
     true
@@ -632,17 +676,17 @@ function renderRankChart() {
   chart.resize();
 
   const tierText = rankState.tier === "flagship" ? "当前只看旗舰模型。" : "当前含轻量模型，Flash、Haiku 会因为 token 便宜靠前。";
-  const excluded = "价格待核实、已停售、已下架、一次性预付和仅老用户续费不在此列。";
+  const excluded = "价格待核实、已停售、已下架、一次性预付、仅老用户续费和中转站不在此列。";
   const scopeText = {
-    official: "口径：只统计官方公布每周 tokens、且新用户当前可购买的计划（高置信，非估算）。请求折算与第三方估算不在此列。" + excluded,
-    credits: "口径：在官方每周 tokens 之外，纳入按官方 credits 面值/系数/官方区间折算的档位（≈标记，置信中：tokens = 面值 ÷ 牌价混合价，按 80/20 与 95% 缓存假设）。" + excluded,
-    all: "口径：含全部估算档位（≈标记，置信低：第三方毛利反推、请求次数按 20K tokens/次折算等），仅供量级参考。" + excluded,
-  }[rankState.scope];
+    credits: "口径：只统计按官方额度规则折算的档位（积分系数、credits 面值 ÷ 牌价混合价或官方区间，按 80/20 与 95% 缓存假设，置信中）。第三方估算与请求次数折算不在此列。" + excluded,
+    all: "口径：在官方口径折算之外，再纳入估算档位（≈标记，置信低：第三方毛利反推、请求次数按 20K tokens/次折算等），仅供量级参考。" + excluded,
+  }[rankState.scope] || "";
   const total = rankRows("all").length;
   const countText = rankState.vendor && rankState.vendor !== "all"
     ? `当前口径全厂商共 ${total} 档，${rankVendorLabel(rankState.vendor)} ${all.length} 档`
     : `共 ${all.length} 档`;
-  const note = `${countText}${all.length > rows.length ? `，图中显示前 ${rows.length} 档` : ""}。可按厂商查看 Claude、ChatGPT、Kimi 等套餐。${tierText}${scopeText}实色柱：高置信官方口径；斜纹柱：折算或估算。绿色 ≤¥0.30 · 黄色 ≤¥1 · 红色 >¥1。`;
+  const mixed = firstEstimate > 0 ? "先列官方口径折算，再列估算；估算组单独排序，不与上方直接比较名次。" : "";
+  const note = `${countText}${all.length > rows.length ? `，图中显示 ${rows.length} 档` : ""}。可按厂商查看 Claude、ChatGPT、Kimi 等套餐。${tierText}${scopeText}${mixed}实色柱：依据官方额度规则折算；斜纹柱：第三方或请求次数估算。绿色 ≤¥0.30 · 黄色 ≤¥1 · 红色 >¥1。`;
   byId("rankNote").innerHTML = esc(note) + ' <button type="button" class="linkish" id="openRankDetails">查看完整排行明细</button>';
   byId("openRankDetails").onclick = () => {
     const details = /** @type {HTMLDetailsElement | null} */ (byId("rankDetails"));

@@ -691,9 +691,18 @@ table.is-empty thead { display: none; }
   .cmp-head-actions { flex-wrap: wrap; }
 }
 
+/* ---------- 数据表精简列（各宽度通用） ----------
+   默认收起「模型/支持工具/备注」三列，让额度与来源留在桌面可视宽度内；长文本单元格可换行，
+   不再被单行的年付说明、厂商名或核查日期撑出横向滚动。 */
+#planTable .col-opt { display: none; }
+#planTable.show-all-cols .col-opt { display: table-cell; }
+#planTable td.td-vendor { white-space: normal; min-width: 6em; }
+#planTable td[data-column="priceY"], #planTable td[data-column="priceY"] .sub { white-space: normal; }
+#planTable td[data-column="priceY"] { min-width: 8.5em; }
+#planTable td.td-trust { white-space: normal; min-width: 7.5em; }
+#planTable .plan-name, #planTable .tag { white-space: normal; }
+
 /* ---------- 移动端适配（≤700px） ---------- */
-/* 列开关按钮只在移动端出现：默认隐藏「模型/支持工具/备注」三列 */
-#tableColsToggle { display: none; }
 /* 中等屏幕也将品牌/主题和导航分为两行，避免主题按钮单独落在第三行。 */
 @media (max-width: 960px) {
   :root { --header-height: 88px; }
@@ -744,8 +753,6 @@ table.is-empty thead { display: none; }
   /* 数据表精简列 */
   #planTable { min-width: 0; }
   #planTable .td-quota { min-width: 140px; }
-  #planTable .col-opt { display: none; }
-  #planTable.show-all-cols .col-opt { display: table-cell; }
   /* 对比浮动条居中占宽，回到顶部按钮上移避让 */
   .to-top { bottom: 24px; right: 18px; }
   .has-compare .to-top { bottom: 110px; }
@@ -784,7 +791,8 @@ table.is-empty thead { display: none; }
 
 /* 公开评测按协议独立比较，贡献者任务工具保留在可选折叠区。 */
 .public-benchmark-controls{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.5fr) minmax(0,.8fr) minmax(0,1.1fr) auto;gap:14px;align-items:end;margin-bottom:18px}
-.public-benchmark-controls .maintenance-select{margin:0}.public-benchmark-controls .search-input{width:100%}.public-benchmark-controls .chip{min-height:38px}
+/* WebKit 原生 select 更新长协议名称后，内部内容会越过既定宽度；只约束本区控件，并让焦点轮廓留在边界内。 */
+.public-benchmark-controls .maintenance-select{margin:0}.public-benchmark-controls label[for="publicBenchmarkSelect"]{overflow:hidden}.public-benchmark-controls #publicBenchmarkSelect:focus-visible{outline-offset:-2px}.public-benchmark-controls .search-input{width:100%}.public-benchmark-controls .chip{min-height:38px}
 .public-benchmark-meta{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0;font-size:12px;line-height:1.75}
 .public-benchmark-meta div{min-width:0}.public-benchmark-meta dt{color:var(--muted);font-weight:600}.public-benchmark-meta dd{margin:3px 0 0;overflow-wrap:anywhere}
 .public-benchmark-wrap{margin:14px 0;max-height:640px}.public-benchmark-wrap[hidden]{display:none}
@@ -796,8 +804,9 @@ table.is-empty thead { display: none; }
 .public-score-config{display:block;color:var(--muted);font:400 11.5px/1.7 var(--sans);margin-top:6px;overflow-wrap:anywhere;white-space:normal}
 .public-score-more{font:400 11.5px/1.7 var(--sans);color:var(--muted);margin-top:7px}.public-score-more summary{cursor:pointer;color:var(--accent)}.public-score-more p{font-size:11.5px;margin:8px 0;line-height:1.7}
 #contributorBenchmarkTools>.maintenance-panel{margin:14px 0}
-@media(max-width:1000px){.public-benchmark-controls{grid-template-columns:1fr 1fr}.public-benchmark-controls .chip{justify-self:start}}
-@media(max-width:700px){.public-benchmark-controls{grid-template-columns:1fr;gap:12px}.public-benchmark-meta{grid-template-columns:1fr;gap:12px}.public-benchmark-panel .maintenance-toolbar{align-items:flex-start}.public-benchmark-panel .maintenance-toolbar strong{width:100%;margin-bottom:4px}}
+/* 原生 select 的长协议名称在 WebKit 中会溢出自动最小轨道；各响应式列允许缩到容器宽度。 */
+@media(max-width:1000px){.public-benchmark-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.public-benchmark-controls .chip{justify-self:start}}
+@media(max-width:700px){.public-benchmark-controls{grid-template-columns:minmax(0,1fr);gap:12px}.public-benchmark-meta{grid-template-columns:1fr;gap:12px}.public-benchmark-panel .maintenance-toolbar{align-items:flex-start}.public-benchmark-panel .maintenance-toolbar strong{width:100%;margin-bottom:4px}}
 @media(max-width:700px){
   #publicBenchmarkTable{table-layout:fixed;width:613px;min-width:613px}
   #publicBenchmarkTable th[scope="row"],#publicBenchmarkTable td,#publicBenchmarkTable td:nth-child(4){min-width:0;max-width:none}
