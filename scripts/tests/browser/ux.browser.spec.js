@@ -29,7 +29,7 @@ test("首页按标签延迟加载资料，历史返回和回首页保留视图�
   expect(requests).toEqual(["benchmark"]);
 
   await tab(page, "我的关注").click();
-  await page.waitForFunction("optionalDataLoaded('maintenance')");
+  await page.waitForFunction(() => window["optionalDataLoaded"]("maintenance"));
   await expect(page.locator("#maintenanceSummary")).not.toBeEmpty();
   await expect(page.locator("#benchmarks")).toBeHidden();
   expect(requests).toEqual(["benchmark", "maintenance"]);
@@ -63,7 +63,7 @@ for (const [kind, label] of [["benchmark", "模型评测"], ["maintenance", "我
     expect(attempts).toBe(1);
     fail = false;
     await retry.click();
-    await page.waitForFunction(`optionalDataLoaded('${kind}')`);
+    await page.waitForFunction(kind => window["optionalDataLoaded"](kind), kind);
     await expect(status).toBeEmpty();
     expect(attempts).toBe(2);
     if (kind === "benchmark") await expect(page.locator("#publicBenchmarkBody tr").first()).toBeVisible();
@@ -93,7 +93,7 @@ test("历史数据尚未下载时关注操作保留已读ID，打开维护页后
   await watch.click();
   expect(requested).toBe(false);
   await tab(page, "我的关注").click();
-  await page.waitForFunction("optionalDataLoaded('maintenance')");
+  await page.waitForFunction(() => window["optionalDataLoaded"]("maintenance"));
   await expect(page.locator("#followedChanges")).toContainText("没有未读");
   await expect(page.locator("#markFollowReadBtn")).toBeDisabled();
   expect(await page.evaluate("followState.readChangeIds")).toEqual(readIds);

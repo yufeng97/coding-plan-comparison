@@ -16,18 +16,25 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20
           cache: npm
       - run: npm ci
+      - name: 为完整分支引用生成缓存命名空间
+        id: cache-key
+        env:
+          NEWS_REF: ${{ github.ref }}
+        run: node -e "const fs=require('node:fs'),crypto=require('node:crypto');fs.appendFileSync(process.env.GITHUB_OUTPUT,'prefix=news-inbox-v2-'+crypto.createHash('sha256').update(process.env.NEWS_REF).digest('hex')+'--\n');"
       - name: 恢复已审队列与页面基线
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: audit/news/*.json
-          key: news-inbox-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: news-inbox-${{ github.ref_name }}-
+          key: ${{ steps.cache-key.outputs.prefix }}${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ${{ steps.cache-key.outputs.prefix }}
+            news-inbox-${{ github.ref_name }}-
       - name: 采集候选（不修改价格、不提交或部署）
         id: collect
         continue-on-error: true
@@ -35,14 +42,14 @@ jobs:
           NEWS_WINDOW_DAYS: ${{ inputs.days }}
         run: node scripts/news/collect-news.js --days "$NEWS_WINDOW_DAYS"
       - name: 保留本次队列与缓存
-        if: always()
-        uses: actions/cache/save@v4
+        if: ${{ always() && steps.collect.outputs.cache-ready == 'true' }}
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: audit/news/*.json
-          key: news-inbox-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: ${{ steps.cache-key.outputs.prefix }}${{ github.run_id }}-${{ github.run_attempt }}
       - name: 下载待审队列、来源健康与报告
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: coding-plan-news-${{ github.run_id }}-${{ github.run_attempt }}
           path: audit/news/*.json

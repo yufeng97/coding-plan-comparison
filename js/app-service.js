@@ -61,7 +61,7 @@ function syncPickerScopeControls() {
     if (personalState.fromPicker) button.setAttribute("aria-describedby", "personalScope");
     else button.removeAttribute("aria-describedby");
   });
-  for (const { name,state } of [{ name:"personal",state:personalState },{ name:"metrics",state:metricsState },{ name:"table",state:tableState }]) {
+  for (const { name,state } of [{ name:"personal",state:personalState },{ name:"metrics",state:metricsState },{ name:"table",state:tableState },{ name:"rank",state:rankState }]) {
     const applied = !!state.fromPicker;
     /* 价格图、额度表和价格表只收付费档；选购预算为「免费」时不能应用，已应用的仍可取消。 */
     const freeBudget = pickerState.budget === "0";
@@ -76,7 +76,8 @@ function syncPickerScopeControls() {
     const pricing = {
       personal:"图中金额为所选支付方式的月均价。本区月付/年付暂不可切换；取消选购条件后恢复原支付选择。",
       metrics:"套餐按所选支付方式重算；取消选购条件可查看 API 参照。",
-      table:"保留目录月付/年付价，并另标选购口径。",
+      table:"保留目录月付/年付价，并另标选购口径；可按所选支付月均排序。",
+      rank:"按所选支付方式月均价重算满额成本，额度不因折扣放大；继续按参考月量区间中点计算。",
     }[name];
     if (scope) scope.textContent = applied
       ? "已应用选购条件：" + pickerScopeText() + "。" + pricing + "继续叠加本区筛选。"
@@ -84,15 +85,22 @@ function syncPickerScopeControls() {
   }
 }
 function applyPickerScope(name) {
-  const scopes = { personal: { state:personalState,render:renderPersonalChart }, metrics: { state:metricsState,render:renderMetricsTable }, table: { state:tableState,render:renderTable } };
+  const scopes = { personal: { state:personalState,render:renderPersonalChart }, metrics: { state:metricsState,render:renderMetricsTable }, table: { state:tableState,render:renderTable }, rank: { state:rankState,render:renderRankChart } };
   const scope = scopes[name];
   if (!scope) return;
-  updateAppState(() => { scope.state.fromPicker = !scope.state.fromPicker; }, () => {
+  updateAppState(() => {
+    scope.state.fromPicker = !scope.state.fromPicker;
+    if (name === "table") { tableState.sortKey = tableState.fromPicker ? "selectedMonthly" : "priceM"; tableState.sortDir = 1; }
+  }, () => {
     scope.render();
     syncPickerScopeControls();
   });
 }
 function costModelKey(text) { return String(text || "").toLowerCase().replace(/[^a-z0-9]/g, ""); }
+/* 官方积分系数区间和 credits 面值不使用请求折算的 20K/次假设。 */
+function quotaUsesRequestTokenAssumption(m) {
+  return !(m.creditCNY != null || m.creditUSD != null || (m.wkLowM != null && provenance(m).conf !== "低"));
+}
 function setCostInputs(values) {
   Object.assign(calcState,values);
   for (const [key,value] of Object.entries(values)) {
@@ -216,12 +224,13 @@ function renderCostCalculator() {
     const metric = specific || metricForRole(main.p,taskRole);
     if (metric && metric.c.moLow != null) {
       const c = metric.c;
-      const baseline = Number(calcState.input) === 80 && Number(calcState.cache) === 95 && Number(calcState.tokens) === 20000;
+      const baseline = Number(calcState.input) === 80 && Number(calcState.cache) === 95 &&
+        (!quotaUsesRequestTokenAssumption(metric.m) || Number(calcState.tokens) === TOKENS_PER_REQ);
       const condition = specific && baseline
         ? "按相同基准，你的总量" + (result.monthlyM <= c.moLow ? "低于参考区间下限" : result.monthlyM > c.moHigh ? "高于参考区间上限" : "落在参考区间内") + "；这不能保证实际额度够用。"
         : "";
       const context = !specific ? "所选 API 模型未匹配到该套餐的逐模型额度，无法判断是否够用。" : !baseline ? "你修改了折算假设，参考月量不能直接用于判断是否够用。" : "";
-      quota = `<p>当前推荐 ${esc(planTitle(main.p))} · ${esc(displayModelName(metric.m.model))}：参考月量 ${esc(tokSpan(c,"moLow","moHigh"))}（置信${esc(metric.conf)}；表内基准：80% 输入、95% 输入缓存、请求折算 20K tokens/次）。${condition}${context}跨模型 token 不代表等效产出；仍需核对窗口、共享池与工具费用。</p>`;
+      quota = `<p>当前推荐 ${esc(planTitle(main.p))} · ${esc(displayModelName(metric.m.model))}：参考月量 ${esc(tokSpan(c,"moLow","moHigh"))}（置信${esc(metric.conf)}；表内基准：80% 输入、95% 输入缓存${quotaUsesRequestTokenAssumption(metric.m) ? "、请求折算 20K tokens/次" : ""}）。${condition}${context}跨模型 token 不代表等效产出；仍需核对窗口、共享池与工具费用。</p>`;
     } else quota = `<p>当前推荐 ${esc(planTitle(main.p))} 未公开可对照的月 tokens，无法据此保证额度够用。</p>`;
     const quote = typeof pickerPaymentQuote === "function" ? pickerPaymentQuote(main.p) : null;
     if (quote && quote.available && Number.isFinite(quote.monthlyCNY)) quota += `<p>订阅价格参照：${esc(quote.label || "当前支付方式")}月均 ${esc(fmtCalcCNY(quote.monthlyCNY))}。API 账单与订阅分别计费，年付还需核对全年一次支付金额。</p>`;

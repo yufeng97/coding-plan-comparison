@@ -118,7 +118,7 @@ test("归一化后为空的图表搜索保持20档，显示全部和收起仍可
   healthy(app);
 });
 
-test("年付图表读屏摘要与人民币柱值一致，缺少年付价时明确标出月付", () => {
+test("年付图表读屏摘要与人民币柱值一致，缺少年付价时排除该档", () => {
   const app = createApp({ url: "http://127.0.0.1:8123/index.html?pq=CursorPro&pbilling=Y#s1" });
   const label = () => app.elements.get("chartPersonal").getAttribute("aria-label");
   const prices = () => app.charts.get("chartPersonal").option.series[0].data;
@@ -126,8 +126,9 @@ test("年付图表读屏摘要与人民币柱值一致，缺少年付价时明�
   for (const row of prices()) assert.ok(label().includes(row._p.plan + " ¥" + row.value), "摘要使用实际绘制的年付人民币价格");
   assert.doesNotMatch(label(), /\$20|\$60/);
   app.run('PLANS.find(p => p.vendor === "Cursor" && p.plan === "Pro").priceY = null; renderPersonalChart();');
-  const monthly = prices().find((row) => row._p.plan === "Pro");
-  assert.ok(label().includes("Cursor Pro ¥" + monthly.value + "（未列年付价，按月付）"));
+  assert.equal(prices().some(row => row._p.plan === "Pro"), false);
+  assert.doesNotMatch(label(), /Cursor Pro ¥/);
+  assert.match(app.elements.get("notePersonal").innerHTML, /未列公开年付价的档位已排除/);
   healthy(app);
 });
 

@@ -26,7 +26,7 @@ test("历史加载中收起再展开显示结果，保留摘要节点与键盘�
   await page.keyboard.press("Enter");
   await expect(history).not.toHaveAttribute("open", "");
   releaseHistory();
-  await page.waitForFunction("optionalDataLoaded('maintenance')");
+  await page.waitForFunction(() => window["optionalDataLoaded"]("maintenance"));
   await expect(body).toContainText(/确认于|尚未收录本档/);
   expect(await summary.evaluate((node, original) => node === original, summaryNode)).toBe(true);
   await expect(summary).toBeFocused();
@@ -40,7 +40,7 @@ test("历史加载中收起再展开显示结果，保留摘要节点与键盘�
 test("关注永久套餐跨刷新保留，已确认历史与已读记录一致", async ({ page }) => {
   await page.goto("/#updates");
   await page.waitForFunction(() => window["codingPlanReady"] === true);
-  await page.waitForFunction("typeof MAINTENANCE !== 'undefined'");
+  await page.waitForFunction(() => window["optionalDataLoaded"]("maintenance"));
   await expect(page.locator('[data-site-view="updates"]')).toHaveAttribute("aria-current", "page");
   const id = await page.evaluate("MAINTENANCE.changes.find(c => c.kind === 'plan').id");
   await page.locator("#maintenancePlan").selectOption(id);
@@ -50,13 +50,13 @@ test("关注永久套餐跨刷新保留，已确认历史与已读记录一致",
   await expect(watch).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#followedChanges .change-unread").first()).toBeVisible();
   await page.reload(); await page.waitForFunction(() => window["codingPlanReady"] === true);
-  await page.waitForFunction("typeof MAINTENANCE !== 'undefined'");
+  await page.waitForFunction(() => window["optionalDataLoaded"]("maintenance"));
   await expect(page.locator(`#followedPlans [data-watch-plan="${id}"]`)).toHaveAttribute("aria-pressed", "true");
   await page.locator("#markFollowReadBtn").click();
   await expect(page.locator("#markFollowReadBtn")).toBeDisabled();
   await expect(page.locator("#followedChanges")).toContainText("没有未读");
   await page.reload(); await page.waitForFunction(() => window["codingPlanReady"] === true);
-  await page.waitForFunction("typeof MAINTENANCE !== 'undefined'");
+  await page.waitForFunction(() => window["optionalDataLoaded"]("maintenance"));
   await expect(page.locator("#followedChanges")).toContainText("没有未读");
   await page.locator("#maintenancePlan").selectOption(id);
   await page.locator("#maintenanceHistory .plan-history summary").click();
@@ -89,11 +89,11 @@ test("手机关注按钮同步完整权益，官网入口与详情中的两个�
 test("存储不可用提示、跨标签贡献者规范、真实Issues与模板下载可用", async ({ page }) => {
   await page.addInitScript(() => { Object.defineProperty(window, "localStorage", { configurable: true, get() { throw new Error("unavailable"); } }); });
   await page.goto("/#updates"); await page.waitForFunction(() => window["codingPlanReady"] === true);
-  await page.waitForFunction("typeof MAINTENANCE !== 'undefined'");
+  await page.waitForFunction(() => window["optionalDataLoaded"]("maintenance"));
   await expect(page.locator("#followStorageNote")).toContainText("不会保留");
   await page.locator('[data-site-view="benchmarks"]').click();
   await expect(page.locator('[data-site-view="benchmarks"]')).toHaveAttribute("aria-current", "page");
-  await page.waitForFunction("typeof BENCHMARKS !== 'undefined'");
+  await page.waitForFunction(() => window["optionalDataLoaded"]("benchmark"));
   await page.locator("#contributorBenchmarkTools > summary").click();
   await expect(page.locator("#benchmarkResults")).toContainText("尚未收录贡献者任务记录");
   await expect(page.locator("#benchmarkTasks details")).toHaveCount(3);

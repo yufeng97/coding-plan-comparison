@@ -35,13 +35,14 @@ function fileFromUrl(urlPath) {
   if (!stripped || path.isAbsolute(stripped) || /^[a-zA-Z]:/.test(stripped)) return null;
   const resolved = path.resolve(root, stripped);
   const relToRoot = path.relative(root, resolved);
-  if (!insideRoot(root, resolved) || blockedSegment(relToRoot)) return null;
+  if (!insideRoot(root, resolved) || blockedSegment(relToRoot) || hiddenSegment(relToRoot)) return null;
   return resolved;
 }
 /* Windows 不区分路径大小写，realpath 也可能保留请求的大小写。两次检查均按段折叠。 */
 function pathBlocked(relToRoot) {
-  return !insideRoot(rootReal, path.resolve(root, relToRoot)) || blockedSegment(relToRoot);
+  return !insideRoot(rootReal, path.resolve(root, relToRoot)) || blockedSegment(relToRoot) || hiddenSegment(relToRoot);
 }
+function hiddenSegment(relative) { return relative.split(/[/\\]+/).some((part) => part.startsWith(".")); }
 
 function createServer() {
   return http.createServer((q, r) => {

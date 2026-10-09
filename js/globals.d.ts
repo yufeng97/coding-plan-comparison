@@ -11,6 +11,8 @@ interface Plan {
   cur: "USD" | "CNY" | "INR";
   priceM: number | null;
   priceY: number | null;
+  /** 已核实的原币全年金额；与折月价一起校验，备注不参与计算。 */
+  annualTotal?: number;
   /** 已有官方证据的连续包月价格；缺值不从目录价或备注推测。 */
   autoRenewMonthly?: number;
   seat: boolean;

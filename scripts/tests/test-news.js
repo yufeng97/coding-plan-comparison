@@ -433,6 +433,19 @@ async function tests() {
     assert.equal(fs.readFileSync(lock, "utf8"), replacement);
   }));
   await test("系统Fake-IP通过固定DoH复核，私有/失败/超限结果仍拒绝", () => require("./test-news-proxy").testProxyDNS());
+  await test("缓存资格只在事务成功后发出；保留坏状态/坏队列不能成为新基线", () => fixture(async (root, write) => {
+    const readiness = [];
+    const options = { workspace:root, now:NOW, resolver, fetcher:async () => new Response("unavailable", {status:503}), onCommitted:ready => readiness.push(ready) };
+    await runCollection(options);
+    assert.deepEqual(readiness, [true]); // Partial network failure still preserves a valid queue.
+    write("audit/news/state.json", "broken state");
+    await runCollection(options);
+    assert.deepEqual(readiness, [true, false]);
+    write("audit/news/inbox.json", "broken review queue");
+    await assert.rejects(runCollection(options));
+    assert.deepEqual(readiness, [true, false]);
+    assert.equal(fs.readFileSync(path.join(root,"audit/news/inbox.json"),"utf8"), "broken review queue");
+  }));
   console.log("资讯离线回归通过：" + passed + " 项（无网络请求）");
 }
 tests().catch((error) => { console.error(error); process.exitCode = 1; });

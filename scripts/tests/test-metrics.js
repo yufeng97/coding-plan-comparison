@@ -216,5 +216,18 @@ test("默认数据下 auditProfiles 不报错", () => {
   assert.deepStrictEqual(errors, [], errors.join("\n"));
 });
 
+test("INR 计划可计算 token 成本，美元 credits 面值保持原币一致", () => {
+  const p = PLANS.find((p) => p.id === "plan-0097");
+  const weekly = { priceM:p.priceM, cur:p.cur, wkLowM:48, wkHighM:104, apiIn:1, apiOut:2, apiCache:0.1 };
+  const c = computeMetrics(weekly);
+  assert.ok(c && Number.isFinite(c.priceCNY) && c.costPerM > 0);
+  const usd = computeMetrics({ ...weekly, cur:"USD", priceM:649 });
+  assert.ok(near(c.moMidM, usd.moMidM));
+  const credits = computeMetrics({ priceM:649, cur:"INR", creditUSD:20, apiCur:"USD", apiIn:1, apiOut:2, apiCache:0.1 });
+  const equivalent = computeMetrics({ priceM:20, cur:"USD", creditUSD:20, apiIn:1, apiOut:2, apiCache:0.1 });
+  assert.ok(credits && equivalent && near(credits.moMidM, equivalent.moMidM));
+  assert.ok(near(credits.rmo, 20 * 6.71 / credits.priceCNY));
+  assert.equal(computeMetrics({ ...weekly, cur:"XYZ" }), null);
+});
 console.log(`\n结果：${passed} 通过，${failed} 失败`);
 process.exit(failed ? 1 : 0);

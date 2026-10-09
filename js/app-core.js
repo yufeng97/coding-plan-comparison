@@ -220,7 +220,7 @@ function describeChart(id, text) {
 }
 
 function priceOf(p, billing) {
-  if (billing === "Y" && p.priceY != null) return p.priceY;
+  if (billing === "Y") return p.priceY ?? null;
   return p.priceM;
 }
 /* 币种折算统一走 metrics.js 的 toCNY（校验器与测试共用同一实现） */

@@ -83,7 +83,7 @@ function computeTableRows() {
     (!q || queryHit(planSearchBlob(p), q))
   );
   const k = tableState.sortKey;
-  const sortVal = (p) => (p[k] == null ? NaN : toCNY(p[k], p.cur));
+  const sortVal = (p) => k === "selectedMonthly" && tableState.fromPicker ? pickerMonthlyCNY(p) : (p[k] == null ? NaN : toCNY(p[k], p.cur));
   return rows.slice().sort((a, b) => {
     const va = sortVal(a), vb = sortVal(b);
     const aN = Number.isNaN(va), bN = Number.isNaN(vb);
@@ -95,8 +95,16 @@ function computeTableRows() {
 function tableFingerprint(pageSize = responsivePageSize()) {
   return JSON.stringify([tableState, pageSize, tableState.fromPicker ? pickerState : null]);
 }
+function syncTablePriceSort() {
+  const control = /** @type {HTMLSelectElement | null} */ (byId("tablePriceSort"));
+  if (!control) return;
+  control.value = tableState.sortKey + ":" + tableState.sortDir;
+  for (const option of Array.from(control.querySelectorAll("option"))) option.disabled = option.value.startsWith("selectedMonthly:") && !tableState.fromPicker;
+}
 
 function renderTable() {
+  if (!tableState.fromPicker && tableState.sortKey === "selectedMonthly") { tableState.sortKey = "priceM"; tableState.sortDir = 1; }
+  syncTablePriceSort();
   const focused = /** @type {HTMLElement | null} */ (document.activeElement);
   const focusedPlanId = focused && byId("tableBody").contains(focused) && focused.classList.contains("cmp-add") ? focused.dataset.planId : "";
   const rows = computeTableRows();

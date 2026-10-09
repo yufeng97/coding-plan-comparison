@@ -82,12 +82,13 @@ async function resolveHost(hostname, options = {}) {
   return addresses;
 }
 
-/** @param {string} raw
+/** DNS preflight only: this does not constrain the later TCP connection made by fetch.
+ * @param {string} raw
  * @param {(hostname:string)=>Promise<Array<{address:string}>>} resolver */
 async function validateSourceURL(raw, resolver = resolveHost) {
   const url = publicURL(raw, true), hostname = url.hostname.replace(/^\[|\]$/g, "");
   const addresses = net.isIP(hostname) ? [{ address: hostname }] : await resolver(hostname);
-  if (!addresses.length || addresses.some((entry) => !publicAddress(entry.address))) throw new Error("来源 DNS 指向私有或非公开地址");
+  if (!addresses.length || addresses.some((entry) => !publicAddress(entry.address))) throw new Error("来源 DNS 预检指向私有或非公开地址（预检不限制随后的 TCP 连接）");
   return url;
 }
 

@@ -74,18 +74,30 @@ test("非法工作量和高于输入价的缓存价拒绝计算，不输出NaN�
   healthy(app);
 });
 
-test("修改缓存率、输入比例或每次token假设后不宣称套餐额度够用", () => {
+test("修改缓存率或输入比例后不宣称套餐额度够用", () => {
   const app = createApp();
   app.run(`Object.assign(pickerState, { budget: "100", region: "cn", tool: "any", task: "hard" });
     Object.assign(calcState, { model: "小米 MiMo|mimo-v2.6-pro", requests: "75", tokens: "20000", days: "10", input: "80", cache: "95", cachePrice: "0.025" });`);
   assert.equal(app.run("chooseMain(eligibleProfiles()).p.id"), "plan-0168");
-  for (const changes of [{ cache: "0" }, { input: "60" }, { tokens: "10000" }]) {
+  for (const changes of [{ cache: "0" }, { input: "60" }]) {
     app.run(`Object.assign(calcState, { input: "80", cache: "95", tokens: "20000" }, ${JSON.stringify(changes)}); renderCostCalculator();`);
     const text = app.elements.get("costResult").innerHTML;
     assert.match(text, /参考月量/);
     assert.match(text, /修改了折算假设，参考月量不能直接用于判断是否够用/);
     assert.doesNotMatch(text, /按相同基准，你的总量|总量在公布或估算区间下限之内/);
   }
+  healthy(app);
+});
+
+test("积分额度参考比较不受每次请求token变更影响，仍不保证实际够用", () => {
+  const app = createApp();
+  app.run(`Object.assign(pickerState,{budget:"100",region:"cn",tool:"any",task:"hard"});
+    Object.assign(calcState,{model:"小米 MiMo|mimo-v2.6-pro",requests:"75",tokens:"10000",days:"10",input:"80",cache:"95",cachePrice:"0.025"});renderCostCalculator();`);
+  assert.equal(app.run('chooseMain(eligibleProfiles()).p.id'),"plan-0168");
+  const text = app.elements.get("costResult").innerHTML;
+  assert.match(text,/按相同基准，你的总量/);
+  assert.match(text,/不能保证实际额度够用/);
+  assert.doesNotMatch(text,/修改了折算假设/);
   healthy(app);
 });
 

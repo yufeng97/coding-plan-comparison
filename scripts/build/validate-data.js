@@ -94,6 +94,10 @@ function validateData(options = {}) {
     check(["USD", "CNY", "INR"].includes(p.cur), `PLANS cur 非法(${p.cur}): ${key}`);
     check(p.priceM == null || finiteNonnegative(p.priceM), `PLANS priceM 必须为有限非负数或 null: ${key}`);
     check(p.priceY == null || finiteNonnegative(p.priceY), `PLANS priceY 必须为有限非负数或 null: ${key}`);
+    if (p.annualTotal != null) {
+      check(finitePositive(p.annualTotal) && finitePositive(p.priceY), `PLANS annualTotal 必须为有年付价的有限正全年金额: ${key}`);
+      check(Math.abs(p.annualTotal / 12 - p.priceY) <= 0.02, `PLANS annualTotal 与年付折月价不一致: ${key}`);
+    }
     /* 续费条款可记录在本套餐关联的核价来源中，不要求展示备注重复整段官方条款。 */
     const renewalSources = PRICE_CHECKS.rows["plan:" + p.id]?.sourceIds;
     const renewalExplanation = [p.note || "", ...(Array.isArray(renewalSources) ? renewalSources.map(id => PRICE_CHECKS.sources[id]?.evidence || "") : [])]
@@ -247,8 +251,9 @@ function validateData(options = {}) {
       }
     } else {
       check(finitePositive(m.priceM), `无 ref 且缺有效正 priceM: ${key}`);
-      check(m.cur === "USD" || m.cur === "CNY", `无 ref 条目缺有效币种: ${key}`);
+      check(["USD", "CNY", "INR"].includes(m.cur), `无 ref 条目缺有效币种: ${key}`);
     }
+    check(m.apiCur == null || ["USD", "CNY", "INR"].includes(m.apiCur), `指标行 API 牌价币种无效: ${key}`);
     if (m.isEst) check(!!m.method && ["高", "中", "低"].includes(m.confidence), `估算条目缺 method 或有效 confidence: ${key}`);
     warn(!/多模型|混合|全系|全模型/.test(m.model || ""), `模型名仍含糊（多模型/混合/全系/全模型）: ${key}`);
   }
@@ -263,9 +268,8 @@ function validateData(options = {}) {
   for (const m of allMetrics) {
     /* 与浏览器 resolvePlan 一致：ref 可解析时，币种和厂商来自计划单一数据源。 */
     const p = m.ref != null ? findPlanReference(m.ref) : null;
-    const cur = p ? p.cur : m.cur;
+    const cur = m.apiCur || (p ? p.cur : m.cur);
     const vendor = p ? p.vendor : m.vendor;
-    if (cur !== "USD" && cur !== "CNY") continue;
     const key = (vendor || "?") + "|" + (m.model || "?");
     const sameVendor = API_PRICES.filter((a) => a.vendor === vendor &&
       (foldModel(a.model) === foldModel(m.model) || foldModel(a.label) === foldModel(m.model)));

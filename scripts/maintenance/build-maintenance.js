@@ -6,6 +6,7 @@ const crypto = require("node:crypto");
 const { isISODate, validateData } = require("../build/validate-data");
 const { commitOutputs } = require("../build/sync-pricing-audit");
 const { loadData, canonical, readHistory, mergeHistory, seededHistory } = require("./history");
+const { withFileLockSync } = require("../lib/file-lock");
 
 const DAY = 86400000;
 const SITE = "https://coding-plan-comparison-tau.vercel.app/";
@@ -51,6 +52,12 @@ function rssOf(maintenance, site) {
  * @param {string} workspace
  * @param {{check?:boolean,asOf?:string,staleDays?:number,site?:string,rename?:(from:string,to:string)=>void,writeBytes?:(file:string,bytes:Buffer)=>void}} options */
 function buildMaintenance(workspace = path.join(__dirname, "../.."), options = {}) {
+  const root = path.resolve(workspace);
+  return withFileLockSync(path.join(root, "audit/.pricing.lock"), () => buildMaintenanceUnlocked(root, options), {
+    busyMessage: "核价正在同步或维护摘要正在构建，或存在遗留锁（audit/.pricing.lock）",
+  });
+}
+function buildMaintenanceUnlocked(workspace, options = {}) {
   const root = path.resolve(workspace);
   const savedFile = path.join(root, "data/maintenance.json");
   if (options.check && !fs.existsSync(savedFile)) throw new Error("维护产物缺失：data/maintenance.json，请先生成");

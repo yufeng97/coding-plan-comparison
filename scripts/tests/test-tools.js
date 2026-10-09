@@ -413,6 +413,15 @@ async function main() {
       fetcher: async (url) => { urls.push(String(url)); return new Response(JSON.stringify(urls.length === 1 ? { id: "dpl_mock", readyState: "BUILDING" } : { id: "dpl_mock", readyState: "READY", url: "mock.vercel.app" })); } });
     assert.equal(ready.readyState, "READY"); assert.equal(urls.length, 2);
   }));
+  await test("新克隆无项目关联也能dry-run，token不能代替项目ID", () => fixture(async (root) => {
+    fs.unlinkSync(path.join(root, ".vercel/project.json"));
+    writeAssetPlan(createAssetPlan(root));
+    const dry = await deploySite(root, ["--dry-run"], { fetcher: async () => { throw new Error("不得联网"); } });
+    assert.equal(dry.dryRun, true);
+    assert.ok(dry.files.includes("index.html"));
+    await assert.rejects(deploySite(root, ["--prod"], { token:"fixture-token" }), /projectId\/orgId/);
+    await assert.rejects(deploySite(root, ["--dry-run", "--bad"]), /用法/);
+  }));
   await test("认证优先级 env/options/已知CLI auth，缺失或非法文件不扫描其他凭据", () => fixture((root, write) => {
     const appData = path.join(root, "roaming");
     const auth = "roaming/com.vercel.cli/Data/auth.json";

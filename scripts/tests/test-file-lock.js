@@ -8,10 +8,11 @@ const { acquireFileLock, withFileLock, withFileLockSync } = require("../lib/file
 
 let passed = 0;
 async function test(label, action) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "coding-plan-lock-test-"));
+  const temporaryRoot = fs.realpathSync(os.tmpdir());
+  const dir = fs.mkdtempSync(path.join(temporaryRoot, "coding-plan-lock-test-"));
   try { await action(path.join(dir, ".test.lock")); passed++; console.log("  ✓ " + label); }
   finally {
-    if (path.dirname(dir) !== fs.realpathSync(os.tmpdir()) || !path.basename(dir).startsWith("coding-plan-lock-test-")) throw new Error("未知锁测试目录");
+    if (path.dirname(dir) !== temporaryRoot || !path.basename(dir).startsWith("coding-plan-lock-test-")) throw new Error("未知锁测试目录");
     fs.rmSync(dir, { recursive: true, force: true });
   }
 }

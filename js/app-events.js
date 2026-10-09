@@ -53,7 +53,8 @@ function bindEvents() {
     })
   );
   onState(byId("chartSearch"), "input", (e) => {
-    personalState.q = e.target.value;
+    personalState.q = boundedSearch(e.target.value);
+    e.target.value = personalState.q;
     personalState.limit = PERSONAL_DEFAULT_LIMIT; /* 搜索后清空关键词仍回到默认档数，避免停留在「显示全部」状态 */
     cancelPersonalSearch();
     personalSearchTimer = setTimeout(() => { personalSearchTimer = null; renderPersonalChart(); }, 150);
@@ -112,12 +113,21 @@ function bindEvents() {
     }
   });
   onState(byId("searchInput"), "input", (e) => {
-    tableState.search = e.target.value;
+    tableState.search = boundedSearch(e.target.value);
+    e.target.value = tableState.search;
     cancelTableSearch();
     tableSearchTimer = setTimeout(() => { tableSearchTimer = null; renderTable(); }, 150); /* 与图表搜索同一防抖节奏 */
   });
   onState(byId("selectCat"), "change", (e) => { tableState.cat = e.target.value; renderTable(); });
   onState(byId("selectRegion"), "change", (e) => { tableState.region = e.target.value; renderTable(); });
+  const priceSort = byId("tablePriceSort");
+  if (priceSort) onState(priceSort, "change", (e) => {
+    const [key, dir] = e.target.value.split(":");
+    if (!URL_VALID.tsortKeys.has(key) || (key === "selectedMonthly" && !tableState.fromPicker)) return;
+    tableState.sortKey = key;
+    tableState.sortDir = dir === "-1" ? -1 : 1;
+    renderTable();
+  });
   const resetBtn = byId("tableResetBtn");
   if (resetBtn) onState(resetBtn, "click", () => { cancelTableSearch(); resetTableFilters(); });
   /* 数据表导出与列开关 */

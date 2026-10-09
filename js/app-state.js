@@ -2,10 +2,12 @@
 "use strict";
 const DEBUG_MODE = new URLSearchParams(location.search).has("debug");
 const PERSONAL_DEFAULT_LIMIT = 20;
+const SEARCH_MAX_LENGTH = 200;
+function boundedSearch(value) { return String(value ?? "").slice(0, SEARCH_MAX_LENGTH); }
 const CMP_MAX = 4;
 /** @type {{cat:string, region:string, billing:string, q:string, limit:number|null, fromPicker:boolean}} */
 const personalState = { cat:"all", region:"all", billing:"M", q:"", limit:PERSONAL_DEFAULT_LIMIT, fromPicker:false };
-const rankState = { tier:"flagship", scope:"all", vendor:"all" };
+const rankState = { tier:"flagship", scope:"all", vendor:"all", fromPicker:false };
 const pickerState = { budget:"200", region:"cn", tool:"any", task:"both", billing:"M" };
 const tableState = { search:"", cat:"all", region:"all", sortKey:"priceM", sortDir:1, fromPicker:false };
 /** @type {{items: typeof PLANS}} */
@@ -56,6 +58,7 @@ const URL_KEYS = {
   papply: () => personalState.fromPicker ? "1" : "0",
   tapply: () => tableState.fromPicker ? "1" : "0",
   mapply: () => metricsState.fromPicker ? "1" : "0",
+  rapply: () => rankState.fromPicker ? "1" : "0",
   /* 个人订阅价格全景 */
   pcat: () => personalState.cat,
   pregion: () => personalState.region,
@@ -104,7 +107,7 @@ const URL_VALID = {
   rscope: new Set(["credits", "all"]),
   tcat: new Set(["all", "official", "tool", "cloud", "team"]),
   tregion: new Set(["all", "cn", "intl"]),
-  tsortKeys: new Set(["priceM", "priceY"]),
+  tsortKeys: new Set(["priceM", "priceY", "selectedMonthly"]),
   mver: new Set(["all", "V3", "V2"]),
   mtier: new Set(["flagship", "all"]),
   moffer: new Set(["current", "all"]),
@@ -136,19 +139,20 @@ function applyUrlState(search = location.search) {
   personalState.fromPicker = p.get("papply") === "1";
   tableState.fromPicker = p.get("tapply") === "1";
   metricsState.fromPicker = p.get("mapply") === "1";
+  rankState.fromPicker = p.get("rapply") === "1";
   pick("pcat", URL_VALID.pcat, personalState, "cat");
   pick("pregion", URL_VALID.pregion, personalState, "region");
   pick("pbilling", URL_VALID.pbilling, personalState, "billing");
-  if (p.get("pq") != null) personalState.q = p.get("pq");
+  if (p.get("pq") != null) personalState.q = boundedSearch(p.get("pq"));
   if (URL_VALID.plimit.has(p.get("plimit"))) personalState.limit = p.get("plimit") === "all" ? null : PERSONAL_DEFAULT_LIMIT;
   pick("rank", URL_VALID.rank, rankState, "tier");
   /* 旧链接的 official 口径已并入官方口径折算。 */
   if (p.get("rscope") === "official") rankState.scope = "credits";
   pick("rscope", URL_VALID.rscope, rankState, "scope");
   /* 只接受当前确有可排行档位的厂商（中转站、仅历史档厂商不进下拉）；页面脚本全部加载后才解析。 */
-  const rankVendors = new Set(["all", ...rankCandidateRows().map((r) => r.m.vendor)]);
+  const rankVendors = new Set(["all", ...rankCandidateRows(false).map((r) => r.m.vendor)]);
   pick("rvendor", rankVendors, rankState, "vendor");
-  if (p.get("q") != null) tableState.search = p.get("q");
+  if (p.get("q") != null) tableState.search = boundedSearch(p.get("q"));
   pick("tcat", URL_VALID.tcat, tableState, "cat");
   pick("tregion", URL_VALID.tregion, tableState, "region");
   const ts = p.get("tsort");
@@ -156,6 +160,7 @@ function applyUrlState(search = location.search) {
     const [key, dir] = ts.split(":");
     if (URL_VALID.tsortKeys.has(key)) { tableState.sortKey = key; tableState.sortDir = dir === "-1" ? -1 : 1; }
   }
+  if (!tableState.fromPicker && tableState.sortKey === "selectedMonthly") { tableState.sortKey = "priceM"; tableState.sortDir = 1; }
   if (p.get("mmodel") != null) {
     /* 与其他参数一样过白名单：URL 里的垃圾模型值不入库，也就不会经 syncUrl 写回地址栏 */
     const v = p.get("mmodel");

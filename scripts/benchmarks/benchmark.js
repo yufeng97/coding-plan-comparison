@@ -7,8 +7,12 @@ const os = require("node:os");
 const { spawnSync } = require("node:child_process");
 const { publicURL } = require("../news/network");
 const { readPublic } = require("./public-scores");
+const { withFileLockSync } = require("../lib/file-lock");
 const root = path.resolve(__dirname, "../..");
 const digest = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex");
+const runnerFiles = ["load-solution.cjs", "solution-worker.cjs", "solution-values.cjs"];
+const lockFile = workspace => path.join(workspace, "audit/benchmark-sources/.benchmark.lock");
+const lockOptions = { busyMessage: "测评正在采集、验收导入或构建，或存在遗留锁" };
 function tasks(workspace = root) {
   const data = JSON.parse(fs.readFileSync(path.join(workspace, "benchmarks/tasks.json"), "utf8"));
   if (data.schemaVersion !== 1 || !Array.isArray(data.tasks)) throw new Error("任务格式无效");
@@ -18,7 +22,10 @@ function tasks(workspace = root) {
     for (const key of ["title", "description", "acceptance"]) textField(task[key], key, 2000);
     ids.add(task.id);
     const dir = path.join(workspace, "benchmarks/fixtures", task.fixture);
-    task.fixtureHash = digest(JSON.stringify([...["solution.cjs","check.cjs"].map(file=>[file,fs.readFileSync(path.join(dir,file)).toString("base64")]),["load-solution.cjs",fs.readFileSync(path.join(workspace,"scripts/benchmarks/load-solution.cjs")).toString("base64")]]));
+    task.fixtureHash = digest(JSON.stringify([
+      ...["solution.cjs","check.cjs"].map(file=>[file,fs.readFileSync(path.join(dir,file)).toString("base64")]),
+      ...runnerFiles.map(file=>[file,fs.readFileSync(path.join(workspace,"scripts/benchmarks",file)).toString("base64")]),
+    ]));
   }
   return data.tasks;
 }
@@ -75,7 +82,9 @@ function runTask(options, workspace = root) {
   if (!options.solution || !fs.statSync(file).isFile() || fs.lstatSync(file).isSymbolicLink()) throw new Error("请指定含 solution.cjs 的可信解答目录");
   const bytes = fs.readFileSync(file);
   if (bytes.length > 256 * 1024) throw new Error("解答文件过大");
-  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "coding-benchmark-"));
+  const temporaryRoot = fs.realpathSync(os.tmpdir());
+  const scratch = fs.mkdtempSync(path.join(temporaryRoot, "coding-benchmark-"));
+  const scratchReal = fs.realpathSync(scratch);
   const attempts = [];
   try {
     for (let index=0;index<repeats;index++) {
@@ -86,11 +95,11 @@ function runTask(options, workspace = root) {
       const outcome = spawnSync(process.execPath, [path.join(workspace, "benchmarks/fixtures", task.fixture, "check.cjs"), attemptDir, nonce], {encoding:"utf8",timeout:10000,maxBuffer:256*1024,shell:false});
       const completed=String(outcome.stdout||"").split(/\r?\n/).includes("BENCHMARK_COMPLETE:"+nonce);
       const snapshot=path.join(attemptDir,"solution.cjs");
-      const solutionUnchanged=fs.existsSync(snapshot)&&digest(fs.readFileSync(snapshot))===digest(bytes);
+      const solutionUnchanged=fs.existsSync(snapshot)&&fs.lstatSync(snapshot).isFile()&&!fs.lstatSync(snapshot).isSymbolicLink()&&digest(fs.readFileSync(snapshot))===digest(bytes);
       attempts.push({passed:outcome.status===0 && !outcome.error&&completed&&solutionUnchanged,completed,solutionUnchanged,durationSeconds:Math.round((performance.now()-start))/1000,outputHash:digest(String(outcome.stdout||"")+String(outcome.stderr||"")+String(outcome.error?.message||""))});
     }
   } finally {
-    if (path.dirname(scratch) !== fs.realpathSync(os.tmpdir()) || !path.basename(scratch).startsWith("coding-benchmark-")) throw new Error("未知验收暂存目录");
+    if (path.dirname(scratchReal) !== temporaryRoot || !path.basename(scratchReal).startsWith("coding-benchmark-") || fs.lstatSync(scratch).isSymbolicLink() || fs.realpathSync(scratch) !== scratchReal) throw new Error("未知验收暂存目录");
     fs.rmSync(scratch,{recursive:true,force:true});
   }
   const measuredAt = new Date().toISOString();
@@ -103,8 +112,9 @@ function atomicWrite(file, content) {
   finally { if(fs.existsSync(temp)) fs.unlinkSync(temp); }
 }
 function build(workspace = root, options = {check:false}) {
+  return withFileLockSync(lockFile(workspace), () => {
   const data = validateRuns(JSON.parse(fs.readFileSync(path.join(workspace,"benchmarks/results.json"),"utf8")),tasks(workspace));
-  const output = {schemaVersion:1,tasks:tasks(workspace),runs:data.runs,methodology:"固定任务与版本；同一解答在独立暂存目录重复验收至少 3 次，不代表独立模型尝试。生成耗时由贡献者记录，验收运行耗时单独展示；费用为生成该解答的真实 API 账单金额，订阅内/未知不记零。记录由贡献者提供并经维护者审核；不同工具、任务、版本和费用口径分别比较。",generatedAt:data.runs.reduce((date,run)=>run.reviewedAt.slice(0,10)>date?run.reviewedAt.slice(0,10):date,"2026-10-08")};
+  const output = {schemaVersion:1,tasks:tasks(workspace),runs:data.runs,methodology:"固定任务与版本；同一解答在独立暂存目录重复验收至少 3 次，不代表独立模型尝试。断言由独立于解答的 checker 执行，导入须提供原解答并复验其哈希与通过状态。生成耗时由贡献者记录，展示的验收耗时为导入时本机重跑结果；费用为生成该解答的真实 API 账单金额，订阅内/未知不记零。解答仅运行维护者选择的可信本机代码，独立进程不构成恶意代码安全沙箱。不同工具、任务、版本和费用口径分别比较。",generatedAt:data.runs.reduce((date,run)=>run.reviewedAt.slice(0,10)>date?run.reviewedAt.slice(0,10):date,"2026-10-08")};
   const snapshot = { ...output, public: readPublic(workspace) };
   const content = "/* 自动生成：npm run benchmark:build */\nconst BENCHMARKS = "+JSON.stringify(snapshot,null,2)+";\n";
   const file = path.join(workspace,"js/benchmark-data.js");
@@ -113,6 +123,38 @@ function build(workspace = root, options = {check:false}) {
     atomicWrite(file,content);
   }
   return snapshot;
+  }, lockOptions);
+}
+function importRun(options, workspace = root) {
+  if (!options.input || !options.reviewer || !options.solution) throw new Error("import 需要 --input、--reviewer 与原解答 --solution");
+  return withFileLockSync(lockFile(workspace), () => {
+    const supplied=JSON.parse(fs.readFileSync(path.resolve(options.input),"utf8"));
+    if (!supplied.model || supplied.model==="未提供" || !supplied.tool || supplied.tool==="未提供") throw new Error("先补齐真实模型与工具信息");
+    const claimed={...supplied,reviewedBy:options.reviewer,reviewedAt:new Date().toISOString()};
+    validateRuns({schemaVersion:1,runs:[claimed]},tasks(workspace));
+    const solutionFile=path.join(path.resolve(options.solution),"solution.cjs");
+    if (!fs.lstatSync(solutionFile).isFile() || fs.lstatSync(solutionFile).isSymbolicLink() || digest(fs.readFileSync(solutionFile))!==claimed.solutionHash) throw new Error("原解答与导入记录的 solutionHash 不匹配");
+    const verified=runTask({
+      task:claimed.taskId,solution:options.solution,repeats:claimed.repeats,
+      model:claimed.model,tool:claimed.tool,evidence:claimed.evidence,
+      costBasis:claimed.costBasis,currency:claimed.currency,
+      ...(claimed.cost!==null?{cost:claimed.cost}:{}),
+      ...(claimed.generationSeconds!==null?{generationSeconds:claimed.generationSeconds}:{}),
+    },workspace);
+    if (verified.solutionHash!==claimed.solutionHash || verified.fixtureHash!==claimed.fixtureHash || verified.passed!==claimed.passed ||
+        verified.attempts.some((attempt,index)=>["passed","completed","solutionUnchanged"].some(key=>attempt[key]!==claimed.attempts[index][key]))) {
+      throw new Error("原解答重跑与导入记录的验收状态不一致");
+    }
+    // Random completion nonces prevent historical output hashes from matching.
+    const run={...claimed,attempts:verified.attempts,passed:verified.passed,durationSeconds:verified.durationSeconds,
+      measuredAt:verified.measuredAt,environment:verified.environment,originalEnvironment:claimed.environment,
+      originalMeasuredAt:claimed.measuredAt,reviewedAt:new Date().toISOString()};
+    const file=path.join(workspace,"benchmarks/results.json");
+    const data=JSON.parse(fs.readFileSync(file,"utf8"));
+    data.runs.push(run);validateRuns(data,tasks(workspace));
+    atomicWrite(file,JSON.stringify(data,null,2)+"\n");
+    return run;
+  },lockOptions);
 }
 function main(argv) {
   const command = argv.shift();
@@ -134,17 +176,9 @@ function main(argv) {
     return run;
   }
   if (command === "import") {
-    if (!options.input || !options.reviewer) throw new Error("import 需要 --input 与 --reviewer");
-    const run=JSON.parse(fs.readFileSync(path.resolve(options.input),"utf8"));
-    if (!run.model || run.model==="未提供" || !run.tool || run.tool==="未提供") throw new Error("先补齐真实模型与工具信息");
-    run.reviewedBy=options.reviewer;run.reviewedAt=new Date().toISOString();
-    const file=path.join(root,"benchmarks/results.json");
-    const data=JSON.parse(fs.readFileSync(file,"utf8"));
-    data.runs.push(run);validateRuns(data);
-    atomicWrite(file,JSON.stringify(data,null,2)+"\n");
-    return run;
+    return importRun(options);
   }
-  throw new Error("使用 benchmark.js build | validate | run --task ID --solution 目录 [--model 名称 --tool 工具 --evidence HTTPS地址] | import --input 文件 --reviewer 维护者");
+  throw new Error("使用 benchmark.js build | validate | run --task ID --solution 目录 [--model 名称 --tool 工具 --evidence HTTPS地址] | import --input 文件 --reviewer 维护者 --solution 原解答目录");
 }
 if(require.main===module) {try {main(process.argv.slice(2));} catch(error) {console.error(error.message);process.exitCode=1;}}
-module.exports={tasks,validateRuns,runTask,build,main};
+module.exports={tasks,validateRuns,runTask,importRun,build,main};

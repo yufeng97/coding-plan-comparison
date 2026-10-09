@@ -9,6 +9,7 @@ const suite = [
   "test-app-history.js",
   "test-app-picker.js",
   "test-app-payments.js",
+  "test-app-pricing-scope.js",
   "test-app-charts.js",
   "test-app-tables.js",
   "test-app-service.js",

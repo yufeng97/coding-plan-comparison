@@ -14,7 +14,9 @@
 <meta name="twitter:card" content="summary">
 <link rel="alternate" type="application/rss+xml" title="Coding Plan 已确认变更" href="changes.xml?v=f7ef1e7">
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%23b9ff00'/%3E%3Ctext%20x='16'%20y='22'%20font-family='monospace'%20font-size='15'%20font-weight='bold'%20text-anchor='middle'%20fill='%2310110f'%3E%26lt;/%26gt;%3C/text%3E%3C/svg%3E">
-  <script>try{var __m=localStorage.getItem("cp-theme")||"system";var __d=matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.dataset.theme=__m==="system"?(__d?"dark":"light"):__m;}catch(e){}</script>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <script src="js/theme-init.js?v=6414a56"></script>
   <link rel="stylesheet" href="libs/fonts/fonts.css?v=17da4b4">
   <link rel="stylesheet" href="css/style.css?v=05e9a6a">
 </head>
@@ -133,8 +135,8 @@
   <!-- ======== 02 每百万 tokens 成本排行 ======== -->
   <section class="section" id="rank">
     <div class="section-head">
-      <h2><span class="sec-no">02</span>每百万 tokens 满额使用折算成本</h2>
-      <p>月费 ÷ 参考月 tokens，假设参考额度全部用满；用量较少时实际每百万成本更高。默认看旗舰模型与新用户可购买套餐，包含官方口径折算及第三方估算。目前没有厂商直接公布可跨家比较的每周 tokens，所有 tokens 都按统一的 80/20、95% 缓存假设折算：实心柱依据官方额度规则（积分系数、credits 面值或官方区间，置信中），斜纹柱为第三方或请求次数估算（置信低）。估算区间不代表等效模型质量或保证可用额度；可收紧到「官方口径折算」核对。</p>
+      <h2 id="rankTitle"><span class="sec-no">02</span>每百万 tokens 满额使用折算成本（目录月付标价）</h2>
+      <p>本区支付口径月均价 ÷ 参考月 tokens 区间中点；未应用选购条件时采用目录月付标价。假设参考额度全部用满，用量较少时实际每百万成本更高。推荐卡按区间下限保守比较。默认看旗舰模型与新用户可购买套餐，包含官方口径折算及第三方估算。目前没有厂商直接公布可跨家比较的每周 tokens，所有 tokens 都按统一的 80/20、95% 缓存假设折算：实心柱依据官方额度规则（积分系数、credits 面值或官方区间，置信中），斜纹柱为第三方或请求次数估算（置信低）。估算区间不代表等效模型质量或保证可用额度；可收紧到「官方口径折算」核对。</p>
     </div>
     <div class="controls">
       <div class="chip-group" id="chipRank" role="group" aria-label="模型档">
@@ -146,7 +148,9 @@
         <button type="button" class="chip active" data-rscope="all" aria-pressed="true">含全部估算</button>
       </div>
       <select id="rankVendor" class="select" aria-label="排行厂商"><option value="all">全部厂商</option></select>
+      <button type="button" class="chip" data-apply-picker="rank">应用当前选购条件</button>
     </div>
+    <p id="rankScope" class="maintenance-meta"></p>
     <div class="chart-card"><div id="chartRank" class="chart"></div></div>
     <p class="chart-note" id="rankNote"></p>
     <details class="method-box" id="rankDetails">
@@ -229,7 +233,7 @@
       <p>已核实价格的个人月付档（免费档见「免费入口」；一次性预付、每 4 周收费和仅老用户续费在「数据表」保留原计价单位），按统一折算人民币从低到高排列。中转站用单独的颜色标出。悬停查看原币价格、额度口径与模型。</p>
     </div>
     <div class="controls" id="ctrl1">
-      <input type="search" id="chartSearch" class="search-input" placeholder="搜索厂商 / 计划 / 模型…" aria-label="搜索个人订阅图表">
+      <input type="search" id="chartSearch" class="search-input" maxlength="200" placeholder="搜索厂商 / 计划 / 模型…" aria-label="搜索个人订阅图表">
       <div class="chip-group" id="chipCat" role="group" aria-label="类别">
         <button type="button" class="chip active" data-cat="all" aria-pressed="true">全部类别</button>
         <button type="button" class="chip" data-cat="official" aria-pressed="false">模型官方订阅</button>
@@ -366,7 +370,7 @@
       <p>列出有公开标价的记录（含一次性预付、仅老用户续费及待核实历史价）。来源栏逐条标注价格核查状态、日期及依据。免费档在「免费 Coding 入口」；已下架、聊天免费档和不能当编程工具的免费档不放进这张表。支持搜索、筛选与按价格排序。计划名下点「＋对比」，选满 2 档后底部会出现并排对比，最多 4 档。</p>
     </div>
     <div class="controls controls-table">
-      <input type="search" id="searchInput" class="search-input" placeholder="搜索厂商 / 计划 / 模型…" aria-label="搜索数据表">
+      <input type="search" id="searchInput" class="search-input" maxlength="200" placeholder="搜索厂商 / 计划 / 模型…" aria-label="搜索数据表">
       <select id="selectCat" class="select" aria-label="按类别筛选数据表">
         <option value="all">全部类别</option>
         <option value="official">模型官方订阅</option>
@@ -385,6 +389,14 @@
       <button type="button" class="chip" id="copyMdBtn" title="复制当前筛选结果为 Markdown 表格">复制 Markdown</button>
       <button type="button" class="chip" id="exportCsvBtn" title="下载当前筛选结果为 CSV（UTF-8）">导出 CSV</button>
       <button type="button" class="chip" data-apply-picker="table">应用当前选购条件</button>
+      <select id="tablePriceSort" class="select" aria-label="价格表排序口径与方向">
+        <option value="priceM:1">目录价格 / 周期：从低到高</option>
+        <option value="priceM:-1">目录价格 / 周期：从高到低</option>
+        <option value="priceY:1">目录年付折月：从低到高</option>
+        <option value="priceY:-1">目录年付折月：从高到低</option>
+        <option value="selectedMonthly:1" disabled>所选支付月均：从低到高</option>
+        <option value="selectedMonthly:-1" disabled>所选支付月均：从高到低</option>
+      </select>
     </div>
     <p id="tableScope" class="maintenance-meta"></p>
     <p class="table-feedback" id="tableFeedback" role="status" aria-live="polite"></p>
@@ -559,19 +571,19 @@
 
 <template id="chartLibraryTemplate"><script src="libs/echarts.min.js?v=14c5497"></script></template>
 <script src="js/app-loader.js?v=0127d10"></script>
-<script src="js/data.js?v=f745eb4"></script>
-<script id="maintenanceDataSource" type="application/json" src="js/maintenance-data.js?v=f528b9a"></script>
-<script id="benchmarkDataSource" type="application/json" src="js/benchmark-data.js?v=08b3c8e"></script>
+<script src="js/data.js?v=3a40f26"></script>
+<script id="maintenanceDataSource" type="application/json" src="js/maintenance-data.js?v=c50b525"></script>
+<script id="benchmarkDataSource" type="application/json" src="js/benchmark-data.js?v=f435fdd"></script>
 <script src="js/project-data.js?v=b9931ec"></script>
-<script src="js/metrics.js?v=436b915"></script>
-<script src="js/app-core.js?v=5198411"></script>
-<script src="js/app-state.js?v=e845486"></script>
-<script src="js/app-charts.js?v=0006633"></script>
-<script src="js/app-picker.js?v=a2ca9a8"></script>
-<script src="js/app-tables.js?v=3b08dfc"></script>
-<script src="js/app-service.js?v=c4544dc"></script>
+<script src="js/metrics.js?v=29891c5"></script>
+<script src="js/app-core.js?v=57d19cc"></script>
+<script src="js/app-state.js?v=aca5130"></script>
+<script src="js/app-charts.js?v=ce99991"></script>
+<script src="js/app-picker.js?v=f0012c3"></script>
+<script src="js/app-tables.js?v=9d5b024"></script>
+<script src="js/app-service.js?v=c0fef88"></script>
 <script src="js/app-maintenance.js?v=1484984"></script>
-<script src="js/app-events.js?v=eedecb3"></script>
+<script src="js/app-events.js?v=0eac016"></script>
 <script src="js/app-init.js?v=c0a790c"></script>
 </body>
 </html>

@@ -400,7 +400,7 @@ async function withNewsLock(dir, action) {
   return withFileLock(path.join(dir, ".news.lock"), action, { busyMessage: "资讯队列正在采集或复核，或存在遗留锁" });
 }
 
-/** @param {{workspace?:string,configPath?:string,outputPath?:string,importPath?:string,days?:number,now?:Date,rename?:(from:string,to:string)=>void} & NetworkOptions} options
+/** @param {{workspace?:string,configPath?:string,outputPath?:string,importPath?:string,days?:number,now?:Date,rename?:(from:string,to:string)=>void,onCommitted?:(cacheReady:boolean)=>void} & NetworkOptions} options
  * @returns {Promise<NewsReport>} */
 async function runCollection(options = {}) {
   const resolved = resolveNewsPaths(options.workspace || path.join(__dirname, "..", ".."), options.outputPath, [options.configPath || "config/news-sources.json", options.importPath || null]);
@@ -434,6 +434,8 @@ async function runCollection(options = {}) {
   outputs.set(inboxFile, Buffer.from(JSON.stringify(collected.inbox, null, 2) + "\n"));
   outputs.set(healthFile, Buffer.from(JSON.stringify(collected.health, null, 2) + "\n"));
   commitOutputs(outputs, options);
+  // Source failures may still produce useful committed candidates; damaged state is never a cache baseline.
+  options.onCommitted?.(!preserveState);
   return collected.report;
   });
 }
@@ -463,7 +465,10 @@ function parseArguments(args) {
 async function main(args = process.argv.slice(2), overrides = {}) {
   const options = parseArguments(args);
   if (options.help) { console.log(HELP); return 0; }
-  const report = await runCollection({ ...options, ...overrides });
+  const report = await runCollection({ ...options, ...overrides, onCommitted(cacheReady) {
+    if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, "cache-ready=" + cacheReady + "\n");
+    overrides.onCommitted?.(cacheReady);
+  } });
   console.log("资讯候选 " + report.stats.candidates + " 条（已知厂商关联候选 " + report.stats.knownVendor + "，厂商待识别候选 " + report.stats.vendorReviewCandidates + "）；状态 " + report.status + "，来源成功 " + report.stats.sourcesSucceeded + "，错误 " + report.errors.length + "。");
   if (report.queue) console.log("持久队列 " + report.queue.total + " 条，待复核 " + report.queue.awaitingReview + "，过期积压 " + report.queue.agedBacklog + "。");
   for (const error of report.errors) console.error("  " + error.sourceId + ": " + error.message);

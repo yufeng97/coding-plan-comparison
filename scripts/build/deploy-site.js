@@ -15,7 +15,7 @@ function deployment(workspace, args = []) {
   try { project = JSON.parse(fs.readFileSync(projectFile, "utf8")); }
   catch (error) {
     if (error && error.code === "ENOENT") {
-      throw new Error("未找到 .vercel/project.json 项目关联：请先在项目根目录运行 `npx vercel link`，或用 VERCEL_TOKEN 环境变量提供认证");
+      throw new Error("未找到 .vercel/project.json 项目关联：请先在项目根目录运行 `npx vercel link`；认证 token 不能代替 projectId/orgId");
     }
     throw error;
   }
@@ -46,10 +46,11 @@ function resolveDeploymentToken(options = {}, environment = process.env) {
 
 /** @param {{token?:string,fetcher?:typeof fetch,wait?:typeof delay}} options */
 async function deploySite(workspace, args = [], options = {}) {
-  const token = args.includes("--dry-run") ? undefined : resolveDeploymentToken(options);
-  if (!args.includes("--dry-run") && !token) throw new Error("部署需要 VERCEL_TOKEN、调用者 token 或已登录的 Windows Vercel CLI；--dry-run 只验证公共文件清单");
+  if (args.some((arg) => !["--prod", "--dry-run"].includes(arg))) throw new Error("用法：npm run deploy -- [--prod] [--dry-run]");
+  if (args.includes("--dry-run")) return { dryRun: true, files: stageSite(path.resolve(workspace)).files };
+  const token = resolveDeploymentToken(options);
+  if (!token) throw new Error("部署需要 VERCEL_TOKEN、调用者 token 或已登录的 Windows Vercel CLI；--dry-run 只验证公共文件清单");
   const job = deployment(workspace, args);
-  if (args.includes("--dry-run")) return { dryRun: true, files: job.files };
   const fetcher = options.fetcher || fetch;
   const wait = options.wait || delay;
   const redact = (value) => String(value).split(token).join("[redacted]");

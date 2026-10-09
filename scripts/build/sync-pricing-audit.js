@@ -6,6 +6,7 @@ const ts = require("typescript");
 const { validateData, isISODate } = require("./validate-data");
 const { loadData, canonical, changeOf, readHistory, mergeHistory } = require("../maintenance/history");
 const crypto = require("node:crypto");
+const { withFileLockSync } = require("../lib/file-lock");
 
 /** Stage all outputs before replacing any file; restore existing or remove newly created files on failure.
  * @param {Map<string,Buffer>} outputs
@@ -95,12 +96,12 @@ function syncPricingAuditUnlocked(workspace, options = {}) {
     }
   }
   const arrays = { plan: "PLANS", api: "API_PRICES", payg: "PAYG_REFERENCES" };
-  const allowed = new Set(["priceM", "priceY", "autoRenewMonthly", "cur", "seat", "plan", "model", "label", "quota", "models", "tools", "note", "url", "inUSD", "outUSD", "inCNY", "outCNY", "apiIn", "apiOut", "apiCache", "source", "windowPeriod", "quotaSharing", "codingSurface", "includedModelQuota", "modelAccess", "purchaseCountries", "modelBaseRef", "modelIncludes", "modelExcludes", "ownClient"]);
+  const allowed = new Set(["priceM", "priceY", "annualTotal", "autoRenewMonthly", "cur", "seat", "plan", "model", "label", "quota", "models", "tools", "note", "url", "inUSD", "outUSD", "inCNY", "outCNY", "apiIn", "apiOut", "apiCache", "source", "windowPeriod", "quotaSharing", "codingSurface", "includedModelQuota", "modelAccess", "purchaseCountries", "modelBaseRef", "modelIncludes", "modelExcludes", "ownClient"]);
   const edits = [];
   const newPlans = [];
   const changes = [];
   const identity = new Map();
-  const allowedNew = new Set(["id", "vendor", "cat", "region", "fieldRefs", "plan", "priceM", "priceY", "autoRenewMonthly", "cur", "seat", "quota", "models", "tools", "note", "url", "windowPeriod", "quotaSharing", "codingSurface", "includedModelQuota", "modelAccess", "purchaseCountries", "modelBaseRef", "modelIncludes", "modelExcludes", "ownClient"]);
+  const allowedNew = new Set(["id", "vendor", "cat", "region", "fieldRefs", "plan", "priceM", "priceY", "annualTotal", "autoRenewMonthly", "cur", "seat", "quota", "models", "tools", "note", "url", "windowPeriod", "quotaSharing", "codingSurface", "includedModelQuota", "modelAccess", "purchaseCountries", "modelBaseRef", "modelIncludes", "modelExcludes", "ownClient"]);
   function validateNewPlan(plan, record) {
     if (!plan || typeof plan !== "object" || Array.isArray(plan) || Object.keys(plan).some((key) => !allowedNew.has(key))) throw new Error("新增计划必须为完整 Plan schema");
     if (plan.id !== record.id || plan.vendor !== record.vendor || plan.plan !== record.name) throw new Error("新增计划永久 ID、厂商或名称与审计身份不一致");
@@ -201,7 +202,7 @@ function syncPricingAuditUnlocked(workspace, options = {}) {
   for (const record of records) {
     const currentId = identity.get(record).key.slice(record.kind.length + 1);
     const item = current[identity.get(record).name].find((p) => record.kind === "plan" ? p.id === currentId : p.vendor + "|" + p.model === currentId);
-    record.current = Object.fromEntries(["vendor", "plan", "model", "priceM", "priceY", "cur", "seat", "inUSD", "outUSD", "inCNY", "outCNY", "apiIn", "apiOut", "apiCache"].filter((k) => item[k] !== undefined).map((k) => [k, item[k]]));
+    record.current = Object.fromEntries(["vendor", "plan", "model", "priceM", "priceY", "annualTotal", "cur", "seat", "inUSD", "outUSD", "inCNY", "outCNY", "apiIn", "apiOut", "apiCache"].filter((k) => item[k] !== undefined).map((k) => [k, item[k]]));
   }
   const ledger = { checkedAt: batchDate, ...(options.incremental ? { incremental: true } : {}), totals: { plans: current.PLANS.length, api: current.API_PRICES.length, payg: current.PAYG_REFERENCES.length }, sources, records };
   const csvCell = (v) => {
@@ -228,20 +229,9 @@ function syncPricingAudit(workspace = path.join(__dirname, "..", ".."), options 
   const root = path.resolve(workspace), auditDir = path.join(root, "audit");
   fs.mkdirSync(auditDir, { recursive: true });
   const lock = path.join(auditDir, ".pricing.lock");
-  let handle;
-  try { handle = fs.openSync(lock, "wx"); }
-  catch (error) {
-    if (error.code !== "EEXIST") throw error;
-    /* 自动删除旧锁存在 TOCTOU：另一进程可能已在同一路径取得新锁。 */
-    throw new Error("核价正在同步或存在遗留锁（audit/.pricing.lock）；请稍后重试。遗留锁须人工检查，确认没有同步进程后再清理");
-  }
-  try {
-    fs.writeFileSync(handle, JSON.stringify({ pid: process.pid, hostname: require("node:os").hostname(), startedAt: new Date().toISOString() }));
-    return syncPricingAuditUnlocked(root, options);
-  } finally {
-    fs.closeSync(handle);
-    fs.unlinkSync(lock);
-  }
+  return withFileLockSync(lock, () => syncPricingAuditUnlocked(root, options), {
+    busyMessage: "核价正在同步或维护摘要正在构建，或存在遗留锁（audit/.pricing.lock）",
+  });
 }
 
 /** @param {string[]} args */

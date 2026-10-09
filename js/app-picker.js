@@ -39,10 +39,7 @@ function pickerFirstPaymentText(p) {
   return (quote.annualApprox && quote.available ? "约 " : "") + pickerMoney(quote.firstNative, quote.cur);
 }
 function pickerAnnualExact(p) {
-  const match = String(p.note || "").match(/(?:连续包年|年付|包年)\s*([$¥₹])\s*([\d,]+(?:\.\d+)?)(?:\s*\/年|(?=\s*[（(；;]|\s*$))/);
-  const expected = { USD:"$", CNY:"¥", INR:"₹" }[p.cur];
-  const amount = match && match[1] === expected ? Number(match[2].replace(/,/g, "")) : null;
-  return amount > 0 ? amount : null;
+  return Number.isFinite(p.annualTotal) && p.annualTotal > 0 ? p.annualTotal : null;
 }
 function pickerAnnualNative(p) {
   if (!(p.priceY > 0)) return p.priceM === 0 ? 0 : null;
@@ -61,6 +58,7 @@ function refreshPickerScopes() {
   if (personalState.fromPicker) renderPersonalChart();
   if (tableState.fromPicker) renderTable();
   if (metricsState.fromPicker) renderMetricsTable();
+  if (rankState.fromPicker) renderRankChart();
   if (typeof syncPickerScopeControls === "function") syncPickerScopeControls();
 }
 function pickerPaymentSummaryHtml(p) {
@@ -210,7 +208,7 @@ function metricForRole(p, role) {
   return rows[0] || null;
 }
 /* 额度依据：高置信或按官方额度规则（积分系数、credits 面值、官方区间）统一折算的中置信行；
-   第三方毛利反推与请求次数折算只作参考，不当作已知额度。 */
+   第三方毛利反推与请求次数折算只作参考，不当作已知额度。推荐按区间下限保守比较，仍不保证实际可用量。 */
 function tokenEvidence(p, role) {
   const met = metricForRole(p, role);
   if (!met || (met.conf !== "高" && met.conf !== "中") || met.c.moLow == null) return null;
@@ -222,7 +220,7 @@ function knownTokens(p, role) {
 }
 function tokenEvidenceText(p, role) {
   const evidence = tokenEvidence(p, role);
-  return evidence ? `按${evidence.method}约 ${fmtTok(evidence.tokens)} tokens/月（统一假设，置信${evidence.conf}）` : "";
+  return evidence ? `按${evidence.method}，保守参考下限约 ${fmtTok(evidence.tokens)} tokens/月（统一假设，置信${evidence.conf}）` : "";
 }
 function planProfile(p) {
   const access = modelRoleAccess(p);
@@ -518,7 +516,7 @@ function pickerMoney(amount, cur) {
   const symbol = { USD: "$", CNY: "¥", INR: "₹" }[cur] || cur + " ";
   return symbol + Number(amount.toFixed(2)).toLocaleString("zh-CN", { maximumFractionDigits: 2 });
 }
-/* 年付折月价可能已四舍五入；备注有全年原价时先用原文，避免 $200 被算成 $200.04。 */
+/* 年付折月价可能已四舍五入；优先结构化全年金额，避免 $200 被算成 $200.04。 */
 function annualPaymentText(p) {
   if (!p || !(p.priceY > 0)) return "未列公开年付价。";
   const exact = pickerAnnualExact(p);
@@ -577,7 +575,7 @@ function mainCard(main, pool) {
   const role = dailyLead || !main.headline ? main.loose[0] : main.headline;
   const reasons = [role ? `${role.name} 适合${dailyLead || !main.headline ? "日常编码" : "复杂编码任务"}` : "附赠编程推理额度"];
   const evidence = tokenEvidence(p, role);
-  reasons.push(evidence ? `按官方额度规则折算约 ${fmtTok(evidence.tokens)} tokens/月（统一假设，置信${evidence.conf}）` : "可用 token 总量未公开，购买前核对额度规则");
+  reasons.push(evidence ? `按官方额度规则折算，保守参考下限约 ${fmtTok(evidence.tokens)} tokens/月（统一假设，置信${evidence.conf}）` : "可用 token 总量未公开，购买前核对额度规则");
   if (dailyLead && main.headline) reasons.push(`同档已包含 ${main.headline.name}，可用于复杂任务`);
   else if (!dailyLead && main.headline && main.loose.length) reasons.push(`日常已包含 ${main.loose.map((r) => r.name).join("、")}；${main.shared || main.sharing === "shared" ? "共用额度池" : main.sharing === "separate" ? "模型额度分池" : "共享关系未公开"}`);
   else if (pickerState.task === "both" && !main.headline) reasons.push("当前条件仅匹配日常模型，复杂任务需另找方案");
@@ -631,7 +629,7 @@ function tierComparisonHtml(main, role) {
     const evidence = tokenEvidence(x.p, role);
     const price = pickerMonthlyCNY(x.p);
     const state = x.p === main.p ? "当前推荐" : price > cap + BUDGET_EPS ? "超出预算" : "预算内";
-    return `<tr${x.p === main.p ? ' class="is-current"' : ""}><th scope="row">${esc(x.p.plan)}</th><td class="qc-tier-price" data-cny="${price.toFixed(2)}">${esc(priceLine(x.p))}</td><td>${evidence ? esc("约 " + fmtTok(evidence.tokens) + "/月") : "未公开"}</td><td>${state}</td></tr>`;
+    return `<tr${x.p === main.p ? ' class="is-current"' : ""}><th scope="row">${esc(x.p.plan)}</th><td class="qc-tier-price" data-cny="${price.toFixed(2)}">${esc(priceLine(x.p))}</td><td>${evidence ? esc("下限约 " + fmtTok(evidence.tokens) + "/月") : "未公开"}</td><td>${state}</td></tr>`;
   }).join("");
   return `<table class="qc-tiers"><caption>${esc(shortVendor(main.p.vendor))} 各档（${esc(role.name)}）</caption><thead><tr><th scope="col">档位</th><th scope="col">月费</th><th scope="col">额度折算</th><th scope="col">预算</th></tr></thead><tbody>${rows}</tbody></table>`;
 }

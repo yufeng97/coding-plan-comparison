@@ -5,7 +5,7 @@ const fs = require("node:fs/promises");
 test("公开榜默认DeepSWE，搜索保留原榜名次且空态可键盘清除", async ({ page }) => {
   await page.goto("/#benchmarks"); await page.waitForFunction(() => window["codingPlanReady"] === true);
   await expect(page.locator('[data-site-view="benchmarks"]')).toHaveAttribute("aria-current", "page");
-  await page.waitForFunction("typeof BENCHMARKS !== 'undefined'");
+  await page.waitForFunction(() => window["optionalDataLoaded"]("benchmark"));
   const select = page.locator("#publicBenchmarkSelect");
   await expect(select).toHaveValue(/deepswe/);
   await expect(page.locator("#publicBenchmarkMode")).toHaveValue("best");
@@ -37,7 +37,7 @@ test("手机切换独立协议且CSV和JSON保留公开来源与费用口径", a
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto("/#benchmarks"); await page.waitForFunction(() => window["codingPlanReady"] === true);
   await expect(page.locator('[data-site-view="benchmarks"]')).toHaveAttribute("aria-current", "page");
-  await page.waitForFunction("typeof BENCHMARKS !== 'undefined'");
+  await page.waitForFunction(() => window["optionalDataLoaded"]("benchmark"));
   const family = page.locator("#publicBenchmarkFamily"); await family.focus(); await family.selectOption("OSWorld");
   await expect(family).toBeFocused();
   const select = page.locator("#publicBenchmarkSelect");

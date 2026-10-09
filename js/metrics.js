@@ -33,6 +33,7 @@ const TOKENS_PER_REQ = 20000;
  * @property {number} [apiIn]   模型牌价：输入 / 1M tokens
  * @property {number} [apiOut]  模型牌价：输出 / 1M tokens
  * @property {number} [apiCache] 模型牌价：缓存命中输入 / 1M tokens
+ * @property {Currency} [apiCur] API 牌价币种；省略时沿用计划币种
  * @property {number} [priceM]  月费
  * @property {Currency} [cur]
  */
@@ -62,11 +63,17 @@ const TOKENS_PER_REQ = 20000;
 /* 80% 输入（95% 缓存命中）+ 20% 输出，折成每百万 tokens 混合牌价 */
 function blendPrice(m) {
   const effIn = CACHE_HIT_RATE * m.apiCache + (1 - CACHE_HIT_RATE) * m.apiIn;
-  return API_MIX_IN * effIn + API_MIX_OUT * m.apiOut;
+  const value = API_MIX_IN * effIn + API_MIX_OUT * m.apiOut;
+  return m.apiCur && m.apiCur !== m.cur ? fromCNY(toCNY(value, m.apiCur), m.cur) : value;
 }
 function toCNY(v, cur) {
   if (cur === "USD") return v * RATE_USD_CNY;
   if (cur === "INR") return v * RATE_INR_CNY;
+  return cur === "CNY" ? v : NaN;
+}
+function fromCNY(v, cur) {
+  if (cur === "USD") return v / RATE_USD_CNY;
+  if (cur === "INR") return v / RATE_INR_CNY;
   return cur === "CNY" ? v : NaN;
 }
 /* 百万 tokens 的人类可读格式：207.84 → "208M"，2047 → "2.0B" */
@@ -156,7 +163,7 @@ function computeMetrics(m) {
   return valid;
 }
 function computeMetricsUncached(m) {
-  if (!Number.isFinite(m.priceM) || !(m.priceM > 0) || (m.cur !== "USD" && m.cur !== "CNY")) return null;
+  if (!Number.isFinite(m.priceM) || !(m.priceM > 0) || !Number.isFinite(toCNY(m.priceM, m.cur)) || (m.apiCur && !Number.isFinite(toCNY(1, m.apiCur)))) return null;
   const hasApi = [m.apiIn, m.apiOut, m.apiCache].some((v) => v != null);
   if (hasApi && !(Number.isFinite(m.apiIn) && m.apiIn >= 0 && Number.isFinite(m.apiOut) && m.apiOut > 0 && Number.isFinite(m.apiCache) && m.apiCache >= 0 && m.apiCache <= m.apiIn)) return null;
   /* Credits 月池制：额度价值按官方锚点（美元 credits 或 1M Credit=¥1）。
@@ -170,7 +177,7 @@ function computeMetricsUncached(m) {
     if (!Number.isFinite(faceValue) || !(faceValue > 0)) return null;
     /* API 牌价使用 m.cur；面值先换到同币种，返回的价值列也保持 m.cur。 */
     const valueCNY = toCNY(faceValue, creditCur);
-    const valMo = m.cur === "USD" ? valueCNY / RATE_USD_CNY : valueCNY;
+    const valMo = fromCNY(valueCNY, m.cur);
     const valWk = valMo / WEEKS_PER_MONTH;
     const val5h = valWk / SLOTS_PER_WEEK;
     const rates = periodRates(toCNY(val5h, m.cur), toCNY(valWk, m.cur), toCNY(valMo, m.cur), priceCNY);

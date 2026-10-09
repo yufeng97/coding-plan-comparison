@@ -130,8 +130,8 @@ test("年付保留官网全年金额及真实月均，首次付款不冒充一�
   assert.equal(quote.annualApprox,false);
   assert.equal(app.run('pickerPaymentQuote(findPlanReference("plan-0010"),"Y").available'),false);
   assert.match(app.run('pickerPaymentSummaryHtml(findPlanReference("plan-0002"))'),/一次支付全年/);
-  assert.match(app.run('pickerPaymentSummaryHtml({...findPlanReference("plan-0002"),note:"",priceY:16.67})'),/首次 约 \$200.04.*折月价×12估算/);
-  assert.match(app.run('pickerFirstPaymentText({...findPlanReference("plan-0002"),note:"",priceY:16.67})'),/^约 \$200.04$/);
+  assert.match(app.run('pickerPaymentSummaryHtml({...findPlanReference("plan-0002"),note:"",priceY:16.67,annualTotal:undefined})'),/首次 约 \$200.04.*折月价×12估算/);
+  assert.match(app.run('pickerFirstPaymentText({...findPlanReference("plan-0002"),note:"",priceY:16.67,annualTotal:undefined})'),/^约 \$200.04$/);
   healthy(app);
 });
 

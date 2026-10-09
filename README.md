@@ -26,7 +26,7 @@
 已校正 Cursor 印度档 ₹649 原币、Google AI Plus 美国价格、Z.ai V3 月价及年付、Cursor Teams/Lovable/Bolt/智谱/TRAE 年付、CodeBuddy 企业公开席位价和 SiliconFlow 模型牌价。首购促销、连续包月、年付折月、税费及处理费分开注明。Kiro 个人每用户订阅保留个人资格；不会因写有「per user」而归作团队档。
 
 - `js/data.js` 的 `PRICE_CHECKS` 使用永久计划 ID、API/PAYG 的厂商及模型标识，记录状态、日期、来源和说明。页面来源列与页脚、比较及 CSV/Markdown 导出显示这些信息。
-- 待核实历史价退出推荐、免费入口和价格/性价比图；公开标价表仍可查看和导出。年付价未列时明确说明按月付展示。
+- 待核实历史价退出推荐、免费入口和价格/性价比图；公开标价表仍可查看和导出。未列年付价的套餐不进入年付价格图。
 - 完整旧值、新值、官网观察、修正与原因见 [JSON 台账](audit/pricing-verification-2026-10-04.json) 和 [CSV 台账](audit/pricing-verification-2026-10-04.csv)。`pricing-inventory.json` 保留本轮核查前库存；四份厂商分组 JSON 是同步输入。
 - 完成整批价格复核并修改核查输入后，运行 `node scripts/build/sync-pricing-audit.js`，再运行 `npm run validate`、`npm test` 和 `npm run bump`；日常增量维护见下文。同步器不联网；候选源码在内存中通过完整数据校验后，才暂存并提交 `data.js` 与 JSON/CSV 台账。任一文件写入或替换失败会回滚整组输出，回滚受限时保留原文件备份并报告路径。核查日期只推进整份数据的版本日期，不会覆盖较新的巡检版本；重复同步没有变化时不写入。校验器拒绝遗漏、重复、无来源、无效日期、非法价格和模型继承环。
 
@@ -88,21 +88,23 @@ npm run test:news
 
 ### 如何让新厂商进来
 
+资讯 Actions 缓存按完整分支引用的 SHA-256 命名；旧键仅用于迁移已有队列。采集事务成功且状态结构有效后才保存新缓存，来源部分失败仍可保存已验证的候选。损坏 inbox 直接失败，损坏 state 保留原字节且不保存新缓存，两者均保留 artifact 供人工排查；请先备份和修复审核主副本，再删除对应坏缓存并重新采集，不要以清空队列代替恢复审核历史。
+
 没有有限来源和关键词规则能保证全网零遗漏。应把“监测已收录厂商”和“发现新厂商”作为两条持续维护的入口。当前脚本不会以厂商列表过滤候选；`needsVendorReview` 只是关联提示，域名或名称匹配也可能把一个新产品关联到旧厂商，所有候选仍要检查产品身份。Hacker News 偏英文技术社区，中文新品覆盖有限；建议每周用「编程套餐 / 编程订阅 / Coding Plan / Token Plan / AI 编程助手 / coding agent」做一轮不限厂商的中文和英文搜索，并将结果导入脚本。已加入中文发现订阅源和网站的“新增厂商 / 纠错 / 提交测评”模板入口，可复制或下载，也可使用预填模板的 GitHub Issues 链接提交。来源清单可继续扩展，但不能承诺全网零遗漏。
 
 新产品收录按以下流程执行：
 
 1. 确认官方域名、产品是否提供编程工具入口或可接入编程 Agent 的模型调用；区分订阅、API 按量、纯工具 BYOK、免费模型和企业询价。社区提及仅作发现证据。
-2. 为每个订阅档位分配未使用过的永久 `plan-*` ID，写入 `PLANS`；补全 `vendor/plan/cat/region/cur/priceM/quota/url` 等必需字段。`priceY` 是**年付折月价格**，不是年付总额；未知价格用 `null`，免费用 `0`，首购促销不能代替长期续费价。
+2. 为每个订阅档位分配未使用过的永久 `plan-*` ID，写入 `PLANS`；补全 `vendor/plan/cat/region/cur/priceM/quota/url` 等必需字段。`priceY` 是**年付折月价格**，不是年付总额；明确全年金额使用 `annualTotal`，校验要求折月误差不超过 0.02 原币。未知价格用 `null`，免费用 `0`，首购促销不能代替长期续费价。
 3. 按证据填写编程入口、是否包含模型费用、BYOK/按量、自家客户端、支持模型与工具、重置周期、额度共享和购买国家。新模型未知时先保留未知，需要参与任务推荐时再补有依据的 `MODEL_ROLES`；不要因为厂商有名就推断所有产品权益相同。
 4. 添加官网证据和对应 `PRICE_CHECKS.rows["plan:" + id]`；API 与按量记录按 `vendor|model` 身份同步维护。加入 `SOURCES`，有值得告知用户的事件时更新 `DYNAMICS`，随后把官方监测网址加入采集配置。只有额度依据足够时才补 `METRICS_RAW`/`ESTIMATES`，标清官方值、折算或估算。
 5. 更新版本日期与 `CHANGES.md`，执行 `npm run check`、`npm run typecheck`、`npm run validate`、`npm test`、`npm run bump`、`npm run cache:check`。修改页面交互或推荐逻辑时再执行相关浏览器回归；检查构建产物后发布。
 
 **全量与增量分开运行**：默认同步仍要求四份全量审计输入日期一致、覆盖全部记录。日常使用增量模式，只更新此次有新证据的行，保留其他行的核查日期；拒绝日期倒退、旧 patch 覆盖新值、来源 ID 的证据冲突及无证据修改。新增套餐通过 record.new 提交完整 Plan，并分配从未使用过的永久 ID。同步会原子更新数据、审计台账与变更历史，失败整组回滚；不会更新动态、来源目录或额度指标。输入字段及完整步骤见 [贡献指南](CONTRIBUTING.md)。
 
-核价同步的互斥锁覆盖读取、校验到提交全过程。异常退出后如果遗留 `audit/.pricing.lock`，先检查其中的主机与进程信息，确认没有同步进程，再人工删除该锁；脚本不会自动删除旧锁，避免并发恢复时误删另一进程的新锁。
+核价同步与维护摘要构建共用 `audit/.pricing.lock`，互斥覆盖读取、校验、历史合并到提交全过程，维护一致性检查也参与这把锁。释放时核对唯一所有者；运行期间不得人工删除或替换锁文件。异常退出后先检查其中的主机、PID 与时间，确认没有核价或维护进程后再人工清理；脚本不会按死 PID 自动删锁。
 
-资讯采集／复核和公开评测采集／发布也使用互斥锁。异常退出留下 `audit/news/.news.lock` 或 `audit/benchmark-sources/.benchmark.lock` 时，先检查其中的主机、PID 与时间，确认没有对应操作进程后再人工清理。脚本不会按死 PID 自动删除遗留锁，释放时也校验唯一所有者，避免误删别人的新锁。
+资讯采集／复核和评测采集／发布／贡献者导入／公共构建也使用互斥锁。异常退出留下 `audit/news/.news.lock` 或 `audit/benchmark-sources/.benchmark.lock` 时，先确认没有对应操作进程后再人工清理。文件锁协调合作进程，不能抵抗运行期间外部删除或替换锁路径。
 
 ```bash
 # 列出持久待审队列；accepted 只表示值得继续核实，并非自动收录
@@ -173,12 +175,14 @@ npm run cache:check
 
 ### 贡献者如何跑本机任务验收
 
+可信 checker 在解答进程之外执行断言；解答 worker 只接收函数调用参数，完成口令由 checker 在全部断言完成后输出。导入要求实际 `--solution`，重新核对哈希并验收，不能仅凭贡献者提交的 JSON 宣称通过。独立进程隔离用于保障检查流程，仍只运行维护者主动选择的可信解答，不是恶意代码安全沙箱。
+
 固定任务在 benchmarks/tasks.json，起始代码与验收在 benchmarks/fixtures/。先把某项任务的 solution.cjs 复制到单独目录，记录相同提示词、模型/工具版本和实际生成过程，由选定模型修复，再执行：
 
 ```bash
 npm run benchmark:run -- --task cached-cost --solution /你的/解答目录 --model 实际模型 --tool 实际工具 --generation-seconds 42 --cost-basis api-receipt --cost 0.12 --currency CNY --evidence https://公开的复现记录
 # 人工检查解答、费用和证据后，导入脚本输出的记录
-npm run benchmark:import -- --input audit/benchmarks/run-实际ID.json --reviewer 维护者
+npm run benchmark:import -- --input audit/benchmarks/run-实际ID.json --solution /你的/解答目录 --reviewer 维护者
 npm run benchmark:validate
 npm run benchmark:build
 ```
@@ -191,7 +195,7 @@ npm run benchmark:build
 
 **分享与回访**：筛选/排序状态（帮我选的预算、地区、工具、任务及支付方式，各区是否应用选购条件，数据表搜索，额度表筛选，以及个人价格图的显示全部状态）、对比选择和工作量计算条件实时写入地址栏参数，点击「复制方案链接」即可分享同一套结果；刷新不丢状态。「保存常用条件」在本机保存一套条件，可恢复或删除；浏览器限制存储时提供操作反馈。国家限定套餐不参与通用推荐，在完整数据表中标注适用国家；旧链接的 `country` 参数会自动清理。`file://` 直开时地址栏不可写，功能降级为当前页操作和本机条件恢复。
 
-**支付与筛选**：「帮我选」可选月付标价、自动续费或年付，以所选方式的月均费用匹配月预算，同时显示首次付款、按当前价续期及连续使用 12 个月的费用情景。月付标价沿用目录口径，其优惠条件仍须核对备注；自动续费金额仅使用已有证据的 `autoRenewMonthly`，未知时不会挪用月价。年付优先采用备注中明确的全年金额；只有折月价时标明总额为估算，并提醒一次支付全年。个人价格图、额度表、价格表均可应用／取消选购条件，与原有搜索、类别等条件叠加；任务偏好只影响推荐排序。应用后价格图与套餐额度成本使用所选支付方式，价格表并列保留目录价与选购口径，导出同步保留口径。取消或清除后恢复各区独立筛选。搜索支持以空格分隔多个关键词，各词均匹配才保留记录，并支持常用中英文产品别名。
+**支付与筛选**：「帮我选」可选月付标价、自动续费或年付，以所选方式的月均费用匹配月预算，同时显示首次付款、按当前价续期及连续使用 12 个月的费用情景。月付标价沿用目录口径，其优惠条件仍须核对备注；自动续费采用有证据的 `autoRenewMonthly`，普通月订阅未单列续费价时按标价作预算上限并标明估算。年付优先采用结构字段 `annualTotal` 的全年金额；校验要求其折月与 `priceY` 一致。只有折月价时标明总额为估算，并提醒一次支付全年。个人价格图、满额成本排行、额度表、价格表均可应用／取消选购条件，与原有搜索、类别等条件叠加；任务偏好只影响推荐排序。应用后价格图与套餐额度成本使用所选支付方式，价格表保留目录列并提供「所选支付月均」排序，导出同步保留口径。取消或清除后恢复各区独立筛选。年付图只显示已公布年付价的套餐。搜索支持以空格分隔多个关键词，各词均匹配才保留记录，并支持常用中英文产品别名；搜索与分享参数最多 200 字符。
 
 **对比与完整权益**：推荐卡和数据表均可加入 2–4 档**并排对比**（只选 1 档时提示继续选择），逐档移出或清空后键盘焦点回到可用控件。对比窗口支持独立复制 Markdown、导出 CSV，保留选择顺序；筛选表也可导出 CSV / 复制 Markdown。两种导出均保留计价单位、数据更新日期、汇率、核价来源和完整继承权益。点击「完整权益」查看未截断的套餐资料；窗口支持键盘关闭、焦点恢复及无原生 dialog 环境的降级。差异字段与相同计价单位下的最低价会标出；空筛选结果禁用导出并提供恢复入口。
 
@@ -208,11 +212,11 @@ npm run serve
 ## 页面结构
 
 1. **帮我选**：按预算 / 地区 / 支付方式 / 工具 / 任务结构（复杂、日常或两者都有），给出主计划、日常覆盖，以及预算再往上一档会解开什么。同套餐包含的日常模型标「已包含」；加购时列合计月费并遵守预算。额度周期与共享关系未公开时明确保留未知，不据此建议加购
-2. **满额使用折算成本**：按参考月额度中点的每百万 tokens 折算成本排序，三档口径可切换——「官方每周 tokens」（高置信，非估算，且有官方每周 tokens；不含请求折算、第三方估算）；「含官方折算」纳入 credits 面值/系数/官方区间折算的档位（中置信，≈标记）；默认「含全部估算」再纳入低置信估算仅供量级参考。三档都不含已停售、已下架、一次性预付和仅老用户续费。悬停与明细显示成本区间、依据及置信度；实际使用不足参考额度时，每百万实际成本会更高
+2. **满额使用折算成本**：按参考月额度中点的每百万 tokens 折算成本排序，两档口径可切换：「官方口径折算」（`credits`，含积分系数、credits 面值及官方区间折算，中置信及以上）和默认「含全部估算」（再纳入低置信估算，仅供量级参考）。两档都不含已停售、已下架、一次性预付和仅老用户续费。默认月付标价，可局部应用当前选购条件，按所选支付方式重算及筛选；标题与明细注明支付口径。推荐额度取区间下限作保守比较，排行成本取中点且同时展示上下界对应成本；中点不代表保证可用额度或实际使用分布
 3. **额度深度对比**：TPS + 5h/周/月的 Tokens·额度价值·额度倍率（含 Command Code / 阶跃 credits 制与智谱 V1/V2/V3 各版本，附推算方法论）
 4. **个人订阅价格全景**：个人档月费横向条形图（无筛选默认 20 档，可展开全部和收起；可按类别/地区筛选，月付/年付切换，统一折算人民币；一次性与每 4 周档只在数据表显示，窄屏标签缩略，点按价格柱查看完整信息；无结果时显示提示并可清除筛选）
 5. **团队/企业/云厂商**：席位价与整包价对比
-6. **每周可用 tokens 对比**：并列展示官方公布的周额度与明确标注的社区推算，支持地区/厂商筛选，悬停查看模型、范围与依据
+6. **每周可用 tokens 对比**：并列展示按官方额度规则折算的周 tokens 与其他估算，支持地区/厂商筛选，悬停查看模型、范围与依据；当前没有厂商直接公布可跨家比较的每周 tokens
 7. **API 按量计费**：36 款模型每百万 tokens 输入/输出单价 + $10 购买力对比，地区颜色按模型地区分类。图例支持键盘切换，完整数值和来源可在下方明细表查看；附按工作量计算月费、预算购买力和套餐参考月量的计算器
 8. **免费 Coding 入口**：20 个编程 Agent / 编程工具免费档与免费模型额度卡片，平台免费、推理另计会明确标注
 9. **数据表**：公开标价记录（164 档，含明确标注的待核历史价），支持搜索/筛选/排序及核查来源
@@ -244,7 +248,7 @@ npm run serve
 | `scripts/lib/public-assets.js` | 从 HTML/CSS 发现公共资源，校验路径、生成内容哈希与原子替换 |
 | `scripts/lib/paths.js` / `atomic-swap.js` | 共享的「路径是否在根内 / 封锁段」判断与目录级原子交换（暂存→备份→切换→回滚） |
 | `scripts/build/` | 构建与校验工具：bump-versions、vendor-fonts、rebuild-echarts、stage-site、deploy-site、check-syntax、validate-data、sync-pricing-audit |
-| `scripts/server/serve.js` | 本地预览静态服务器（只监听 127.0.0.1，只读项目根内文件） |
+| `scripts/server/serve.js` | 本地预览静态服务器（只监听 127.0.0.1，只读项目根内文件并拒绝隐藏路径） |
 | `scripts/news/collect-news.js` | 联网采集资讯候选与页面变化；保留缓存和来源错误，不改正式数据 |
 | `config/news-sources.json` / `review-calendar.json` | 官方监测、开放发现与有来源的复核日历 |
 | `js/app-maintenance.js` / `*-data.js` | 时效、变更、关注、贡献和测评服务及生成的公共数据 |
@@ -262,7 +266,7 @@ npm run serve
 - **单一数据源**：类别色走 CSS 变量 `--cat-*`（JS 的 `refreshCategoryColors()` 在主题切换时重读）；数据表正文、CSV 与 Markdown 共享 `PLAN_COLUMNS`，各渠道按配置选列；额度表的列定义只在 `METRICS_COLUMNS` 一处。已有继承权益均通过 `fieldRefs` 的永久 ID 明确目标，新增继承也填写目标 ID，追加权益保留且循环引用安全中止。解析器保留旧文本名称及「同上」相邻位置的兼容能力，不用它们建立新数据引用。
 - **推荐元数据**：`windowPeriod` 与 `quotaSharing` 分别描述重置周期与模型额度是否共享，缺省表示未知；`codingSurface`、`includedModelQuota`、`modelAccess` 与 `purchaseCountries` 分别描述编程入口、是否包含推理、自备模型和国家限定资格。`modelBaseRef` 通过计划引用继承模型，`modelIncludes`/`modelExcludes` 显式补充和排除模型，`ownClient` 明确自家编程入口；校验器检查字段类型、引用及混合继承环。填有依据的事实，未知情况不靠条数或文案猜测。月 credits 及无 5h 上限的套餐不生成虚假的 5h 额度，官方与估算的重复周额度按稳定引用去重。
 - **缓存版本号**：`npm run bump` 自动发现 HTML 本地资源和 CSS 的字体/导入依赖；先给依赖生成内容哈希，再更新 CSS 与 HTML 的 `?v=`。全部资源验证后才写入，替换中途失败会回滚。缺文件、越界、私有/隐藏目录（包括链接的真实目标）、非法编码或循环 CSS 引用会失败。`npm run cache:check` 只读验证，CI 不修改仓库；`.gitattributes` 固定文本检出为 LF，避免 Windows/Linux 的换行差异改变资源哈希。
-- **开发环境与校验**：Node.js 20+，首次运行 `npm ci`。开发依赖固定版本并提交 lockfile。`npm run typecheck` 分别使用浏览器 `jsconfig.json` 与工具/测试 `jsconfig.node.json`；新增页面脚本自动纳入，不需手改命令。`npm run validate` 检查数据结构、引用、有限数字、日期和价格区间；同一套规则可校验内存候选源码。`npm run test` 执行 23 个 Node 套件，包含额度公式、真实数据、VM 用户流程、HTTP 服务、审计无效输入/幂等/失败回滚、资讯采集解析/新厂商/缓存/失败处理、字体去重/失败回滚、缓存与公共产物回归。`npm run test:browser` 对 Chromium、Firefox、WebKit 运行同一批真实浏览器用例，覆盖图表、历史导航、服务功能及桌面/手机布局。CI 在 Linux 与 Windows 安装三种浏览器并执行各项检查，浏览器缓存键包含 lockfile 哈希；失败保留截图；CI 首次重试才录制 trace，避免正常回归的全页快照开销（[Playwright 官方建议](https://playwright.dev/docs/trace-viewer#tracing-on-ci)）。本地需要追踪时显式加 --trace on。
+- **开发环境与校验**：Node.js 20+，首次运行 `npm ci`。开发依赖固定版本并提交 lockfile。`npm run typecheck` 分别使用浏览器 `jsconfig.json` 与工具/测试 `jsconfig.node.json`；新增页面脚本自动纳入，不需手改命令。`npm run validate` 检查数据结构、引用、有限数字、日期和价格区间；同一套规则可校验内存候选源码。`npm run test` 执行 24 个 Node 套件，包含额度公式、真实数据、VM 用户流程、HTTP 服务、审计无效输入/幂等/失败回滚、资讯采集解析/新厂商/缓存/失败处理、字体去重/失败回滚、缓存与公共产物回归。`npm run test:browser` 对 Chromium、Firefox、WebKit 运行同一批真实浏览器用例，覆盖图表、历史导航、服务功能及桌面/手机布局。CI 在 Linux 与 Windows 安装三种浏览器并执行各项检查，浏览器缓存键包含 lockfile 哈希；失败保留截图；CI 首次重试才录制 trace，避免正常回归的全页快照开销（[Playwright 官方建议](https://playwright.dev/docs/trace-viewer#tracing-on-ci)）。本地需要追踪时显式加 --trace on。
 - **重建精简版 ECharts**（一般不需要）：
 
   ```bash
@@ -285,11 +289,13 @@ npm run build:site
 npm run deploy -- --dry-run
 ```
 
-实际部署使用 Node 原生 `fetch` 调用 [Vercel REST API](https://vercel.com/docs/rest-api/deployments/create-a-new-deployment)，不需要将 Vercel CLI 的框架依赖带进项目。项目关联读取根目录 `.vercel/project.json`；认证优先级依次为环境变量 `VERCEL_TOKEN`、部署函数调用者的临时 `options.token`、Windows 标准路径 `%APPDATA%/com.vercel.cli/Data/auth.json` 中的现有 CLI 登录 token。回退只读取这一个明确位置，不递归搜索其他凭据；`--dry-run` 不读取认证或请求网络。凭据只用于授权头，响应或错误中回显的 token 会脱敏，不写入产物或日志。`npm run deploy` 创建预览部署，`npm run deploy -- --prod` 发布生产；仅在部署达到 READY 后报告成功。
+实际部署使用 Node 原生 `fetch` 调用 [Vercel REST API](https://vercel.com/docs/rest-api/deployments/create-a-new-deployment)，不需要将 Vercel CLI 的框架依赖带进项目。项目关联读取根目录 `.vercel/project.json`；认证优先级依次为环境变量 `VERCEL_TOKEN`、部署函数调用者的临时 `options.token`、Windows 标准路径 `%APPDATA%/com.vercel.cli/Data/auth.json` 中的现有 CLI 登录 token。回退只读取这一个明确位置，不递归搜索其他凭据；`--dry-run` 无需关联项目，不读取认证或请求网络。凭据只用于授权头，响应或错误中回显的 token 会脱敏，不写入产物或日志。`npm run deploy` 创建预览部署，`npm run deploy -- --prod` 发布生产；仅在部署达到 READY 后报告成功。
 
 此部署脚本读取现有 token，不自动刷新 CLI 的 OAuth 登录会话。返回 401/403 时先检查账号的项目权限和凭据有效期；必要时使用[官方 CLI 登录](https://vercel.com/docs/cli/login)（`npx vercel login`）更新会话，或在运行环境提供有效 `VERCEL_TOKEN` 后重试。不要把 token 写进仓库、README 或公开产物。发布后访问正式域名，核对资源版本和桌面/手机核心操作；Vercel 的部署专属网址可能受登录保护。
 
-GitHub Pages 作为第二个公开部署入口：[coding-plan-comparison](https://yufeng97.github.io/coding-plan-comparison/)。仓库的 Settings → Pages → Build and deployment → Source 使用 **GitHub Actions**。新增的 [Pages 工作流](.github/workflows/pages.yml) 在 `main` 推送或手动触发时安装 lockfile 依赖，完成代码、类型、数据、维护/评测一致性、Node 回归与缓存检查，再运行 `npm run build:site`；上传并发布的仅为 `.site-build/`。构建作业只读代码与 Pages 配置，发布作业通过 `GITHUB_TOKEN` 和 OIDC 获得 `pages: write` / `id-token: write`，无需新增个人 token 或 Vercel 凭据。详见 [GitHub 官方自定义 Pages 工作流说明](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)。
+GitHub Pages 作为第二个公开部署入口：[coding-plan-comparison](https://yufeng97.github.io/coding-plan-comparison/)。Source 使用 **GitHub Actions**。[Pages 工作流](.github/workflows/pages.yml) 等待 `main` 推送的完整 CI 成功（含 Linux／Windows 三种浏览器与依赖审计），明确检出该次 CI 通过的 `head_sha`，再检查和构建 `.site-build/`。手动发布也要求同一提交已有成功的完整 CI；PR、失败或取消的 CI 不发布。构建作业只读代码、CI 状态与 Pages 配置，发布作业使用 `pages: write` / `id-token: write`，无需个人 token 或 Vercel 凭据。Actions 固定到完整 SHA，由 Dependabot 每周检查更新。
+
+两个站点共用页面中的 CSP（禁止内联脚本）与 Referrer Policy；主题引导使用外链脚本。Vercel 额外通过响应头提供 `frame-ancestors`、X-Frame-Options、nosniff 和 Permissions-Policy。原生 GitHub Pages 不解释 `vercel.json`，meta CSP 也不支持 `frame-ancestors`，因此这些响应头仍是部署平台差异；若要求完全对齐，应使用可配置响应头的代理或统一托管平台。
 
 页面资源、字体、按需数据和站内链接使用相对路径，支持 `/coding-plan-comparison/` 项目子目录。Vercel 继续作为主站，公开项目配置与 RSS 内的正式地址保持其现有域名。Pages 的 `github-pages` 环境链接指向该次实际发布地址；在仓库 Actions 中确认工作流成功后，再核对 Pages 首页、模型评测按需下载和手机价格卡片。
 

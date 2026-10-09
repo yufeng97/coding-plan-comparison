@@ -8,6 +8,7 @@ const vm = require("node:vm");
 const { syncPricingAudit, parseArgs } = require("../build/sync-pricing-audit");
 const { seededHistory } = require("../maintenance/history");
 const { validateData } = require("../build/validate-data");
+const { buildMaintenance } = require("../maintenance/build-maintenance");
 const workspace = path.resolve(__dirname, "../..");
 const inputs = ["pricing-root.json", "pricing-relays.json", "pricing-tools.json", "pricing-cn.json"];
 
@@ -287,7 +288,7 @@ test("已退出进程的遗留锁也不自动删除，避免并发恢复误删�
   const previous = JSON.stringify({ pid:Number(child.stdout), hostname:os.hostname(), startedAt:"2026-10-08T00:00:00Z" });
   fs.writeFileSync(lock, previous);
   const before = allOutputs();
-  assert.throws(() => syncPricingAudit(root), /确认没有同步进程/);
+  assert.throws(() => syncPricingAudit(root), /确认没有相关进程/);
   assert.deepEqual(allOutputs(), before);
   assert.equal(fs.readFileSync(lock, "utf8"), previous);
 });
@@ -428,4 +429,68 @@ test("CLI明确增量参数，拒绝未知、缺值和audit目录外输入", ({ 
   assert.throws(() => syncPricingAudit(root, { incremental: true, input: "../incremental.json" }), /audit 目录/);
 });
 
+test("结构化全年金额可随年价共同核入，金额冲突在提交前拒绝", ({ root, incremental, writeIncremental, allOutputs }) => {
+  const conflict=incremental({priceY:18});
+  conflict.records[0].old={priceY:16.67,annualTotal:200};
+  const options=writeIncremental(conflict),before=allOutputs();
+  assert.throws(()=>syncPricingAudit(root,options),/annualTotal/);
+  assert.deepEqual(allOutputs(),before);
+  const valid=incremental({priceY:18,annualTotal:216});
+  valid.records[0].old={priceY:16.67,annualTotal:200};
+  const accepted=writeIncremental(valid);
+  syncPricingAudit(root,accepted);
+  const p=dataOf(fs.readFileSync(path.join(root,"js/data.js"),"utf8")).PLANS.find(p=>p.id==="plan-0002");
+  assert.equal(p.priceY,18);assert.equal(p.annualTotal,216);
+  const snapshot=allOutputs();syncPricingAudit(root,accepted);assert.deepEqual(allOutputs(),snapshot);
+});
+
+test("核价结束时保留替换所有者的锁", ({ root, incremental, writeIncremental }) => {
+  const lock = path.join(root,"audit/.pricing.lock"), replacement = JSON.stringify({ownerId:"replacement-owner",pid:process.pid});
+  let replaced = false;
+  assert.throws(() => syncPricingAudit(root, { ...writeIncremental(incremental()), rename(from,to) {
+    if (!replaced) { fs.renameSync(lock,lock+".previous-owner"); fs.writeFileSync(lock,replacement); replaced=true; }
+    fs.renameSync(from,to);
+  } }), /所有权已变化/);
+  assert.ok(replaced);
+  assert.equal(fs.readFileSync(lock,"utf8"),replacement);
+  assert.equal(dataOf(fs.readFileSync(path.join(root,"js/data.js"),"utf8")).PLANS.find(p=>p.id==="plan-0002").priceM,21);
+});
+test("核价失败和释放失败同时保留，回滚不删除替换锁", ({ root, incremental, writeIncremental, snapshot }) => {
+  const options = writeIncremental(incremental()), before=snapshot(), lock=path.join(root,"audit/.pricing.lock");
+  const replacement=JSON.stringify({ownerId:"replacement-owner",pid:process.pid}), failure=new Error("pricing commit fixture");
+  assert.throws(() => syncPricingAudit(root,{...options,rename() {
+    fs.renameSync(lock,lock+".previous-owner");fs.writeFileSync(lock,replacement);throw failure;
+  }}), error => { assert.ok(error instanceof AggregateError);assert.equal(error.errors[0],failure);assert.match(error.errors[1].message,/所有权已变化/);return true; });
+  assert.deepEqual(snapshot(),before);
+  assert.equal(fs.readFileSync(lock,"utf8"),replacement);
+});
+test("核价持锁时维护生成和check均拒绝，随后保留新增历史", ({ root, incremental, writeIncremental }) => {
+  buildMaintenance(root,{asOf:"2026-10-08"});
+  let blocked=false;
+  syncPricingAudit(root,{...writeIncremental(incremental()),rename(from,to) {
+    if(!blocked) { blocked=true;assert.throws(()=>buildMaintenance(root,{asOf:"2026-10-08"}),/遗留锁/);assert.throws(()=>buildMaintenance(root,{check:true}),/遗留锁/); }
+    fs.renameSync(from,to);
+  }});
+  assert.ok(blocked);
+  const historyFile=path.join(root,"data/change-history.json"), accepted=fs.readFileSync(historyFile);
+  assert.ok(JSON.parse(accepted.toString()).changes.some(c=>c.id==="plan-0002"&&c.checkedAt==="2026-10-07"&&c.after.priceM===21));
+  buildMaintenance(root,{asOf:"2026-10-08"});
+  assert.deepEqual(fs.readFileSync(historyFile),accepted);
+  assert.equal(buildMaintenance(root,{check:true}).checked,true);
+});
+test("maintenance读取历史期间持有共享锁", ({ root, incremental, writeIncremental }) => {
+  buildMaintenance(root,{asOf:"2026-10-08"});
+  const options=writeIncremental(incremental()), historyFile=path.join(root,"data/change-history.json"), original=fs.readFileSync;
+  let attempted=false;
+  fs.readFileSync=new Proxy(original,{apply(target,receiver,args) {
+    const result=Reflect.apply(target,receiver,args);
+    if(!attempted&&args[0]===historyFile) { attempted=true;assert.throws(()=>syncPricingAudit(root,options),/遗留锁/);assert.throws(()=>buildMaintenance(root,{asOf:"2026-10-08"}),/遗留锁/); }
+    return result;
+  }});
+  try { assert.equal(buildMaintenance(root,{check:true}).checked,true); } finally { fs.readFileSync=original; }
+  assert.ok(attempted);
+  assert.equal(fs.existsSync(path.join(root,"audit/.pricing.lock")),false);
+  syncPricingAudit(root,options);
+  const accepted=fs.readFileSync(historyFile);buildMaintenance(root,{asOf:"2026-10-08"});assert.deepEqual(fs.readFileSync(historyFile),accepted);
+});
 console.log("核价同步回归：" + passed + " 通过");

@@ -76,7 +76,7 @@ function renderLegend() {
 function personalTooltip(p) {
   const quote = personalState.fromPicker ? pickerPaymentQuote(p) : null;
   const billing = quote ? quote.mode : personalState.billing;
-  const y = p.priceY != null ? `年付：${priceText(p, "priceY")}/月（年付折算）` : "年付：未列公开价" + (quote ? "" : "（按月付展示）");
+  const y = p.priceY != null ? `年付：${priceText(p, "priceY")}/月（年付折算）` : "年付：未列公开价";
   const unified = quote ? quote.monthlyNative : priceOf(p, billing);
   const unifiedCNY = quote ? quote.monthlyCNY : cnyOf(p, billing);
   const uni = unified != null ? `${currencySymbol(p.cur) + Number(unified.toFixed(2))} ≈ ${fmtCNY(unifiedCNY)}` : "—";
@@ -97,8 +97,10 @@ function renderPersonalChart() {
   if (deferChartRender("chartPersonal",renderPersonalChart)) return;
   renderLegend();
   const q1 = foldSearch(personalState.q) ? personalState.q.trim() : "";
+  const annualMode = !personalState.fromPicker && personalState.billing === "Y";
   const rows = PLANS.filter(
     (p) => isPriceConfirmed(p) && isPersonalMonthly(p) &&
+      (!annualMode || p.priceY > 0) &&
       (personalState.cat === "all" || p.cat === personalState.cat) &&
       (personalState.region === "all" || p.region === personalState.region) &&
       (!personalState.fromPicker || matchesPickerPurchase(p)) &&
@@ -115,7 +117,7 @@ function renderPersonalChart() {
   emptyEl.hidden = shown.length > 0;
   emptyEl.innerHTML = personalState.fromPicker && pickerState.budget === "0"
     ? '选购预算为「免费」，这张图只画付费月付档。免费档见<a href="#free">免费 Coding 入口</a>。<button type="button" class="linkish" data-apply-picker="personal">取消选购条件</button>'
-    : "没有匹配的个人月付套餐。请更换关键词或清除筛选。";
+    : annualMode ? "没有匹配的公开年付套餐；未列年付价的档位已排除。请更换关键词或清除筛选。" : "没有匹配的个人月付套餐。请更换关键词或清除筛选。";
   /* 初始化/缩放时需要真实容器宽度，空态在完成配置后再隐藏 canvas。 */
   el.hidden = false;
   el.style.height = chartHeight(shown.length, 30, 130, 420) + "px";
@@ -155,7 +157,7 @@ function renderPersonalChart() {
   /* 应用选购条件时金额来自帮我选的付款口径，说明也按同一口径写。 */
   const priceBasis = (p) => personalState.fromPicker
     ? (pickerPaymentQuote(p).inferred ? "（未单列自动续费价，按标价）" : "")
-    : (personalState.billing === "Y" && p.priceY == null ? "（未列年付价，按月付）" : "");
+    : "";
   describeChart("chartPersonal", "个人订阅价格全景（" + billingLabel + "，人民币/月）" + shown.length + " 档，最低三档：" + shown.slice(0, 3).map((p) =>
     shortVendor(p.vendor) + " " + p.plan + " " + fmtCNY(personalChartPrice(p)) + priceBasis(p)
   ).join("、"));
@@ -163,10 +165,11 @@ function renderPersonalChart() {
   const excluded = q1 ? PLANS.filter((p) => {
     if (!queryHit(planSearchBlob(p), q1)) return false;
     if (isRetiredPlan(p)) return false;
-    return !isPersonalMonthly(p) || !isPriceConfirmed(p);
+    return !isPersonalMonthly(p) || !isPriceConfirmed(p) || (annualMode && !(p.priceY > 0));
   }) : [];
   const reasonOf = (p) => {
     if (!isPriceConfirmed(p)) return "价格待核实";
+    if (annualMode && !(p.priceY > 0) && isPersonalMonthly(p)) return "未列公开年付价";
     if (p.cat === "team" || p.seat) return "团队/企业档";
     if (isRenewalOnly(p)) return "仅老用户续费";
     if (isOneTimePlan(p)) return "一次性预付";
@@ -180,7 +183,7 @@ function renderPersonalChart() {
   const quoteOnly = excluded.filter((p) => !inTable.includes(p) && !freeTiers.includes(p));
   const listOf = (list) => list.slice(0, 6).map((p) => `${esc(shortVendor(p.vendor))} ${esc(p.plan)}（${reasonOf(p)}）`).join("、") + (list.length > 6 ? ` 等 ${list.length} 档` : "");
   const excludedHtml = excluded.length
-    ? `<br>这张图只画已核实价格的个人月付。同名模型还有 ${excluded.length} 档不在图上` +
+    ? `<br>这张图只画已核实价格的个人${annualMode ? "年付" : "月付"}。同名模型还有 ${excluded.length} 档不在图上` +
       (inTable.length ? `；价格表里有 ${inTable.length} 档：${listOf(inTable)}，<button type="button" id="showExcludedInTable" class="linkish">在完整表里看</button>` : "") +
       (freeTiers.length ? `；免费档见<a href="#free">免费入口</a>：${listOf(freeTiers)}` : "") +
       (quoteOnly.length ? `；无公开价、需按量或询价：${listOf(quoteOnly)}` : "") + "。"
@@ -189,7 +192,7 @@ function renderPersonalChart() {
     `当前筛选：${rows.length} 个档位（显示 ${shown.length}） ｜ 汇率 1 USD ≈ ${RATE} CNY，1 INR ≈ ${Number(RATE_INR_CNY.toFixed(6))} CNY（${META.rateAsOf}，<a href="${safeHref(META.rateSource)}" target="_blank" rel="noopener">汇率来源</a>） ｜ 红色是中转站，不和官方订阅、工具订阅放在同一类颜色里 ｜ 搜索按空格分词，各词均须匹配；词内忽略大小写与连字符，支持产品别名并展开「同某档」` +
     (hidden > 0 ? ` ｜ <button type="button" id="showAllPersonal" class="linkish">显示全部 ${rows.length} 档</button>` :
       noFilter && rows.length > PERSONAL_DEFAULT_LIMIT ? ` ｜ <button type="button" id="showAllPersonal" class="linkish">收起为 ${PERSONAL_DEFAULT_LIMIT} 档</button>` : "") +
-    excludedHtml;
+    (annualMode ? " ｜ 未列公开年付价的档位已排除" : "") + excludedHtml;
 }
 
 /* ---------- 团队 / 企业 / 云厂商（席位价 + 整包价） ---------- */
@@ -553,7 +556,7 @@ function populateRankVendor() {
   if (!select) return;
   const priority = ["Anthropic", "OpenAI", "月之暗面 Kimi"];
   /* 只列在任一口径下确有可排行档位的厂商；中转站、仅历史档的厂商不进下拉。 */
-  const vendors = [...new Set(rankCandidateRows().map((r) => r.m.vendor))];
+  const vendors = [...new Set(rankCandidateRows(false).map((r) => r.m.vendor))];
   vendors.sort((a, b) => {
     const ai = priority.indexOf(a), bi = priority.indexOf(b);
     return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi) || rankVendorLabel(a).localeCompare(rankVendorLabel(b), "zh-CN");
@@ -564,11 +567,17 @@ function populateRankVendor() {
 /* 名称和价格每次从主表解析；额度成本按原始指标行缓存，价格或币种变化时重算，
    避免每次重绘对同一行重复计算。中转站不和官方订阅比单价（个人价格图与帮我选同一规则）。 */
 const rankCostCache = new WeakMap();
-function rankCandidateRows() {
+function rankPaymentLabel() { return rankState.fromPicker ? PICKER_BILLING_LABELS[pickerState.billing] + "月均" : "目录月付标价"; }
+function rankRowPaymentLabel(m) {
+  const p = rankState.fromPicker ? pickerPlanForMetric(m) : null;
+  return rankPaymentLabel() + (p && pickerPaymentQuote(p).inferred ? "（未单列续费价，按标价）" : "");
+}
+function rankCandidateRows(usePicker = rankState.fromPicker) {
   return METRICS_ALL.flatMap((raw) => {
     const plan = raw.ref != null ? findPlanReference(raw.ref) : null;
     if (plan && isRelay(plan)) return [];
-    const m = resolvePlan(raw);
+    const listed = resolvePlan(raw);
+    const m = listed && usePicker ? pickerMetricInput(listed) : listed;
     if (!m || !metricOfferOk(m)) return [];
     const key = m.priceM + "|" + m.cur;
     let hit = rankCostCache.get(raw);
@@ -603,16 +612,19 @@ function renderRankDetails() {
     const divider = rankIsEstimate(r.m) && i > 0 && !rankIsEstimate(rows[i - 1].m)
       ? `<tr class="rank-divider"><th scope="rowgroup" colspan="5">${esc(RANK_ESTIMATE_DIVIDER)}</th></tr>` : "";
     return divider + `<tr><th scope="row">${esc(planLabel(r.m))}<br>${esc(displayModelName(r.m.model))}</th>` +
-      `<td>${esc(fmtCNY(c.priceCNY))}/月</td><td>¥${c.costPerM.toFixed(3)}${fullUseCostRangeText(c) ? `<br><span class="sub">${esc(fullUseCostRangeText(c))}</span>` : ""}</td><td>${esc(tokSpan(c,"moLow","moHigh"))}</td><td>${esc(prov.text)} · 置信${esc(prov.conf)}</td></tr>`;
+      `<td>${esc(fmtCNY(c.priceCNY))}/月<br><span class="sub">${esc(rankRowPaymentLabel(r.m))}</span></td><td>¥${c.costPerM.toFixed(3)}${fullUseCostRangeText(c) ? `<br><span class="sub">${esc(fullUseCostRangeText(c))}</span>` : ""}</td><td>${esc(tokSpan(c,"moLow","moHigh"))}</td><td>${esc(prov.text)} · 置信${esc(prov.conf)}</td></tr>`;
   }).join("") : '<tr><td colspan="5" class="table-empty">当前口径没有可比较的套餐，请调整模型档或排行口径。</td></tr>';
 }
 function renderRankChart() {
+  if (typeof syncPickerScopeControls === "function") syncPickerScopeControls();
+  const title = byId("rankTitle");
+  if (title) title.innerHTML = '<span class="sec-no">02</span>每百万 tokens 满额使用折算成本（' + esc(rankPaymentLabel()) + '）';
   populateRankVendor();
   renderRankDetails();
   if (deferChartRender("chartRank",renderRankChart)) return;
   const all = rankRows();
   const rows = rankChartRows(all);
-  describeChart("chartRank", "每百万 tokens 成本排行（¥，越低越划算）前三：" +
+  describeChart("chartRank", "每百万 tokens 成本排行（" + rankPaymentLabel() + " ÷ 参考月量区间中点，¥，越低越划算）前三：" +
     rows.slice(0, 3).map((r) => planLabel(r.m) + " ¥" + r.c.costPerM.toFixed(3)).join("、") + "。先列依据官方额度规则折算的档位（实色柱），再列第三方或请求次数估算（斜纹柱），不确定区间见提示及完整明细。");
 
   const el = byId("chartRank");
@@ -653,7 +665,7 @@ function renderRankChart() {
           return `<b>${esc(planLabel(r.m))}</b>（${esc(displayModelName(r.m.model))}）<br/>
             💵每 M tokens：<b style="color:${cpColor}">¥${cp.toFixed(3)}</b><br/>
             ${fullUseCostRangeText(r.c) ? esc(fullUseCostRangeText(r.c)) + "（用尽对应额度）<br/>" : ""}
-            月费：${fmtCNY(r.c.priceCNY)} ｜ 月倍率：<b>${rate}</b><br/>
+            ${esc(rankRowPaymentLabel(r.m))}：${fmtCNY(r.c.priceCNY)} ｜ 月倍率：<b>${rate}</b><br/>
             月 tokens：${mo}<br/>
             <span style="color:${PAL.dim}">依据：${esc(prov.text)} · 置信${esc(prov.conf)}${prov.conf !== "高" ? "（tokens 为折算/估算值）" : ""}</span>
             ${r.m.vendorWkLowM != null ? `<br/><span style="color:${PAL.dim}">厂商按自身用量假设另给出 ${weeklyTokenRange(r.m.vendorWkLowM, r.m.vendorWkHighM)}/周，未用于排行</span>` : ""}`;
@@ -675,7 +687,7 @@ function renderRankChart() {
   );
   chart.resize();
 
-  const tierText = rankState.tier === "flagship" ? "当前只看旗舰模型。" : "当前含轻量模型，Flash、Haiku 会因为 token 便宜靠前。";
+  const tierText = "支付口径：" + rankPaymentLabel() + "；成本以参考月量区间中点计算，推荐卡按区间下限保守比较，两者都不保证实际额度。" + (rankState.tier === "flagship" ? "当前只看旗舰模型。" : "当前含轻量模型，Flash、Haiku 会因为 token 便宜靠前。");
   const excluded = "价格待核实、已停售、已下架、一次性预付、仅老用户续费和中转站不在此列。";
   const scopeText = {
     credits: "口径：只统计按官方额度规则折算的档位（积分系数、credits 面值 ÷ 牌价混合价或官方区间，按 80/20 与 95% 缓存假设，置信中）。第三方估算与请求次数折算不在此列。" + excluded,

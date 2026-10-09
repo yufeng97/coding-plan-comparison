@@ -55,10 +55,10 @@ async function main() {
     assert.equal(css.status, 200);
     assert.match(css.headers["content-type"], /^text\/css/);
     assert.equal((await request(port, "/missing-server-test-file.txt")).status, 404);
-    assert.ok(fileFromUrl("/.github/workflows/ci.yml"));
+    assert.equal(fileFromUrl("/.github/workflows/ci.yml"), null);
     console.log("  ✓ 资源类型、查询参数与缺失文件");
 
-    for (const urlPath of ["/.git/config", "/.GIT/config", "/.GiT/HEAD", "/%2eg%49t/config", "/js/../.GIT/config"]) {
+    for (const urlPath of ["/.git/config", "/.GIT/config", "/.GiT/HEAD", "/%2eg%49t/config", "/js/../.GIT/config", "/.env", "/.vercel/project.json", "/js/.secret", "/%2eenv"]) {
       assert.equal(fileFromUrl(urlPath), null, urlPath);
       assert.equal((await request(port, urlPath)).status, 403, urlPath);
     }

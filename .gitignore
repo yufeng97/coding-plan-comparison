@@ -1,4 +1,8 @@
 .vercel
+audit/.pricing.lock
+**/.audit-update-*/
+.site-stage-*/
+.site-backup-*/
 js/data.js.bak
 node_modules/
 .site-build/
