@@ -437,6 +437,35 @@ function persistFollowState() {
   }
 }
 function isPlanFollowed(id) { return followState.planIds.includes(id); }
+/** 首屏摘要：关注提醒与厂商 RSS 不必等完整维护数据下载。 @returns {MaintenanceSummary} */
+function maintenanceSummary() {
+  return typeof MAINTENANCE_SUMMARY !== "undefined" && MAINTENANCE_SUMMARY.schemaVersion === 1
+    ? MAINTENANCE_SUMMARY : { schemaVersion: 1, generatedAt: "", staleAfterDays: 14, changes: [], feeds: [] };
+}
+function vendorFeed(vendor) { return maintenanceSummary().feeds.find((feed) => feed.vendor === vendor) || null; }
+/* 导航上的未读数：完整数据未下载时用首屏摘要里的变更 ID，口径与关注页一致。 */
+function followUnreadCount() {
+  const changes = optionalDataLoaded("maintenance") ? maintenanceData().changes : maintenanceSummary().changes;
+  return changes.filter((c) => followState.planIds.includes(c.id) && !followState.readChangeIds.includes(c.changeId)).length;
+}
+function syncFollowBadge() {
+  const badge = byId("followNavBadge");
+  if (!badge) return;
+  const n = followUnreadCount();
+  badge.hidden = !n;
+  badge.innerHTML = n ? `<span aria-hidden="true">${n > 99 ? "99+" : n}</span><span class="sr-only">，${n} 条未读变更</span>` : "";
+}
+function renderVendorFeeds() {
+  const select = byId("vendorFeedSelect"), link = byId("vendorFeedLink");
+  if (!select || !link) return;
+  const feeds = maintenanceSummary().feeds.slice().sort((a, b) => a.vendor.localeCompare(b.vendor, "zh-CN"));
+  const previous = select.value;
+  select.innerHTML = feeds.map((feed) => `<option value="${esc(feed.href)}">${esc(feed.vendor)}</option>`).join("");
+  if (feeds.some((feed) => feed.href === previous)) select.value = previous;
+  const feed = feeds.find((f) => f.href === select.value) || feeds[0];
+  link.hidden = !feed;
+  if (feed) { link.setAttribute("href", feed.href); link.setAttribute("aria-label", `订阅 ${feed.vendor} 的变更 RSS`); }
+}
 function watchButtonHtml(p, extraClass = "") {
   if (!p || !p.id) return "";
   const on = isPlanFollowed(p.id);
@@ -523,11 +552,13 @@ function renderFollowedChanges() {
   const list = byId("followedPlans"), changes = byId("followedChanges"), count = byId("followUnreadCount"), read = byId("markFollowReadBtn");
   if (!list || !changes || !count || !read) return;
   const plans = followState.planIds.map((id) => PLANS.find((p) => p.id === id)).filter(Boolean);
-  list.innerHTML = plans.length ? plans.map((p) => `<div class="followed-plan"><button type="button" class="chip" data-view-plan="${esc(p.id)}">${esc(planTitle(p))}</button>${watchButtonHtml(p)}</div>`).join("") : `<p>还没有关注的套餐。<a href="#quick">选择套餐并关注</a></p>`;
+  const feedLink = (p) => { const feed = vendorFeed(p.vendor); return feed ? `<a class="followed-feed" href="${esc(feed.href)}" aria-label="订阅 ${esc(p.vendor)} 的变更 RSS">RSS ↗</a>` : ""; };
+  list.innerHTML = plans.length ? plans.map((p) => `<div class="followed-plan"><button type="button" class="chip" data-view-plan="${esc(p.id)}">${esc(planTitle(p))}</button>${watchButtonHtml(p)}${feedLink(p)}</div>`).join("") : `<p>还没有关注的套餐。<a href="#quick">选择套餐并关注</a></p>`;
   const unread = unreadFollowedChanges(), loaded = optionalDataLoaded("maintenance");
   count.textContent = `${plans.length} 档关注` + (loaded ? ` · ${unread.length} 条未读变更` : "");
   read.disabled = !unread.length;
   changes.innerHTML = unread.length ? `<ul class="change-list">${unread.map((c) => changeCardHtml(c, true)).join("")}</ul>` : `<p>${!plans.length ? "关注后会展示本站收录的已确认变更。" : loaded ? "当前关注套餐没有未读的已确认变更。" : optionalPendingText("关注套餐的已确认变更")}</p>`;
+  syncFollowBadge();
   const storage = byId("followStorageNote");
   if (storage) storage.textContent = followStorageMessage || "只在当前浏览器保存关注与已读记录；不上传，不跨设备同步，清理浏览器数据后会消失。";
 }
@@ -687,7 +718,9 @@ function refreshOptionalViews(kind) {
   }
 }
 function bindMaintenanceEvents() {
-  loadFollowState(); renderMaintenance(); syncWatchButtons();
+  loadFollowState(); renderMaintenance(); syncWatchButtons(); renderVendorFeeds();
+  const feedSelect = byId("vendorFeedSelect");
+  if (feedSelect) feedSelect.addEventListener("change", renderVendorFeeds);
   [["maintenancePlan", () => { maintenancePlanId = byId("maintenancePlan").value; renderMaintenanceHistory(); renderContribution(); }], ["maintenanceRecordFilter", () => { maintenanceRecordFilter = byId("maintenanceRecordFilter").value; renderMaintenanceRecords(); }], ["contributionType", () => {
     renderContribution();
     if (byId("contributionType").value === "benchmark") loadViewData("benchmark");

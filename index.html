@@ -18,7 +18,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <script src="js/theme-init.js?v=6414a56"></script>
   <link rel="stylesheet" href="libs/fonts/fonts.css?v=17da4b4">
-  <link rel="stylesheet" href="css/style.css?v=5c1b909">
+  <link rel="stylesheet" href="css/style.css?v=64e29d0">
 </head>
 <body>
 <div id="loadFailure" class="load-failure" role="alert" hidden>
@@ -34,7 +34,7 @@
     <nav class="primary-nav" aria-label="主要内容">
       <a href="#quick" data-site-view="compare" aria-current="page">选套餐</a>
       <a href="#benchmarks" data-site-view="benchmarks">模型评测</a>
-      <a href="#updates" data-site-view="updates">我的关注</a>
+      <a href="#updates" data-site-view="updates">我的关注<span class="nav-badge" id="followNavBadge" hidden></span></a>
     </nav>
     <button id="themeBtn" class="theme-btn" title="切换主题：暗色 → 亮色 → 跟随系统"><i class="ric" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z"/></svg></i></button>
   </div>
@@ -538,6 +538,10 @@
         <div class="maintenance-toolbar"><strong id="followUnreadCount"></strong><button type="button" class="chip" id="markFollowReadBtn" disabled>将当前变更标为已读</button></div>
         <p id="followFeedback" class="table-feedback" role="status" aria-live="polite"></p>
         <div id="followedPlans"></div><div id="followedChanges"></div>
+        <details class="method-box" id="vendorFeeds"><summary>按厂商订阅变更 RSS</summary>
+          <div class="maintenance-toolbar"><label class="maintenance-select" for="vendorFeedSelect">厂商<select id="vendorFeedSelect"></select></label><a class="chip" id="vendorFeedLink" href="changes.xml">订阅该厂商 RSS ↗</a></div>
+          <p class="maintenance-meta">RSS 阅读器独立订阅，不依赖本机关注记录，也能跨设备使用；还没有变更的厂商订阅源暂时为空，收录后会出现新条目。</p>
+        </details>
       </div>
       <div class="maintenance-panel">
         <h3>查看套餐历史</h3>
@@ -637,6 +641,7 @@
 <script src="js/data.js?v=a1550a1"></script>
 <script id="maintenanceDataSource" type="application/json" src="js/maintenance-data.js?v=2f8e5c8"></script>
 <script id="benchmarkDataSource" type="application/json" src="js/benchmark-data.js?v=f0456c2"></script>
+<script src="js/maintenance-summary.js?v=d51b2ef"></script>
 <script src="js/benchmark-summary.js?v=23e7cab"></script>
 <script src="js/project-data.js?v=b9931ec"></script>
 <script src="js/metrics.js?v=54c36b6"></script>
@@ -647,7 +652,7 @@
 <script src="js/app-tables.js?v=812dabc"></script>
 <script src="js/usage-import.js?v=49044ff"></script>
 <script src="js/app-service.js?v=b81f023"></script>
-<script src="js/app-maintenance.js?v=267b01a"></script>
+<script src="js/app-maintenance.js?v=30eeb63"></script>
 <script src="js/app-events.js?v=4d88383"></script>
 <script src="js/app-init.js?v=268100a"></script>
 </body>

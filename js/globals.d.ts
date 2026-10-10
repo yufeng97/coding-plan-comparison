@@ -92,3 +92,10 @@ interface BenchmarkSnapshot { schemaVersion: number; generatedAt: string; tasks:
 interface BenchmarkSummaryRow { model: string; reasoning: string | null; score: number; rank: number; }
 interface BenchmarkSummaryProtocol { id: string; family: string; name: string; version: string; metric: string; unit: string; checkedAt: string; total: number; rows: BenchmarkSummaryRow[]; }
 interface BenchmarkSummary { schemaVersion: number; checkedAt: string; protocols: BenchmarkSummaryProtocol[]; }
+
+/** 首屏维护摘要：关注套餐的已确认变更 ID、复查间隔与厂商 RSS；完整历史按需加载。 */
+interface MaintenanceSummary {
+  schemaVersion: number; generatedAt: string; staleAfterDays: number;
+  changes: { changeId: string; id: string }[];
+  feeds: { vendor: string; href: string }[];
+}

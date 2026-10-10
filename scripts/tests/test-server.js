@@ -7,7 +7,7 @@ const fs = require("node:fs");
 const http = require("node:http");
 const os = require("node:os");
 const path = require("node:path");
-const { createServer, fileFromUrl, allowedHost } = require("../server/serve");
+const { createServer, fileFromUrl, allowedHost, root } = require("../server/serve");
 const { blockedSegment } = require("../lib/paths");
 
 function request(port, urlPath, headers = {}, method = "GET", setHost = true) {
@@ -89,6 +89,11 @@ async function main() {
       assert.equal((await request(port, urlPath)).status, 403, urlPath);
     }
     assert.equal(blockedSegment(".github/workflows/ci.yml"), false, ".git 封锁仍按整段匹配");
+    const feed = fs.readdirSync(path.join(root, "feeds")).find((name) => name.endsWith(".xml"));
+    const feedResponse = await request(port, "/feeds/" + feed);
+    assert.equal(feedResponse.status, 200, "厂商 RSS 属于公共站点");
+    assert.match(feedResponse.headers["content-type"], /rss\+xml/);
+    for (const urlPath of ["/feeds/notes.txt", "/feeds/sub/x.xml", "/feeds/../package.json", "/feeds/.hidden.xml", "/feeds/UPPER.xml"]) assert.equal(fileFromUrl(urlPath), null, urlPath);
     console.log("  ✓ 只提供公共站点白名单：审计、Vercel 凭据、依赖、测试产物、脚本与数据源均 403");
 
     for (const urlPath of ["/.git/config", "/.GIT/config", "/.GiT/HEAD", "/%2eg%49t/config", "/js/../.GIT/config", "/.env", "/.vercel/project.json", "/js/.secret", "/%2eenv"]) {

@@ -3,9 +3,20 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { createAssetPlan } = require("../lib/public-assets");
-const { insideRoot } = require("../lib/paths");
+const { insideRoot, publicSiteFile, hiddenSegment } = require("../lib/paths");
 const { swapDirectory } = require("../lib/atomic-swap");
 
+/* 厂商 RSS 的链接在维护摘要里由脚本生成，页面不静态引用；按白名单单独收录普通文件。 */
+function feedFiles(root) {
+  const dir = path.join(root, "feeds");
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir).map((name) => path.join(dir, name)).filter((file) => {
+    const rel = path.relative(root, file);
+    if (!publicSiteFile(rel) || hiddenSegment(rel)) return false;
+    if (!fs.lstatSync(file).isFile() || !insideRoot(root, fs.realpathSync(file))) throw new Error("厂商订阅源必须是项目内的普通文件：" + rel);
+    return true;
+  });
+}
 function stageSite(workspace = path.resolve(__dirname, "..", "..")) {
   const plan = createAssetPlan(workspace);
   if (plan.changes.length) throw new Error("公共资源缓存版本过期，请先运行 npm run bump");
@@ -26,10 +37,16 @@ function stageSite(workspace = path.resolve(__dirname, "..", "..")) {
       fs.mkdirSync(path.dirname(next), { recursive: true });
       fs.writeFileSync(next, bytes);
     }
+    const feeds = feedFiles(plan.root);
+    for (const file of feeds) {
+      const next = path.join(stage, path.relative(plan.root, file));
+      fs.mkdirSync(path.dirname(next), { recursive: true });
+      fs.copyFileSync(file, next);
+    }
     fs.copyFileSync(config, path.join(stage, "vercel.json"));
     swapStarted = true;
     swapDirectory({ stage, backup, destination, removeOwned });
-    return { directory: destination, files: [...plan.outputs.keys()].map((file) => path.relative(plan.root, file)).concat("vercel.json") };
+    return { directory: destination, files: [...plan.outputs.keys(), ...feeds].map((file) => path.relative(plan.root, file)).concat("vercel.json") };
   } finally {
     /* 进入交换后由 swapDirectory 清理；恢复失败的 backup 必须保留。 */
     if (!swapStarted) { removeOwned(stage); removeOwned(backup); }

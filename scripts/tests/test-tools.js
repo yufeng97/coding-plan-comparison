@@ -424,6 +424,11 @@ async function main() {
     writeAssetPlan(createAssetPlan(root));
     const site = stageSite(root);
     assert.ok(site.files.includes("index.html") && site.files.includes("vercel.json"));
+    write("feeds/cursor-0123abcd.xml", "<rss/>"); write("feeds/notes.txt", "private");
+    const withFeeds = stageSite(root);
+    assert.ok(withFeeds.files.includes(path.join("feeds", "cursor-0123abcd.xml")), "厂商订阅源进入公共产物");
+    assert.ok(fs.existsSync(path.join(withFeeds.directory, "feeds", "cursor-0123abcd.xml")));
+    assert.equal(withFeeds.files.some((file) => file.endsWith("notes.txt")), false, "非订阅源文件不公开");
     assert.ok(site.files.every((file) => !file.startsWith("scripts") && !file.startsWith(".vercel")));
     const job = deployment(root, ["--prod"]);
     assert.equal(job.body.project, "prj_fixture");

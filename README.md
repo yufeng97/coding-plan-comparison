@@ -127,7 +127,7 @@ npm run bump
 
 `list` / `triage` 独立列出 `awaitingPublication`（已接受、无需再次复核、尚未收录正式动态）和 `needsReReview`，默认 pending 筛选不会隐藏这些积压。`publication` 仅按候选 URL 与非 `checked` 的 `DYNAMICS` 来源 URL 归一后精确匹配，表示正式数据已收录；仍需验证并部署后才算线上更新。`evidencePublicationMatches` 仅供人工核对，不会因为共用定价页而误判同一事件已发布。厂商发布新的编程模型本身可以成为重要动态，无需等待套餐调价；发布消息不自动证明每个订阅档的可用模型或权益。每天巡检都须处理待收录项目，不因已接受或已通知而视为完成。
 
-维护摘要在 data/maintenance.json，变更历史在 data/change-history.json；通过经典脚本同步到页面，保留 file:// 直开。页面显示核查时效、待核条目、复核日历和已确认变化，可下载 schemaVersion 1 的公开套餐/API/核价/历史/测评 JSON（不含本机关注和待审材料）；过期提醒不会自行改价。[changes.xml](https://coding-plan-comparison-tau.vercel.app/changes.xml) 是可订阅的已确认变更 RSS，重复构建不会产生新事件。套餐关注和已读状态保存在当前浏览器，不跨设备；RSS 阅读器可独立订阅。
+维护摘要在 data/maintenance.json，变更历史在 data/change-history.json；通过经典脚本同步到页面，保留 file:// 直开。页面显示核查时效、待核条目、复核日历和已确认变化，可下载 schemaVersion 1 的公开套餐/API/核价/历史/测评 JSON（不含本机关注和待审材料）；过期提醒不会自行改价。[changes.xml](https://coding-plan-comparison-tau.vercel.app/changes.xml) 是可订阅的已确认变更 RSS，重复构建不会产生新事件；同一次构建还为每个厂商生成 `feeds/<可读名>-<名称哈希>.xml`，只含该厂商的变更，条目链接到按厂商搜索的价格表，厂商改名会换新地址，不再对应任何厂商的旧订阅源在生成时清理、在检查时报错。首屏加载很小的 `js/maintenance-summary.js`（套餐变更 ID、复查间隔与订阅源列表），关注套餐有未读变更时导航「我的关注」直接显示数字，不必先下载完整维护数据。套餐关注和已读状态保存在当前浏览器，不跨设备；RSS 阅读器可独立订阅，关注列表旁也给出所属厂商的订阅源。
 
 ## 持续维护的方向
 
@@ -285,7 +285,7 @@ npm run serve
 
 ## 生成产物与部署
 
-`npm run build:site` 从已校验的资源图生成 `.site-build/`，只包含入口、实际引用的 `css/js/libs` 文件、已确认变化 RSS `changes.xml` 与 `vercel.json`。工具、依赖、项目凭据及历史 `.vercel/output` 都不会复制。每次从源码重新生成，缓存版本不一致时拒绝生成。仓库根目录的 `.vercelignore` 是 CLI 部署路径的兜底白名单：即使有人直接用 `vercel` 命令部署（`outputDirectory: "."`），`scripts/`、README 等仓库文件也不会被公开。
+`npm run build:site` 从已校验的资源图生成 `.site-build/`，只包含入口、实际引用的 `css/js/libs` 文件、已确认变化 RSS `changes.xml`、`feeds/` 下的厂商 RSS 与 `vercel.json`。工具、依赖、项目凭据及历史 `.vercel/output` 都不会复制。每次从源码重新生成，缓存版本不一致时拒绝生成。仓库根目录的 `.vercelignore` 是 CLI 部署路径的兜底白名单：即使有人直接用 `vercel` 命令部署（`outputDirectory: "."`），`scripts/`、README 等仓库文件也不会被公开。
 
 ```bash
 npm run bump

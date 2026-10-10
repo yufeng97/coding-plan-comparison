@@ -326,6 +326,34 @@ test("超时后在旧请求返回前重试，迟到脚本与重试脚本都执�
   }
 });
 
+test("关注套餐的未读变更在维护数据下载前就显示在导航，标为已读后清除；厂商 RSS 可选择订阅", async () => {
+  const changed = "plan-0101";
+  const app = createApp({ lazyData: true, storage: { "cp-followed-plans-v1": JSON.stringify({ planIds: [changed], readChangeIds: [] }) } });
+  assert.deepEqual(app.scriptLoads, [], "首屏不下载完整维护数据");
+  const badge = app.elements.get("followNavBadge");
+  const expected = app.run(`MAINTENANCE_SUMMARY.changes.filter((c) => c.id === "${changed}").length`);
+  assert.ok(expected > 0);
+  assert.equal(badge.hidden, false);
+  assert.match(badge.innerHTML, new RegExp(`<span aria-hidden="true">${expected}</span><span class="sr-only">，${expected} 条未读变更</span>`));
+  const select = app.elements.get("vendorFeedSelect"), link = app.elements.get("vendorFeedLink");
+  assert.ok(select.options.length >= 50);
+  assert.match(link.getAttribute("href"), /^feeds\/[a-z0-9-]+-[a-f0-9]{8}\.xml$/);
+  const cursor = app.run('vendorFeed("Cursor").href');
+  select.value = cursor; app.fire(select, "change");
+  assert.equal(link.getAttribute("href"), cursor);
+  assert.equal(link.getAttribute("aria-label"), "订阅 Cursor 的变更 RSS");
+  assert.match(app.elements.get("followedPlans").innerHTML, new RegExp(`href="${cursor}"`), "关注套餐旁给出所属厂商的订阅源");
+  app.anchor("#updates").click();
+  app.finishDataLoads(); await settle();
+  assert.equal(badge.hidden, false, "完整数据加载后计数一致");
+  app.elements.get("markFollowReadBtn").click();
+  assert.equal(badge.hidden, true);
+  assert.equal(badge.innerHTML, "");
+  app.run(`toggleFollowPlan("${changed}")`);
+  assert.equal(badge.hidden, true);
+  healthy(app);
+});
+
 test("关注页按需加载维护数据，公开JSON下载先补齐两份数据", async () => {
   const id = "plan-0002";
   const app = createApp({ lazyData: true, url: "http://127.0.0.1:8123/#updates", storage: { "cp-followed-plans-v1": JSON.stringify({ planIds: [id], readChangeIds: [] }) } });
