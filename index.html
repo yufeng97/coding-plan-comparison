@@ -11,14 +11,20 @@
 <meta property="og:site_name" content="Coding Plan 全球比价中心">
 <meta property="og:title" content="Coding Plan 全球比价中心 · 逐条核价">
 <meta property="og:description" content="比较在售 AI 编程订阅的支付金额、可用额度与满额使用折算成本，按预算、工具和工作量核对适合自己的套餐。">
-<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://coding-plan-comparison-tau.vercel.app/">
+<meta property="og:image" content="https://coding-plan-comparison-tau.vercel.app/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Coding Plan 比价中心：国内外 AI 编程订阅的价格、额度与公开评测对比">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="image_src" href="og-image.png?v=c92c17a">
 <link rel="alternate" type="application/rss+xml" title="Coding Plan 已确认变更" href="changes.xml?v=f7ef1e7">
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%23b9ff00'/%3E%3Ctext%20x='16'%20y='22'%20font-family='monospace'%20font-size='15'%20font-weight='bold'%20text-anchor='middle'%20fill='%2310110f'%3E%26lt;/%26gt;%3C/text%3E%3C/svg%3E">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <script src="js/theme-init.js?v=6414a56"></script>
   <link rel="stylesheet" href="libs/fonts/fonts.css?v=17da4b4">
-  <link rel="stylesheet" href="css/style.css?v=64e29d0">
+  <link rel="stylesheet" href="css/style.css?v=68ed894">
 </head>
 <body>
 <div id="loadFailure" class="load-failure" role="alert" hidden>
@@ -231,7 +237,7 @@
         <tbody id="metricsBody"></tbody>
       </table>
     </div>
-    <button type="button" class="chip" id="metricsMoreBtn" hidden>显示更多额度记录</button>
+    <div class="table-more-actions"><button type="button" class="chip" id="metricsMoreBtn" hidden>显示更多额度记录</button><button type="button" class="chip" id="metricsAllBtn" hidden>显示全部</button></div>
     <p class="chart-note" id="metricsNote"></p>
     <details class="method-box">
       <summary>📐 方法论：官方没公布用量时，这些「≈估」行是怎么推算出来的？（6 种方法 + 3 个坑）</summary>
@@ -428,6 +434,7 @@
         <option value="cn">国内</option>
         <option value="intl">国际</option>
       </select>
+      <select id="selectVendor" class="select" aria-label="按厂商筛选数据表"><option value="all">全部厂商</option></select>
       <span class="table-count" id="tableCount" role="status" aria-live="polite"></span>
       <button type="button" class="chip" id="tableResetBtn">清除筛选</button>
       <button type="button" class="chip" id="tableColsToggle">全部列</button>
@@ -459,7 +466,7 @@
         <tbody id="tableBody"></tbody>
       </table>
     </div>
-    <button type="button" class="chip" id="tableMoreBtn" hidden>显示更多记录</button>
+    <div class="table-more-actions"><button type="button" class="chip" id="tableMoreBtn" hidden>显示更多记录</button><button type="button" class="chip" id="tableAllBtn" hidden>显示全部</button></div>
   </section>
 
   <!-- ======== 10 重要动态 ======== -->
@@ -645,15 +652,15 @@
 <script src="js/benchmark-summary.js?v=23e7cab"></script>
 <script src="js/project-data.js?v=b9931ec"></script>
 <script src="js/metrics.js?v=54c36b6"></script>
-<script src="js/app-core.js?v=dfdd53a"></script>
-<script src="js/app-state.js?v=3a82b4a"></script>
+<script src="js/app-core.js?v=64b1b31"></script>
+<script src="js/app-state.js?v=c0c3c84"></script>
 <script src="js/app-charts.js?v=76a2012"></script>
-<script src="js/app-picker.js?v=fa5f706"></script>
-<script src="js/app-tables.js?v=812dabc"></script>
+<script src="js/app-picker.js?v=3ab5c48"></script>
+<script src="js/app-tables.js?v=68c8049"></script>
 <script src="js/usage-import.js?v=49044ff"></script>
-<script src="js/app-service.js?v=b81f023"></script>
+<script src="js/app-service.js?v=9fc0f61"></script>
 <script src="js/app-maintenance.js?v=30eeb63"></script>
-<script src="js/app-events.js?v=4d88383"></script>
+<script src="js/app-events.js?v=ab57fb0"></script>
 <script src="js/app-init.js?v=268100a"></script>
 </body>
 </html>

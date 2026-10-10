@@ -13,10 +13,10 @@ function blockedSegment(relToRoot, names = [".git"]) {
   return String(relToRoot || "").split(/[/\\]/).some((segment) => blocked.has(segment.toLowerCase()));
 }
 
-/** 公共站点白名单（build:site 与本地预览共用）：入口、RSS、厂商 RSS 与 css/js/libs 目录内的文件。路径段区分大小写。 */
+/** 公共站点白名单（build:site 与本地预览共用）：入口、RSS、分享预览图、厂商 RSS 与 css/js/libs 目录内的文件。路径段区分大小写。 */
 function publicSiteFile(relToRoot) {
   const rel = String(relToRoot || "").split(/[/\\]/).join("/");
-  return ["index.html", "changes.xml"].includes(rel) || /^(?:css|js|libs)\//.test(rel) || /^feeds\/[a-z0-9-]+\.xml$/.test(rel);
+  return ["index.html", "changes.xml", "og-image.png"].includes(rel) || /^(?:css|js|libs)\//.test(rel) || /^feeds\/[a-z0-9-]+\.xml$/.test(rel);
 }
 
 /** 任一路径段以 . 开头（隐藏文件或目录，包括 .git、.vercel）。 */

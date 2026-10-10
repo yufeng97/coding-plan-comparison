@@ -96,6 +96,7 @@ function bindEvents() {
         tableState.search = q;
         tableState.cat = "all";
         tableState.region = "all";
+        tableState.vendor = "all";
         tableState.fromPicker = false;
         const input = byId("searchInput");
         if (input) input.value = q;
@@ -103,6 +104,8 @@ function bindEvents() {
         const region = byId("selectRegion");
         if (cat) cat.value = "all";
         if (region) region.value = "all";
+        const vendor = byId("selectVendor");
+        if (vendor) vendor.value = "all";
         renderTable();
         navigateToSection("#table");
       });
@@ -122,6 +125,8 @@ function bindEvents() {
   });
   onState(byId("selectCat"), "change", (e) => { tableState.cat = e.target.value; renderTable(); });
   onState(byId("selectRegion"), "change", (e) => { tableState.region = e.target.value; renderTable(); });
+  const vendorSelect = byId("selectVendor");
+  if (vendorSelect) onState(vendorSelect, "change", (e) => { tableState.vendor = e.target.value; renderTable(); });
   const priceSort = byId("tablePriceSort");
   if (priceSort) onState(priceSort, "change", (e) => {
     const [key, dir] = e.target.value.split(":");
@@ -228,6 +233,8 @@ function bindMetricsEvents() {
   onState(byId("rankVendor"), "change", (e) => { rankState.vendor = e.target.value; renderRankChart(); });
   byId("tableMoreBtn").addEventListener("click", () => showMoreTableRows());
   byId("metricsMoreBtn").addEventListener("click", () => showMoreMetricsRows());
+  const tableAll = byId("tableAllBtn"); if (tableAll) tableAll.addEventListener("click", () => showMoreTableRows(true));
+  const metricsAll = byId("metricsAllBtn"); if (metricsAll) metricsAll.addEventListener("click", () => showMoreMetricsRows(true));
   let mobileTables = window.innerWidth < 768;
   window.addEventListener("resize", () => {
     const mobile = window.innerWidth < 768;
