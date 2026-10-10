@@ -2,6 +2,35 @@
 const { test, expect } = require("@playwright/test");
 const fs = require("node:fs/promises");
 
+async function expectNoPageOverflow(page, phase) {
+  try {
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), {
+      message: `${phase}: page width settles within the viewport`,
+    }).toBeLessThanOrEqual(1);
+  } catch (error) {
+    console.log("Page overflow diagnostics", await page.evaluate((phase) => ({
+      phase,
+      viewport: window.innerWidth,
+      documentWidth: document.documentElement.scrollWidth,
+      bodyWidth: document.body.scrollWidth,
+      activeElement: document.activeElement?.id,
+      chart: [...document.querySelectorAll("#chartPublicBenchmark, #chartPublicBenchmark > div")].map((el) => {
+        const rect = el.getBoundingClientRect();
+        return { id: el.id, style: el.getAttribute("style"), left: rect.left, right: rect.right,
+          width: rect.width, scrollWidth: el.scrollWidth, clientWidth: el.clientWidth };
+      }),
+      outside: [...document.querySelectorAll("body *")].filter((el) => el.getClientRects().length && el.getBoundingClientRect().right > window.innerWidth + 1).slice(0, 40).map((el) => {
+        let scrollParent = el.parentElement;
+        while (scrollParent && getComputedStyle(scrollParent).overflowX === "visible") scrollParent = scrollParent.parentElement;
+        const rect = el.getBoundingClientRect();
+        return { tag: el.tagName, id: el.id, className: el.getAttribute("class"), left: rect.left, right: rect.right,
+          scrollParent: scrollParent && { id: scrollParent.id, className: scrollParent.getAttribute("class"), overflowX: getComputedStyle(scrollParent).overflowX } };
+      }),
+    }), phase));
+    throw error;
+  }
+}
+
 test("公开榜默认DeepSWE，搜索保留原榜名次且空态可键盘清除", async ({ page }) => {
   await page.goto("/#benchmarks"); await page.waitForFunction(() => window["codingPlanReady"] === true);
   await expect(page.locator('[data-site-view="benchmarks"]')).toHaveAttribute("aria-current", "page");
@@ -84,6 +113,7 @@ test("评测排名图随版本、搜索和成本视图更新，主题和窄屏�
   await page.mouse.move(0, 0);
   await page.evaluate("(() => { const chart=byId('chartPublicBenchmark'); window.scrollTo({top:chart.getBoundingClientRect().top+scrollY-650,behavior:'instant'}); })()");
   await expect.poll(() => chart.evaluate((element) => Math.abs(element.getBoundingClientRect().top - 650))).toBeLessThanOrEqual(2);
+  await expectNoPageOverflow(page, "Before benchmark tooltip");
   await page.evaluate("chartCache.chartPublicBenchmark.dispatchAction({type:'showTip',seriesIndex:0,dataIndex:0})");
   const tooltip = chart.locator(':scope > div').filter({ hasText: "每任务成本：" });
   await expect(tooltip).toBeVisible();
@@ -92,7 +122,7 @@ test("评测排名图随版本、搜索和成本视图更新，主题和窄屏�
   expect(bounds.x + bounds.width).toBeLessThanOrEqual(375);
   expect(bounds.y).toBeGreaterThanOrEqual(0);
   expect(bounds.y + bounds.height).toBeLessThanOrEqual(812);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+  await expectNoPageOverflow(page, "With benchmark tooltip");
   expect(errors).toEqual([]);
 });
 
