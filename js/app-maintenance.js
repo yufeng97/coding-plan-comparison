@@ -9,6 +9,7 @@ let maintenancePlanId = "";
 let maintenanceRecordFilter = "all";
 let benchmarkFilter = { task: "all", tool: "all", model: "all" };
 let publicBenchmarkState = { id: "deepswe-v1-1", family: "", search: "", mode: "best" };
+const publicBenchmarkChartState = { metric: "score", limit: "20" };
 
 /** @returns {MaintenanceSnapshot} */
 function maintenanceData() {
@@ -59,7 +60,7 @@ function syncPublicBenchmarkChoices() {
 }
 /* 名称与版本相同的协议补上各自不同的配置项（如 a11y、coding action），仍相同时加官方更新日期或序号。 */
 function publicBenchmarkLabels(list) {
-  const base = (b) => `${b.name} · ${b.version}`;
+  const base = (b) => b.name.toLowerCase().includes(b.version.toLowerCase()) ? b.name : `${b.name} · ${b.version}`;
   const groups = new Map();
   list.forEach((b) => groups.set(base(b), [...(groups.get(base(b)) || []), b]));
   const labels = new Map();
@@ -192,10 +193,16 @@ function publicNewerVersionHint(model, plans) {
 }
 /* 帮我选卡片：本档明确列出的模型在各编程协议中的最佳名次，读首屏摘要，不依赖完整榜单。
    与「可用套餐」同一精确版本匹配；协议分别列出，不合成总分。摘要行已按分数降序，find 即本档最佳。 */
-function planCodingBenchmarks(p) {
+function planCodingBenchmarks(p, role = null) {
   if (typeof BENCHMARK_SUMMARY === "undefined" || BENCHMARK_SUMMARY.schemaVersion !== 1 || !p || !publicPlanEligible(p)) return [];
+  const families = new Set();
   return BENCHMARK_SUMMARY.protocols.map((protocol) => {
-    const row = protocol.rows.find((r) => publicModelIncluded(p, publicModelDisplayName(r.model)));
+    if (families.has(protocol.family)) return null;
+    const row = protocol.rows.find((r) => {
+      const name = publicModelDisplayName(r.model);
+      return (!role || role.re.test(name)) && publicModelIncluded(p, name);
+    });
+    if (row) families.add(protocol.family);
     return row ? { protocol, row } : null;
   }).filter(Boolean);
 }
@@ -217,17 +224,99 @@ function publicBenchmarkDate(value) {
 function publicBenchmarkConfiguration(row) {
   return [row.reasoning ? "推理：" + row.reasoning : "推理配置未公布", row.agent ? "Agent：" + row.agent : "Agent 配置未公布", "Tokens：" + (row.tokens == null ? "未公布" : row.tokens), "Steps：" + (row.steps == null ? "未公布" : row.steps)].join("；");
 }
+function publicBenchmarkChartRows() {
+  const rows = publicBenchmarkRows();
+  const ranked = publicBenchmarkChartState.metric === "cost" ? rows.filter((r) => r.costUSD != null) : rows;
+  return publicBenchmarkChartState.limit === "all" ? ranked : ranked.slice(0, Number(publicBenchmarkChartState.limit));
+}
+const PUBLIC_CHART_FAMILIES = [
+  { id: "gpt", label: "GPT / o 系列", re: /^(?:gpt|o[134](?:\b|-))/i },
+  { id: "claude", label: "Claude", re: /^claude/i },
+  { id: "gemini", label: "Gemini", re: /^gemini/i },
+  { id: "glm", label: "GLM", re: /^glm/i },
+  { id: "kimi", label: "Kimi", re: /^kimi/i },
+  { id: "deepseek", label: "DeepSeek", re: /^deepseek/i },
+  { id: "qwen", label: "Qwen", re: /^qwen/i },
+  { id: "minimax", label: "MiniMax", re: /^minimax/i },
+  { id: "grok", label: "Grok", re: /^grok/i },
+  { id: "composer", label: "Composer", re: /^composer/i },
+  { id: "mimo", label: "MiMo", re: /^mimo/i },
+  { id: "other", label: "其他系列", re: /./ },
+];
+function publicChartFamily(model) {
+  return PUBLIC_CHART_FAMILIES.find((family) => family.re.test(publicModelDisplayName(model))) || PUBLIC_CHART_FAMILIES[PUBLIC_CHART_FAMILIES.length - 1];
+}
+function publicChartColors() {
+  const style = getComputedStyle(document.documentElement);
+  return Object.fromEntries(PUBLIC_CHART_FAMILIES.map((family) => [family.id, style.getPropertyValue("--bench-" + family.id).trim() || PAL.info]));
+}
+function publicChartAxisName(label, narrow) {
+  const name = label.replace(/^(#\d+ )Claude /, "$1");
+  if (!narrow) return name;
+  return name.split(" · ")[0].replace(/^(#\d+ \S+) (.+)$/, "$1\n$2")
+    .replace(/^(#\d+ Qwen[\d.]+)-(.+)$/, "$1\n$2")
+    .replace(/^(#\d+ (?:DeepSeek|Muse-Spark|MiniMax|MiMo))-(.+)$/, "$1\n$2");
+}
+function renderPublicBenchmarkChart() {
+  const host = byId("chartPublicBenchmark"), wrap = byId("publicBenchmarkChartWrap");
+  if (!host || !wrap) return;
+  const benchmark = selectedPublicBenchmark(), all = publicBenchmarkRows();
+  wrap.hidden = !benchmark || !all.length;
+  if (wrap.hidden) return;
+  const hasCost = all.some((r) => r.costUSD != null);
+  if (!hasCost) publicBenchmarkChartState.metric = "score";
+  qsa("[data-public-chart]").forEach((button) => {
+    const active = button.dataset.publicChart === publicBenchmarkChartState.metric;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+    button.disabled = button.dataset.publicChart === "cost" && !hasCost;
+  });
+  const rows = publicBenchmarkChartRows(), cost = publicBenchmarkChartState.metric === "cost";
+  const colors = publicChartColors(), families = rows.map((r) => publicChartFamily(r.model));
+  const legend = byId("publicBenchmarkChartLegend");
+  if (legend) {
+    legend.hidden = cost;
+    legend.innerHTML = [...new Set(families)].map((family) => `<span><i aria-hidden="true" style="background:${colors[family.id]}"></i>${esc(family.label)}</span>`).join("");
+  }
+  const limit = byId("publicBenchmarkChartLimit"); if (limit) limit.value = publicBenchmarkChartState.limit;
+  const note = byId("publicBenchmarkChartNote");
+  if (note) note.textContent = `${benchmark.name} · ${rows.length} / ${all.length} 条匹配配置 · ${cost ? "每任务成本（USD），按本协议分数名次排列；费用未公布的配置不绘制。" : benchmark.metric + "（" + benchmark.unit + "），按本协议分数降序。"}`;
+  host.style.height = Math.max(240, rows.length * 34 + 74) + "px";
+  describeChart("chartPublicBenchmark", `${benchmark.name}，${cost ? "评测每任务成本" : benchmark.metric}。` + rows.map((r) => `第 ${r.rank} 名 ${publicModelDisplayName(r.model)}：${cost ? publicCostText(r.costUSD) : publicScoreText(r.score, benchmark.unit)}`).join("；"));
+  const section = host.closest(".section");
+  if (section && section.hidden) return;
+  if (deferChartRender("chartPublicBenchmark", renderPublicBenchmarkChart)) return;
+  const labels = rows.map((r) => `#${r.rank} ${publicModelDisplayName(r.model)}${publicBenchmarkState.mode === "all" ? " · " + [r.reasoning, r.agent].filter(Boolean).join(" / ") : ""}`);
+  const chart = makeChart("chartPublicBenchmark");
+  chart.setOption({
+    animation: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    grid: { left: 8, right: cost ? 78 : 64, top: 12, bottom: 46, containLabel: true },
+    tooltip: { ...tipStyle(host), extraCssText: "max-width: min(420px, 100%); box-sizing: border-box; white-space: normal; overflow-wrap: anywhere; z-index: 2000;", trigger: "item", formatter: (item) => {
+      const r = rows[item.dataIndex]; if (!r) return "";
+      return `<b>#${r.rank} ${esc(publicModelDisplayName(r.model))}</b><br/>${esc(benchmark.name)} · ${esc(benchmark.metric)}：${esc(publicScoreText(r.score, benchmark.unit))}<br/>${esc(publicBenchmarkConfiguration(r))}<br/>每任务成本：${esc(publicCostText(r.costUSD))}<br/>${esc(r.uncertainty || "置信区间未公布")}`;
+    } },
+    xAxis: { type: "value", min: 0, ...(!cost && benchmark.unit === "%" ? { max: 100 } : {}), name: cost ? "USD / 任务" : benchmark.metric + "（" + benchmark.unit + "）", nameLocation: "middle", nameGap: 28, nameTextStyle: { color: PAL.dim, fontSize: 11 }, ...axisStyle() },
+    yAxis: { type: "category", inverse: true, data: labels, axisTick: { show: false }, axisLine: { lineStyle: { color: PAL.axisLine } }, axisLabel: { ...chartAxisLabel(host, 12), lineHeight: 14, formatter: (label) => publicChartAxisName(label, host.getBoundingClientRect().width < 480) } },
+    series: [{ type: "bar", data: rows.map((r) => cost ? r.costUSD : r.score), barWidth: 17,
+      itemStyle: { color: cost ? PAL.gold : (item) => colors[families[item.dataIndex].id], borderRadius: [0, 3, 3, 0] },
+      label: { show: true, position: "right", color: PAL.text, fontSize: 11, formatter: (item) => cost ? publicCostText(item.value) : publicScoreText(item.value, benchmark.unit) } }],
+  }, true);
+  markChartsForResize(["chartPublicBenchmark"]);
+  resizeVisibleCharts();
+}
 function renderPublicBenchmarks() {
   const meta = byId("publicBenchmarkMeta"), body = byId("publicBenchmarkBody"), empty = byId("publicBenchmarkEmpty"), table = byId("publicBenchmarkWrap");
   if (!meta || !body || !empty || !table) return;
   const benchmark = selectedPublicBenchmark(), rows = publicBenchmarkRows(), loaded = optionalDataLoaded("benchmark");
   const select = byId("publicBenchmarkSelect");
   if (benchmark) { publicBenchmarkState.id = benchmark.id; publicBenchmarkState.family = benchmark.family; if (select) select.value = benchmark.id; }
-  meta.innerHTML = benchmark ? `<h3>${esc(benchmark.name)}</h3><p>${esc(benchmark.description)}</p><dl class="public-benchmark-meta"><div><dt>版本与协议</dt><dd>${esc(benchmark.version)} · <code>${esc(benchmark.id)}</code></dd></div><div><dt>指标与范围</dt><dd>${esc(benchmark.metric)}（${esc(benchmark.unit)}） · ${esc(benchmark.scope)}</dd></div><div><dt>评测配置</dt><dd>${esc(benchmark.configuration)}</dd></div><div><dt>官方标注日期与核查</dt><dd>官方标注 ${esc(publicBenchmarkDate(benchmark.sourceUpdatedAt))} · 本站核查 ${esc(publicBenchmarkDate(benchmark.checkedAt))} · ${publicBenchmarkSource(benchmark.sourceUrl, "原始评测")}</dd></div></dl>` : `<p>${loaded ? "公开评测数据暂不可用。" : optionalPendingText("公开评测协议与成绩")}</p>`;
+  const previousDetails = meta.querySelector("details");
+  const keepDetailsOpen = benchmark && previousDetails && previousDetails.open && previousDetails.dataset.benchmarkId === benchmark.id;
+  meta.innerHTML = benchmark ? `<h3>${esc(benchmark.name)}</h3><p class="maintenance-meta">${esc(benchmark.metric)}（${esc(benchmark.unit)}） · ${esc(benchmark.scope)}</p><details class="public-protocol-details" data-benchmark-id="${esc(benchmark.id)}"${keepDetailsOpen ? " open" : ""}><summary>协议配置、范围与来源</summary><p>${esc(benchmark.description)}</p><dl class="public-benchmark-meta"><div><dt>版本与协议</dt><dd>${esc(benchmark.version)} · <code>${esc(benchmark.id)}</code></dd></div><div><dt>评测配置</dt><dd>${esc(benchmark.configuration)}</dd></div><div><dt>官方标注日期与核查</dt><dd>官方标注 ${esc(publicBenchmarkDate(benchmark.sourceUpdatedAt))} · 本站核查 ${esc(publicBenchmarkDate(benchmark.checkedAt))} · ${publicBenchmarkSource(benchmark.sourceUrl, "原始评测")}</dd></div></dl></details>` : `<p>${loaded ? "公开评测数据暂不可用。" : optionalPendingText("公开评测协议与成绩")}</p>`;
   const count = byId("publicBenchmarkCount");
   if (count) count.textContent = benchmark ? `${rows.length} 条匹配记录 · ${publicBenchmarkState.mode === "all" ? "全部已公布配置" : "每模型最佳已公布配置"} · 本协议分数降序` : loaded ? "暂无公开记录" : "";
   const modeNote = byId("publicBenchmarkModeNote");
-  if (modeNote) modeNote.textContent = publicBenchmarkState.mode === "all" ? "同一模型的不同推理与 Agent 配置分别列出；名次仅适用于当前协议，搜索不改变原名次。" : "每个准确模型名称取当前协议已公布配置中的最高分；同分保留来源首项。名次在本协议这些配置中计算，搜索不改变原名次；切换「全部配置」可查看其他配置。";
+  if (modeNote) modeNote.textContent = publicBenchmarkState.mode === "all" ? "分别列出各推理与 Agent 配置；名次仅适用于当前协议，搜索保留原名次。" : "每模型取本协议已公布的最高分配置；名次仅适用于当前记录，搜索保留原名次。";
   const caption = byId("publicBenchmarkCaption"); if (caption) caption.textContent = benchmark ? `${benchmark.name} · ${benchmark.metric} · ${benchmark.scope}` : "公开模型评测";
   body.innerHTML = rows.map((r) => `<tr><td class="public-score-rank">${r.rank}</td><th scope="row"><strong>${esc(publicModelDisplayName(r.model))}</strong><span class="public-score-config">${esc([r.reasoning ? "推理：" + r.reasoning : "推理未公布", r.agent ? "Agent：" + r.agent : "Agent 未公布"].join(" · "))}</span>${publicModelPlansHtml(r.model)}<details class="public-score-more"><summary>配置与评测说明</summary><p>来源模型 ID：<code>${esc(r.model)}</code></p><p>${esc(publicBenchmarkConfiguration(r))}</p>${r.uncertainty ? `<p>区间 / 不确定性：${esc(r.uncertainty)}</p>` : ""}<p>${esc(r.costNote || "评测每任务成本；来源未提供其他费用说明。未公布费用不能记作零，也不能换算为订阅月费。")}</p></details></th><td class="public-score-value">${esc(publicScoreText(r.score, benchmark.unit))}${publicUncertaintyHtml(r)}</td><td>${esc(publicCostText(r.costUSD))}</td><td>${publicBenchmarkSource(r.sourceUrl, "成绩来源")}<span class="public-score-config" title="${esc(r.checkedAt)}">核查 ${esc(publicBenchmarkDate(r.checkedAt))}</span></td></tr>`).join("");
   empty.hidden = rows.length > 0 || !loaded; table.hidden = !rows.length;
@@ -235,6 +324,7 @@ function renderPublicBenchmarks() {
   const reset = byId("publicModelClearBtn"); if (reset) reset.disabled = !publicBenchmarkState.search;
   const csv = byId("downloadPublicBenchmarkCsvBtn"); if (csv) csv.disabled = !rows.length;
   const json = byId("downloadPublicBenchmarkJsonBtn"); if (json) json.disabled = !publicBenchmarkData().benchmarks.length;
+  renderPublicBenchmarkChart();
 }
 function publicBenchmarkCsv() {
   const benchmark = selectedPublicBenchmark(); if (!benchmark) return "";
@@ -271,7 +361,10 @@ function bindPublicBenchmarkEvents() {
     searchTimer = setTimeout(() => { searchTimer = null; renderPublicBenchmarks(); }, 150);
   });
   const mode = byId("publicBenchmarkMode"); if (mode) mode.addEventListener("change", () => { publicBenchmarkState.mode = mode.value === "all" ? "all" : "best"; renderPublicBenchmarks(); });
-  const clear = byId("publicModelClearBtn"); if (clear) clear.addEventListener("click", () => { publicBenchmarkState.search = ""; if (search) search.value = ""; renderPublicBenchmarks(); focusTableControl(search); });
+  qsa("[data-public-chart]").forEach((button) => button.addEventListener("click", () => { publicBenchmarkChartState.metric = button.dataset.publicChart === "cost" ? "cost" : "score"; renderPublicBenchmarkChart(); }));
+  const chartLimit = byId("publicBenchmarkChartLimit");
+  if (chartLimit) chartLimit.addEventListener("change", () => { if (["10", "20", "all"].includes(chartLimit.value)) publicBenchmarkChartState.limit = chartLimit.value; renderPublicBenchmarkChart(); });
+  const clear = byId("publicModelClearBtn"); if (clear) clear.addEventListener("click", () => { clearTimeout(searchTimer); searchTimer = null; publicBenchmarkState.search = ""; if (search) search.value = ""; renderPublicBenchmarks(); focusTableControl(search); });
   [["downloadPublicBenchmarkCsvBtn", downloadPublicBenchmarkCsv], ["downloadPublicBenchmarkJsonBtn", downloadPublicBenchmarkJson]].forEach(([id, handler]) => { const button = byId(id); if (button) button.addEventListener("click", handler); });
   renderPublicBenchmarks();
 }
@@ -386,7 +479,7 @@ function renderFollowedChanges() {
   const list = byId("followedPlans"), changes = byId("followedChanges"), count = byId("followUnreadCount"), read = byId("markFollowReadBtn");
   if (!list || !changes || !count || !read) return;
   const plans = followState.planIds.map((id) => PLANS.find((p) => p.id === id)).filter(Boolean);
-  list.innerHTML = plans.length ? plans.map((p) => `<div class="followed-plan"><button type="button" class="chip" data-view-plan="${esc(p.id)}">${esc(planTitle(p))}</button>${watchButtonHtml(p)}</div>`).join("") : `<p>在推荐卡、数据表或完整权益里点击「关注」，下次访问即可查看这些套餐的变更。</p>`;
+  list.innerHTML = plans.length ? plans.map((p) => `<div class="followed-plan"><button type="button" class="chip" data-view-plan="${esc(p.id)}">${esc(planTitle(p))}</button>${watchButtonHtml(p)}</div>`).join("") : `<p>还没有关注的套餐。<a href="#quick">选择套餐并关注</a></p>`;
   const unread = unreadFollowedChanges(), loaded = optionalDataLoaded("maintenance");
   count.textContent = `${plans.length} 档关注` + (loaded ? ` · ${unread.length} 条未读变更` : "");
   read.disabled = !unread.length;

@@ -265,7 +265,7 @@ function planPriceLabel(p, billing = "M") {
 /* 严格限制轴标签占宽，窄屏仍保留价格柱；完整名称在 tooltip 和数据表中查看。 */
 function chartAxisLabel(hostEl, fontSize = 12.5, measuredWidth = 0) {
   const width = measuredWidth || hostEl.getBoundingClientRect().width || window.innerWidth - 72;
-  return { color: PAL.catLabel, fontSize: width < 480 ? 10.5 : fontSize,
+  return { color: PAL.catLabel, fontSize: hostEl.id === "chartPublicBenchmark" ? fontSize : width < 480 ? 10.5 : fontSize,
     width: Math.max(60, Math.min(width < 480 ? 110 : 260, width * 0.34)),
     overflow: "truncate", margin: 8 };
 }
@@ -335,7 +335,7 @@ function makeChart(id) {
 }
 let resizeTimer;
 const pendingChartResizes = new Set();
-const CHART_AXIS_FONT_SIZE = { chartPersonal: 12.5, chartTeam: 12.5, chartTokens: 11.5, chartApi: 11, chartPower: 11, chartRank: 11.5 };
+const CHART_AXIS_FONT_SIZE = { chartPersonal: 12.5, chartTeam: 12.5, chartTokens: 11.5, chartApi: 11, chartPower: 11, chartRank: 11.5, chartPublicBenchmark: 12 };
 /* 缩放只更新实际尺寸变化的可见画布，不重新筛数据或重建图例。
    离屏画布保留待处理标记，滚入阅读区时再补齐尺寸和轴标签宽度。 */
 function resizeVisibleCharts() {
@@ -411,7 +411,8 @@ function tipStyle(hostEl) {
     borderColor: PAL.tipBorder,
     borderWidth: 1,
     textStyle: { color: PAL.tipText, fontSize: 12.5 },
-    appendToBody: true,
+    // 随图表所属标签收起，避免旧提示坐标撑高切换后的页面。
+    appendToBody: false,
     extraCssText: "max-width: min(420px, calc(100vw - 24px)); white-space: normal; overflow-wrap: anywhere; z-index: 2000;",
     position(point, _params, _el, _rect, size) {
       const box = hostEl.getBoundingClientRect();
@@ -529,7 +530,7 @@ function applyTheme(mode) {
 }
 function rerenderCharts() {
   const renderers = { chartPersonal: renderPersonalChart, chartTeam: renderTeamChart,
-    chartTokens: renderTokensChart, chartApi: renderApiChart, chartRank: renderRankChart };
+    chartTokens: renderTokensChart, chartApi: renderApiChart, chartRank: renderRankChart, chartPublicBenchmark: renderPublicBenchmarkChart };
   Object.entries(renderers).forEach(([id, render]) => {
     if (!chartCache[id]) return;
     /* 单图失败不中断其余图的重绘（主题切换/历史恢复会一次重画全部） */

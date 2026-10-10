@@ -30,9 +30,8 @@ function syncPresetButtons() {
 }
 function syncServiceControls() {
   for (const [key,id] of Object.entries(COST_CONTROLS)) { const el = byId(id); if (el) el.value = calcState[key]; }
-  const tasks = { hard:"复杂任务为主", daily:"日常为主", both:"复杂和日常都有" };
-  const summary = byId("pickerAdvancedSummary");
-  if (summary) summary.textContent = "工具与任务：" + SERVICE_TOOL_LABELS[pickerState.tool] + " · " + tasks[pickerState.task];
+  const payment = byId("pickerPaymentSummary");
+  if (payment) payment.textContent = "付款：" + PICKER_BILLING_LABELS[pickerState.billing] + (pickerState.billing === "Y" ? "（按折月预算）" : "");
   syncCostChips();
   syncPickerScopeControls();
 }
@@ -293,9 +292,8 @@ function showPlanDetails(id, trigger = null) {
   focusTableControl(byId("planDetailsCloseBtn"));
 }
 function bindServiceEvents() {
-  const hero = byId("heroDetails"), advanced = byId("pickerAdvanced");
-  if (hero) hero.open = window.innerWidth > 700;
-  if (advanced) advanced.open = window.innerWidth > 700 || pickerState.tool !== "any" || pickerState.task !== "both";
+  const payment = byId("pickerPayment");
+  if (payment) payment.open = pickerState.billing !== "M";
   [["shareResultsBtn",shareCurrentResults],["savePresetBtn",savePreset],["loadPresetBtn",restorePreset],["clearPresetBtn",clearPreset],["checkWorkloadBtn",openWorkloadCalculator]].forEach(([id,fn]) => { const b = byId(id); if (b) b.addEventListener("click", fn); });
   const select = byId("costModel");
   if (select) select.innerHTML = API_PRICES.filter((a) => isPriceConfirmed(a,"api")).map((a) => `<option value="${esc(a.vendor + "|" + a.model)}">${esc(a.vendor + " · " + displayModelName(a.label || a.model))}</option>`).join("");

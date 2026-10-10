@@ -18,7 +18,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <script src="js/theme-init.js?v=6414a56"></script>
   <link rel="stylesheet" href="libs/fonts/fonts.css?v=17da4b4">
-  <link rel="stylesheet" href="css/style.css?v=6c4dd69">
+  <link rel="stylesheet" href="css/style.css?v=ae84024">
 </head>
 <body>
 <div id="loadFailure" class="load-failure" role="alert" hidden>
@@ -46,12 +46,11 @@
   <section class="hero">
     <div class="hero-inner">
       <span class="prompt-mark" aria-hidden="true">&gt;_</span>
-      <h1><span>全球 Coding Plan</span><span>价格与额度对比。</span></h1>
-      <p class="hero-lede">按预算与工具选编程订阅，比较费用和额度，核对购买条件。</p>
-      <p class="hero-meta">数据版本 <strong id="heroDate">2026-10-09</strong> · USD/CNY <span id="rateText">6.71</span></p>
-      <a class="hero-start" href="#quick">查看适合我的方案 ↓</a>
+      <h1>Coding Plan 比价中心</h1>
+      <p class="hero-meta">数据版本 <strong id="heroDate">2026-10-09</strong></p>
       <details class="hero-details" id="heroDetails">
-        <summary>查看数据覆盖与核价信息</summary>
+        <summary>数据覆盖与核价信息</summary>
+        <p class="hero-meta">参考汇率 USD/CNY <span id="rateText">6.71</span></p>
         <p class="hero-meta" id="priceAuditSummary"></p>
         <dl class="stats-row" id="statsRow"></dl>
       </details>
@@ -67,43 +66,54 @@
     <div class="picker" id="picker">
       <div class="picker-row" data-pick="budget" role="group" aria-label="预算">
         <span class="picker-label">预算</span>
+        <div class="picker-options">
         <button type="button" class="chip" data-value="0" aria-pressed="false">免费</button>
         <button type="button" class="chip" data-value="100" aria-pressed="false">≤ ¥100</button>
         <button type="button" class="chip active" data-value="200" aria-pressed="true">≤ ¥200</button>
         <button type="button" class="chip" data-value="500" aria-pressed="false">≤ ¥500</button>
         <button type="button" class="chip" data-value="any" aria-pressed="false">不限</button>
+        </div>
       </div>
       <div class="picker-row" data-pick="region" role="group" aria-label="地区">
         <span class="picker-label">地区</span>
+        <div class="picker-options">
         <button type="button" class="chip active" data-value="cn" aria-pressed="true">国内</button>
         <button type="button" class="chip" data-value="intl" aria-pressed="false">国际</button>
         <button type="button" class="chip" data-value="all" aria-pressed="false">不限</button>
+        </div>
       </div>
-      <div class="picker-row" data-pick="billing" role="group" aria-label="支付方式">
-        <span class="picker-label">支付方式</span>
-        <button type="button" class="chip active" data-value="M" aria-pressed="true">月付标价</button>
-        <button type="button" class="chip" data-value="A" aria-pressed="false">自动续费</button>
-        <button type="button" class="chip" data-value="Y" aria-pressed="false">年付（折月预算）</button>
-      </div>
-      <p id="pickerBillingNote" class="maintenance-meta">年付按月均比预算，首期支付全年；自动续费只列有明确金额依据的档位。</p>
-      <details class="picker-advanced" id="pickerAdvanced">
-      <summary id="pickerAdvancedSummary">工具与任务：不限 · 复杂和日常都有</summary>
-      <div class="picker-advanced-grid">
+      <div class="picker-task-controls picker-advanced-grid">
       <div class="picker-row" data-pick="tool" role="group" aria-label="工具">
         <span class="picker-label">工具</span>
+        <div class="picker-options">
         <button type="button" class="chip active" data-value="any" aria-pressed="true">不限</button>
         <button type="button" class="chip" data-value="claude" aria-pressed="false">Claude Code</button>
         <button type="button" class="chip" data-value="codex" aria-pressed="false">Codex</button>
         <button type="button" class="chip" data-value="cursor" aria-pressed="false">Cursor</button>
-        <button type="button" class="chip" data-value="own" aria-pressed="false">自家客户端</button>
+        <button type="button" class="chip" data-value="own" aria-pressed="false">自家工具</button>
+        </div>
       </div>
       <div class="picker-row" data-pick="task" role="group" aria-label="任务">
         <span class="picker-label">任务</span>
-        <button type="button" class="chip" data-value="hard" aria-pressed="false">以复杂任务为主</button>
-        <button type="button" class="chip active" data-value="both" aria-pressed="true">复杂和日常都有</button>
-        <button type="button" class="chip" data-value="daily" aria-pressed="false">以日常为主</button>
+        <div class="picker-options">
+        <button type="button" class="chip" data-value="hard" aria-pressed="false">复杂为主</button>
+        <button type="button" class="chip active" data-value="both" aria-pressed="true">复杂和日常</button>
+        <button type="button" class="chip" data-value="daily" aria-pressed="false">日常为主</button>
+        </div>
       </div>
+      <p class="picker-hint">Claude Code / Codex 包含第三方兼容接入。</p>
       </div>
+      <details class="picker-payment" id="pickerPayment">
+        <summary id="pickerPaymentSummary">付款：月付标价</summary>
+        <div class="picker-row" data-pick="billing" role="group" aria-label="支付方式">
+          <span class="picker-label">支付方式</span>
+          <div class="picker-options">
+          <button type="button" class="chip active" data-value="M" aria-pressed="true">月付标价</button>
+          <button type="button" class="chip" data-value="A" aria-pressed="false">自动续费</button>
+          <button type="button" class="chip" data-value="Y" aria-pressed="false">年付</button>
+          </div>
+        </div>
+        <p id="pickerBillingNote" class="maintenance-meta">年付按月均比预算，首期支付全年；自动续费只列有明确金额依据的档位。</p>
       </details>
     </div>
     <div class="service-actions" role="group" aria-label="分享和保存筛选条件">
@@ -113,6 +123,7 @@
       <button type="button" class="chip" id="clearPresetBtn" disabled>删除已保存条件</button>
     </div>
     <p id="serviceFeedback" class="table-feedback" role="status" aria-live="polite"></p>
+    <p id="pickerPolicy" class="maintenance-meta" role="status" aria-live="polite"></p>
     <div class="quick-grid" id="quickGrid"></div>
     <button type="button" class="chip workload-check" id="checkWorkloadBtn">按我的用量核对</button>
     <p class="chart-note" id="pickerNote" role="status" aria-live="polite" aria-atomic="true"></p>
@@ -136,7 +147,7 @@
   <section class="section" id="rank">
     <div class="section-head">
       <h2 id="rankTitle"><span class="sec-no">02</span>每百万 tokens 满额使用折算成本（目录月付标价）</h2>
-      <p>本区支付口径月均价 ÷ 参考月 tokens 区间中点；未应用选购条件时采用目录月付标价。假设参考额度全部用满，用量较少时实际每百万成本更高。推荐卡按区间下限保守比较。默认看旗舰模型与新用户可购买套餐，包含官方口径折算及第三方估算。目前没有厂商直接公布可跨家比较的每周 tokens，所有 tokens 都按统一的 80/20、95% 缓存假设折算：实心柱依据官方额度规则（积分系数、credits 面值或官方区间，置信中），斜纹柱为第三方或请求次数估算（置信低）。估算区间不代表等效模型质量或保证可用额度；可收紧到「官方口径折算」核对。</p>
+      <p>按参考额度全部用满折算每百万 tokens 成本；用量较少时实际成本更高。实心柱依据官方额度规则，斜纹柱为第三方或请求次数估算，不代表模型质量或保证可用额度。</p>
     </div>
     <div class="controls">
       <div class="chip-group" id="chipRank" role="group" aria-label="模型档">
@@ -155,6 +166,7 @@
     <p class="chart-note" id="rankNote"></p>
     <details class="method-box" id="rankDetails">
       <summary id="rankDetailsSummary">查看当前口径的完整排行明细</summary>
+      <p class="maintenance-meta">每百万 tokens 成本：绿色 ≤ ¥0.30、黄色 ≤ ¥1、红色 &gt; ¥1；与额度深度对比使用相同阈值。置信度另列高 / 中 / 低，不代表成本高低。</p>
       <div class="table-wrap" tabindex="0" role="region" aria-label="成本排行明细，可横向滚动">
         <table id="rankDetailTable">
           <caption class="sr-only">与当前模型档和排行口径一致的全部套餐</caption>
@@ -165,6 +177,7 @@
     </details>
     <details class="method-box assumptions-box">
       <summary>计算假设与购买前要核对的内容</summary>
+      <p>本区支付口径月均价 ÷ 参考月 tokens 区间中点；未应用选购条件时采用目录月付标价。推荐卡按区间下限保守比较。默认看旗舰模型与新用户可购买套餐，包含官方口径折算及第三方估算。目前没有厂商直接公布可跨家比较的每周 tokens；实心柱依据积分系数、credits 面值或官方区间（置信中），斜纹柱为第三方或请求次数估算（置信低）。可收紧到「官方口径折算」核对。</p>
       <p>牌价折算采用 80% 输入 / 20% 输出、输入缓存命中率 95%，每月按 4.33 周。缓存率较低或输出更多时，按量费用会更高，credits 能换到的 tokens 会更少。官方 token 区间、官方折算和社区估算分别标注；窗口均摊量不代表厂商承诺的上限。每百万成本不代表模型质量、速度或服务稳定性。</p>
       <p>推荐价格是套餐费用；平台免费但推理另计、一次性购买、每席位收费和地区限制会单独注明。点击结果附近的来源核对当前价格和权益。</p>
     </details>
@@ -443,50 +456,40 @@
     </details>
   </section>
 
-  <section class="section" id="updates">
-    <div class="section-head"><h2><span class="sec-no">11</span>我的关注与套餐变更</h2><p>查看关注套餐的已确认变更，核对价格来源与复查安排。<a href="changes.xml">订阅变更 RSS ↗</a></p></div>
-    <p id="maintenanceDataStatus" class="table-feedback optional-data-status" role="status" aria-live="polite"></p>
-    <div class="maintenance-panel" id="maintenanceSummary"></div>
-    <div class="maintenance-toolbar"><button type="button" class="chip" id="downloadPublicDataBtn">下载公开数据 JSON</button><span class="maintenance-meta">schemaVersion 1 · 价格、核查、已确认历史与测评规范</span></div>
-    <p id="publicDataFeedback" class="table-feedback" role="status" aria-live="polite"></p>
-    <div class="maintenance-grid">
-      <div class="maintenance-panel">
-        <h3>我关注的套餐</h3>
-        <p id="followStorageNote"></p>
-        <div class="maintenance-toolbar"><strong id="followUnreadCount"></strong><button type="button" class="chip" id="markFollowReadBtn" disabled>将当前变更标为已读</button></div>
-        <p id="followFeedback" class="table-feedback" role="status" aria-live="polite"></p>
-        <div id="followedPlans"></div><div id="followedChanges"></div>
-      </div>
-      <div class="maintenance-panel">
-        <h3>查看套餐历史</h3>
-        <label class="maintenance-select" for="maintenancePlan">选择套餐<select id="maintenancePlan"><option value="">选择套餐</option></select></label>
-        <div id="maintenanceHistory"></div>
-        <details class="method-box"><summary>到期复查提示</summary><div id="maintenanceReviews"></div></details>
-      </div>
-    </div>
-    <details class="method-box"><summary>逐条维护状态与来源</summary><label class="maintenance-select" for="maintenanceRecordFilter">记录范围<select id="maintenanceRecordFilter"><option value="all">全部记录</option><option value="unverified">待核实</option><option value="stale">超过复查间隔</option></select></label><div id="maintenanceRecords"></div></details>
-    <p class="maintenance-meta">核查快照与已确认变更由维护脚本整理。变价候选、资讯与到期提示需复核；没有证据时不自动更新官方价格。</p>
-  </section>
-
   <section class="section" id="benchmarks">
-    <div class="section-head"><h2><span class="sec-no">12</span>模型公开评测</h2><p>查看公开来源的模型分数、评测配置与范围。每个版本和协议独立展示，不合成跨榜总分。</p></div>
+    <div class="section-head"><h2><span class="sec-no">11</span>模型公开评测</h2><p>查看公开来源的模型分数、评测配置与范围。每个版本和协议独立展示，不合成跨榜总分。</p></div>
     <p id="benchmarkDataStatus" class="table-feedback optional-data-status" role="status" aria-live="polite"></p>
     <div class="maintenance-panel public-benchmark-panel">
       <div class="public-benchmark-controls">
         <label class="maintenance-select" for="publicBenchmarkFamily">评测用途<select id="publicBenchmarkFamily"></select></label>
-        <label class="maintenance-select" for="publicBenchmarkSelect">评测协议<select id="publicBenchmarkSelect"></select></label>
+        <label class="maintenance-select" for="publicBenchmarkSelect">版本与评测协议<select id="publicBenchmarkSelect"></select></label>
         <label class="maintenance-select" for="publicBenchmarkMode">配置展示<select id="publicBenchmarkMode"><option value="best">每模型最佳配置</option><option value="all">全部配置</option></select></label>
         <label class="maintenance-select" for="publicModelSearch">模型或配置关键词<input type="search" id="publicModelSearch" class="search-input" maxlength="200" placeholder="例如模型名、推理档位或 Agent"></label>
         <button type="button" class="chip" id="publicModelClearBtn" disabled>清除搜索</button>
       </div>
       <div id="publicBenchmarkMeta"></div>
       <p id="publicBenchmarkModeNote" class="maintenance-meta"></p>
-      <div class="maintenance-toolbar"><strong id="publicBenchmarkCount" role="status" aria-live="polite"></strong><button type="button" class="chip" id="downloadPublicBenchmarkCsvBtn">下载当前榜 CSV</button><button type="button" class="chip" id="downloadPublicBenchmarkJsonBtn">下载全部评测 JSON</button></div>
-      <p id="publicBenchmarkFeedback" class="table-feedback" role="status" aria-live="polite"></p>
+      <p id="publicBenchmarkCount" class="maintenance-meta" role="status" aria-live="polite"></p>
+      <div id="publicBenchmarkChartWrap" class="public-benchmark-chart" hidden>
+        <div class="public-chart-toolbar">
+          <div class="chip-group" role="group" aria-label="评测图表指标">
+            <button type="button" class="chip active" data-public-chart="score" aria-pressed="true">排名分数</button>
+            <button type="button" class="chip" data-public-chart="cost" aria-pressed="false">每任务成本</button>
+          </div>
+          <label class="public-chart-limit" for="publicBenchmarkChartLimit">图表条数<select id="publicBenchmarkChartLimit" class="select"><option value="10">前 10 条</option><option value="20" selected>前 20 条</option><option value="all">全部匹配</option></select></label>
+        </div>
+        <p id="publicBenchmarkChartNote" class="maintenance-meta"></p>
+        <div id="publicBenchmarkChartLegend" class="public-chart-legend" aria-label="模型系列配色"></div>
+        <div class="public-chart-plot" role="region" aria-label="当前评测协议的模型排名图表">
+          <div id="chartPublicBenchmark" class="chart" role="img" aria-label="模型评测排名"></div>
+        </div>
+      </div>
       <p id="publicBenchmarkEmpty" class="benchmark-empty" hidden></p>
       <div class="table-wrap public-benchmark-wrap" id="publicBenchmarkWrap" tabindex="0" role="region" aria-label="公开模型评测成绩，窄屏可横向滚动">
         <table id="publicBenchmarkTable"><caption id="publicBenchmarkCaption">公开模型评测</caption><thead><tr><th scope="col">本协议名次</th><th scope="col">模型与配置</th><th scope="col">分数</th><th scope="col">评测每任务成本</th><th scope="col">来源与核查</th></tr></thead><tbody id="publicBenchmarkBody"></tbody></table>
       </div>
+      <div class="maintenance-toolbar"><button type="button" class="chip" id="downloadPublicBenchmarkCsvBtn">下载当前榜 CSV</button><button type="button" class="chip" id="downloadPublicBenchmarkJsonBtn">下载全部评测 JSON</button></div>
+      <p id="publicBenchmarkFeedback" class="table-feedback" role="status" aria-live="polite"></p>
       <p class="maintenance-meta">分数显示到 1 位小数，成本显示到 2 位；导出保留原始精度。区间沿用来源，接近的分数不代表可靠领先；未公布的区间不补算。套餐链接只匹配模型列表明确列出该版本的在售档位，不保证订阅能使用评测的推理与 Agent 配置。原始模型 ID 与完整区间在「配置与评测说明」中。</p>
     </div>
     <details class="method-box public-benchmark-guide"><summary>这些榜单适合回答什么问题？</summary><p>DeepSWE 与 CursorBench 聚焦代码任务，但各自的任务集、Agent、评分与版本不同，应在同一协议内比较。OSWorld 是图形界面操作任务，关注桌面与应用交互；HLE 是综合学术题目，关注知识与推理。GUI 或学术分数不能直接当成编程任务表现。</p><p>请同时查看版本、样本范围、是否使用工具及推理配置。分数说明来源中的评测条件，不保证你的具体任务、工具或套餐能获得同样结果。</p></details>
@@ -506,6 +509,34 @@
     </details>
   </section>
 
+  <section class="section" id="updates">
+    <div class="section-head"><h2><span class="sec-no">12</span>我的关注与套餐变更</h2><p>查看关注套餐的已确认变更，核对价格来源与复查安排。<a href="changes.xml">订阅变更 RSS ↗</a></p></div>
+    <p id="maintenanceDataStatus" class="table-feedback optional-data-status" role="status" aria-live="polite"></p>
+    <div class="maintenance-grid">
+      <div class="maintenance-panel">
+        <h3>我关注的套餐</h3>
+        <p id="followStorageNote"></p>
+        <div class="maintenance-toolbar"><strong id="followUnreadCount"></strong><button type="button" class="chip" id="markFollowReadBtn" disabled>将当前变更标为已读</button></div>
+        <p id="followFeedback" class="table-feedback" role="status" aria-live="polite"></p>
+        <div id="followedPlans"></div><div id="followedChanges"></div>
+      </div>
+      <div class="maintenance-panel">
+        <h3>查看套餐历史</h3>
+        <label class="maintenance-select" for="maintenancePlan">选择套餐<select id="maintenancePlan"><option value="">选择套餐</option></select></label>
+        <div id="maintenanceHistory"></div>
+        <details class="method-box"><summary>到期复查提示</summary><div id="maintenanceReviews"></div></details>
+      </div>
+    </div>
+    <details class="method-box" id="maintenanceSnapshot">
+      <summary>数据核查概况与下载</summary>
+      <div class="maintenance-panel" id="maintenanceSummary"></div>
+      <div class="maintenance-toolbar"><button type="button" class="chip" id="downloadPublicDataBtn">下载公开数据 JSON</button><span class="maintenance-meta">价格、核查、已确认历史与评测记录</span></div>
+      <p id="publicDataFeedback" class="table-feedback" role="status" aria-live="polite"></p>
+    </details>
+    <details class="method-box"><summary>逐条维护状态与来源</summary><label class="maintenance-select" for="maintenanceRecordFilter">记录范围<select id="maintenanceRecordFilter"><option value="all">全部记录</option><option value="unverified">待核实</option><option value="stale">超过复查间隔</option></select></label><div id="maintenanceRecords"></div></details>
+    <p class="maintenance-meta">核查快照与已确认变更由维护脚本整理。变价候选、资讯与到期提示需复核；没有证据时不自动更新官方价格。</p>
+  </section>
+
   <section class="section" id="contribute">
     <div class="section-head"><h2><span class="sec-no">13</span>帮助补全与纠错</h2><p>提交新厂商、官方变更证据或可复现测评，帮助其他人做选择。</p></div>
     <div class="maintenance-panel">
@@ -518,7 +549,7 @@
     </div>
   </section>
 
-  <!-- ======== 11 数据来源与说明 ======== -->
+  <!-- ======== 14 数据来源与说明 ======== -->
   <section class="section" id="sources">
     <div class="section-head"><h2><span class="sec-no">14</span>数据来源与说明</h2></div>
     <div class="grid-2">
@@ -586,18 +617,18 @@
 <script src="js/app-loader.js?v=0127d10"></script>
 <script src="js/data.js?v=2a74081"></script>
 <script id="maintenanceDataSource" type="application/json" src="js/maintenance-data.js?v=18ab18e"></script>
-<script id="benchmarkDataSource" type="application/json" src="js/benchmark-data.js?v=f435fdd"></script>
-<script src="js/benchmark-summary.js?v=69b3f55"></script>
+<script id="benchmarkDataSource" type="application/json" src="js/benchmark-data.js?v=72a0f38"></script>
+<script src="js/benchmark-summary.js?v=23e7cab"></script>
 <script src="js/project-data.js?v=b9931ec"></script>
 <script src="js/metrics.js?v=54c36b6"></script>
-<script src="js/app-core.js?v=d211796"></script>
+<script src="js/app-core.js?v=047b09d"></script>
 <script src="js/app-state.js?v=aca5130"></script>
-<script src="js/app-charts.js?v=7c5af65"></script>
-<script src="js/app-picker.js?v=5853a95"></script>
+<script src="js/app-charts.js?v=e0949db"></script>
+<script src="js/app-picker.js?v=0dd5ac6"></script>
 <script src="js/app-tables.js?v=4221aa5"></script>
-<script src="js/app-service.js?v=c0fef88"></script>
-<script src="js/app-maintenance.js?v=8b0652a"></script>
+<script src="js/app-service.js?v=f3b7f1b"></script>
+<script src="js/app-maintenance.js?v=e8206b3"></script>
 <script src="js/app-events.js?v=4d88383"></script>
-<script src="js/app-init.js?v=c0a790c"></script>
+<script src="js/app-init.js?v=268100a"></script>
 </body>
 </html>

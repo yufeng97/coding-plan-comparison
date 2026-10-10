@@ -9,8 +9,11 @@ test("手机首屏展示主推荐，首屏和帮我选无需下载图表库", as
   await expect(page.locator("#quickGrid > .quick-card").first()).toBeVisible();
   const top = await page.locator("#quickGrid").evaluate((e) => e.getBoundingClientRect().top);
   expect(top).toBeLessThan(812);
+  await expect(page.locator('#picker [data-pick="tool"]')).toBeVisible();
+  await expect(page.locator('#picker [data-pick="task"]')).toBeVisible();
+  await expect(page.locator('#pickerPayment')).not.toHaveAttribute("open", "");
   expect(charts).toEqual([]);
-  await page.locator(".hero-start").click();
+  await page.getByRole("navigation", { name:"主要内容" }).getByRole("link", { name:"选套餐", exact:true }).click();
   expect(charts).toEqual([]);
   await page.locator("#sectionMenu").evaluate((menu) => { /** @type {HTMLDetailsElement} */ (menu).open = true; });
   await page.getByRole("navigation", { name:"页面章节" }).getByRole("link", { name:"性价比排行", exact:true }).click();

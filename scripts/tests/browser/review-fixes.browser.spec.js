@@ -131,6 +131,8 @@ for (const width of [375, 1280]) {
     await page.goto("/?budget=200&region=intl&task=hard#quick");
     const card = page.locator("#quickGrid .quick-card").first();
     const bench = card.locator(".qc-bench");
+    await expect(bench).toBeHidden();
+    await card.locator(".qc-details > summary").click();
     await expect(bench).toBeVisible();
     await expect(bench.locator("li").first()).toContainText(/第 \d+\/\d+ 名/);
     await expect(bench).toContainText("不参与推荐排序");

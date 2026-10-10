@@ -358,7 +358,8 @@ const mainCardHtml = (app) => app.elements.get("quickGrid").innerHTML.split('<di
 test("首屏评测摘要与评测页「每模型最佳配置」的模型、分数和名次逐行一致", () => {
   const app = createApp();
   const protocols = plain(app.run("BENCHMARK_SUMMARY.protocols"));
-  assert.deepEqual(protocols.map((p) => p.family), ["deepswe", "cursorbench", "SWE-bench"]);
+  assert.deepEqual([...new Set(protocols.map((p) => p.family))], ["deepswe", "cursorbench", "SWE-bench"]);
+  assert.deepEqual(protocols.filter((p) => p.family === "deepswe").map((p) => p.version), ["1.1", "1"]);
   for (const protocol of protocols) {
     app.run(`publicBenchmarkState = { id: ${JSON.stringify(protocol.id)}, family: ${JSON.stringify(protocol.family)}, search: "", mode: "best" }`);
     assert.deepEqual(plain(app.run("publicBenchmarkRows().map(r => [r.model, r.score, r.rank])")), protocol.rows.map((r) => [r.model, r.score, r.rank]), protocol.id);
@@ -407,6 +408,185 @@ test("同档候选的额度都无法折算时，主卡写明按月费较低选�
   /* 有可折算额度时按额度说明。 */
   assert.equal(plain(state("cn", "200")).decided, false);
   assert.match(mainCardHtml(app), /<li>按官方额度规则折算，保守参考下限/);
+  healthy(app);
+});
+
+test("国内 Claude Code 不限预算使用 Max 20x 作国际参考，与主计划共用额度选档规则", () => {
+  const app = createApp({ url:"http://127.0.0.1:8123/?budget=any&region=cn&tool=claude&task=hard" });
+  const result = app.run(`(() => {
+    const main = chooseMain(eligibleProfiles()), picked = ownVendorPlan("Anthropic");
+    const own = planProfile(picked.plan);
+    return { mainVendor:main.p.vendor, mainRegion:main.p.region, ownId:picked.plan.id, ownPrice:picked.plan.priceM,
+      ownRegionMiss:picked.regionMiss, ownBudget:picked.withinBudget, tokens:knownTokens(own.p, own.headline),
+      mainCard:mainCard(main, eligibleProfiles()), ownCard:ownVendorCard(main) };
+  })()`);
+  assert.equal(result.mainVendor, "智谱 BigModel");
+  assert.equal(result.mainRegion, "cn");
+  assert.equal(result.ownId, "plan-0004");
+  assert.equal(result.ownPrice, 200);
+  assert.equal(result.ownRegionMiss, true);
+  assert.equal(result.ownBudget, true);
+  assert.equal(result.tokens, 0, "未公开 token 量时不按月费制造额度");
+  assert.match(result.mainCard, /Claude Code 兼容接入 · GLM-5\.3/);
+  assert.match(result.mainCard, /支持 Claude Code 不代表附赠 Claude 模型/);
+  assert.match(result.ownCard, /Anthropic 国际参考/);
+  assert.match(result.ownCard, /Claude Max 20x/);
+  assert.match(result.ownCard, /<em>\$200<\/em>\/月/);
+  assert.match(result.ownCard, /与主计划采用相同规则/);
+  assert.match(result.ownCard, /当前地区不符合；此卡仅供参考/);
+  const card = app.elements.get("quickGrid").querySelector('[data-plan-id="plan-0004"]').closest(".quick-card");
+  const tiers = card.querySelector(".qc-tiers");
+  assert.equal(tiers.querySelectorAll("tbody tr").length, 3);
+  assert.match(result.ownCard, /Claude Pro|Claude Max 5x|Claude Max 20x/);
+  assert.match(result.ownCard, /20× Pro/);
+  assert.match(result.ownCard, /当前参考|地区外参考/);
+  healthy(app);
+});
+
+test("自家订阅有限预算按可负担额度选档，预算过低和缺少年价均保留参考边界", () => {
+  const app = createApp();
+  const picked = (budget, billing = "M", region = "cn", task = "hard") => app.run(`(() => {
+    Object.assign(pickerState, { budget:${JSON.stringify(budget)}, billing:${JSON.stringify(billing)},
+      region:${JSON.stringify(region)}, tool:"claude", task:${JSON.stringify(task)} });
+    const own = ownVendorPlan("Anthropic");
+    return { id:own.plan.id, fit:own.withinBudget, regionMiss:own.regionMiss,
+      quote:pickerPaymentQuote(own.plan), card:ownVendorCard(chooseMain(eligibleProfiles())) };
+  })()`);
+  for (const budget of ["200", "500"]) {
+    const p = picked(budget);
+    assert.equal(p.id, "plan-0002");
+    assert.equal(p.fit, true);
+    assert.match(p.card, /先满足当前预算/);
+  }
+  for (const budget of ["0", "100"]) {
+    const p = picked(budget);
+    assert.equal(p.id, "plan-0002");
+    assert.equal(p.fit, false);
+    assert.match(p.card, /高于当前预算/);
+    assert.match(p.card, /月费最低的一档作参考/);
+  }
+  const max5 = picked("1000");
+  assert.equal(max5.id, "plan-0003");
+  assert.equal(max5.fit, true);
+  const annual = picked("any", "Y");
+  assert.equal(annual.id, "plan-0002", "Max 未公开年价，不进入年付预算选档");
+  assert.equal(annual.quote.firstNative, 200);
+  assert.equal(annual.quote.periodMonths, 12);
+  assert.doesNotMatch(annual.card, /Claude Max 20x/);
+  for (const task of ["hard", "both", "daily"]) {
+    const domestic = picked("any", "M", "cn", task);
+    const international = picked("any", "M", "intl", task);
+    assert.equal(domestic.id, "plan-0004", task);
+    assert.equal(domestic.regionMiss, true);
+    assert.equal(international.id, "plan-0004", task);
+    assert.equal(international.regionMiss, false);
+    assert.equal(app.run('ownVendorPlan("Anthropic").plan.id === chooseMain(PLANS.filter(p => p.vendor === "Anthropic" && withinBudget(p)).map(planProfile)).p.id'), true, task);
+    assert.equal(app.run('ownVendorCard(planProfile(findPlanReference("plan-0004")))'), null, "原生主卡已展示时不重复同一厂商参考");
+  }
+  healthy(app);
+});
+
+test("自家订阅不把更高月费当作更大额度，额度相同仍选较低月费", () => {
+  const app = createApp();
+  const picked = app.run(`(() => {
+    Object.assign(pickerState, { budget:"any", region:"cn", tool:"claude", task:"hard", billing:"M" });
+    PLANS.push({ ...findPlanReference("plan-0004"), id:"fixture-native-expensive", plan:"Claude Personal Premium", priceM:300 });
+    return ownVendorPlan("Anthropic").plan.id;
+  })()`);
+  assert.equal(picked, "plan-0004");
+  healthy(app);
+});
+
+test("推荐显示套餐明确支持的 GLM 与 GPT Sol 版本，不用用途角色的新版本冒充", () => {
+  const app = createApp();
+  const name = (id) => app.run(`(() => { const p = findPlanReference(${JSON.stringify(id)}); return roleDisplayName(p, planProfile(p).headline); })()`);
+  assert.equal(name("plan-0157"), "GLM-5.3");
+  assert.equal(name("plan-0088"), "GLM-5.2");
+  assert.equal(name("plan-0202"), "GLM-5");
+  assert.equal(name("plan-0082"), "GLM-5");
+  assert.equal(name("plan-0069"), "GPT-5.6 Sol");
+  assert.equal(name("plan-0070"), "GPT-5.6 Sol");
+  assert.equal(name("plan-0010"), "GPT-6.1 Sol");
+  assert.equal(name("plan-0011"), "GPT-6.1 Sol", "GPT 全系括号内的明确 Sol 版本可显示");
+  const card = app.run('mainCard(planProfile(findPlanReference("plan-0088")), eligibleProfiles())');
+  assert.match(card, /GLM-5\.2 适合复杂编码任务/);
+  assert.doesNotMatch(card, /GLM-5\.3/);
+  const denied = app.run(`(() => {
+    const p = { ...findPlanReference("plan-0157"), models:"GLM-5.2、GLM-5.2-Flash；不含 GLM-5.3", modelExcludes:["GLM-5.3"] };
+    return roleDisplayName(p, MODEL_ROLES.find(r => r.id === "glm-5"));
+  })()`);
+  assert.equal(denied, "GLM-5.2", "被明确排除的较新版本不能成为显示名称");
+  healthy(app);
+});
+
+test("Luna 与 Astra 显示本档版本，支持官方简称并保留未公开系列", () => {
+  const app = createApp();
+  const name = (id, roleId) => app.run(`roleDisplayName(findPlanReference(${JSON.stringify(id)}), MODEL_ROLES.find(r => r.id === ${JSON.stringify(roleId)}))`);
+  assert.equal(name("plan-0040", "luna"), "GPT-5.6 Luna", "OpenCode Go 的 5.6 Luna 不能显示角色默认 6 Luna");
+  assert.equal(name("plan-0008", "luna"), "GPT-6 Luna");
+  assert.equal(name("plan-0010", "luna"), "GPT-6 Luna", "Luna 简称继承前一个明确 GPT 模型版本");
+  assert.equal(name("plan-0010", "gpt-astra"), "GPT-6 Astra");
+  assert.equal(name("plan-0011", "luna"), "GPT-6 Luna", "GPT 全系括号内的 Luna 版本可显示");
+  assert.equal(name("plan-0011", "gpt-astra"), "GPT-6 Astra");
+  const denied = app.run(`(() => {
+    const p = { ...findPlanReference("plan-0010"), models:"GPT-5.6 Astra / GPT-5.6 Luna；不含 GPT-6 Astra / GPT-6 Luna", modelExcludes:["GPT-6 Astra","GPT-6 Luna"] };
+    return ["gpt-astra","luna"].map(id => roleDisplayName(p, MODEL_ROLES.find(r => r.id === id)));
+  })()`);
+  assert.deepEqual(JSON.parse(JSON.stringify(denied)), ["GPT-5.6 Astra","GPT-5.6 Luna"]);
+  const unknown = app.run(`(() => {
+    const p = { ...findPlanReference("plan-0010"), models:"GPT 系列" };
+    return ["gpt-sol","gpt-astra","luna"].map(id => roleDisplayName(p, MODEL_ROLES.find(r => r.id === id)));
+  })()`);
+  assert.deepEqual(JSON.parse(JSON.stringify(unknown)), ["GPT Sol 系列","GPT Astra 系列","GPT Luna 系列"]);
+  const models = app.run('planCodingBenchmarks(findPlanReference("plan-0040"), MODEL_ROLES.find(r => r.id === "luna")).map(hit => publicModelDisplayName(hit.row.model))');
+  assert.ok(models.length && models.every(model => model === "GPT-5.6 Luna"), "评测仍只匹配权益中的 5.6 Luna");
+  healthy(app);
+});
+
+test("套餐卡先展示付款简句和可操作按钮，全年费用、评测和档位表在详情中", () => {
+  const app = createApp({ url:"http://127.0.0.1:8123/?budget=any&region=cn&tool=claude&task=hard" });
+  const grid = app.elements.get("quickGrid");
+  const cards = grid.querySelectorAll(".quick-card");
+  for (const card of cards) {
+    const summary = card.querySelector(".qc-payment-summary");
+    assert.equal(summary.closest(".qc-details"), null);
+    assert.match(summary.textContent, /首次.*按当前价续期/);
+    assert.doesNotMatch(summary.textContent, /12 个月|费用情景|续费与优惠资格/);
+    const details = card.querySelector(".qc-details");
+    assert.ok(details && !details.open);
+    assert.match(details.querySelector(".qc-payment-summary").textContent, /12 个月/);
+    for (const content of card.querySelectorAll(".qc-bench, .qc-tiers")) assert.equal(content.closest(".qc-details"), details);
+    for (const action of card.querySelectorAll(".cmp-add, [data-view-plan], .qc-primary, .qc-watch")) assert.equal(action.closest(".qc-details"), null);
+  }
+  app.run('pickerState.billing = "Y"; renderPicker();');
+  const annual = grid.querySelector('[data-plan-id="plan-0002"]').closest(".quick-card");
+  assert.match(annual.querySelector(".qc-payment-summary").textContent, /首次 \$200，一次支付全年/);
+  healthy(app);
+});
+
+test("复杂任务评测只展示主力系列的精确版本，日常模型成绩不填充复杂任务卡", () => {
+  const app = createApp({ url:"http://127.0.0.1:8123/?budget=200&region=intl&task=hard" });
+  app.run(`BENCHMARK_SUMMARY.protocols = [{ id:"fixture-task", family:"deepswe", name:"Task fixture", unit:"%", total:2, rows:[
+    { model:"claude-haiku-4-5", score:90, rank:1 }, { model:"claude-opus-5-5", score:80, rank:2 }] }]; renderPicker();`);
+  assert.match(mainCardHtml(app), /Claude Opus 5\.5 80%/);
+  assert.doesNotMatch(mainCardHtml(app), /Claude Haiku 4\.5 90%/);
+  app.run('BENCHMARK_SUMMARY.protocols[0].rows.pop(); renderPicker();');
+  assert.doesNotMatch(mainCardHtml(app), /qc-bench/, "没有主力模型评测时不借用日常模型成绩");
+  healthy(app);
+});
+
+test("Cursor 复杂任务参考说明按量池费用，模型能力不被错误描述为不存在", () => {
+  const app = createApp({ url:"http://127.0.0.1:8123/?budget=200&region=cn&tool=cursor&task=hard" });
+  const own = app.elements.get("quickGrid").querySelector('[data-plan-id="plan-0098"]').closest(".quick-card");
+  const reasons = own.querySelector(".qc-reasons").children.map((line) => line.textContent).join("；");
+  assert.match(reasons, /复杂任务模型在按量池，需核对额度与费用/);
+  assert.doesNotMatch(reasons, /没有匹配.*任务.*模型/);
+  assert.equal(own.querySelector(".qc-bench"), null, "按量池复杂任务卡不展示附赠日常模型的评测");
+  assert.match(app.elements.get("pickerPolicy").textContent, /模型用途分组.*可折算额度.*倍率.*套餐类别/);
+  assert.match(app.elements.get("pickerPolicy").textContent, /公开评测仅供能力参考/);
+  app.run('Object.assign(pickerState, { budget:"any", task:"daily" }); renderPicker();');
+  assert.match(app.elements.get("pickerPolicy").textContent, /日常优先独立额度池/);
+  assert.match(app.elements.get("pickerPolicy").textContent, /预算不限会优先较大额度档/);
   healthy(app);
 });
 

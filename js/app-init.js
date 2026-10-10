@@ -37,7 +37,8 @@ function activatePageForTarget(target) {
   if (view === "updates") loadViewData("maintenance");
   if (view === "benchmarks") loadViewData("benchmark");
   /* 其他视图期间的主题、历史恢复或延迟加载可能已在隐藏容器里重绘图表。 */
-  if (view === "compare") markChartsForResize();
+  markChartsForResize();
+  if (view === "benchmarks" && optionalDataLoaded("benchmark")) boot("publicBenchmarkChart", renderPublicBenchmarkChart);
   if (typeof requestAnimationFrame === "function") requestAnimationFrame(() => { resizeVisibleCharts(); updateActiveNav(); });
 }
 
@@ -216,6 +217,7 @@ document.addEventListener("click", (e) => {
   const retry = target && target.closest ? target.closest("[data-retry-chart]") : null;
   if (retry) {
     const id = retry.dataset.retryChart;
+    if (id === "chartPublicBenchmark") { boot("publicBenchmarkChart", renderPublicBenchmarkChart); return; }
     const item = LAZY_CHARTS.find((x) => x.el === id);
     if (item) {
       if (chartCache[id]) { chartCache[id].dispose(); delete chartCache[id]; }

@@ -10,6 +10,8 @@
 
 ## 数据覆盖
 
+「帮我选」直接展示工具和任务条件，付款方式用当前口径摘要并可展开修改；结果前说明任务匹配及公开额度优先规则，不限预算不等于最省钱。卡片首层保留首次付款、续期简句、理由和操作；12 个月费用情景、评测与档位表合并在可展开详情中。具体 GLM / GPT Sol、Luna、Astra 版本以本档明确模型列表为准，Cursor 的复杂模型按量池另行提示总费用。「我的关注」优先显示关注与变更，核查统计和公开 JSON 下载收在后方详情中。
+
 - **模型官方订阅**：Anthropic Claude、OpenAI Codex（ChatGPT）、Google Gemini/Antigravity、xAI Grok、Mistral、智谱 BigModel 与 Z.ai 的 GLM Coding Plan（V1/V2/V3）、月之暗面 Kimi、MiniMax、小米 MiMo、阶跃 Step Plan 等
 - **第三方工具与中转站**：GitHub Copilot、Cursor、Windsurf/Devin、Zed、Cline、Roo Code、Kilo Code、Amp、JetBrains AI、Augment、OpenRouter、Lovable、Bolt.new、Replit、AWS Kiro、Factory Droid、Canopy Wave、OpenCode、Command Code、腾讯 CodeBuddy、字节 Trae、百度文心快码，以及 R4 Coder、ZenMux、PackyCode、AICodeMirror、88code、DuckCoding、AIGoCode、DevPass、Chutes 等 API 中转站
 - **云厂商/企业档**：AWS Q Developer、Google Gemini Code Assist、阿里云通义灵码（Qoder CN）、腾讯云、华为云 CodeArts、讯飞星辰 Astron Coding Plan 等
@@ -17,7 +19,7 @@
 
 数据版本：**2026-10-09**；覆盖 57 家厂商、212 档订阅计划、27 个免费档（去掉已停售和同一订阅的重复入口后，18 个是可用的编程工具免费档或免费模型入口）、84 行套餐额度深度对比（官方数据 + 标注置信度的估算）、36 行 API 定价，另有 10 行 API 按量对照。免费入口可按国内／国际和是否含免费推理组合筛选；BYOK/按量推理的费用会单独注明。页面与导出的更新日期指整份数据的版本日期；每条价格另记官网核查日期和结果。
 
-模型公开评测独立于价格版本：**2026-10-08 核查**，5 类评测、85 个独立协议、438 条成绩（DeepSWE 70、CursorBench 68、OSWorld 224、HLE 46、SWE-bench 30）。同一模型的多个配置和 OSWorld 的完整/部分得分均各算一条，不表示 438 个模型；版本、样本分母、工具与步骤预算不同不混排。
+模型公开评测独立于价格版本：**2026-10-09 核查**，5 类评测、87 个独立协议、470 条成绩（DeepSWE v1.1 70、v1 29；CursorBench 4.0 68、3.0 历史发布节选 3；OSWorld 224、HLE 46、SWE-bench 30）。同一模型的多个配置和 OSWorld 的完整/部分得分均各算一条，不表示 470 个模型；版本、样本分母、工具与步骤预算不同不混排。历史节选仅覆盖官方表格中的模型，不是完整历史排行。
 
 ## 逐条价格核查
 
@@ -145,10 +147,12 @@ npm run bump
 
 [模型公开评测](https://coding-plan-comparison-tau.vercel.app/#benchmarks) 展示评测发布方的实际公开成绩。默认展示 DeepSWE，在当前协议内可选每个准确模型已公布的最佳配置或全部配置，再搜索模型/推理档位/Agent。最佳配置只指该榜已测配置中的最高分，不保证适合所有任务；不把不同评测平均成综合排名，也不据此保证某个 Coding Plan 包含该版本模型。
 
+DeepSWE v1.1 / v1 可独立切换；分数柱状图与表格共用当前协议、配置模式和搜索结果，保留协议内原名次。排名图按模型系列稳定配色并带图例，明暗主题分别适配；前 10、前 20 或全部匹配只影响图表，导出仍保留全部筛选记录。每任务成本视图按分数名次排列，跳过未公布费用。推荐卡每类编程评测只展示最新有匹配主力任务模型成绩的协议，不借用其他日常模型的分数；标明实际版本，仍不参与推荐排序。
+
 | 指标 | 第一方入口 | 本站保留的口径 |
 |---|---|---|
-| DeepSWE v1.1 | [Datacurve](https://deepswe.datacurve.ai/) | 113 个长程编程任务、pass@1、mini-swe-agent、各推理档位与置信区间；这里是评测名，不是同名开源模型 |
-| CursorBench | [Cursor 官方评测](https://cursor.com/evals) | 当前 4.0 任务正确性、各推理档位；内部任务/Agent 配置未完全公开，不能声称本站可复现其运行 |
+| DeepSWE v1.1 / v1 | [Datacurve](https://deepswe.datacurve.ai/) | 113 个长程编程任务、pass@1、mini-swe-agent、各推理档位与置信区间；v1.1 调整隔离验收与报告，各版本独立排名；这里是评测名，不是同名开源模型 |
+| CursorBench 4.0 / 3.0 发布节选 | [Cursor 官方评测](https://cursor.com/evals)、[Composer 2 发布表](https://cursor.com/blog/composer-2) | 4.0 为默认；3.0 仅含 Composer 2 / 1.5 / 1 的发布成绩，费用等未知保留 null。3.1 / 3.2 旧榜已被替换，未找到可完整核验的数据；不能补成完整历史榜或声称可复现内部评测 |
 | OSWorld | [Verified](https://osworld-v1.xlang.ai/)、[2.0](https://osworld-v2.xlang.ai/) | 桌面操作任务；版本、实际样本数、步数、工具、单次/多次尝试分表，2.0 完整完成与部分得分分别展示 |
 | Humanity's Last Exam | [CAIS](https://lastexam.ai/)、[Diamond](https://lastexam.ai/blog/hle-diamond) | 专家知识与推理；原版/Diamond、纯文本/多模态、high/max、无工具/web+code 分表 |
 | SWE-bench Verified | [官方 Bash Only 榜](https://www.swebench.com/) | 500 个 issue 修复任务；仅 mini-SWE-agent、单次尝试及官方团队运行/核验行，小版本逐行标注 |
@@ -171,7 +175,7 @@ npm run cache:check
 
 `collect` 只写忽略目录 `audit/benchmark-sources/`，保留原始下载 SHA-256、完整历史候选和来源连续失败；变化比较按协议/精确模型/推理/Agent 的稳定 ID，日期刷新不会冒充成绩变化。任何必需来源失败或格式改变均返回非零码，保留正式数据与上一份完整候选。`publish` 要求审核者、理由及哈希匹配的原始证据，然后原子替换 `benchmarks/public-results.json`；`benchmark:build` 生成浏览器可离线读取的 `BENCHMARKS.public`（按需加载），并从中派生首屏加载的 `js/benchmark-summary.js`：仅编程协议的每模型最佳配置与本协议名次，供「帮我选」卡片显示本档明确包含的模型成绩，只作参考、不参与推荐排序；`benchmark:check` 在 CI 只读核对两份产物。采集不直接提交或部署；可从 [手动采集工作流](.github/workflows/benchmark-collect.yml) 下载待审材料。
 
-核查日期是本站本次下载/核对时间，官方更新日另记；未公布的运行日、工具、费用或样本数保留未知。费用列属于评测任务或 rollout 的官方成本，DeepSWE 的部分模型按官网当前价格修正表折算，CursorBench 按公布的 token 价格计算；不把原始费用、折算费用或未知费用混为真实账单，不等同订阅月费。不跨模型/协议推断未公布的成绩，也不把空值补成零。
+核查日期是本站本次下载/核对时间，官方更新日另记；未公布的运行日、工具、费用或样本数保留未知。费用列属于评测任务或 rollout 的官方成本，DeepSWE 的部分模型按官网当前价格修正表折算，CursorBench 4.0 按公布的 token 价格计算，3.0 历史发布节选的费用未公布；不把原始费用、折算费用或未知费用混为真实账单，不等同订阅月费。不跨模型/协议推断未公布的成绩，也不把空值补成零。
 
 ### 贡献者如何跑本机任务验收
 
@@ -221,8 +225,8 @@ npm run serve
 8. **免费 Coding 入口**：18 个可用的编程 Agent / 编程工具免费档与免费模型额度卡片，支持地区与推理费用筛选，平台免费、推理另计会明确标注
 9. **数据表**：公开标价记录（164 档，含明确标注的待核历史价），支持搜索/筛选/排序及核查来源
 10. **重要动态**：已核对的行业与套餐消息
-11. **核查与变更服务**：核查时效、复核日历、历史变化、本机关注与 RSS
-12. **模型公开评测**：DeepSWE、CursorBench、OSWorld、HLE 与 SWE-bench 的官方成绩，按协议筛选及导出；附折叠的贡献者本机验收工具
+11. **模型公开评测**：DeepSWE、CursorBench、OSWorld、HLE 与 SWE-bench 的官方成绩，按版本与协议筛选、图表及导出；附折叠的贡献者本机验收工具
+12. **核查与变更服务**：核查时效、复核日历、历史变化、本机关注与 RSS
 13. **贡献入口**：纠错、新厂商和测评模板
 14. **数据来源 + 不确定性说明**
 

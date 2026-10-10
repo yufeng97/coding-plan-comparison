@@ -375,4 +375,76 @@ test("关注页选中套餐后展开历史，数据迟到也不重建面板或�
   healthy(app);
 });
 
+test("公开排名图保留协议原名次，成本缺值跳过且合法零成本保留", () => {
+  const app = createApp(); fixturePublicBenchmarks(app);
+  app.run("activatePageForTarget(byId('benchmarks')); renderPublicBenchmarks()");
+  const chart = () => app.charts.get("chartPublicBenchmark").option;
+  assert.deepEqual(plain(chart().series[0].data), [80, 80, 60]);
+  assert.match(chart().yAxis.data[2], /^#3 Fixture Model C/);
+  assert.equal(chart().xAxis.max, 100);
+  app.run("publicBenchmarkChartState.metric = 'cost'; renderPublicBenchmarkChart()");
+  assert.deepEqual(plain(chart().series[0].data), [0]);
+  assert.match(chart().yAxis.data[0], /^#1 Fixture Model B/);
+  assert.equal(chart().xAxis.max, undefined);
+  assert.match(app.elements.get("publicBenchmarkChartNote").textContent, /1 \/ 3/);
+  app.run("publicBenchmarkState.search='Model C'; renderPublicBenchmarks()");
+  assert.equal(app.run("publicBenchmarkChartState.metric"), "score");
+  assert.deepEqual(plain(chart().series[0].data), [60]);
+  assert.match(chart().yAxis.data[0], /^#3 /);
+  app.run("publicBenchmarkState.search='__no_match__'; renderPublicBenchmarks()");
+  assert.equal(app.elements.get("publicBenchmarkChartWrap").hidden, true);
+  healthy(app);
+});
+
+test("公开图表条数不改变表格和CSV，两个DeepSWE版本独立排名", () => {
+  const app = createApp({ url: "http://127.0.0.1:8123/#benchmarks" });
+  app.run("renderPublicBenchmarks()");
+  const chart = () => app.charts.get("chartPublicBenchmark").option;
+  assert.equal(chart().series[0].data.length, 20);
+  const count = app.run("publicBenchmarkRows().length");
+  app.run("publicBenchmarkChartState.limit='10'; renderPublicBenchmarkChart()");
+  assert.equal(chart().series[0].data.length, 10);
+  assert.equal(app.run("publicBenchmarkRows().length"), count);
+  assert.equal(app.run("publicBenchmarkCsv().split('\\r\\n').length"), count + 1);
+  app.run("publicBenchmarkState.id='deepswe-v1'; publicBenchmarkChartState.limit='all'; renderPublicBenchmarks()");
+  assert.equal(chart().series[0].data.length, app.run("publicBenchmarkRows().length"));
+  assert.ok(app.run("publicBenchmarkRows().every(r=>r.benchmarkId === 'deepswe-v1')"));
+  assert.match(app.elements.get("publicBenchmarkMeta").innerHTML, /DeepSWE v1/);
+  assert.ok(app.run("planCodingBenchmarks(PLANS.find(p=>p.id==='plan-0159')).some(r=>r.protocol.id==='deepswe-v1-1')"));
+  assert.ok(app.run("planCodingBenchmarks(PLANS.find(p=>p.id==='plan-0002')).some(r=>r.protocol.id==='deepswe-v1')"));
+  assert.ok(app.run("planCodingBenchmarks(PLANS.find(p=>p.id==='plan-0164')).some(r=>r.protocol.id==='deepswe-v1' && publicModelDisplayName(r.row.model)==='MiniMax-M3')"));
+  healthy(app);
+});
+
+test("排名系列颜色稳定且图例随搜索更新，不把同系列配置染成不同颜色", () => {
+  const app = createApp({ url: "http://127.0.0.1:8123/#benchmarks" });
+  app.run("getComputedStyle=()=>({getPropertyValue:key=>key}); renderPublicBenchmarks()");
+  const chart = () => app.charts.get("chartPublicBenchmark").option;
+  const models = plain(app.run("publicBenchmarkChartRows().map(r=>r.model)"));
+  const colors = models.map((_model, i) => chart().series[0].itemStyle.color({dataIndex: i}));
+  assert.ok(new Set(colors).size > 3);
+  models.forEach((model, i) => assert.equal(colors[i], app.run("'--bench-'+publicChartFamily(" + JSON.stringify(model) + ").id")));
+  assert.equal(app.run("publicChartFamily('Claude-Opus-5.5').id"), "claude");
+  assert.equal(app.run("publicChartFamily('Opus 5').id"), "claude");
+  assert.equal(app.run("publicChartFamily('Composer 2').id"), "composer");
+  assert.equal(app.run("publicChartFamily('Unknown model').id"), "other");
+  assert.equal(app.run("publicChartAxisName('#14 DeepSeek-V4-Pro', true)"), "#14 DeepSeek\nV4-Pro");
+  assert.equal(app.run("publicChartAxisName('#12 Gemini-3.7 Flash · high', true)"), "#12 Gemini-3.7\nFlash");
+  app.run("publicBenchmarkState.search='GLM'; renderPublicBenchmarks()");
+  assert.match(app.elements.get("publicBenchmarkChartLegend").innerHTML, /GLM/);
+  assert.doesNotMatch(app.elements.get("publicBenchmarkChartLegend").innerHTML, /Claude/);
+  assert.equal(chart().series[0].itemStyle.color({dataIndex: 0}), "--bench-glm");
+  app.run("publicBenchmarkChartState.metric='cost'; renderPublicBenchmarkChart()");
+  assert.equal(app.elements.get("publicBenchmarkChartLegend").hidden, true);
+  healthy(app);
+});
+
+test("推荐的评测证据只关联当前任务角色，缺少该角色成绩不借用日常模型", () => {
+  const app = createApp();
+  assert.ok(app.run("planCodingBenchmarks(PLANS.find(p=>p.id==='plan-0002')).some(r=>publicModelDisplayName(r.row.model)==='Claude Haiku 4.5')"));
+  assert.equal(app.run("planCodingBenchmarks(PLANS.find(p=>p.id==='plan-0002'), MODEL_ROLES.find(r=>r.id==='claude-opus')).some(r=>/Haiku/i.test(r.row.model))"), false);
+  assert.ok(app.run("planCodingBenchmarks(PLANS.find(p=>p.id==='plan-0159'), MODEL_ROLES.find(r=>r.id==='glm-5')).every(r=>/GLM/i.test(r.row.model))"));
+  healthy(app);
+});
+
 main();

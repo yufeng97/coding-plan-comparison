@@ -5,9 +5,14 @@ const fs = require("node:fs/promises");
 test("公开榜默认DeepSWE，搜索保留原榜名次且空态可键盘清除", async ({ page }) => {
   await page.goto("/#benchmarks"); await page.waitForFunction(() => window["codingPlanReady"] === true);
   await expect(page.locator('[data-site-view="benchmarks"]')).toHaveAttribute("aria-current", "page");
+  await expect(page.locator("#benchmarks .sec-no")).toHaveText("11");
+  await expect(page.locator("#updates .sec-no")).toHaveText("12");
+  expect(await page.evaluate(() => !!(document.getElementById("benchmarks").compareDocumentPosition(document.getElementById("updates")) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
   await page.waitForFunction(() => window["optionalDataLoaded"]("benchmark"));
   const select = page.locator("#publicBenchmarkSelect");
   await expect(select).toHaveValue(/deepswe/);
+  await expect(select.locator('option[value="deepswe-v1"]')).toHaveCount(1);
+  await expect(page.locator("#chartPublicBenchmark canvas")).toHaveCount(1);
   await expect(page.locator("#publicBenchmarkMode")).toHaveValue("best");
   const bestCount = await page.locator("#publicBenchmarkBody tr").count();
   await page.locator("#publicBenchmarkMode").selectOption("all");
@@ -31,6 +36,95 @@ test("公开榜默认DeepSWE，搜索保留原榜名次且空态可键盘清除"
   await expect(search).toBeFocused(); await expect(search).toHaveValue("");
   await expect(page.locator("#publicBenchmarkWrap")).toBeVisible();
   await expect(page.locator("#contributorBenchmarkTools")).not.toHaveAttribute("open", "");
+});
+
+test("评测排名图随版本、搜索和成本视图更新，主题和窄屏切换保持正确尺寸", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/#benchmarks");
+  await page.waitForFunction(() => window["codingPlanReady"] === true && window["optionalDataLoaded"]("benchmark"));
+  const chart = page.locator("#chartPublicBenchmark");
+  await expect(chart.locator("canvas")).toHaveCount(1);
+  await expect.poll(() => page.evaluate("chartCache.chartPublicBenchmark.getOption().series[0].data.length")).toBe(20);
+  const colors = await page.evaluate("(() => { const data=chartCache.chartPublicBenchmark.getModel().getSeriesByIndex(0).getData(); return Array.from({length:data.count()},(_,i)=>data.getItemVisual(i,'style').fill); })()");
+  expect(new Set(colors).size).toBeGreaterThan(3);
+  await expect(page.locator("#publicBenchmarkChartLegend")).toContainText("Claude");
+  await expect(page.locator("#publicBenchmarkChartLegend")).toContainText("GPT");
+  await page.locator("#publicBenchmarkSelect").selectOption("deepswe-v1");
+  await expect(page.locator("#publicBenchmarkMeta")).toContainText("deepswe-v1");
+  await page.locator("#publicBenchmarkChartLimit").selectOption("all");
+  const expected = await page.evaluate("publicBenchmarkRows().length");
+  expect(await page.evaluate("chartCache.chartPublicBenchmark.getOption().series[0].data.length")).toBe(expected);
+  await page.locator('[data-public-chart="cost"]').click();
+  await expect(page.locator('[data-public-chart="cost"]')).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("#publicBenchmarkChartLegend")).toBeHidden();
+  expect(await page.evaluate("chartCache.chartPublicBenchmark.getOption().series[0].data.every(v=>typeof v==='number' && v>=0)")).toBe(true);
+  const target = await page.evaluate("publicBenchmarkRows().at(-1)");
+  await page.locator("#publicModelSearch").fill(target.model);
+  await expect.poll(() => page.evaluate("chartCache.chartPublicBenchmark.getOption().yAxis[0].data.every(label=>label.startsWith('#'+publicBenchmarkRows()[0].rank+' '))")).toBe(true);
+  await page.locator("#publicModelClearBtn").click();
+  await page.locator('[data-public-chart="score"]').click();
+  await chart.scrollIntoViewIfNeeded();
+  const fill = "chartCache.chartPublicBenchmark.getModel().getSeriesByIndex(0).getData().getItemVisual(0,'style').fill";
+  const before = await page.evaluate(fill);
+  await page.locator("#themeBtn").click();
+  expect(await page.evaluate(fill)).not.toBe(before);
+  await page.getByRole("navigation", { name: "主要内容" }).getByRole("link", { name: "我的关注" }).click();
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.getByRole("navigation", { name: "主要内容" }).getByRole("link", { name: "模型评测" }).click();
+  await chart.scrollIntoViewIfNeeded();
+  await expect.poll(() => page.evaluate("Math.abs(chartCache.chartPublicBenchmark.getWidth() - document.getElementById('chartPublicBenchmark').clientWidth) < 1")).toBe(true);
+  expect(await chart.locator("canvas").evaluate((element) => {
+    const canvas = /** @type {HTMLCanvasElement} */ (element);
+    const pixels = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
+    let count = 0;
+    for (let i = 3; i < pixels.length; i += 4) if (pixels[i] > 0) count++;
+    return count > 1000;
+  })).toBe(true);
+  await page.mouse.move(0, 0);
+  await page.evaluate("(() => { const chart=byId('chartPublicBenchmark'); window.scrollTo({top:chart.getBoundingClientRect().top+scrollY-650,behavior:'instant'}); })()");
+  await expect.poll(() => chart.evaluate((element) => Math.abs(element.getBoundingClientRect().top - 650))).toBeLessThanOrEqual(2);
+  await page.evaluate("chartCache.chartPublicBenchmark.dispatchAction({type:'showTip',seriesIndex:0,dataIndex:0})");
+  const tooltip = chart.locator(':scope > div').filter({ hasText: "每任务成本：" });
+  await expect(tooltip).toBeVisible();
+  const bounds = await tooltip.boundingBox();
+  expect(bounds.x).toBeGreaterThanOrEqual(0);
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(375);
+  expect(bounds.y).toBeGreaterThanOrEqual(0);
+  expect(bounds.y + bounds.height).toBeLessThanOrEqual(812);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test("CursorBench 默认最新版本，历史节选不冒充完整排名或已知成本", async ({ page }) => {
+  await page.goto("/#benchmarks");
+  await page.waitForFunction(() => window["codingPlanReady"] === true && window["optionalDataLoaded"]("benchmark"));
+  await page.locator("#publicBenchmarkFamily").selectOption("cursorbench");
+  await expect(page.locator("#publicBenchmarkSelect")).toHaveValue("cursorbench-4-0");
+  await page.locator("#publicBenchmarkSelect").selectOption("cursorbench-3-0-release");
+  await expect(page.locator("#publicBenchmarkMeta")).toContainText("节选");
+  await expect(page.locator("#publicBenchmarkMeta")).toContainText("非完整");
+  await expect(page.locator("#publicBenchmarkBody tr")).toHaveCount(3);
+  await expect(page.locator("#publicBenchmarkBody tr").first()).toContainText("61.3%");
+  await expect(page.locator('[data-public-chart="cost"]')).toBeDisabled();
+  expect(await page.evaluate("publicBenchmarkRows().every(r=>r.costUSD===null && r.tokens===null && r.steps===null)")).toBe(true);
+  const details = page.locator("#publicBenchmarkMeta details");
+  await expect(details).not.toHaveAttribute("open", "");
+  await details.locator("summary").click();
+  await page.locator("#publicModelSearch").fill("Composer");
+  await expect(details).toHaveAttribute("open", "");
+  await expect(details.locator('a')).toHaveAttribute("href", "https://cursor.com/blog/composer-2");
+});
+
+test("成本和置信度在排行明细与额度表使用相同语义颜色", async ({ page }) => {
+  await page.goto("/#rank");
+  await page.waitForFunction(() => window["codingPlanReady"] === true);
+  await page.locator("#rankDetailsSummary").click();
+  await expect(page.locator("#rankDetailBody .cost-value").first()).toBeVisible();
+  expect(await page.evaluate("(() => { const rows=rankRows(); const cells=[...document.querySelectorAll('#rankDetailBody .cost-value')]; return cells.every((cell,i)=>cell.style.color===cpmColor(rows[i].c.costPerM)); })()")).toBe(true);
+  expect(await page.locator("#rankDetailBody .conf").count()).toBe(await page.evaluate("rankRows().length"));
+  const same = await page.evaluate("(() => { const cells=[...document.querySelectorAll('#metricsBody td[data-column=cpm]')]; return cells.some(cell=>getComputedStyle(cell.querySelector('span')).color===getComputedStyle(document.querySelector('#rankDetailBody .cost-value')).color); })()");
+  expect(same).toBe(true);
 });
 
 test("手机切换独立协议且CSV和JSON保留公开来源与费用口径", async ({ page }) => {

@@ -622,7 +622,7 @@ function renderRankDetails() {
     const divider = rankIsEstimate(r.m) && i > 0 && !rankIsEstimate(rows[i - 1].m)
       ? `<tr class="rank-divider"><th scope="rowgroup" colspan="5">${esc(RANK_ESTIMATE_DIVIDER)}</th></tr>` : "";
     return divider + `<tr><th scope="row">${esc(planLabel(r.m))}<br>${esc(displayModelName(r.m.model))}</th>` +
-      `<td>${esc(fmtCNY(c.priceCNY))}/月<br><span class="sub">${esc(rankRowPaymentLabel(r.m))}</span></td><td>¥${c.costPerM.toFixed(3)}${fullUseCostRangeText(c) ? `<br><span class="sub">${esc(fullUseCostRangeText(c))}</span>` : ""}</td><td>${esc(tokSpan(c,"moLow","moHigh"))}</td><td>${esc(prov.text)} · 置信${esc(prov.conf)}</td></tr>`;
+      `<td class="td-price">${esc(fmtCNY(c.priceCNY))}/月<br><span class="sub">${esc(rankRowPaymentLabel(r.m))}</span></td><td><span class="cost-value" style="color:${cpmColor(c.costPerM)}">¥${c.costPerM.toFixed(3)}</span>${fullUseCostRangeText(c) ? `<br><span class="sub">${esc(fullUseCostRangeText(c))}</span>` : ""}</td><td class="tok-cell">${esc(tokSpan(c,"moLow","moHigh"))}</td><td class="prov-cell"><span class="conf ${prov.conf === "高" ? "conf-hi" : prov.conf === "中" ? "conf-mid" : "conf-lo"}">${esc(prov.conf)}</span>${esc(prov.text)}</td></tr>`;
   }).join("") : '<tr><td colspan="5" class="table-empty">当前口径没有可比较的套餐，请调整模型档或排行口径。</td></tr>';
 }
 function renderRankChart() {
@@ -649,7 +649,7 @@ function renderRankChart() {
     if (!r) return { value: null };
     const cp = r.c.costPerM;
     const tier = cpmTier(cp);
-    const color = tier === "lo" ? "#34d399" : tier === "mid" ? "#f59e0b" : "#f87171";
+    const color = tier === "lo" ? PAL.green : tier === "mid" ? PAL.gold : PAL.red;
     const approx = rankIsEstimate(r.m);
     return { value: cp, itemStyle: { color, borderRadius: [0, 4, 4, 0],
       ...(approx ? { decal: { symbol: "rect", symbolSize: 1, dashArrayX: [1, 0], dashArrayY: [2, 5], rotation: -Math.PI / 4,

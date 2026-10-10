@@ -35,7 +35,7 @@ const BENCHMARKS = {
   "generatedAt": "2026-10-08",
   "public": {
     "schemaVersion": 1,
-    "checkedAt": "2026-10-08T01:37:07.065Z",
+    "checkedAt": "2026-10-09T13:37:00.098Z",
     "benchmarks": [
       {
         "id": "deepswe-v1-1",
@@ -50,7 +50,22 @@ const BENCHMARKS = {
         "scope": "113 个任务；70 个模型/推理配置；tokens 为每次计分尝试的平均输出 token，steps 为平均 agent 步数。",
         "sourceUrl": "https://deepswe.datacurve.ai/",
         "sourceUpdatedAt": "2026-09-22",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
+      },
+      {
+        "id": "deepswe-v1",
+        "family": "deepswe",
+        "name": "DeepSWE v1",
+        "version": "1",
+        "category": "coding",
+        "metric": "pass@1",
+        "unit": "%",
+        "description": "Datacurve 原创长程软件工程任务；计分 rollout 的通过率。provider/verifier/network 错误排除，上下文失败及 agent 超时计失败；不能与 pass@4 混用。",
+        "configuration": "mini-swe-agent；同一 bash 工具与共享 prompt。推理档位逐行保留。v1 为原版执行与评分环境；v1.1 改为独立容器验证已提交补丁并输出结构化测试报告，同一任务集的版本分别排名。",
+        "scope": "113 个任务；29 个模型/推理配置；tokens 为每次计分尝试的平均输出 token，steps 为平均 agent 步数。",
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "sourceUpdatedAt": "2026-06-20",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
       },
       {
         "id": "cursorbench-4-0",
@@ -65,7 +80,22 @@ const BENCHMARKS = {
         "scope": "68 个模型/推理配置；tokens 为平均输出 token，steps 为平均 agent 步数；完整公开数组包含页面默认隐藏的模型。",
         "sourceUrl": "https://cursor.com/evals",
         "sourceUpdatedAt": "2026-10-07",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
+      },
+      {
+        "id": "cursorbench-3-0-release",
+        "family": "cursorbench",
+        "name": "CursorBench 3.0（历史发布节选）",
+        "version": "3.0",
+        "category": "coding",
+        "metric": "Solution correctness",
+        "unit": "%",
+        "description": "2026 年 3 月 Composer 2 官方发布文章中的 CursorBench-3 正确性成绩节选；仅比较该表公开的模型，不代表当时的完整公开排行。",
+        "configuration": "原版 CursorBench-3；初始任务关注编辑、重构和修复缺陷。3.1 改变问题分布，3.2 增加指令遵循与工具使用，4.0 增加长程任务，各版本分别排名。发布表未披露推理档位、agent/harness 版本、样本数和逐任务成本，缺失保留未知。",
+        "scope": "历史发布节选：3 个模型，仅覆盖 Composer 2 发布文章表格，非完整榜单；未公开费用、输出 tokens 与步数。",
+        "sourceUrl": "https://cursor.com/blog/composer-2",
+        "sourceUpdatedAt": "2026-03-19",
+        "checkedAt": "2026-10-09T13:36:58.276Z"
       },
       {
         "id": "osworld-verified-757be6354f1b5f7e",
@@ -80,7 +110,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 361/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-10-01",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-631695ae72973eae",
@@ -95,7 +125,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 361/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-08-11",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-91fc36fe951f4395",
@@ -110,7 +140,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 360/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-10-01",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-140d9d6cdbd8e72a",
@@ -125,7 +155,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 361/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-10-31",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-a05e850e649155e6",
@@ -140,7 +170,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 361/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2026-01-13",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-cfd23976c5496a60",
@@ -155,7 +185,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 361/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2026-07-09",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-94f038dd80bb374f",
@@ -170,7 +200,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 357/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-07-28",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-2b931f9ce890e9e9",
@@ -185,7 +215,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 359/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-12-18",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-3f04b2fc54a5222e",
@@ -200,7 +230,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 359/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-07-28",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-10b92c8585dc2806",
@@ -215,7 +245,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 360/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-07-28",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-f9864779b452f55d",
@@ -230,7 +260,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 359/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-07-28",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-61bdfbd8f96f71bb",
@@ -245,7 +275,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 358/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-07-28",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-f510bc2779ec69f8",
@@ -260,7 +290,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 361/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-10-31",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-4d21dd43a4d4f5fa",
@@ -275,7 +305,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 360/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-08-11",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-74c1e9ab7dff1892",
@@ -290,7 +320,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 357/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-07-28",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-4f0295ab445ec436",
@@ -305,7 +335,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 358/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-10-01",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-16244be1e031e1e7",
@@ -320,7 +350,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 359/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2026-04-20",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-e07b4ef5756bac67",
@@ -335,7 +365,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 357/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-07-28",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-1facf9821ad3e017",
@@ -350,7 +380,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 360/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-07-28",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-68d7cf8052be1d9a",
@@ -365,7 +395,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 360/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2026-08-01",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-fe935b04b0aaa6ac",
@@ -380,7 +410,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 369/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-07-31",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-8bf58272d175d191",
@@ -395,7 +425,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 369/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-07-31",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-ca9584637809f4a7",
@@ -410,7 +440,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 369/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-07-31",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-db5b2741fd49cbc2",
@@ -425,7 +455,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 360/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-07-28",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-bcd30f92eca27676",
@@ -440,7 +470,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 361/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-07-28",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-033035aba0e121ec",
@@ -455,7 +485,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 361/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-07-28",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-c66cec064861a497",
@@ -470,7 +500,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 361/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-07-28",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-d93e3a1e38fa66c8",
@@ -485,7 +515,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 360/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-09-14",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-5e69cee66b9f804b",
@@ -500,7 +530,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 361/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-09-18",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-da36e998ab6b9705",
@@ -515,7 +545,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 361/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2026-07-25",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-6ef31cbfe9a718f8",
@@ -530,7 +560,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 361/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-08-04",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-87c9c83ffb8a18c7",
@@ -545,7 +575,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 361/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-08-04",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-4d224986e3dba520",
@@ -560,7 +590,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 361/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-08-18",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-b72ef31bc1214b19",
@@ -575,7 +605,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 359/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-08-18",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-a55cfe67e54e9609",
@@ -590,7 +620,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 359/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-09-03",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-6d9f61eb2d5e52b5",
@@ -605,7 +635,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 360/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2026-01-04",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-355123dfc296be3e",
@@ -620,7 +650,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 360/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2026-05-21",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-e7f952b3d643b82b",
@@ -635,7 +665,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 361/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-09-25",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-d50a41eed1bf0738",
@@ -650,7 +680,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 360/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-09-25",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-cec19598d513eb9f",
@@ -665,7 +695,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 361/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-12-11",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-fa77ded21eac1927",
@@ -680,7 +710,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 359/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-11-25",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-42b44d8af6457205",
@@ -695,7 +725,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 359/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-12-24",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-83bec4130d6ed88b",
@@ -710,7 +740,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 357/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2025-12-24",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-d6ff3e87acf28acc",
@@ -725,7 +755,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 360/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2026-01-06",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-5792405bb7f02f30",
@@ -740,7 +770,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 361/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2026-01-23",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-2de60bf5fca9b99c",
@@ -755,7 +785,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 358/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2026-02-25",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-453d93b8974f0931",
@@ -770,7 +800,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 356/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2026-03-08",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-d81c59493316e83a",
@@ -785,7 +815,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 356/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2026-03-27",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-2b59d1b04672aa4a",
@@ -800,7 +830,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 358/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2026-08-01",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-3485e5ec2a29a523",
@@ -815,7 +845,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 357/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2026-04-20",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-verified-a089a60b10d69f9f",
@@ -830,7 +860,7 @@ const BENCHMARKS = {
         "scope": "官方 Verified 文件；实际 359/369 项。不同样本数、步数与工具配置分表，Agent 成绩不是裸模型分数；不混入 self-reported 或原版 2024 结果。",
         "sourceUrl": "https://osworld-v1.xlang.ai/",
         "sourceUpdatedAt": "2026-07-01",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "osworld-2-25443e96866dc9ce",
@@ -845,7 +875,7 @@ const BENCHMARKS = {
         "scope": "官方全套 108 项；同版本与配置分表。Agent 条目为公开投稿，并附复现入口，不能视为官方团队独立实跑；官网未声明每条 trial 数。",
         "sourceUrl": "https://osworld-v2.xlang.ai/",
         "sourceUpdatedAt": "2026-10-05",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "osworld-2-cc0dac940a1dcc9d",
@@ -860,7 +890,7 @@ const BENCHMARKS = {
         "scope": "官方全套 108 项；同版本与配置分表。Agent 条目为公开投稿，并附复现入口，不能视为官方团队独立实跑；官网未声明每条 trial 数。",
         "sourceUrl": "https://osworld-v2.xlang.ai/",
         "sourceUpdatedAt": "2026-10-05",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "osworld-2-ab7e6a145c2df2f8",
@@ -875,7 +905,7 @@ const BENCHMARKS = {
         "scope": "官方 offline 子集；入口未公布该版本子集分母，不推定为 108 项。相同版本与配置分表，未注明 trial 数。",
         "sourceUrl": "https://osworld-v2.xlang.ai/",
         "sourceUpdatedAt": "2026-10-05",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "osworld-2-a38c6acc4d9766a1",
@@ -890,7 +920,7 @@ const BENCHMARKS = {
         "scope": "官方 offline 子集；入口未公布该版本子集分母，不推定为 108 项。相同版本与配置分表，未注明 trial 数。",
         "sourceUrl": "https://osworld-v2.xlang.ai/",
         "sourceUpdatedAt": "2026-10-05",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "osworld-2-3b7aa1e55bebdb70",
@@ -905,7 +935,7 @@ const BENCHMARKS = {
         "scope": "官方全套 108 项；同版本与配置分表。Agent 条目为公开投稿，并附复现入口，不能视为官方团队独立实跑；官网未声明每条 trial 数。",
         "sourceUrl": "https://osworld-v2.xlang.ai/",
         "sourceUpdatedAt": "2026-10-05",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "osworld-2-7381604047e9053e",
@@ -920,7 +950,7 @@ const BENCHMARKS = {
         "scope": "官方全套 108 项；同版本与配置分表。Agent 条目为公开投稿，并附复现入口，不能视为官方团队独立实跑；官网未声明每条 trial 数。",
         "sourceUrl": "https://osworld-v2.xlang.ai/",
         "sourceUpdatedAt": "2026-10-05",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "osworld-2-52a8a53d455a1927",
@@ -935,7 +965,7 @@ const BENCHMARKS = {
         "scope": "官方 offline 子集；入口未公布该版本子集分母，不推定为 108 项。相同版本与配置分表，未注明 trial 数。",
         "sourceUrl": "https://osworld-v2.xlang.ai/",
         "sourceUpdatedAt": "2026-10-05",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "osworld-2-1b6f50d4a24a1a80",
@@ -950,7 +980,7 @@ const BENCHMARKS = {
         "scope": "官方 offline 子集；入口未公布该版本子集分母，不推定为 108 项。相同版本与配置分表，未注明 trial 数。",
         "sourceUrl": "https://osworld-v2.xlang.ai/",
         "sourceUpdatedAt": "2026-10-05",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "osworld-2-f49d5e77437e60a3",
@@ -965,7 +995,7 @@ const BENCHMARKS = {
         "scope": "官方全套 108 项；同版本与配置分表。Agent 条目为公开投稿，并附复现入口，不能视为官方团队独立实跑；官网未声明每条 trial 数。",
         "sourceUrl": "https://osworld-v2.xlang.ai/",
         "sourceUpdatedAt": "2026-10-05",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "osworld-2-7129fd69f530a13b",
@@ -980,7 +1010,7 @@ const BENCHMARKS = {
         "scope": "官方全套 108 项；同版本与配置分表。Agent 条目为公开投稿，并附复现入口，不能视为官方团队独立实跑；官网未声明每条 trial 数。",
         "sourceUrl": "https://osworld-v2.xlang.ai/",
         "sourceUpdatedAt": "2026-10-05",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "osworld-2-32d491d47ebfd028",
@@ -995,7 +1025,7 @@ const BENCHMARKS = {
         "scope": "官方全套 108 项；同版本与配置分表。Agent 条目为公开投稿，并附复现入口，不能视为官方团队独立实跑；官网未声明每条 trial 数。",
         "sourceUrl": "https://osworld-v2.xlang.ai/",
         "sourceUpdatedAt": "2026-10-05",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "osworld-2-c33484a37c2c3fbb",
@@ -1010,7 +1040,7 @@ const BENCHMARKS = {
         "scope": "官方全套 108 项；同版本与配置分表。Agent 条目为公开投稿，并附复现入口，不能视为官方团队独立实跑；官网未声明每条 trial 数。",
         "sourceUrl": "https://osworld-v2.xlang.ai/",
         "sourceUpdatedAt": "2026-10-05",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "osworld-2-aa84d6c2196c4a9d",
@@ -1025,7 +1055,7 @@ const BENCHMARKS = {
         "scope": "官方全套 108 项；同版本与配置分表。Agent 条目为公开投稿，并附复现入口，不能视为官方团队独立实跑；官网未声明每条 trial 数。",
         "sourceUrl": "https://osworld-v2.xlang.ai/",
         "sourceUpdatedAt": "2026-10-05",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "osworld-2-9f3cf4d55e6e3268",
@@ -1040,7 +1070,7 @@ const BENCHMARKS = {
         "scope": "官方全套 108 项；同版本与配置分表。Agent 条目为公开投稿，并附复现入口，不能视为官方团队独立实跑；官网未声明每条 trial 数。",
         "sourceUrl": "https://osworld-v2.xlang.ai/",
         "sourceUpdatedAt": "2026-10-05",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "osworld-2-778056e11309cc5a",
@@ -1055,7 +1085,7 @@ const BENCHMARKS = {
         "scope": "官方全套 108 项；同版本与配置分表。Agent 条目为公开投稿，并附复现入口，不能视为官方团队独立实跑；官网未声明每条 trial 数。",
         "sourceUrl": "https://osworld-v2.xlang.ai/",
         "sourceUpdatedAt": "2026-10-05",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "osworld-2-20acea07565b95be",
@@ -1070,7 +1100,7 @@ const BENCHMARKS = {
         "scope": "官方全套 108 项；同版本与配置分表。Agent 条目为公开投稿，并附复现入口，不能视为官方团队独立实跑；官网未声明每条 trial 数。",
         "sourceUrl": "https://osworld-v2.xlang.ai/",
         "sourceUpdatedAt": "2026-10-05",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "osworld-2-3db74c47ad0ee704",
@@ -1085,7 +1115,7 @@ const BENCHMARKS = {
         "scope": "官方全套 108 项；同版本与配置分表。Agent 条目为公开投稿，并附复现入口，不能视为官方团队独立实跑；官网未声明每条 trial 数。",
         "sourceUrl": "https://osworld-v2.xlang.ai/",
         "sourceUpdatedAt": "2026-10-05",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "osworld-2-07b5349c1b71cd8e",
@@ -1100,7 +1130,7 @@ const BENCHMARKS = {
         "scope": "官方全套 108 项；同版本与配置分表。Agent 条目为公开投稿，并附复现入口，不能视为官方团队独立实跑；官网未声明每条 trial 数。",
         "sourceUrl": "https://osworld-v2.xlang.ai/",
         "sourceUpdatedAt": "2026-10-05",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "osworld-2-6f40ebafe931dafd",
@@ -1115,7 +1145,7 @@ const BENCHMARKS = {
         "scope": "官方全套 108 项；同版本与配置分表。Agent 条目为公开投稿，并附复现入口，不能视为官方团队独立实跑；官网未声明每条 trial 数。",
         "sourceUrl": "https://osworld-v2.xlang.ai/",
         "sourceUpdatedAt": "2026-10-05",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "osworld-2-e71e22a39d696665",
@@ -1130,7 +1160,7 @@ const BENCHMARKS = {
         "scope": "官方全套 108 项；同版本与配置分表。Agent 条目为公开投稿，并附复现入口，不能视为官方团队独立实跑；官网未声明每条 trial 数。",
         "sourceUrl": "https://osworld-v2.xlang.ai/",
         "sourceUpdatedAt": "2026-10-05",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "osworld-2-107dc6aef203ddd5",
@@ -1145,7 +1175,7 @@ const BENCHMARKS = {
         "scope": "官方全套 108 项；同版本与配置分表。Agent 条目为公开投稿，并附复现入口，不能视为官方团队独立实跑；官网未声明每条 trial 数。",
         "sourceUrl": "https://osworld-v2.xlang.ai/",
         "sourceUpdatedAt": "2026-10-05",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "osworld-2-0ec1335e759840d8",
@@ -1160,7 +1190,7 @@ const BENCHMARKS = {
         "scope": "官方全套 108 项；同版本与配置分表。Agent 条目为公开投稿，并附复现入口，不能视为官方团队独立实跑；官网未声明每条 trial 数。",
         "sourceUrl": "https://osworld-v2.xlang.ai/",
         "sourceUpdatedAt": "2026-10-05",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "osworld-2-060ce778fbef6e3d",
@@ -1175,7 +1205,7 @@ const BENCHMARKS = {
         "scope": "官方全套 108 项；同版本与配置分表。Agent 条目为公开投稿，并附复现入口，不能视为官方团队独立实跑；官网未声明每条 trial 数。",
         "sourceUrl": "https://osworld-v2.xlang.ai/",
         "sourceUpdatedAt": "2026-10-05",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "osworld-2-7ad3e8297a2cf43a",
@@ -1190,7 +1220,7 @@ const BENCHMARKS = {
         "scope": "官方全套 108 项；同版本与配置分表。Agent 条目为公开投稿，并附复现入口，不能视为官方团队独立实跑；官网未声明每条 trial 数。",
         "sourceUrl": "https://osworld-v2.xlang.ai/",
         "sourceUpdatedAt": "2026-10-05",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "hle-cais-2025-multimodal",
@@ -1205,7 +1235,7 @@ const BENCHMARKS = {
         "scope": "2,500 项公开多模态题；不含私有保留集，不与 Preview、Rolling 或 Diamond 混合。2025-04-03 为试题更新日期，非每个模型运行日期或榜单更新时间。",
         "sourceUrl": "https://lastexam.ai/",
         "sourceUpdatedAt": null,
-        "checkedAt": "2026-10-08T01:37:05.804Z"
+        "checkedAt": "2026-10-09T13:36:57.864Z"
       },
       {
         "id": "hle-cais-2025-text-only",
@@ -1220,7 +1250,7 @@ const BENCHMARKS = {
         "scope": "仅文本子集，不能与 2,500 项多模态全集横比；官网未在表中注明分母。2025-04-03 为试题版本日期，并非榜单更新时间。",
         "sourceUrl": "https://lastexam.ai/",
         "sourceUpdatedAt": null,
-        "checkedAt": "2026-10-08T01:37:05.804Z"
+        "checkedAt": "2026-10-09T13:36:57.864Z"
       },
       {
         "id": "hle-diamond-2026-high-closed-book-multimodal",
@@ -1235,7 +1265,7 @@ const BENCHMARKS = {
         "scope": "1,000 道公开多模态题，不含私有保留集；不是 HLE 原版 2,500 题或 Rolling。费用未公布；官网 tokens 部分来自不同批次并含重试，未绑定为本表 tokens。发布日不是已知的成绩更新日。",
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
         "sourceUpdatedAt": null,
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "hle-diamond-2026-high-closed-book-text",
@@ -1250,7 +1280,7 @@ const BENCHMARKS = {
         "scope": "官方显式 textOnly 模型，仅文本子集，分母未注明；不能与 1,000 道多模态题横比。",
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
         "sourceUpdatedAt": null,
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "hle-diamond-2026-max-closed-book-multimodal",
@@ -1265,7 +1295,7 @@ const BENCHMARKS = {
         "scope": "1,000 道公开多模态题，不含私有保留集；不是 HLE 原版 2,500 题或 Rolling。费用未公布；官网 tokens 部分来自不同批次并含重试，未绑定为本表 tokens。发布日不是已知的成绩更新日。",
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
         "sourceUpdatedAt": null,
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "hle-diamond-2026-max-closed-book-text",
@@ -1280,7 +1310,7 @@ const BENCHMARKS = {
         "scope": "官方显式 textOnly 模型，仅文本子集，分母未注明；不能与 1,000 道多模态题横比。",
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
         "sourceUpdatedAt": null,
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "hle-diamond-2026-high-web-code-multimodal",
@@ -1295,7 +1325,7 @@ const BENCHMARKS = {
         "scope": "1,000 道公开多模态题，不含私有保留集；不是 HLE 原版 2,500 题或 Rolling。费用未公布；官网 tokens 部分来自不同批次并含重试，未绑定为本表 tokens。发布日不是已知的成绩更新日。",
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
         "sourceUpdatedAt": null,
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "swebench-verified-bash-only",
@@ -1310,7 +1340,7 @@ const BENCHMARKS = {
         "scope": "500 项 Verified 任务；不混入其他 Agent、多次尝试、Lite、Full 或未获团队核验的投稿。官方标注日期取最后一条运行/投稿记录的 date，不代表榜单更新时间。",
         "sourceUrl": "https://www.swebench.com/",
         "sourceUpdatedAt": "2025-12-10",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       }
     ],
     "scores": [
@@ -1327,7 +1357,7 @@ const BENCHMARKS = {
         "tokens": 29557.327433628318,
         "steps": 28.754424778761063,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-821aa6752de3605e513a1f9a",
@@ -1342,7 +1372,7 @@ const BENCHMARKS = {
         "tokens": 143242.6644295302,
         "steps": 166.3131991051454,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-719fcf170866caa0799a8b84",
@@ -1357,7 +1387,7 @@ const BENCHMARKS = {
         "tokens": 117565.6936936937,
         "steps": 99.0427927927928,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-e2f3c873f8b8533a60d74c94",
@@ -1372,7 +1402,7 @@ const BENCHMARKS = {
         "tokens": 26505.853982300883,
         "steps": 27.424778761061948,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-5938858cb741d6e86deb04a6",
@@ -1387,7 +1417,7 @@ const BENCHMARKS = {
         "tokens": 61148.50663716814,
         "steps": 28.45353982300885,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-bdebe684cb3836cb2b322337",
@@ -1402,7 +1432,7 @@ const BENCHMARKS = {
         "tokens": 91672.01565995526,
         "steps": 88.7248322147651,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-5b5e7cc70be43f79366f1500",
@@ -1417,7 +1447,7 @@ const BENCHMARKS = {
         "tokens": 64207.43429844098,
         "steps": 72.92204899777283,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-20cb049d020c4caf9c99d799",
@@ -1432,7 +1462,7 @@ const BENCHMARKS = {
         "tokens": 20361.809734513274,
         "steps": 26.030973451327434,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-c0812755d039b2a3c6dc3aec",
@@ -1447,7 +1477,7 @@ const BENCHMARKS = {
         "tokens": 60013.64444444444,
         "steps": 61.25333333333333,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-0b22b7952607f75fff80b5e2",
@@ -1462,7 +1492,7 @@ const BENCHMARKS = {
         "tokens": 124684.36283185841,
         "steps": 147.30088495575222,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-783534f361989d4d3d510f9b",
@@ -1477,7 +1507,7 @@ const BENCHMARKS = {
         "tokens": 40744.59201773836,
         "steps": 44,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-a3388ff69af07d028d2d6232",
@@ -1492,7 +1522,7 @@ const BENCHMARKS = {
         "tokens": 80352.1703539823,
         "steps": 68.40044247787611,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-e57f584b6edb21fbe0e1a0f4",
@@ -1507,7 +1537,7 @@ const BENCHMARKS = {
         "tokens": 118592.77293577982,
         "steps": 88.4288990825688,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-fe84a7acea381b0409a27653",
@@ -1522,7 +1552,7 @@ const BENCHMARKS = {
         "tokens": 71938.62527716186,
         "steps": 75.9290465631929,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-4028e2f15ecc388ca5d71b35",
@@ -1537,7 +1567,7 @@ const BENCHMARKS = {
         "tokens": 28450.31929046563,
         "steps": 36.889135254988915,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-9034df416f0dc69f4ab4e70a",
@@ -1552,7 +1582,7 @@ const BENCHMARKS = {
         "tokens": 80435.60975609756,
         "steps": 124.47228381374723,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-5b8c3460ca2b61cf1838a632",
@@ -1567,7 +1597,7 @@ const BENCHMARKS = {
         "tokens": 36981.530201342284,
         "steps": 52.29530201342282,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-e8d62c34d3c04584606f776f",
@@ -1582,7 +1612,7 @@ const BENCHMARKS = {
         "tokens": 57287.06976744186,
         "steps": 58.73720930232558,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-b61492ef72a225d46517f8cd",
@@ -1597,7 +1627,7 @@ const BENCHMARKS = {
         "tokens": 81499.84257206209,
         "steps": 97.58758314855876,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-9a457f58588b6559c5c1be72",
@@ -1612,7 +1642,7 @@ const BENCHMARKS = {
         "tokens": 49763.99778761062,
         "steps": 70.28982300884955,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-dccd9aeebcd35271ee494599",
@@ -1627,7 +1657,7 @@ const BENCHMARKS = {
         "tokens": 73399.70758928571,
         "steps": 101.68080357142857,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-ffbce4cf6a1eb9c56c57299e",
@@ -1642,7 +1672,7 @@ const BENCHMARKS = {
         "tokens": 46294.72345132743,
         "steps": 82.01548672566372,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-3d083ab73787ab389b36896c",
@@ -1657,7 +1687,7 @@ const BENCHMARKS = {
         "tokens": 10579.53982300885,
         "steps": 19.537610619469028,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-93ddd88858b9d57b6e9f08d3",
@@ -1672,7 +1702,7 @@ const BENCHMARKS = {
         "tokens": 71403.54323725056,
         "steps": 87.21951219512195,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-4dc396a40173b2dd0045e55f",
@@ -1687,7 +1717,7 @@ const BENCHMARKS = {
         "tokens": 93990.8517699115,
         "steps": 117.36946902654867,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-6885d6a16b4541a3d483cf48",
@@ -1702,7 +1732,7 @@ const BENCHMARKS = {
         "tokens": 40201.35321100918,
         "steps": 48.36697247706422,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-19d5812b61896d7295d8d4df",
@@ -1717,7 +1747,7 @@ const BENCHMARKS = {
         "tokens": 107248.30309734514,
         "steps": 124.51548672566372,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-a7fb24fdd2c7df4394e556dd",
@@ -1732,7 +1762,7 @@ const BENCHMARKS = {
         "tokens": 61160.94456762749,
         "steps": 78.960088691796,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-55d860054d96f0c69971faff",
@@ -1747,7 +1777,7 @@ const BENCHMARKS = {
         "tokens": 31159.49778761062,
         "steps": 61.924778761061944,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-d96de96da682f6bc95f462c2",
@@ -1762,7 +1792,7 @@ const BENCHMARKS = {
         "tokens": 72829.77008928571,
         "steps": 122.890625,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-493957d76d720c54b3427969",
@@ -1777,7 +1807,7 @@ const BENCHMARKS = {
         "tokens": 105998.91814159292,
         "steps": 154.71238938053096,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-d0d13a0094ac521edd9f4b82",
@@ -1792,7 +1822,7 @@ const BENCHMARKS = {
         "tokens": 18425.216814159292,
         "steps": 30.913716814159294,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-80ed32afbcce3b4a7ad14fcd",
@@ -1807,7 +1837,7 @@ const BENCHMARKS = {
         "tokens": 39616.53982300885,
         "steps": 43.06637168141593,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-bb504af23d2b2d90003c0ece",
@@ -1822,7 +1852,7 @@ const BENCHMARKS = {
         "tokens": 25242.833718244805,
         "steps": 37.79907621247113,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-6c223d3ef2318cb981b2e673",
@@ -1837,7 +1867,7 @@ const BENCHMARKS = {
         "tokens": 135031.67132867133,
         "steps": 120,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-330a6dc2a0d23a7917904556",
@@ -1852,7 +1882,7 @@ const BENCHMARKS = {
         "tokens": 19884.3140311804,
         "steps": 35.641425389755014,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-44b17388f8488d3fb2c7e84d",
@@ -1867,7 +1897,7 @@ const BENCHMARKS = {
         "tokens": 95075.18262806236,
         "steps": 111.33853006681514,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-a509c6c4c6f663a30fd9779b",
@@ -1882,7 +1912,7 @@ const BENCHMARKS = {
         "tokens": 44677.900442477876,
         "steps": 71.09955752212389,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-0c3597c16b7ec03b04e9be0d",
@@ -1897,7 +1927,7 @@ const BENCHMARKS = {
         "tokens": 99226.38053097345,
         "steps": 100.75884955752213,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-ef599b2a565bb9df84db6dd2",
@@ -1912,7 +1942,7 @@ const BENCHMARKS = {
         "tokens": 86088.7874720358,
         "steps": 94.64429530201342,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-e9538e03fe70a637d46cdf77",
@@ -1927,7 +1957,7 @@ const BENCHMARKS = {
         "tokens": 19625.433628318584,
         "steps": 45.982300884955755,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-d4fa1d64ebb31c77438ff443",
@@ -1942,7 +1972,7 @@ const BENCHMARKS = {
         "tokens": 214117.54977375566,
         "steps": 268.4547511312217,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-6bf57b452a067a82659df94e",
@@ -1957,7 +1987,7 @@ const BENCHMARKS = {
         "tokens": 73364.9557522124,
         "steps": 130.37610619469027,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-ee7b48c75f44e9bda919f32e",
@@ -1972,7 +2002,7 @@ const BENCHMARKS = {
         "tokens": 21517.03982300885,
         "steps": 33.51327433628319,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-538b2f5542014fd22cca3a8d",
@@ -1987,7 +2017,7 @@ const BENCHMARKS = {
         "tokens": 35525.33185840708,
         "steps": 61.33185840707964,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-c223d96bc6da124fd8ff6eb6",
@@ -2002,7 +2032,7 @@ const BENCHMARKS = {
         "tokens": 107687.02212389381,
         "steps": 152.87610619469027,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-6d309118d4486d85027da920",
@@ -2017,7 +2047,7 @@ const BENCHMARKS = {
         "tokens": 74008.4203539823,
         "steps": 95.82522123893806,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-c0abb5a95004871b076ea192",
@@ -2032,7 +2062,7 @@ const BENCHMARKS = {
         "tokens": 50063.52654867257,
         "steps": 72.5,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-98bcf3f1da22284ee6a617ef",
@@ -2047,7 +2077,7 @@ const BENCHMARKS = {
         "tokens": 71408.87389380531,
         "steps": 70.47123893805309,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-c1b6544b97fef60dafe05ff8",
@@ -2062,7 +2092,7 @@ const BENCHMARKS = {
         "tokens": 120698.59201773835,
         "steps": 185.53215077605321,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-e9af3c644bdaa5312b7421a9",
@@ -2077,7 +2107,7 @@ const BENCHMARKS = {
         "tokens": 41313.45132743363,
         "steps": 65.57300884955752,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-5ba003c0f322a1ed36eeff22",
@@ -2092,7 +2122,7 @@ const BENCHMARKS = {
         "tokens": 87294.75609756098,
         "steps": 146.57649667405764,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-af14deec00ac5abad542e769",
@@ -2107,7 +2137,7 @@ const BENCHMARKS = {
         "tokens": 95844.86222222222,
         "steps": 116.73333333333333,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-0db1c543adfbc9078a208ad3",
@@ -2122,7 +2152,7 @@ const BENCHMARKS = {
         "tokens": 10579.141592920354,
         "steps": 23.358407079646017,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-5931f3f95a2f3a678cbf8641",
@@ -2137,7 +2167,7 @@ const BENCHMARKS = {
         "tokens": 25778.274336283186,
         "steps": 49.02212389380531,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-e7c9117dc29739a514f04b2f",
@@ -2152,7 +2182,7 @@ const BENCHMARKS = {
         "tokens": 78175.30666666667,
         "steps": 129.12666666666667,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-35646f1b0e30c6001d4e1b8a",
@@ -2167,7 +2197,7 @@ const BENCHMARKS = {
         "tokens": 16458.3429844098,
         "steps": 44.18708240534521,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-12e60efa06a3d609ca6ed54c",
@@ -2182,7 +2212,7 @@ const BENCHMARKS = {
         "tokens": 28922.736141906873,
         "steps": 53.97782705099778,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-c1389bc1a5014a60365e7016",
@@ -2197,7 +2227,7 @@ const BENCHMARKS = {
         "tokens": 56816.753333333334,
         "steps": 107.61111111111111,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-ec15ca14566eff9f09654cf4",
@@ -2212,7 +2242,7 @@ const BENCHMARKS = {
         "tokens": 54245.50442477876,
         "steps": 121.88274336283186,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-5b8e46fc12089f688094f88b",
@@ -2227,7 +2257,7 @@ const BENCHMARKS = {
         "tokens": 75730.19290465632,
         "steps": 105.30376940133037,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-8c209e18b8284b0e49158ba7",
@@ -2242,7 +2272,7 @@ const BENCHMARKS = {
         "tokens": 11746.56,
         "steps": 25.14666666666667,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-fb3a77cbbcefa707778b20de",
@@ -2257,7 +2287,7 @@ const BENCHMARKS = {
         "tokens": 59297.24778761062,
         "steps": 149.1150442477876,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-b4080eb94b2da621055396cc",
@@ -2272,7 +2302,7 @@ const BENCHMARKS = {
         "tokens": 35595.08240534521,
         "steps": 76.88864142538975,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-4de7165df5633e90d8937d1f",
@@ -2287,7 +2317,7 @@ const BENCHMARKS = {
         "tokens": 76160.31263858093,
         "steps": 133.65853658536585,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-69141c437d4d93b35ccd0686",
@@ -2302,7 +2332,7 @@ const BENCHMARKS = {
         "tokens": 9442.774336283186,
         "steps": 28.06637168141593,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-70467814bd9dce0b3278b577",
@@ -2317,7 +2347,7 @@ const BENCHMARKS = {
         "tokens": 8572.26280623608,
         "steps": 21.456570155902003,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-58ae660556dd0a7814155a27",
@@ -2332,7 +2362,7 @@ const BENCHMARKS = {
         "tokens": 28368.884444444444,
         "steps": 75.56444444444445,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-c20e329d85aee549de1665b9",
@@ -2347,7 +2377,7 @@ const BENCHMARKS = {
         "tokens": 8179.570796460177,
         "steps": 23.67699115044248,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
         "id": "score-9e03b3b5464aee8312d6f714",
@@ -2362,7 +2392,442 @@ const BENCHMARKS = {
         "tokens": 3127.754424778761,
         "steps": 12.464601769911505,
         "sourceUrl": "https://deepswe.datacurve.ai/",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
+      },
+      {
+        "id": "score-f20e84a818ed42973b185eb5",
+        "benchmarkId": "deepswe-v1",
+        "model": "gpt-5-5",
+        "reasoning": "xhigh",
+        "agent": "mini-swe-agent",
+        "score": 70.04504504504504,
+        "costUSD": 6.605861326576576,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "67.22%–72.87%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 46977.0472972973,
+        "steps": 78.96396396396396,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-c0d7c3134b7fec25bb514ca1",
+        "benchmarkId": "deepswe-v1",
+        "model": "gpt-5-5",
+        "reasoning": "high",
+        "agent": "mini-swe-agent",
+        "score": 61.94690265486725,
+        "costUSD": 4.473357603982301,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "58.34%–65.56%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 30784.19690265487,
+        "steps": 58.27433628318584,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-111f6377e2db6f81d4ee61e1",
+        "benchmarkId": "deepswe-v1",
+        "model": "claude-opus-4-8",
+        "reasoning": "max",
+        "agent": "mini-swe-agent",
+        "score": 58.1858407079646,
+        "costUSD": 12.581343959070795,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "55.91%–60.47%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 136262.3738938053,
+        "steps": 108.19026548672566,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-1123887286434bcee49e43a5",
+        "benchmarkId": "deepswe-v1",
+        "model": "claude-opus-4-8",
+        "reasoning": "xhigh",
+        "agent": "mini-swe-agent",
+        "score": 57.743362831858406,
+        "costUSD": 7.553111373340708,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "53.78%–61.71%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 85553.93805309734,
+        "steps": 87.17699115044248,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-3cef1c2c33879247ba151c7c",
+        "benchmarkId": "deepswe-v1",
+        "model": "gpt-5-4",
+        "reasoning": "xhigh",
+        "agent": "mini-swe-agent",
+        "score": 55.530973451327434,
+        "costUSD": 4.377431901548673,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "53.36%–57.70%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 71059.83849557523,
+        "steps": 68.67699115044248,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-586f12e7d6754af46b168470",
+        "benchmarkId": "deepswe-v1",
+        "model": "claude-opus-4-7",
+        "reasoning": "max",
+        "agent": "mini-swe-agent",
+        "score": 54.20353982300885,
+        "costUSD": 18.186730838691798,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "49.49%–58.92%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 103427.95343680709,
+        "steps": 202.83813747228382,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-013b8c61320ac0bdff75416c",
+        "benchmarkId": "deepswe-v1",
+        "model": "claude-opus-4-8",
+        "reasoning": "high",
+        "agent": "mini-swe-agent",
+        "score": 50.66371681415929,
+        "costUSD": 3.9815333136061946,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "47.71%–53.62%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 48188.20575221239,
+        "steps": 66.10619469026548,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-42cd795a05af88fa719b6310",
+        "benchmarkId": "deepswe-v1",
+        "model": "gpt-5-5",
+        "reasoning": "medium",
+        "agent": "mini-swe-agent",
+        "score": 48.008849557522126,
+        "costUSD": 2.3425817588495574,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "45.14%–50.87%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 18643.477876106193,
+        "steps": 41.73672566371681,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-2dba095de3d9df8ba37afdf9",
+        "benchmarkId": "deepswe-v1",
+        "model": "claude-opus-4-8",
+        "reasoning": "medium",
+        "agent": "mini-swe-agent",
+        "score": 47.34513274336283,
+        "costUSD": 3.2540401521017697,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "43.43%–51.26%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 40208.9092920354,
+        "steps": 60.347345132743364,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-71b9324794c8d2322385d236",
+        "benchmarkId": "deepswe-v1",
+        "model": "claude-opus-4-7",
+        "reasoning": "xhigh",
+        "agent": "mini-swe-agent",
+        "score": 44.690265486725664,
+        "costUSD": 8.579992504424778,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "41.81%–47.57%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 65620.80530973451,
+        "steps": 125.90929203539822,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-64dc480603e44e0cd9a61c04",
+        "benchmarkId": "deepswe-v1",
+        "model": "glm-5-2",
+        "reasoning": "max",
+        "agent": "mini-swe-agent",
+        "score": 41.517857142857146,
+        "costUSD": 3.9521292135714288,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "38.61%–44.43%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 81512.77232142857,
+        "steps": 125.48660714285714,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-854dcea0b9a1a269f2c85e55",
+        "benchmarkId": "deepswe-v1",
+        "model": "claude-opus-4-7",
+        "reasoning": "high",
+        "agent": "mini-swe-agent",
+        "score": 40.26548672566372,
+        "costUSD": 4.830124757190266,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "36.76%–43.77%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 45735.96460176991,
+        "steps": 87.15265486725664,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-04134813dfae0cc9480cf953",
+        "benchmarkId": "deepswe-v1",
+        "model": "claude-sonnet-4-6",
+        "reasoning": "high",
+        "agent": "mini-swe-agent",
+        "score": 31.767337807606268,
+        "costUSD": 5.518456022818792,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "29.83%–33.71%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 76182.25950782998,
+        "steps": 128.78299776286354,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-5d124d7258c8191afa489785",
+        "benchmarkId": "deepswe-v1",
+        "model": "claude-opus-4-7",
+        "reasoning": "medium",
+        "agent": "mini-swe-agent",
+        "score": 31.63716814159292,
+        "costUSD": 2.340389400442478,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "27.61%–35.67%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 27445.17699115044,
+        "steps": 55.39601769911504,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-f01757b014a997602720feb8",
+        "benchmarkId": "deepswe-v1",
+        "model": "gemini-3-5-flash",
+        "reasoning": "medium",
+        "agent": "mini-swe-agent",
+        "score": 28.31858407079646,
+        "costUSD": 7.423100473451328,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "24.78%–31.86%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 189024.15707964601,
+        "steps": 75.13938053097345,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-5ceeedf061e386cb540e08c6",
+        "benchmarkId": "deepswe-v1",
+        "model": "claude-opus-4-6",
+        "reasoning": "max",
+        "agent": "mini-swe-agent",
+        "score": 27.601809954751133,
+        "costUSD": 5.394612032239819,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "23.92%–31.28%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 44481.24886877828,
+        "steps": 102.98642533936652,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-5f5612e0300ffcbc8533f33b",
+        "benchmarkId": "deepswe-v1",
+        "model": "gpt-5-4-mini",
+        "reasoning": "xhigh",
+        "agent": "mini-swe-agent",
+        "score": 24.336283185840706,
+        "costUSD": 2.0848254975663716,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "21.37%–27.30%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 134515.6261061947,
+        "steps": 85.89159292035399,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-fb5a09a7aaa4754687b837a5",
+        "benchmarkId": "deepswe-v1",
+        "model": "kimi-k2-6",
+        "reasoning": null,
+        "agent": "mini-swe-agent",
+        "score": 23.893805309734514,
+        "costUSD": 3.1615826901659294,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "21.44%–26.35%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 84415.54646017699,
+        "steps": 146.7986725663717,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-a67bd2578d90bf8be0155218",
+        "benchmarkId": "deepswe-v1",
+        "model": "minimax-m3",
+        "reasoning": null,
+        "agent": "mini-swe-agent",
+        "score": 20.444444444444446,
+        "costUSD": 5.571048344133333,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "16.72%–24.17%；95% binomial (Wald) — run-to-run CI invalid (run was paused/resumed)",
+        "tokens": 97541.98444444445,
+        "steps": 314.2288888888889,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-c059ab9485b550e0e29f757c",
+        "benchmarkId": "deepswe-v1",
+        "model": "mimo-v2-5-pro",
+        "reasoning": null,
+        "agent": "mini-swe-agent",
+        "score": 19.469026548672566,
+        "costUSD": 1.9863005676991152,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "17.60%–21.34%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 49321.347345132745,
+        "steps": 121.49115044247787,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-f7ef8d5c1e410b5e822e89c9",
+        "benchmarkId": "deepswe-v1",
+        "model": "qwen3-7-max",
+        "reasoning": null,
+        "agent": "mini-swe-agent",
+        "score": 17.699115044247787,
+        "costUSD": 2.1210952610619467,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "16.28%–19.12%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 42446.92256637168,
+        "steps": 110.30309734513274,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-e8af582f6e142316b9af6cd7",
+        "benchmarkId": "deepswe-v1",
+        "model": "glm-5-1",
+        "reasoning": null,
+        "agent": "mini-swe-agent",
+        "score": 17.516629711751662,
+        "costUSD": 7.4640665507982265,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "16.72%–18.31%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 49157.29268292683,
+        "steps": 176.60088691796008,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-5c0efa229d76be7b2ed4ee9c",
+        "benchmarkId": "deepswe-v1",
+        "model": "grok-build-0-1",
+        "reasoning": null,
+        "agent": "mini-swe-agent",
+        "score": 13.082039911308204,
+        "costUSD": 6.60105246518847,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "10.64%–15.53%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 51896.41019955654,
+        "steps": 176.1330376940133,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-3bd3a7e6a3840b7e6c69aaf6",
+        "benchmarkId": "deepswe-v1",
+        "model": "gemini-3-1-pro-preview",
+        "reasoning": null,
+        "agent": "mini-swe-agent",
+        "score": 9.728506787330318,
+        "costUSD": 1.8365265176470589,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "6.90%–12.56%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 52991.00452488688,
+        "steps": 74.13348416289593,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-c1fe537eacffb81cfe6e8808",
+        "benchmarkId": "deepswe-v1",
+        "model": "deepseek-v4-pro",
+        "reasoning": null,
+        "agent": "mini-swe-agent",
+        "score": 7.52212389380531,
+        "costUSD": 1.0545908544590707,
+        "costNote": "平均每个计分 rollout 成本；按官方页面价格修正表及同一行平均输入/缓存/输出 token 折算，原始 JSON 成本已另存审计。",
+        "uncertainty": "4.83%–10.22%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 49949.31194690266,
+        "steps": 111.33628318584071,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-703862bcc72faabfc513b53e",
+        "benchmarkId": "deepswe-v1",
+        "model": "gemini-3-flash-preview",
+        "reasoning": null,
+        "agent": "mini-swe-agent",
+        "score": 5.14018691588785,
+        "costUSD": 1.5269507896028036,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "2.66%–7.62%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 233061.65420560748,
+        "steps": 70.82943925233644,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-a57a108a876568988f7138b1",
+        "benchmarkId": "deepswe-v1",
+        "model": "qwen3-6-plus",
+        "reasoning": null,
+        "agent": "mini-swe-agent",
+        "score": 2.6548672566371683,
+        "costUSD": 4.254706259986172,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "1.43%–3.88%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 66892.56637168142,
+        "steps": 164.391592920354,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-c49f1c9c6432cdaca27d4102",
+        "benchmarkId": "deepswe-v1",
+        "model": "claude-haiku-4-5",
+        "reasoning": null,
+        "agent": "mini-swe-agent",
+        "score": 0.22123893805309736,
+        "costUSD": 0.8383226758849558,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "0.00%–0.65%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 39188.00442477876,
+        "steps": 109.25442477876106,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "id": "score-d3750db599a55fb1e068eeb9",
+        "benchmarkId": "deepswe-v1",
+        "model": "minimax-m2-7",
+        "reasoning": null,
+        "agent": "mini-swe-agent",
+        "score": 0.22123893805309736,
+        "costUSD": 0.7043865151858407,
+        "costNote": "官方 JSON 平均每个计分 rollout 成本；官网没有对此模型应用价格修正。",
+        "uncertainty": "0.00%–0.65%；95% run-to-run: SE across repeated whole-benchmark passes (1.96 * std(runs)/sqrt(R))",
+        "tokens": 60022.76991150442,
+        "steps": 135.57743362831857,
+        "sourceUrl": "https://deepswe.datacurve.ai/",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
       },
       {
         "id": "score-9fe1d57414bbecc6c73164d0",
@@ -2377,7 +2842,7 @@ const BENCHMARKS = {
         "tokens": 117236,
         "steps": 128.1,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-da914e0feb2afdeef4841abc",
@@ -2392,7 +2857,7 @@ const BENCHMARKS = {
         "tokens": 87294,
         "steps": 101.4,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-8f04a8863d1f39c0c32b4e13",
@@ -2407,7 +2872,7 @@ const BENCHMARKS = {
         "tokens": 58438,
         "steps": 77.2,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-f919803d79c1c7d09457fafb",
@@ -2422,7 +2887,7 @@ const BENCHMARKS = {
         "tokens": 45411,
         "steps": 63.46,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-1d981f09a087521e5a04102c",
@@ -2437,7 +2902,7 @@ const BENCHMARKS = {
         "tokens": 34795,
         "steps": 51.3,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-18c90e036ede3145f81edd14",
@@ -2452,7 +2917,7 @@ const BENCHMARKS = {
         "tokens": 218363,
         "steps": 184.5,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-4a31fe0c2785ece611b5382d",
@@ -2467,7 +2932,7 @@ const BENCHMARKS = {
         "tokens": 101083,
         "steps": 108.6,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-f056db2e6fdbb90ec4b9694b",
@@ -2482,7 +2947,7 @@ const BENCHMARKS = {
         "tokens": 53078,
         "steps": 68.2,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-b2c9e80be483e3124c5efd26",
@@ -2497,7 +2962,7 @@ const BENCHMARKS = {
         "tokens": 37954,
         "steps": 53.8,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-c9046a33521ac70aff7fa5e5",
@@ -2512,7 +2977,7 @@ const BENCHMARKS = {
         "tokens": 15811,
         "steps": 28.1,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-245f0c64e0cdd1706352c715",
@@ -2527,7 +2992,7 @@ const BENCHMARKS = {
         "tokens": 85384,
         "steps": 106.4,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-b1c791d023ea72adc215150f",
@@ -2542,7 +3007,7 @@ const BENCHMARKS = {
         "tokens": 80094,
         "steps": 103.1,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-34ede772baf447d0b67df7ca",
@@ -2557,7 +3022,7 @@ const BENCHMARKS = {
         "tokens": 61405,
         "steps": 86.3,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-c53e59f1fb643fc280f9f502",
@@ -2572,7 +3037,7 @@ const BENCHMARKS = {
         "tokens": 45272,
         "steps": 71.7,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-9c6b9c7cf5ab48412097d2dc",
@@ -2587,7 +3052,7 @@ const BENCHMARKS = {
         "tokens": 31995,
         "steps": 57,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-c9532c1b9992346e4da27ee8",
@@ -2602,7 +3067,7 @@ const BENCHMARKS = {
         "tokens": 70141,
         "steps": 87.7,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-1e5e109719d520e7d75d5ba3",
@@ -2617,7 +3082,7 @@ const BENCHMARKS = {
         "tokens": 56382,
         "steps": 71.3,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-8e733350b355372321152642",
@@ -2632,7 +3097,7 @@ const BENCHMARKS = {
         "tokens": 36683,
         "steps": 60.3,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-75d2ff44756927c2170ca0fb",
@@ -2647,7 +3112,7 @@ const BENCHMARKS = {
         "tokens": 15677,
         "steps": 40.2,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-c3cb54f53a9b3ac76a8ee24e",
@@ -2662,7 +3127,7 @@ const BENCHMARKS = {
         "tokens": 49814,
         "steps": 55.8,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-c04566469996cb60560b421d",
@@ -2677,7 +3142,7 @@ const BENCHMARKS = {
         "tokens": 41387,
         "steps": 47.6,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-7939158e41acd729d05b9159",
@@ -2692,7 +3157,7 @@ const BENCHMARKS = {
         "tokens": 24893,
         "steps": 39.5,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-fd49e6d978107c97328927ab",
@@ -2707,7 +3172,7 @@ const BENCHMARKS = {
         "tokens": 16307,
         "steps": 31.9,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-b528e3157ca4c83895959eaf",
@@ -2722,7 +3187,7 @@ const BENCHMARKS = {
         "tokens": 42944,
         "steps": 99,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-ed9480b607897d5b3d326d87",
@@ -2737,7 +3202,7 @@ const BENCHMARKS = {
         "tokens": 24729,
         "steps": 54.7,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-5c158bf7aa3ffcc308fb13eb",
@@ -2752,7 +3217,7 @@ const BENCHMARKS = {
         "tokens": 16174,
         "steps": 40.6,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-b882f8e68a6ebb59ba0d079d",
@@ -2767,7 +3232,7 @@ const BENCHMARKS = {
         "tokens": 10111,
         "steps": 31.8,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-83db6b4fb1863f41a9f6f191",
@@ -2782,7 +3247,7 @@ const BENCHMARKS = {
         "tokens": 4885,
         "steps": 20.9,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-07c5c2286e8b9393edebb259",
@@ -2797,7 +3262,7 @@ const BENCHMARKS = {
         "tokens": 60814,
         "steps": 107,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-3274ddd14b9764821aed6de2",
@@ -2812,7 +3277,7 @@ const BENCHMARKS = {
         "tokens": 23436,
         "steps": 42.8,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-c4a951626aa314c84184363e",
@@ -2827,7 +3292,7 @@ const BENCHMARKS = {
         "tokens": 13162,
         "steps": 33,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-897e7fea29205d8237f1e1d8",
@@ -2842,7 +3307,7 @@ const BENCHMARKS = {
         "tokens": 7307,
         "steps": 25.4,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-121fb09973a1c1efad5331f1",
@@ -2857,7 +3322,7 @@ const BENCHMARKS = {
         "tokens": 5914,
         "steps": 23.3,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-c9a4ac6735c897d1f5c97c0a",
@@ -2872,7 +3337,7 @@ const BENCHMARKS = {
         "tokens": 87284,
         "steps": 208.1,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-0fb3fc5928a6c1afe703fa41",
@@ -2887,7 +3352,7 @@ const BENCHMARKS = {
         "tokens": 40598,
         "steps": 97.9,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-eae886a31de7f4413537d3a4",
@@ -2902,7 +3367,7 @@ const BENCHMARKS = {
         "tokens": 23368,
         "steps": 64,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-3c550ede20913748ec23fbac",
@@ -2917,7 +3382,7 @@ const BENCHMARKS = {
         "tokens": 7642,
         "steps": 32,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-01584cb9088cf8156c75eecf",
@@ -2932,7 +3397,7 @@ const BENCHMARKS = {
         "tokens": 3288,
         "steps": 18.4,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-eaec1f715d90da833760c8c4",
@@ -2947,7 +3412,7 @@ const BENCHMARKS = {
         "tokens": 271920,
         "steps": 169.5,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-98f99193a11744be73cc2ee8",
@@ -2962,7 +3427,7 @@ const BENCHMARKS = {
         "tokens": 100158,
         "steps": 78.1,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-1a3dd54391be2940043bd618",
@@ -2977,7 +3442,7 @@ const BENCHMARKS = {
         "tokens": 37391,
         "steps": 41,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-2e7f9fd743c5c6e5fbbf8e2f",
@@ -2992,7 +3457,7 @@ const BENCHMARKS = {
         "tokens": 16036,
         "steps": 22.4,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-bab4370a45a3e1bb035f748a",
@@ -3007,7 +3472,7 @@ const BENCHMARKS = {
         "tokens": 11668,
         "steps": 17.8,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-1b8ec3538b69fc11a6872bff",
@@ -3022,7 +3487,7 @@ const BENCHMARKS = {
         "tokens": 149257,
         "steps": 140.3,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-abd5b47b60562a9f6a2ea351",
@@ -3037,7 +3502,7 @@ const BENCHMARKS = {
         "tokens": 83373,
         "steps": 102,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-5add7b3e6763e310057b5986",
@@ -3052,7 +3517,7 @@ const BENCHMARKS = {
         "tokens": 61146,
         "steps": 85.1,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-177c87ca287f65b119f3df4a",
@@ -3067,7 +3532,7 @@ const BENCHMARKS = {
         "tokens": 39114,
         "steps": 64.5,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-e175498b7bfa09e8d90f13fb",
@@ -3082,7 +3547,7 @@ const BENCHMARKS = {
         "tokens": 23772,
         "steps": 45.8,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-0b8080c00cfce81e2fbd53e7",
@@ -3097,7 +3562,7 @@ const BENCHMARKS = {
         "tokens": 325934,
         "steps": 162.6,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-5a88d1639136c621d867698d",
@@ -3112,7 +3577,7 @@ const BENCHMARKS = {
         "tokens": 143813,
         "steps": 92.5,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-bfbf02bb4e3d1ff8ec0975ce",
@@ -3127,7 +3592,7 @@ const BENCHMARKS = {
         "tokens": 77057,
         "steps": 59.3,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-01fa58504fc49e08bad9c542",
@@ -3142,7 +3607,7 @@ const BENCHMARKS = {
         "tokens": 42659,
         "steps": 38.9,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-c0fdc8a5ab39ddfde57a3b2f",
@@ -3157,7 +3622,7 @@ const BENCHMARKS = {
         "tokens": 23382,
         "steps": 24.8,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-1cb5c8482c24f878e2304e65",
@@ -3172,7 +3637,7 @@ const BENCHMARKS = {
         "tokens": 162565,
         "steps": 323.8,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-1ee60b3b25bd0837006cf1c9",
@@ -3187,7 +3652,7 @@ const BENCHMARKS = {
         "tokens": 128364,
         "steps": 289.6,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-1cb6d44fd10d2373ed428637",
@@ -3202,7 +3667,7 @@ const BENCHMARKS = {
         "tokens": 52005,
         "steps": 98.3,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-06ad8f9d941e24f27cf7f2cd",
@@ -3217,7 +3682,7 @@ const BENCHMARKS = {
         "tokens": 40891,
         "steps": 82.5,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-0a8a7c4c49f9ef3b759cd8fc",
@@ -3232,7 +3697,7 @@ const BENCHMARKS = {
         "tokens": 30654,
         "steps": 68.6,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-ed0279490b3f71659d135064",
@@ -3247,7 +3712,7 @@ const BENCHMARKS = {
         "tokens": 27255,
         "steps": 63.9,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-90529a12b1a38f97ebc1ae57",
@@ -3262,7 +3727,7 @@ const BENCHMARKS = {
         "tokens": 17483,
         "steps": 47.2,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-5ae53928a7dab6059d295808",
@@ -3277,7 +3742,7 @@ const BENCHMARKS = {
         "tokens": 10620,
         "steps": 34,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-365b4304a5f3e09ae7f26000",
@@ -3292,7 +3757,7 @@ const BENCHMARKS = {
         "tokens": 96387,
         "steps": 166.3,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-e9a22b9c39cc454d46a746c9",
@@ -3307,7 +3772,7 @@ const BENCHMARKS = {
         "tokens": 60031,
         "steps": 113.6,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-9a83d1d60e83192c71a1fad1",
@@ -3322,7 +3787,7 @@ const BENCHMARKS = {
         "tokens": 31983,
         "steps": 81.3,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-a6213f6392b8ff5e624bcfd1",
@@ -3337,7 +3802,7 @@ const BENCHMARKS = {
         "tokens": 56410,
         "steps": 117.8,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-0ac4474120c857f2802f42ff",
@@ -3352,7 +3817,7 @@ const BENCHMARKS = {
         "tokens": 35104,
         "steps": 83.7,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-930ee9c765957a107a8551fa",
@@ -3367,7 +3832,7 @@ const BENCHMARKS = {
         "tokens": 17831,
         "steps": 57.7,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "id": "score-e3b9fc43ad5cfe6aed8fae45",
@@ -3382,7 +3847,52 @@ const BENCHMARKS = {
         "tokens": 17347,
         "steps": 41.1,
         "sourceUrl": "https://cursor.com/evals",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "checkedAt": "2026-10-09T13:36:55.035Z"
+      },
+      {
+        "id": "score-34d85cefd965b3e2fe6a91b2",
+        "benchmarkId": "cursorbench-3-0-release",
+        "model": "Composer 2",
+        "reasoning": null,
+        "agent": null,
+        "score": 61.3,
+        "costUSD": null,
+        "costNote": null,
+        "uncertainty": "历史发布文章未公开逐行置信区间；节选成绩不能代表完整榜单名次。",
+        "tokens": null,
+        "steps": null,
+        "sourceUrl": "https://cursor.com/blog/composer-2",
+        "checkedAt": "2026-10-09T13:36:58.276Z"
+      },
+      {
+        "id": "score-6a7de7076f2c2e993630481b",
+        "benchmarkId": "cursorbench-3-0-release",
+        "model": "Composer 1.5",
+        "reasoning": null,
+        "agent": null,
+        "score": 44.2,
+        "costUSD": null,
+        "costNote": null,
+        "uncertainty": "历史发布文章未公开逐行置信区间；节选成绩不能代表完整榜单名次。",
+        "tokens": null,
+        "steps": null,
+        "sourceUrl": "https://cursor.com/blog/composer-2",
+        "checkedAt": "2026-10-09T13:36:58.276Z"
+      },
+      {
+        "id": "score-40d034c9c1dd5fb275dbb349",
+        "benchmarkId": "cursorbench-3-0-release",
+        "model": "Composer 1",
+        "reasoning": null,
+        "agent": null,
+        "score": 38,
+        "costUSD": null,
+        "costNote": null,
+        "uncertainty": "历史发布文章未公开逐行置信区间；节选成绩不能代表完整榜单名次。",
+        "tokens": null,
+        "steps": null,
+        "sourceUrl": "https://cursor.com/blog/composer-2",
+        "checkedAt": "2026-10-09T13:36:58.276Z"
       },
       {
         "id": "score-e51bbfbc326ecb7a15a72c46",
@@ -3397,7 +3907,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-812ab53e606153900d2c143e",
@@ -3412,7 +3922,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-815c9218a8634485f4faa53e",
@@ -3427,7 +3937,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-7abd5c53ed7d78fb4df66458",
@@ -3442,7 +3952,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-8b167f3dacf2615eb6994541",
@@ -3457,7 +3967,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-b29ca113db39f93282620176",
@@ -3472,7 +3982,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-3a72064240c9c9394e6a011e",
@@ -3487,7 +3997,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-a90be7f2f4b59a6dcbbb7dbb",
@@ -3502,7 +4012,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-d44d189eceb5696c1d88d6c4",
@@ -3517,7 +4027,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-bc8943fcdd54fb0c6d559647",
@@ -3532,7 +4042,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-8da3d7e588b1e72de7227ab3",
@@ -3547,7 +4057,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-2737f5611475473a870e88e4",
@@ -3562,7 +4072,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-bcf8e5d4a734f8a2c8874b4f",
@@ -3577,7 +4087,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-e1a8e3fe3f2a7cc836d89e87",
@@ -3592,7 +4102,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-786d2725528e46aadbea90af",
@@ -3607,7 +4117,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-d2e5f6c7e640bf233436f6b2",
@@ -3622,7 +4132,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-51463bd276e199e6a258cb27",
@@ -3637,7 +4147,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-9d6ba0d11371d47e20089366",
@@ -3652,7 +4162,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-db9d9f6e4b8006aa7c776cb8",
@@ -3667,7 +4177,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-611e720c740a2c4d6272fdde",
@@ -3682,7 +4192,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-b788a78c2fcebfaa8f8ff822",
@@ -3697,7 +4207,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-d1bec9eb7bae3062a35fe025",
@@ -3712,7 +4222,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-7225f496bf0c973af921710e",
@@ -3727,7 +4237,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-ba19e386feff197fa1cfe5f0",
@@ -3742,7 +4252,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-83359a34e311c3075f742ac8",
@@ -3757,7 +4267,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-b0b95f7fac76abbaf28a8efc",
@@ -3772,7 +4282,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-bd6f63dbd2098d8ddac9dd2e",
@@ -3787,7 +4297,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-449dc7845b8545454dd5f4b5",
@@ -3802,7 +4312,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-916fa6e0b046a8cb8908e391",
@@ -3817,7 +4327,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-4f03841fe48d7a9255c8c1b1",
@@ -3832,7 +4342,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-347a38fc5b51a6b052df0fdd",
@@ -3847,7 +4357,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-a1f3d34d2486d1acda7f4280",
@@ -3862,7 +4372,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-60dd8ddcb6ab2dca5009cf45",
@@ -3877,7 +4387,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-16a66bb716e5cadacf32955a",
@@ -3892,7 +4402,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-5daa3040dcee15fdbe0f8811",
@@ -3907,7 +4417,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-7ffa98050234e3370fd7fc74",
@@ -3922,7 +4432,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-10e0f781b9ed86abe1d19b4b",
@@ -3937,7 +4447,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-3b2bb4f75bc3df2fef4f9d54",
@@ -3952,7 +4462,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-e6255a8dca194698e32cef5b",
@@ -3967,7 +4477,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-004d5a69ce0dadd82d499760",
@@ -3982,7 +4492,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-bd4bd08335c0f04be06dba73",
@@ -3997,7 +4507,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-782ba80c6d6c05a2b9fe1265",
@@ -4012,7 +4522,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-c6cc86d3d2912cba3cd42c05",
@@ -4027,7 +4537,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-275ab22d62da6f2ec9d17394",
@@ -4042,7 +4552,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-f28c453dbd8fe6aaafa4f69a",
@@ -4057,7 +4567,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-6f19dfa3365d788f7260be22",
@@ -4072,7 +4582,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-55fd127bf3dddb9c6cb0bbe2",
@@ -4087,7 +4597,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-350cf056d0301a4e578c9bce",
@@ -4102,7 +4612,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-b2a4498962f0ee9b7f9b4030",
@@ -4117,7 +4627,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-8d4d36f4ca729c7ed1a2a939",
@@ -4132,7 +4642,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-56c0a3c29ba704fec385d8c9",
@@ -4147,7 +4657,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-5d6c02c4a6f9a599c0aae912",
@@ -4162,7 +4672,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-79fe903461b029b802519e92",
@@ -4177,7 +4687,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-f8d8996b754d814306b991fa",
@@ -4192,7 +4702,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-362716798bffb5081e2a5594",
@@ -4207,7 +4717,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-f2fdfa5e7f6f958ceee696c3",
@@ -4222,7 +4732,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-aa434b7815afd10b779dcd6c",
@@ -4237,7 +4747,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-53928b84166aade2662678e5",
@@ -4252,7 +4762,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-aed90db83a2f70a83928c380",
@@ -4267,7 +4777,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-9d5db83cd9a42c95fad294b1",
@@ -4282,7 +4792,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-5a4438234ee193fc202583cb",
@@ -4297,7 +4807,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-f2717d66bb9ad99879514ece",
@@ -4312,7 +4822,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-055c3dcb15ca52de1b5b44c3",
@@ -4327,7 +4837,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-b77c6abc98042ef534ab6a80",
@@ -4342,7 +4852,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-41dd306cb3e56fa60b90e028",
@@ -4357,7 +4867,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-42fdacc96d40635e3e27f236",
@@ -4372,7 +4882,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-a96cebc406b15d08430bfc2b",
@@ -4387,7 +4897,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-0e0cbd670f8925681da04d3c",
@@ -4402,7 +4912,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-bb509b33ea291c594abba90e",
@@ -4417,7 +4927,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-c01bc457c54f748c560392b4",
@@ -4432,7 +4942,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-c48371febf115ff019e6ea80",
@@ -4447,7 +4957,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 150,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-5f7537042c64e58d89d03b95",
@@ -4462,7 +4972,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-714be9a1b5ba2f3a9ec33d79",
@@ -4477,7 +4987,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-c3a06d33b785320bd7ee265f",
@@ -4492,7 +5002,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-6baacb3291689a30c3cf0f4a",
@@ -4507,7 +5017,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-87c8e62e687d39895c82690e",
@@ -4522,7 +5032,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-8840d9533197570c2b1d131a",
@@ -4537,7 +5047,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-3ba0085a3213dc812b696217",
@@ -4552,7 +5062,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-54f6450089915240b0eb7698",
@@ -4567,7 +5077,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-b201509e631f58f6898e51f9",
@@ -4582,7 +5092,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-ea22205d4761ec5eeaac24cc",
@@ -4597,7 +5107,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-b2c91d184c05646b30f024ae",
@@ -4612,7 +5122,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-7d9867e29aaaa9c8f8cfd272",
@@ -4627,7 +5137,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-4d1ede251e4b497055126662",
@@ -4642,7 +5152,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-ecd868a241cb394b218df6a2",
@@ -4657,7 +5167,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-a235295168c81db2531fc510",
@@ -4672,7 +5182,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-20108a8ec5925183ec0db45c",
@@ -4687,7 +5197,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-41a96122b280441b4ea7b7bf",
@@ -4702,7 +5212,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-a7d8ac44cc99efe763547c22",
@@ -4717,7 +5227,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-753110978f67a62486b2b14c",
@@ -4732,7 +5242,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-0a5c206391a5b4466059c543",
@@ -4747,7 +5257,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-f013d83882abc1204c81e72e",
@@ -4762,7 +5272,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-96334075c8d38611be6f4b54",
@@ -4777,7 +5287,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-3c0e6a4a3a8cf1171f9bc159",
@@ -4792,7 +5302,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-f1c097157ea703e0a5d2a8e9",
@@ -4807,7 +5317,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-88d187bf9e534b956ea75e44",
@@ -4822,7 +5332,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-5d0529a64a043d1f64b22443",
@@ -4837,7 +5347,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 15,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-5501a1325bd4f73a8afd82a9",
@@ -4852,7 +5362,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-bfbf27412aa90ed31986eaaa",
@@ -4867,7 +5377,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-4cdcf666beda871f656346d7",
@@ -4882,7 +5392,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-0798157d1d59cc83bdcced98",
@@ -4897,7 +5407,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-ea5ca0ef2b25e6e1f8318a8d",
@@ -4912,7 +5422,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-4b57024e6244883723029877",
@@ -4927,7 +5437,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-367f7d618336c0f44c769499",
@@ -4942,7 +5452,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-37476126e83937155121b302",
@@ -4957,7 +5467,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 30,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-80b6a19ff27e25903f3ffc0b",
@@ -4972,7 +5482,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-68d045e663515ece4e49e9fb",
@@ -4987,7 +5497,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-70bb4340254cd1dc16fdf2c2",
@@ -5002,7 +5512,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-92959bec425421c75226bc30",
@@ -5017,7 +5527,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 50,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-9d1351e267592baaecec9a2c",
@@ -5032,7 +5542,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-d644948e091de1fe9d9a0950",
@@ -5047,7 +5557,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-e94adb9671923677438a9e9e",
@@ -5062,7 +5572,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-ad96b1de2ff2fa63758184ea",
@@ -5077,7 +5587,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-500409b360e0d50dfc3db9b3",
@@ -5092,7 +5602,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-b31f796067e511f324deb75a",
@@ -5107,7 +5617,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-02b3da22b4409a3318b9ac18",
@@ -5122,7 +5632,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-0aa0f2a400a3da504daebc8c",
@@ -5137,7 +5647,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-19def501a52cd823a66d5b84",
@@ -5152,7 +5662,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-f617651415eac68a4ba958db",
@@ -5167,7 +5677,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-601534a9e342d5171cc6f638",
@@ -5182,7 +5692,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-7e3a1fa0f62729927fe6107d",
@@ -5197,7 +5707,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-37e7b56f9c495374bb79cee2",
@@ -5212,7 +5722,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 100,
         "sourceUrl": "https://osworld-v1.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
         "id": "score-051cd2864e6fb59a53fae95b",
@@ -5227,7 +5737,7 @@ const BENCHMARKS = {
         "tokens": 29242,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-c0914a8032b4bc6ad98df1d2",
@@ -5242,7 +5752,7 @@ const BENCHMARKS = {
         "tokens": 29242,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-57bec464913aa62e0553067e",
@@ -5257,7 +5767,7 @@ const BENCHMARKS = {
         "tokens": 48645,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-37c41688e06cc1b388671b33",
@@ -5272,7 +5782,7 @@ const BENCHMARKS = {
         "tokens": 48645,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-6056cfccaf602b64851e25f3",
@@ -5287,7 +5797,7 @@ const BENCHMARKS = {
         "tokens": 65555,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-0093f478ed7904ab3f78bcee",
@@ -5302,7 +5812,7 @@ const BENCHMARKS = {
         "tokens": 65555,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-6df259108ef1e7817cfbabf5",
@@ -5317,7 +5827,7 @@ const BENCHMARKS = {
         "tokens": 88387,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-540547f7099e9103a4415a87",
@@ -5332,7 +5842,7 @@ const BENCHMARKS = {
         "tokens": 88387,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-414e46c7a8f6333f1fc26edd",
@@ -5347,7 +5857,7 @@ const BENCHMARKS = {
         "tokens": 107919,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-3a33c094f565b67050b3eb78",
@@ -5362,7 +5872,7 @@ const BENCHMARKS = {
         "tokens": 107919,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-040235bbd4cc74037e175763",
@@ -5377,7 +5887,7 @@ const BENCHMARKS = {
         "tokens": 28902,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-4dc9f9b28a7c333eba086e21",
@@ -5392,7 +5902,7 @@ const BENCHMARKS = {
         "tokens": 28902,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-d8676da056035860c118d5a3",
@@ -5407,7 +5917,7 @@ const BENCHMARKS = {
         "tokens": 51770,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-7d688c8f42621f376ede28d1",
@@ -5422,7 +5932,7 @@ const BENCHMARKS = {
         "tokens": 51770,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-7e7cbe50f77b863f05c00722",
@@ -5437,7 +5947,7 @@ const BENCHMARKS = {
         "tokens": 63098,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-93558135d068198f904dc711",
@@ -5452,7 +5962,7 @@ const BENCHMARKS = {
         "tokens": 63098,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-93f2ab53c21fc21adbfe1bca",
@@ -5467,7 +5977,7 @@ const BENCHMARKS = {
         "tokens": 88228,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-1b311e03dde826f7afce0d6a",
@@ -5482,7 +5992,7 @@ const BENCHMARKS = {
         "tokens": 88228,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-64f49834585e3dab1102fc90",
@@ -5497,7 +6007,7 @@ const BENCHMARKS = {
         "tokens": 113319,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-ae58430c2df34d275da69d78",
@@ -5512,7 +6022,7 @@ const BENCHMARKS = {
         "tokens": 113319,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-2062832bc065469b3ac6afbe",
@@ -5527,7 +6037,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-170888379aca46c0fea56a53",
@@ -5542,7 +6052,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-56ef5a1e90648dac6e5bf03d",
@@ -5557,7 +6067,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-ad12aa12c27e8a46dbfaf593",
@@ -5572,7 +6082,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-b0dcc3f3e2c4be30bde04e82",
@@ -5587,7 +6097,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-12a1e4675a3ac879e1f51eeb",
@@ -5602,7 +6112,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-6d8e4c8a2480a261ae86d8e7",
@@ -5617,7 +6127,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-4203a8673ee78a1c0ed0e1c7",
@@ -5632,7 +6142,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-9069d453f9fe68a8c908a9fd",
@@ -5647,7 +6157,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-f53e2ba307d2900813547834",
@@ -5662,7 +6172,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-d57c5a39a55552ff2e98a42a",
@@ -5677,7 +6187,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-a9bacb0a797f463f21287a30",
@@ -5692,7 +6202,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-7cd759b91ae07b484f97108d",
@@ -5707,7 +6217,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-a78a2fe0c7a8cd2d9c0294e6",
@@ -5722,7 +6232,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-ec676048f51e39fb3ccce024",
@@ -5737,7 +6247,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-9e1697fd84ec8acad35d39ee",
@@ -5752,7 +6262,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-beef3af4668835f04d6d2861",
@@ -5767,7 +6277,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-3fda75df4034cf409a2db2ef",
@@ -5782,7 +6292,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-cc25a00606796ca663e5a552",
@@ -5797,7 +6307,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-bfd7f658ad314955a7a5e7fe",
@@ -5812,7 +6322,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-dbb56f17db3cc0b7cb05544c",
@@ -5827,7 +6337,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-80b815aee8423be7cd6e4416",
@@ -5842,7 +6352,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-546e21831b2dd9eef2dba95a",
@@ -5857,7 +6367,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-59361f214a733b7f961dc914",
@@ -5872,7 +6382,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-8d6974da6959d31dfb371069",
@@ -5887,7 +6397,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-a04a564ec8773ea2bf6e0218",
@@ -5902,7 +6412,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-72a137d4aea7d4fec1aa6bc0",
@@ -5917,7 +6427,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-f4993803acf4818bb92f2da1",
@@ -5932,7 +6442,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-66cf6907c2ff036d14d0086b",
@@ -5947,7 +6457,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-64420d09b56acef0344a7465",
@@ -5962,7 +6472,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-690637774dd4686f023ef048",
@@ -5977,7 +6487,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-1144b4b4b7a845550e79009c",
@@ -5992,7 +6502,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-8fd8cd26545a39ce6ce160b1",
@@ -6007,7 +6517,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-27720e7c7c4a995aad99af83",
@@ -6022,7 +6532,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-d7fb290ef8fbc7b8c60dde20",
@@ -6037,7 +6547,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-7bcc38b8e0a423fec54d8b81",
@@ -6052,7 +6562,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-4769baf445ca6993833a1847",
@@ -6067,7 +6577,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-b03293715e72c5a674dff685",
@@ -6082,7 +6592,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-c72a7e45ea7741eca65a5fe7",
@@ -6097,7 +6607,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-54b6d54585e6963b89b15394",
@@ -6112,7 +6622,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-232a7d307cb48e45dbdd868b",
@@ -6127,7 +6637,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 150,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-adb6cb82116e049f41ebe2f1",
@@ -6142,7 +6652,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 150,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-4bdc9e815f33e7f639ab6627",
@@ -6157,7 +6667,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 300,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-9f76b4281c243847cdc3fe85",
@@ -6172,7 +6682,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 300,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-5035cdff6e0b6fca0522f40a",
@@ -6187,7 +6697,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-73253ab2f84993326a424781",
@@ -6202,7 +6712,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-0b1d89943f5934b60dcb244b",
@@ -6217,7 +6727,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 150,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-47ce71d7be8618e965faa5e8",
@@ -6232,7 +6742,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 150,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-8f3a793c5cf269d7d45864de",
@@ -6247,7 +6757,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 300,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-a03ad38290b734291c020f31",
@@ -6262,7 +6772,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 300,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-2c3e10cf01ead655d34373f9",
@@ -6277,7 +6787,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-958b2173e7d7496fc62ac9d5",
@@ -6292,7 +6802,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-7398a7553e62a80ed83d1034",
@@ -6307,7 +6817,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 150,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-13be29be21d9b3912df7fe67",
@@ -6322,7 +6832,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 150,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-d2719c00fecb065909113875",
@@ -6337,7 +6847,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 300,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-4fe1b4ef10c604dc4892b706",
@@ -6352,7 +6862,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 300,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-65a589195cd97e52ef66fbaa",
@@ -6367,7 +6877,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-676e18318da25b1fb008c686",
@@ -6382,7 +6892,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-a93daf6b71986e5d79e15b2d",
@@ -6397,7 +6907,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 150,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-eae9257948d756cf8830a7e6",
@@ -6412,7 +6922,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 150,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-93cee91be67483cfb3352a72",
@@ -6427,7 +6937,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 300,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-6ca97ac749beedbad04ddf8d",
@@ -6442,7 +6952,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 300,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-a0ee67a052141e4c933d748f",
@@ -6457,7 +6967,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-52ad8e68c5e4852a9b2c0f42",
@@ -6472,7 +6982,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-bd7a062aa7b723e61c348dab",
@@ -6487,7 +6997,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 300,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-2da5b02ddf9bd1b6353c6b1b",
@@ -6502,7 +7012,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 300,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-bb79f81afe6b72ba74103b33",
@@ -6517,7 +7027,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-0eb1e247a74f73455bc5da7c",
@@ -6532,7 +7042,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-7db784b54af4545a3c3b022c",
@@ -6547,7 +7057,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 150,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-bcbacab160ee893b29174b0b",
@@ -6562,7 +7072,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 150,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-608abff8fb6e7f2df8b0022c",
@@ -6577,7 +7087,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 300,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-ed0c3590845559f2011b42fc",
@@ -6592,7 +7102,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 300,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-8c2982cb6641ad5cdbe04e3e",
@@ -6607,7 +7117,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-699a5187da47b499dc2188a0",
@@ -6622,7 +7132,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-86b7cdb0f71e445ecbe85049",
@@ -6637,7 +7147,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 150,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-1735ef1a243a6520d33917c4",
@@ -6652,7 +7162,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 150,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-9117525e70a3f466d5e0ba95",
@@ -6667,7 +7177,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 300,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-f745064cccdbad0121759399",
@@ -6682,7 +7192,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 300,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-6f00c66858e820a56e504379",
@@ -6697,7 +7207,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-a5169dbc60c4ba4ef620e771",
@@ -6712,7 +7222,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-39bd484376a0440111541eab",
@@ -6727,7 +7237,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-2b74d4634156277d4967e246",
@@ -6742,7 +7252,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": 500,
         "sourceUrl": "https://osworld-v2.xlang.ai/",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
+        "checkedAt": "2026-10-09T13:36:56.141Z"
       },
       {
         "id": "score-a82fdb7a51bd1220e082ca27",
@@ -6757,7 +7267,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/",
-        "checkedAt": "2026-10-08T01:37:05.804Z"
+        "checkedAt": "2026-10-09T13:36:57.864Z"
       },
       {
         "id": "score-be6f3dccb812b52f86a272b2",
@@ -6772,7 +7282,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/",
-        "checkedAt": "2026-10-08T01:37:05.804Z"
+        "checkedAt": "2026-10-09T13:36:57.864Z"
       },
       {
         "id": "score-9b0ed8533ce86a6383db6315",
@@ -6787,7 +7297,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/",
-        "checkedAt": "2026-10-08T01:37:05.804Z"
+        "checkedAt": "2026-10-09T13:36:57.864Z"
       },
       {
         "id": "score-d05eccb66ac549de6af35c12",
@@ -6802,7 +7312,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/",
-        "checkedAt": "2026-10-08T01:37:05.804Z"
+        "checkedAt": "2026-10-09T13:36:57.864Z"
       },
       {
         "id": "score-b6363e94c290810e1125f480",
@@ -6817,7 +7327,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/",
-        "checkedAt": "2026-10-08T01:37:05.804Z"
+        "checkedAt": "2026-10-09T13:36:57.864Z"
       },
       {
         "id": "score-35de60b986c5ca5967ec937a",
@@ -6832,7 +7342,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/",
-        "checkedAt": "2026-10-08T01:37:05.804Z"
+        "checkedAt": "2026-10-09T13:36:57.864Z"
       },
       {
         "id": "score-3530d1b1f81f723d3eae743d",
@@ -6847,12 +7357,12 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/",
-        "checkedAt": "2026-10-08T01:37:05.804Z"
+        "checkedAt": "2026-10-09T13:36:57.864Z"
       },
       {
-        "id": "score-69d6569acc4e58fb4b8860d0",
+        "id": "score-28ae4b996f8b7e8166fceea2",
         "benchmarkId": "hle-cais-2025-text-only",
-        "model": "DeepSeek-R1*",
+        "model": "DeepSeek-R1",
         "reasoning": null,
         "agent": null,
         "score": 8.5,
@@ -6862,7 +7372,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/",
-        "checkedAt": "2026-10-08T01:37:05.804Z"
+        "checkedAt": "2026-10-09T13:36:57.864Z"
       },
       {
         "id": "score-56f2b7ad9d98e9f60bd72b39",
@@ -6877,7 +7387,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/",
-        "checkedAt": "2026-10-08T01:37:05.804Z"
+        "checkedAt": "2026-10-09T13:36:57.864Z"
       },
       {
         "id": "score-65d063d923a3109c3e20d655",
@@ -6892,7 +7402,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/",
-        "checkedAt": "2026-10-08T01:37:05.804Z"
+        "checkedAt": "2026-10-09T13:36:57.864Z"
       },
       {
         "id": "score-6cca4a93dcbb09563279ff44",
@@ -6907,7 +7417,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-8117390fc1d2e58f8156d887",
@@ -6922,7 +7432,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-35a98f12716b475cf5be8260",
@@ -6937,7 +7447,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-b4bc8de2006fed08bec5e1d4",
@@ -6952,7 +7462,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-53b1c6a7c958242e79d0f518",
@@ -6967,7 +7477,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-b2e546887a294afae96cd744",
@@ -6982,7 +7492,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-71e0c62f9902dbbbc731d2c7",
@@ -6997,7 +7507,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-d77b1f6f38c9d424dd852be5",
@@ -7012,7 +7522,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-768a2b8e9aeaedcde259d1ba",
@@ -7027,7 +7537,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-5f6ccd10e0ded13a815aa94a",
@@ -7042,7 +7552,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-5048323faded7cf7a02de878",
@@ -7057,7 +7567,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-21ab8139739ad9906487039b",
@@ -7072,7 +7582,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-5ce3a415d325f474cb509052",
@@ -7087,7 +7597,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-f0073d398d6cc68a17d39517",
@@ -7102,7 +7612,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-0a207e54c14fa88a49fce3c8",
@@ -7117,7 +7627,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-98e846728c929e0579d2f503",
@@ -7132,7 +7642,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-6955508cc6310af1e9eb22a6",
@@ -7147,7 +7657,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-cfc4b3669d8177638444efa3",
@@ -7162,7 +7672,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-0e64d9bdf9e16ef24f5f93fc",
@@ -7177,7 +7687,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-72d5072a1b6b6aa1db8451da",
@@ -7192,7 +7702,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-3a955a2fcc588a69684f783f",
@@ -7207,7 +7717,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-835dd3994c607c7fb06747f8",
@@ -7222,7 +7732,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-46b763a044331dc607f492d0",
@@ -7237,7 +7747,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-2d8de401fefec06f49ab1a24",
@@ -7252,7 +7762,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-43e6b1df610ce3180e855306",
@@ -7267,7 +7777,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-607a8079d8ead64bbbb7526a",
@@ -7282,7 +7792,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-ad22b956010e399a630cc6d9",
@@ -7297,7 +7807,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-c450dbf3b8a021caf2242c4b",
@@ -7312,7 +7822,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-664a57105cef142366a23f0d",
@@ -7327,7 +7837,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-f7751041852206c39f28b854",
@@ -7342,7 +7852,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-913b5a69061ed92cc58ceb81",
@@ -7357,7 +7867,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-c147930d7efbf2e0a47b76d4",
@@ -7372,7 +7882,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-dae598bc10e77891ece6bbee",
@@ -7387,7 +7897,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-a93661039ce90e6734953aab",
@@ -7402,7 +7912,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-adc6b3c6481f7af351c40ed4",
@@ -7417,7 +7927,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-8928481f2a2992ada645d90d",
@@ -7432,7 +7942,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://lastexam.ai/blog/hle-diamond",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "id": "score-863431d91503ee83a12f72da",
@@ -7447,7 +7957,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-0623ae2a7cb57cccc9d0bff2",
@@ -7462,7 +7972,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-263cc8df44efbfceafa570ec",
@@ -7477,7 +7987,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-8a8c5285ed0aa4517a79a24f",
@@ -7492,7 +8002,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-1af1ce2d57fedf98e1a2a6f1",
@@ -7507,7 +8017,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-a85c5dc50736ae0c1d88f3ce",
@@ -7522,7 +8032,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-98d1ade8fc8f588d98b1aee9",
@@ -7537,7 +8047,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-84925d47bb735a510fedf373",
@@ -7552,7 +8062,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-c7e7e8d0e25f807ff8b2bb2a",
@@ -7567,7 +8077,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-1216133e04aeee1c165441e4",
@@ -7582,7 +8092,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-46e58a1591c3cb4f9195cd0a",
@@ -7597,7 +8107,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-27a633501e5b37e68346dc2f",
@@ -7612,7 +8122,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-b5916f3388c3f9119a50a00a",
@@ -7627,7 +8137,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-48e15ef65e90f0f4fd139f5a",
@@ -7642,7 +8152,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-81307290e8ffb64c6654540a",
@@ -7657,7 +8167,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-24ef8e8a01ab3e4df61c9608",
@@ -7672,7 +8182,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-de267ab9a2892f3308a1026a",
@@ -7687,7 +8197,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-e2563e1002f24b371365aae9",
@@ -7702,7 +8212,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-1f24288dd07c129f6e788275",
@@ -7717,7 +8227,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-65bbcacb4cb700c9873b5d09",
@@ -7732,7 +8242,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-ee01b40424e797505b9a6e70",
@@ -7747,7 +8257,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-79878622c506584d34677bb0",
@@ -7762,7 +8272,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-ae610b30547f83078b0e2cd4",
@@ -7777,7 +8287,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-d4ef3c2808155a1fe56802cd",
@@ -7792,7 +8302,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-20592b188bf32dc1713a99dc",
@@ -7807,7 +8317,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-e29cb26f021ce632e2d98646",
@@ -7822,7 +8332,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-2c6b11863299c0462d34f3c3",
@@ -7837,7 +8347,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-0a587953b8a3e2eb7f7840da",
@@ -7852,7 +8362,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-961d75508c9819223c2c9a17",
@@ -7867,7 +8377,7 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       },
       {
         "id": "score-2e90255896e2b7d8c967b686",
@@ -7882,126 +8392,146 @@ const BENCHMARKS = {
         "tokens": null,
         "steps": null,
         "sourceUrl": "https://www.swebench.com/",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
       }
     ],
     "artifacts": [
       {
-        "url": "https://osworld-v1.xlang.ai/",
-        "sha256": "bf37e00ce23e8c5472d485a6eb3b291ffa2de220b44040402516e41cbc48c516",
-        "checkedAt": "2026-10-08T01:37:03.797Z"
-      },
-      {
         "url": "https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json",
         "sha256": "a7c15d66288fd249c020b9931c017b92d1a3b90e480b3ff34974b752bd030019",
-        "checkedAt": "2026-10-08T01:37:03.814Z"
+        "checkedAt": "2026-10-09T13:36:54.393Z"
       },
       {
-        "url": "https://cursor.com/evals",
-        "sha256": "f91e721aa2af81db4a773637dd89fe750d46e2713eab5d504e14cf7270115a6a",
-        "checkedAt": "2026-10-08T01:37:03.878Z"
+        "url": "https://osworld-v1.xlang.ai/",
+        "sha256": "bf37e00ce23e8c5472d485a6eb3b291ffa2de220b44040402516e41cbc48c516",
+        "checkedAt": "2026-10-09T13:36:54.432Z"
+      },
+      {
+        "url": "https://deepswe.datacurve.ai/artifacts/v1/leaderboard-live.json",
+        "sha256": "6fc4a40007a7db1647b2661bed7f3c61f698ea08cb13d60de1707e108e9c2964",
+        "checkedAt": "2026-10-09T13:36:54.446Z"
+      },
+      {
+        "url": "https://deepswe.datacurve.ai/blog/deepswe-v1-1",
+        "sha256": "7fae68b8424e883a17925ed94553d3b170d59e50a467a7a11d57790fa80f2382",
+        "checkedAt": "2026-10-09T13:36:54.504Z"
       },
       {
         "url": "https://deepswe.datacurve.ai/",
         "sha256": "14436c31be1e50a0b62171e4aee4dd0ae0ce66b1e390af89c7e6e095ad59f1f1",
-        "checkedAt": "2026-10-08T01:37:03.911Z"
+        "checkedAt": "2026-10-09T13:36:54.562Z"
       },
       {
         "url": "https://osworld-v1.xlang.ai/static/data/osworld_verified_results.xlsx",
         "sha256": "cf6b4b67eed566ddcd5a8b7ad2d89013157978dad0eea76ea12d2377471efc09",
-        "checkedAt": "2026-10-08T01:37:03.980Z"
+        "checkedAt": "2026-10-09T13:36:54.961Z"
       },
       {
-        "url": "https://cursor.com/marketing-static/_next/static/chunks/0bcatfrew8l9s.js?dpl=dpl_9UVxJgncFV9K45jdEVv4hw5Ngm9Y",
-        "sha256": "29f5cc8a6689be0ad0944f03687bdc2df048b75f9382a871eb8ba1a0d9bc6d79",
-        "checkedAt": "2026-10-08T01:37:04.012Z"
-      },
-      {
-        "url": "https://cursor.com/marketing-static/_next/static/chunks/0.9k8v~xpvbgd.js?dpl=dpl_9UVxJgncFV9K45jdEVv4hw5Ngm9Y",
-        "sha256": "36e9f3e36be39a96b593428a048f06b892aabb9a4d5dfb67c04a03996a869f78",
-        "checkedAt": "2026-10-08T01:37:04.123Z"
-      },
-      {
-        "url": "https://cursor.com/marketing-static/_next/static/chunks/0wi_l71~67je3.js?dpl=dpl_9UVxJgncFV9K45jdEVv4hw5Ngm9Y",
-        "sha256": "b2a0965004ec9b4d5025c35b82b3021a699116502fa7e8dacd0a30a2b57907a7",
-        "checkedAt": "2026-10-08T01:37:04.131Z"
-      },
-      {
-        "url": "https://cursor.com/marketing-static/_next/static/chunks/0pn-gf~hcxu_y.js?dpl=dpl_9UVxJgncFV9K45jdEVv4hw5Ngm9Y",
-        "sha256": "ea3b912316401e7e53419793820cda38db558ef2e8b95e5967245d211d486219",
-        "checkedAt": "2026-10-08T01:37:04.137Z"
-      },
-      {
-        "url": "https://cursor.com/marketing-static/_next/static/chunks/0xpijo3xa9hrm.js?dpl=dpl_9UVxJgncFV9K45jdEVv4hw5Ngm9Y",
-        "sha256": "d4b03b0aafc2c4c79d54cfebc2a7061e09eb94a67bb3f73a12621b28adfc23bc",
-        "checkedAt": "2026-10-08T01:37:04.138Z"
-      },
-      {
-        "url": "https://cursor.com/marketing-static/_next/static/chunks/16vt96tfwii.a.js?dpl=dpl_9UVxJgncFV9K45jdEVv4hw5Ngm9Y",
-        "sha256": "ad7b650bcf44f3dd537979d5da1ff2f19b6b52144313f7516180f013c134b0d1",
-        "checkedAt": "2026-10-08T01:37:04.175Z"
-      },
-      {
-        "url": "https://cursor.com/marketing-static/_next/static/chunks/10~t.8~jpbcrg.js?dpl=dpl_9UVxJgncFV9K45jdEVv4hw5Ngm9Y",
-        "sha256": "317b62756fa1e559ad4b1f498ca0778c5dd2ded60a23dbbd885fa67eb12a8c31",
-        "checkedAt": "2026-10-08T01:37:04.187Z"
-      },
-      {
-        "url": "https://cursor.com/marketing-static/_next/static/chunks/17nsuep_9254c.js?dpl=dpl_9UVxJgncFV9K45jdEVv4hw5Ngm9Y",
-        "sha256": "d03de84eb994c0d40402d8372179b9cce52382be048141b84dd6edfdd2dcb5ed",
-        "checkedAt": "2026-10-08T01:37:04.191Z"
-      },
-      {
-        "url": "https://cursor.com/marketing-static/_next/static/chunks/0339lsunbrp7y.js?dpl=dpl_9UVxJgncFV9K45jdEVv4hw5Ngm9Y",
-        "sha256": "00e217e663cc0d737742d4d02d2c5ac643454068b7b4224f828f02b18f96a277",
-        "checkedAt": "2026-10-08T01:37:04.195Z"
+        "url": "https://cursor.com/evals",
+        "sha256": "c540fafac19ab76b9a1d08dcd9407f99ae71576a2cdbf6c1c94ee2a4e01623bd",
+        "checkedAt": "2026-10-09T13:36:55.035Z"
       },
       {
         "url": "https://deepswe.datacurve.ai/assets/index-Dl-MwHZr.js",
         "sha256": "92c0b7c55446f4510f91c3f25e671becc51e422d9e18868324b896d7a0513699",
-        "checkedAt": "2026-10-08T01:37:04.245Z"
-      },
-      {
-        "url": "https://osworld-v2.xlang.ai/static/data/leaderboard/official-results.json?v=leaderboard-sai-v4",
-        "sha256": "35a0ed7cfe2e9981c4976ea326ee3a21d77e4a80b7e44adcad55316d83cc2cec",
-        "checkedAt": "2026-10-08T01:37:04.693Z"
-      },
-      {
-        "url": "https://cursor.com/marketing-static/_next/static/chunks/14s_myja48akq.js?dpl=dpl_9UVxJgncFV9K45jdEVv4hw5Ngm9Y",
-        "sha256": "2b395f0c8b7fc61505f5da75ec14e5d2293842b78b31904c1436edc3c81f4376",
-        "checkedAt": "2026-10-08T01:37:04.700Z"
+        "checkedAt": "2026-10-09T13:36:55.063Z"
       },
       {
         "url": "https://www.swebench.com/",
         "sha256": "c862011a4ee1d1a7199fad6ca0905fa5c64f58216f7217ac1eddf37f28788433",
-        "checkedAt": "2026-10-08T01:37:05.763Z"
+        "checkedAt": "2026-10-09T13:36:55.695Z"
+      },
+      {
+        "url": "https://cursor.com/marketing-static/_next/static/chunks/10~t.8~jpbcrg.js?dpl=dpl_CYCpv6Ns7Ai33iaryVebhAFqZ744",
+        "sha256": "317b62756fa1e559ad4b1f498ca0778c5dd2ded60a23dbbd885fa67eb12a8c31",
+        "checkedAt": "2026-10-09T13:36:55.818Z"
+      },
+      {
+        "url": "https://cursor.com/marketing-static/_next/static/chunks/0xpijo3xa9hrm.js?dpl=dpl_CYCpv6Ns7Ai33iaryVebhAFqZ744",
+        "sha256": "d4b03b0aafc2c4c79d54cfebc2a7061e09eb94a67bb3f73a12621b28adfc23bc",
+        "checkedAt": "2026-10-09T13:36:56.022Z"
+      },
+      {
+        "url": "https://osworld-v2.xlang.ai/static/data/leaderboard/official-results.json?v=leaderboard-sai-v4",
+        "sha256": "35a0ed7cfe2e9981c4976ea326ee3a21d77e4a80b7e44adcad55316d83cc2cec",
+        "checkedAt": "2026-10-09T13:36:56.141Z"
+      },
+      {
+        "url": "https://cursor.com/marketing-static/_next/static/chunks/16vt96tfwii.a.js?dpl=dpl_CYCpv6Ns7Ai33iaryVebhAFqZ744",
+        "sha256": "ad7b650bcf44f3dd537979d5da1ff2f19b6b52144313f7516180f013c134b0d1",
+        "checkedAt": "2026-10-09T13:36:56.345Z"
+      },
+      {
+        "url": "https://cursor.com/marketing-static/_next/static/chunks/17nsuep_9254c.js?dpl=dpl_CYCpv6Ns7Ai33iaryVebhAFqZ744",
+        "sha256": "d03de84eb994c0d40402d8372179b9cce52382be048141b84dd6edfdd2dcb5ed",
+        "checkedAt": "2026-10-09T13:36:56.367Z"
+      },
+      {
+        "url": "https://cursor.com/marketing-static/_next/static/chunks/0bcatfrew8l9s.js?dpl=dpl_CYCpv6Ns7Ai33iaryVebhAFqZ744",
+        "sha256": "29f5cc8a6689be0ad0944f03687bdc2df048b75f9382a871eb8ba1a0d9bc6d79",
+        "checkedAt": "2026-10-09T13:36:56.391Z"
+      },
+      {
+        "url": "https://cursor.com/marketing-static/_next/static/chunks/0wi_l71~67je3.js?dpl=dpl_CYCpv6Ns7Ai33iaryVebhAFqZ744",
+        "sha256": "b2a0965004ec9b4d5025c35b82b3021a699116502fa7e8dacd0a30a2b57907a7",
+        "checkedAt": "2026-10-09T13:36:56.504Z"
+      },
+      {
+        "url": "https://cursor.com/marketing-static/_next/static/chunks/0xh4rf6.cvlca.js?dpl=dpl_CYCpv6Ns7Ai33iaryVebhAFqZ744",
+        "sha256": "c466e37f259270fec616861ba95b3069428e31eb8121c404e4d3735da1994486",
+        "checkedAt": "2026-10-09T13:36:56.543Z"
+      },
+      {
+        "url": "https://cursor.com/marketing-static/_next/static/chunks/0pn-gf~hcxu_y.js?dpl=dpl_CYCpv6Ns7Ai33iaryVebhAFqZ744",
+        "sha256": "ea3b912316401e7e53419793820cda38db558ef2e8b95e5967245d211d486219",
+        "checkedAt": "2026-10-09T13:36:56.577Z"
+      },
+      {
+        "url": "https://cursor.com/marketing-static/_next/static/chunks/0.9k8v~xpvbgd.js?dpl=dpl_CYCpv6Ns7Ai33iaryVebhAFqZ744",
+        "sha256": "36e9f3e36be39a96b593428a048f06b892aabb9a4d5dfb67c04a03996a869f78",
+        "checkedAt": "2026-10-09T13:36:56.581Z"
+      },
+      {
+        "url": "https://cursor.com/marketing-static/_next/static/chunks/14s_myja48akq.js?dpl=dpl_CYCpv6Ns7Ai33iaryVebhAFqZ744",
+        "sha256": "2b395f0c8b7fc61505f5da75ec14e5d2293842b78b31904c1436edc3c81f4376",
+        "checkedAt": "2026-10-09T13:36:56.868Z"
       },
       {
         "url": "https://lastexam.ai/",
         "sha256": "1ceab46b10ee69777117db9af5851f3e59efd67ff698984f37c1b196bd7e041c",
-        "checkedAt": "2026-10-08T01:37:05.804Z"
+        "checkedAt": "2026-10-09T13:36:57.864Z"
+      },
+      {
+        "url": "https://cursor.com/blog/composer-2",
+        "sha256": "e2149e215aaee5da11216634c664001c9ca2ca58cc16d0b9fc3fb7943d69e560",
+        "checkedAt": "2026-10-09T13:36:58.276Z"
+      },
+      {
+        "url": "https://cursor.com/blog/cursorbench",
+        "sha256": "c2d8ddf57c8b6d6bdc6ee5ad79eefe853533388cb14142f8754e9a5256641673",
+        "checkedAt": "2026-10-09T13:36:58.384Z"
       },
       {
         "url": "https://lastexam.ai/blog/hle-diamond",
         "sha256": "43657362a44bb51621f59bf02303694c937c8b5576dfacc57bbd9f2c004c5c51",
-        "checkedAt": "2026-10-08T01:37:06.341Z"
+        "checkedAt": "2026-10-09T13:36:58.581Z"
       },
       {
         "url": "https://lastexam.ai/_next/static/chunks/app/blog/hle-diamond/page-6f16d8eb26ccd781.js",
         "sha256": "efec9c1e00d700a17f8454d107bdb26fd25119e92ddfb749c8de31f0dfe3505d",
-        "checkedAt": "2026-10-08T01:37:06.616Z"
+        "checkedAt": "2026-10-09T13:36:59.067Z"
       },
       {
         "url": "https://api.github.com/repos/centerforaisafety/hle/contents/docs/evaluation-with-tools.md",
         "sha256": "f549964579b87e3add7a92aedbdd65575022294541912340e3654db46116b867",
-        "checkedAt": "2026-10-08T01:37:07.042Z"
+        "checkedAt": "2026-10-09T13:37:00.080Z"
       }
     ],
     "review": {
       "by": "Codex",
-      "reason": "核对官方入口与全部协议及费用口径，保留原表比例矛盾，审核内容绑定完整采集归档",
-      "reviewedAt": "2026-10-08T01:37:07.763Z",
-      "candidateHash": "ce4deae4bd408724200aeaafaae6e5f1da1f6d4cda65d145ec33e9fa442b62f8"
+      "reason": "核对 Cursor 官网 4.0 榜单、初始 3.0 与 3.1 协议更新日期及 Composer 2 发布文章，新增 3.0 历史发布节选的 3 条可直接解析成绩；非完整榜单，未公开费用、tokens、步数和推理设置保留 null。其余成绩与协议事实无变化，保留全部原始下载哈希。",
+      "reviewedAt": "2026-10-09T13:37:31.015Z",
+      "candidateHash": "74b30074239a028283dc4831fd407dbce3ccd57b3bea2cf3c38b712bb33561f9"
     }
   }
 };
