@@ -50,18 +50,20 @@ const PLAN_COLUMNS = [
   { id: "priceY", label: "年付折月", cls: "td-price", value: (p) => p.priceY == null ? "" : planPriceLabel(p, "Y"),
     markdownValue: (p) => p.priceY == null ? "—" : planPriceLabel(p, "Y"), cell: planAnnualPriceCell },
   { id: "annualTotal", label: "年付全年金额", table: false, value: annualPaymentText },
-  { id: "selectedPayment", label: "选购支付口径", table:false, value:(p) => tableState.fromPicker ? priceLine(p) : "" },
-  { id: "selectedFirstPayment", label: "选购首次付款", table:false, value:(p) => tableState.fromPicker ? pickerFirstPaymentText(p) : "" },
+  /* pickerOnly：仅在应用选购条件后有值；完整权益窗口跳过空值行，导出保留固定列。 */
+  { id: "selectedPayment", label: "选购支付口径", table:false, pickerOnly:true, value:(p) => tableState.fromPicker ? priceLine(p) : "" },
+  { id: "selectedFirstPayment", label: "选购首次付款", table:false, pickerOnly:true, value:(p) => tableState.fromPicker ? pickerFirstPaymentText(p) : "" },
   { id: "quota", label: "额度（官方口径）", cls: "td-quota", value: (p) => resolvedField(p, "quota") },
   { id: "models", label: "模型", cls: "td-models col-opt", value: (p) => resolvedField(p, "models") },
   { id: "tools", label: "支持工具", cls: "col-opt", value: (p) => resolvedField(p, "tools") },
   { id: "note", label: "备注", cls: "td-note col-opt", value: (p) => resolvedField(p, "note"),
     markdownValue: (p) => resolvedField(p, "note") || "—", cell: (p) => esc(resolvedField(p, "note") || "—") },
   { id: "url", label: "来源", cls: "td-trust", value: (p) => p.url || "",
-    cell: (p) => priceCheckHtml(p) },
+    cell: (p) => priceCheckHtml(p), detailCell: (p) => linkListHtml([p.url], "官网页面") },
   { id: "priceStatus", label: "价格核实状态", table: false, value: (p) => priceCheckLabel(p) },
   { id: "priceCheckedAt", label: "价格核查日期", table: false, value: (p) => (priceCheckOf(p) || {}).checkedAt || "" },
-  { id: "priceSources", label: "价格核查来源", table: false, value: (p) => priceCheckSources(p).join(" ; ") },
+  { id: "priceSources", label: "价格核查来源", table: false, value: (p) => priceCheckSources(p).join(" ; "),
+    detailCell: (p) => linkListHtml(priceCheckSources(p), "核价来源") },
   { id: "priceCheckReason", label: "价格核查说明", table: false, value: (p) => displayPriceReason((priceCheckOf(p) || {}).reason || "") },
   { id: "updated", label: "数据更新日期", table: false, markdown: false, value: () => META.updated },
   { id: "rate", label: "参考汇率（USD/CNY）", table: false, markdown: false, value: () => RATE },
@@ -70,6 +72,12 @@ const PLAN_COLUMNS = [
   { id: "rateSource", label: "汇率来源", table: false, markdown: false, value: () => META.rateSource || "" },
 ];
 const PLAN_TABLE_COLUMNS = PLAN_COLUMNS.filter((c) => c.table !== false);
+/* 完整权益窗口里的网址列显示为可点击链接；非 http(s) 地址不生成链接。 */
+function linkListHtml(urls, label) {
+  const links = urls.filter((url) => safeHref(url));
+  return links.length ? links.map((url, i) => `<a href="${safeHref(url)}" target="_blank" rel="noopener">${esc(label)}${links.length > 1 ? i + 1 : ""} ↗</a>`).join(" · ") : "—";
+}
+
 function responsivePageSize() { return window.innerWidth < 768 ? 5 : 20; }
 let tableVisibleLimit = responsivePageSize();
 let tableViewFingerprint = "";
