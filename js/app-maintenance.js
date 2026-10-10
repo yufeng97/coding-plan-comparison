@@ -291,8 +291,8 @@ function renderPublicBenchmarkChart() {
   chart.setOption({
     animation: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     grid: { left: 8, right: cost ? 78 : 64, top: 12, bottom: 46, containLabel: true },
-    // Keep WebKit's pre-wrap tooltip bounds out of the chart's scroll extent.
-    tooltip: { ...tipStyle(host), extraCssText: "max-width: min(420px, 100%); box-sizing: border-box; white-space: normal; overflow-wrap: anywhere; contain: layout paint; overflow: hidden; z-index: 2000;", trigger: "item", formatter: (item) => {
+    // Fixed positioning keeps wrapped tooltips out of WebKit's chart scroll extent.
+    tooltip: { ...tipStyle(host, true), extraCssText: "position: fixed; max-width: min(420px, calc(100vw - 24px)); box-sizing: border-box; white-space: normal; overflow-wrap: anywhere; z-index: 2000;", trigger: "item", formatter: (item) => {
       const r = rows[item.dataIndex]; if (!r) return "";
       return `<b>#${r.rank} ${esc(publicModelDisplayName(r.model))}</b><br/>${esc(benchmark.name)} · ${esc(benchmark.metric)}：${esc(publicScoreText(r.score, benchmark.unit))}<br/>${esc(publicBenchmarkConfiguration(r))}<br/>每任务成本：${esc(publicCostText(r.costUSD))}<br/>${esc(r.uncertainty || "置信区间未公布")}`;
     } },
@@ -345,6 +345,9 @@ function downloadPublicBenchmarkJson() {
 }
 function bindPublicBenchmarkEvents() {
   const select = byId("publicBenchmarkSelect"), search = byId("publicModelSearch");
+  const hideTooltip = () => { const chart = chartCache.chartPublicBenchmark; if (chart) chart.dispatchAction({ type: "hideTip" }); };
+  window.addEventListener("scroll", hideTooltip, { capture: true, passive: true });
+  window.addEventListener("resize", hideTooltip, { passive: true });
   syncPublicBenchmarkChoices();
   const family = byId("publicBenchmarkFamily"); if (family) family.addEventListener("change", () => {
     if (!publicBenchmarkData().benchmarks.some((b) => b.family === family.value)) return;

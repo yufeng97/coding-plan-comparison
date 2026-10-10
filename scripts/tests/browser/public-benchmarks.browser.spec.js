@@ -113,10 +113,12 @@ test("评测排名图随版本、搜索和成本视图更新，主题和窄屏�
   await page.mouse.move(0, 0);
   await page.evaluate("(() => { const chart=byId('chartPublicBenchmark'); window.scrollTo({top:chart.getBoundingClientRect().top+scrollY-650,behavior:'instant'}); })()");
   await expect.poll(() => chart.evaluate((element) => Math.abs(element.getBoundingClientRect().top - 650))).toBeLessThanOrEqual(2);
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   await expectNoPageOverflow(page, "Before benchmark tooltip");
   await page.evaluate("chartCache.chartPublicBenchmark.dispatchAction({type:'showTip',seriesIndex:0,dataIndex:0})");
   const tooltip = chart.locator(':scope > div').filter({ hasText: "每任务成本：" });
   await expect(tooltip).toBeVisible();
+  await expect(tooltip).toHaveCSS("position", "fixed");
   const bounds = await tooltip.boundingBox();
   expect(bounds.x).toBeGreaterThanOrEqual(0);
   expect(bounds.x + bounds.width).toBeLessThanOrEqual(375);
@@ -124,6 +126,17 @@ test("评测排名图随版本、搜索和成本视图更新，主题和窄屏�
   expect(bounds.y + bounds.height).toBeLessThanOrEqual(812);
   expect(await tooltip.evaluate((el) => el.scrollWidth <= el.clientWidth + 1 && el.scrollHeight <= el.clientHeight + 1)).toBe(true);
   await expectNoPageOverflow(page, "With benchmark tooltip");
+  await page.evaluate("window.scrollBy({top:20,behavior:'instant'})");
+  await expect(tooltip).toBeHidden();
+  await page.evaluate("chartCache.chartPublicBenchmark.dispatchAction({type:'showTip',seriesIndex:0,dataIndex:0})");
+  await expect(tooltip).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 812 });
+  await expect(tooltip).toBeHidden();
+  await page.evaluate("chartCache.chartPublicBenchmark.dispatchAction({type:'showTip',seriesIndex:0,dataIndex:0})");
+  await expect(tooltip).toBeVisible();
+  await page.getByRole("navigation", { name: "主要内容" }).getByRole("link", { name: "我的关注" }).click();
+  await expect(tooltip).toBeHidden();
+  await expectNoPageOverflow(page, "After hiding benchmark section");
   expect(errors).toEqual([]);
 });
 

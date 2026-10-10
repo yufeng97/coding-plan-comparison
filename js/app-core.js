@@ -405,7 +405,7 @@ function axisStyle() {
     splitLine: { lineStyle: { color: PAL.splitLine } },
   };
 }
-function tipStyle(hostEl) {
+function tipStyle(hostEl, viewportFixed = false) {
   return {
     backgroundColor: PAL.tipBg,
     borderColor: PAL.tipBorder,
@@ -426,7 +426,7 @@ function tipStyle(hostEl) {
       if (y + bh > window.innerHeight - 8) y = box.top + point[1] - bh - 12;
       if (y < 8) y = 8;
       if (y + bh > window.innerHeight - 8) y = Math.max(8, window.innerHeight - bh - 8);
-      return [x - box.left, y - box.top];
+      return viewportFixed ? [x, y] : [x - box.left, y - box.top];
     },
   };
 }
