@@ -543,4 +543,28 @@ test("降级对比窗口包含核查说明且跳过收起详情内的链接", ()
   healthy(app);
 });
 
+
+test("风险徽章按结构化推理来源标注，金额中的 403 不算访问异常", () => {
+  const app = createApp();
+  const badges = (vendor, plan) => JSON.parse(app.run(`JSON.stringify(planBadges(PLANS.find((p) => p.vendor === ${JSON.stringify(vendor)} && p.plan === ${JSON.stringify(plan)})).map((b) => b.t))`));
+  assert.ok(!badges("Z.ai", "GLM Coding V3 Max").includes("访问不稳"), "季付 $403.2 不是 HTTP 403");
+  assert.ok(badges("88code", "PLUS 包月").includes("访问不稳"), "站点访问 403 仍需提示");
+  assert.ok(!badges("Cursor", "Teams（Standard 席位）").includes("要自备 Key"), "可选 BYOK 不等于必须自备 Key");
+  assert.ok(!badges("JetBrains AI", "AI Pro（个人）").includes("要自备 Key"), "含云端模型用量的档位不应要求自备 Key");
+  assert.ok(badges("Kilo Code", "Teams").includes("要自备 Key"));
+  assert.ok(badges("Roo Code（Roomote）", "自托管（≤10 用户）").includes("要自备 Key"), "结构化 byok 档即使备注未写 BYOK 也要提示");
+  assert.ok(badges("Zed", "Business").includes("推理另计"), "按量推理档提示推理另计");
+  assert.equal(app.run('PLANS.filter((p) => p.modelAccess === "byok").every((p) => planBadges(p).some((b) => b.t === "要自备 Key"))'), true);
+  healthy(app);
+});
+
+test("额度表空态的模型档提示与下拉选项文字一致", () => {
+  const app = createApp();
+  app.run('metricsState.model = "__none__"; renderMetricsTable();');
+  const html = app.elements.get("metricsBody").innerHTML;
+  assert.match(html, /含轻量模型/);
+  assert.doesNotMatch(html, /全部模型档/);
+  healthy(app);
+});
+
 if (require.main === module) main();

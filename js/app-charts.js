@@ -385,26 +385,26 @@ function renderTokensChart() {
 }
 
 /* ---------- API 按量价格 ---------- */
+/* 统一纵轴标签：厂商 · 模型。label 里的平台后缀（(Z.ai) / [硅基] 等）由厂商前缀承担，
+   厂商名与模型名重复时（DeepSeek · DeepSeek V4-Pro）去掉重复的厂商词。图表与明细表共用。 */
+function apiLabel(a) {
+  const vendor = shortVendor(a.vendor);
+  let model = displayModelName(String(a.label || a.model).replace(/\s*[(（\[【].*$/, "").trim());
+  if (model.toLowerCase().startsWith(vendor.toLowerCase() + " ")) model = model.slice(vendor.length + 1);
+  return vendor + " · " + model;
+}
 function renderApiChart() {
   if (deferChartRender("chartApi",renderApiChart)) return;
   const apiEl = byId("chartApi");
   const chart = makeChart("chartApi");
-  const detailRows = API_PRICES.map((a) => {
+  /* 图表只画已核实牌价；含待核记录的完整明细由 renderApiDetails 输出，与图表加载与否无关。 */
+  const rows = API_PRICES.filter((a) => isPriceConfirmed(a, "api")).map((a) => {
     const inU = a.cur === "CNY" ? a.inCNY / RATE : a.inUSD;
     const outU = a.cur === "CNY" ? a.outCNY / RATE : a.outUSD;
     return { ...a, inUSD: inU, outUSD: outU };
   })
-    .filter((a) => a.inUSD != null && a.outUSD != null)
+    .filter((a) => Number.isFinite(a.inUSD) && Number.isFinite(a.outUSD))
     .sort((x, y) => x.outUSD - y.outUSD);
-  const rows = detailRows.filter((a) => isPriceConfirmed(a, "api"));
-  /* 统一纵轴标签：厂商 · 模型。label 里的平台后缀（(Z.ai) / [硅基] 等）由厂商前缀承担，
-     厂商名与模型名重复时（DeepSeek · DeepSeek V4-Pro）去掉重复的厂商词。 */
-  const apiLabel = (a) => {
-    const vendor = shortVendor(a.vendor);
-    let model = displayModelName(String(a.label || a.model).replace(/\s*[(（\[【].*$/, "").trim());
-    if (model.toLowerCase().startsWith(vendor.toLowerCase() + " ")) model = model.slice(vendor.length + 1);
-    return vendor + " · " + model;
-  };
   const cats = rows.map(apiLabel);
   apiEl.style.height = chartHeight(rows.length, 28, 72, 640) + "px";
 
@@ -491,13 +491,7 @@ function renderApiChart() {
   );
   chart2.resize();
   bindChartLegend(chart2, "powerLegend", { "国际模型": POWER_COLORS.intl, "国内模型": POWER_COLORS.cn });
-  byId("apiDetailBody").innerHTML = detailRows.map((a) => {
-    const usd = (n) => "$" + Number(n.toFixed(4));
-    return `<tr><th scope="row">${esc(apiLabel(a))}</th><td>${esc(REGION_LABEL[a.region] || "—")}</td>` +
-      `<td>${usd(a.inUSD)}</td><td>${usd(a.outUSD)}</td>` +
-      `<td>${a.outUSD > 0 ? Number((10 / a.outUSD).toFixed(1)) + "M" : "—"}</td>` +
-      `<td>${priceCheckHtml(a, "api")}</td></tr>`;
-  }).join("");
+  renderApiDetails();
   describeChart("chartApi", "API 按量单价对比 " + rows.length + " 款模型（左图）；$10 预算输出 token 购买力 " + power.length + " 行（右图）。两图采用对数刻度，相邻主刻度为十倍，完整价格见提示和下方明细。");
   describeChart("chartPower", "$10 预算输出 token 购买力 " + power.length + " 行；采用对数刻度，相邻主刻度为十倍。使用图例按钮筛选国内或国际模型，完整数值见下方明细。");
 }
@@ -728,6 +722,6 @@ function renderApiDetails() {
     input:a.cur === "CNY" ? a.inCNY / RATE : a.inUSD,
     output:a.cur === "CNY" ? a.outCNY / RATE : a.outUSD,
   })).filter((a) => Number.isFinite(a.input) && Number.isFinite(a.output)).sort((a,b) => a.output-b.output);
-  body.innerHTML = rows.map((a) => `<tr><th scope="row">${esc(shortVendor(a.vendor) + " · " + displayModelName(a.label || a.model))}</th><td>${esc(REGION_LABEL[a.region] || "—")}</td>` +
+  body.innerHTML = rows.map((a) => `<tr><th scope="row">${esc(apiLabel(a))}</th><td>${esc(REGION_LABEL[a.region] || "—")}</td>` +
     `<td>$${Number(a.input.toFixed(4))}</td><td>$${Number(a.output.toFixed(4))}</td><td>${a.output > 0 ? Number((10/a.output).toFixed(1)) + "M" : "—"}</td><td>${priceCheckHtml(a,"api")}</td></tr>`).join("");
 }

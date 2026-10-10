@@ -431,4 +431,20 @@ test("390px 视口所有图表限制轴标签宽度并保留绘图区预算", ()
   }
 });
 
+
+test("API 明细表在图表加载前后使用同一套厂商 · 模型标签", () => {
+  const app = createApp();
+  healthy(app);
+  assert.equal(app.charts.has("chartApi"), false, "首屏不应渲染 API 图表");
+  const labels = () => app.elements.get("apiDetailBody").querySelectorAll("th").map((th) => th.textContent);
+  const before = labels();
+  assert.equal(before.length, app.run("API_PRICES.length"));
+  app.run("renderApiChart();");
+  assert.ok(app.charts.has("chartApi"));
+  assert.deepEqual(labels(), before, "图表加载不应改写明细表标签");
+  assert.ok(before.some((label) => label === "Z.ai · GLM-5.3"), "平台后缀由厂商前缀承担");
+  assert.ok(before.every((label) => !/\[硅基\]|\(Z\.ai\)/.test(label)));
+  healthy(app);
+});
+
 if (require.main === module) main();

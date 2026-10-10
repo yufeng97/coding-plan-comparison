@@ -140,7 +140,9 @@ function planBadges(p) {
   const blob = planBlob(p);
   const tools = resolvedField(p, "tools");
   if (isRelay(p)) badges.push({ t: "中转", k: "risk" });
-  if (/BYOK|自备\s*API|自带\s*API|自备 Key/i.test(blob)) badges.push({ t: "要自备 Key", k: "risk" });
+  /* 按结构化字段标注推理来源：备注里「支持 BYOK」只是可选项，不代表必须自备 Key。 */
+  if (p.modelAccess === "byok") badges.push({ t: "要自备 Key", k: "risk" });
+  else if (p.modelAccess === "metered" || p.includedModelQuota === false) badges.push({ t: "推理另计", k: "risk" });
   if (isRenewalOnly(p)) badges.push({ t: "仅老用户", k: "risk" });
   if (isOneTimePlan(p)) badges.push({ t: "一次性", k: "risk" });
   if (isSoldOut(p)) badges.push({ t: "售罄 · 仅候补", k: "risk" });
@@ -148,7 +150,8 @@ function planBadges(p) {
     const countries = { IN: "印度", CN: "中国", US: "美国" };
     badges.push({ t: "仅限" + p.purchaseCountries.map((c) => countries[c] || c).join("/"), k: "risk" });
   }
-  if (/不稳定|403|连接失败|无法访问/.test(blob)) badges.push({ t: "访问不稳", k: "risk" });
+  /* 403 须是独立的状态码，「季付 $403.2」这类金额不算；不用后行断言，兼容旧版 Safari。 */
+  if (/不稳定|连接失败|无法访问|(?:^|[^\d.$¥₹])403(?![\d.])/.test(blob)) badges.push({ t: "访问不稳", k: "risk" });
   if (/Claude Code/i.test(tools)) badges.push({ t: "Claude Code", k: "agent" });
   if (/Codex/i.test(tools)) badges.push({ t: "Codex", k: "agent" });
   if (p.vendor === "Cursor" || /\bCursor\b/i.test(tools)) badges.push({ t: "Cursor", k: "agent" });

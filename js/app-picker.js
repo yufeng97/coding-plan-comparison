@@ -411,10 +411,12 @@ function chooseMain(pool) {
   return chooseHardMain(pool) || (pickerState.task === "both" ? chooseDailyMain(pool) : null);
 }
 /* 同厂商、同一主力模型、更便宜的个人档。主计划按「窗口最大」选档时会跳过中档（如不限预算直接选 Max），
-   这里把被跳过的档（如 GLM Coding V3 Pro）补回可见，不然用户会以为厂商只有这一档。 */
+   这里把被跳过的档（如 GLM Coding V3 Pro）补回可见，不然用户会以为厂商只有这一档。
+   以日常模型为主的主计划（如 Cursor Ultra）按同一日常模型找省钱档，与 nextTier 的选角一致。 */
 function cheaperTiers(main) {
-  if (!main.headline) return [];
-  const roleId = main.headline.id;
+  const dailyLead = pickerState.task === "daily" || !main.headline;
+  const role = dailyLead ? main.loose[0] : main.headline;
+  if (!role) return [];
   const mainPrice = pickerMonthlyCNY(main.p) || 0;
   const rows = [];
   PLANS.forEach((p) => {
@@ -423,7 +425,7 @@ function cheaperTiers(main) {
     if (!matchesTool(p, pickerState.tool)) return;
     if ((pickerMonthlyCNY(p) || 0) >= mainPrice - BUDGET_EPS) return;
     const prof = planProfile(p);
-    if (prof.headline && prof.headline.id === roleId) rows.push(prof);
+    if (dailyLead ? prof.loose.some((r) => r.id === role.id) : prof.headline && prof.headline.id === role.id) rows.push(prof);
   });
   rows.sort((a, b) => (pickerMonthlyCNY(b.p) || 0) - (pickerMonthlyCNY(a.p) || 0));
   return rows;
