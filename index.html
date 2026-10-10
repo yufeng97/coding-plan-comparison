@@ -18,7 +18,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <script src="js/theme-init.js?v=6414a56"></script>
   <link rel="stylesheet" href="libs/fonts/fonts.css?v=17da4b4">
-  <link rel="stylesheet" href="css/style.css?v=0fa8791">
+  <link rel="stylesheet" href="css/style.css?v=5c1b909">
 </head>
 <body>
 <div id="loadFailure" class="load-failure" role="alert" hidden>
@@ -322,6 +322,17 @@
     <details class="method-box cost-calculator" id="costCalculator">
       <summary>按我的工作量计算 API 月费与套餐用量</summary>
       <p>填写每天的请求数和每次总 tokens，比较所选模型的按量费用与月预算。计算包括输入、输出和已知缓存单价；长上下文档位、工具费及税费仍按官网规则另计。</p>
+      <details class="usage-import" id="usageImport">
+        <summary>导入我的真实用量（ccusage 报告或 Claude Code / Codex 日志，只在本机解析）</summary>
+        <p class="maintenance-meta">支持 <code>npx ccusage daily --json</code>、<code>npx @ccusage/codex daily --json</code> 的输出，也可以直接选择 Claude Code（<code>~/.claude/projects</code>）或 Codex（<code>~/.codex/sessions</code>）的 JSONL 会话日志。内容只在浏览器里读取，不上传、不保存；导入后会填好下方的请求数、tokens、天数、输入占比和缓存命中率。</p>
+        <label class="usage-import-text" for="usageImportText">粘贴 JSON 或 JSONL<textarea id="usageImportText" rows="5" spellcheck="false" placeholder='{"daily":[{"date":"2026-10-01","inputTokens":120000,"outputTokens":30000,"cacheReadTokens":2400000}]}'></textarea></label>
+        <div class="service-actions">
+          <button type="button" class="chip" id="usageImportBtn">解析粘贴内容</button>
+          <button type="button" class="chip" id="usageImportFileBtn">选择日志或报告文件</button>
+          <input type="file" id="usageImportFile" accept=".json,.jsonl,.txt,application/json" multiple hidden>
+        </div>
+        <p id="usageImportResult" class="table-feedback" role="status" aria-live="polite"></p>
+      </details>
       <div class="service-actions" id="costPresets" role="group" aria-label="工作量预设">
         <button type="button" class="chip" data-cost-preset="light">轻度使用</button>
         <button type="button" class="chip" data-cost-preset="daily">日常开发</button>
@@ -634,7 +645,8 @@
 <script src="js/app-charts.js?v=76a2012"></script>
 <script src="js/app-picker.js?v=fa5f706"></script>
 <script src="js/app-tables.js?v=812dabc"></script>
-<script src="js/app-service.js?v=4275120"></script>
+<script src="js/usage-import.js?v=49044ff"></script>
+<script src="js/app-service.js?v=b81f023"></script>
 <script src="js/app-maintenance.js?v=267b01a"></script>
 <script src="js/app-events.js?v=4d88383"></script>
 <script src="js/app-init.js?v=268100a"></script>

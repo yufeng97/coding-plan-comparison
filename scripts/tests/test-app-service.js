@@ -294,4 +294,52 @@ test("应用个人图条件停用本区支付切换，金额使用选购方式�
   healthy(app);
 });
 
+test("导入 Claude Code 日志后填好计算器、匹配 API 牌价并展开套餐用量对照，原文不进入链接", () => {
+  const app = createApp({ url: "http://127.0.0.1:8123/index.html?budget=any&region=all" });
+  const line = (id, day) => JSON.stringify({ type: "assistant", timestamp: `2026-10-0${day}T10:00:00.000Z`, requestId: "req_" + id,
+    message: { id: "msg_" + id, model: "claude-opus-5-5-20260901", usage: { input_tokens: 2000, output_tokens: 6000, cache_creation_input_tokens: 4000, cache_read_input_tokens: 188000 } } });
+  const text = Array.from({ length: 14 }, (_, i) => [line(i * 2, (i % 7) + 1), line(i * 2 + 1, (i % 7) + 1)]).flat().join("\n");
+  app.elements.get("usageImportText").value = text;
+  app.fire(app.elements.get("usageImportBtn"), "click");
+  const out = app.elements.get("usageImportResult").textContent;
+  assert.match(out, /已从粘贴内容导入 2026-10-01 至 2026-10-07（7 天，活跃 7 天）/);
+  assert.match(out, /主要模型 claude-opus-5-5-20260901 已对应 Anthropic · Claude Opus 5\.5 的 API 牌价/);
+  assert.match(out, /缓存写入按普通输入价计算/);
+  assert.match(out, /原始内容没有上传或保存/);
+  assert.equal(app.run("calcState.model"), "Anthropic|Claude Opus 5.5");
+  assert.equal(app.run("calcState.requests"), "4");
+  assert.equal(app.run("calcState.days"), "30");
+  assert.equal(app.run("calcState.input"), "97");
+  assert.equal(app.run("calcState.cache"), "96.9");
+  assert.equal(app.elements.get("costRequests").value, "4");
+  const result = app.elements.get("costResult").innerHTML;
+  assert.match(result, /<details class="usage-fit" id="usageFit" open>/);
+  assert.match(result, /当前输入 97% \/ 输出 3%/);
+  app.run('calcState.input = "97.9"; renderCostCalculator();');
+  assert.match(app.elements.get("costResult").innerHTML, /当前输入 97\.9% \/ 输出 2\.1%/, "小数输入占比不产生浮点误差");
+  assert.match(result, /按这个用量对照套餐参考额度（\d+ 档保守够用，\d+ 档有参考月量）/);
+  assert.match(result, /保守够用|落在参考区间|超出参考额度/);
+  assert.doesNotMatch(app.location.href, /msg_|req_|claude-opus-5-5-2026/, "链接只保存折算后的计算条件");
+  /* 恢复默认清掉导入说明；解析失败不改动已有条件。 */
+  app.fire(app.elements.get("costResetBtn"), "click");
+  assert.equal(app.elements.get("usageImportResult").textContent, "");
+  app.elements.get("usageImportText").value = "not usage";
+  app.fire(app.elements.get("usageImportBtn"), "click");
+  assert.match(app.elements.get("usageImportResult").textContent, /不是 JSON 或 JSONL/);
+  assert.equal(app.run("calcState.requests"), "100");
+  healthy(app);
+});
+
+test("日志模型只匹配完全一致或带日期后缀的牌价，不把新版本对到旧版本", () => {
+  const app = createApp();
+  assert.equal(app.run('(apiForUsageModel("claude-opus-5-5") || {}).model'), "Claude Opus 5.5");
+  assert.equal(app.run('(apiForUsageModel("claude-opus-5-5-latest") || {}).model'), "Claude Opus 5.5");
+  assert.equal(app.run('apiForUsageModel("claude-opus-5-7")'), null);
+  assert.equal(app.run('(apiForUsageModel("claude-sonnet-5") || {}).model'), "Claude Sonnet 5");
+  assert.equal(app.run('apiForUsageModel("claude-sonnet-5-9")'), null);
+  assert.equal(app.run('(apiForUsageModel("kimi-k3") || {}).vendor'), "月之暗面 Kimi");
+  assert.equal(app.run('apiForUsageModel("")'), null);
+  healthy(app);
+});
+
 if (require.main === module) main();

@@ -197,6 +197,8 @@ function fmtCalcCNY(n) {
   if (!Number.isFinite(n)) return "—";
   return n > 0 && n < 1 ? "¥" + Number(n.toPrecision(2)) : fmtCNY(n);
 }
+/* 输出占比 = 100 - 输入占比；输入可带小数，避免 100 - 97.9 显示成 2.0999999999999943。 */
+function outputSharePct(input) { return String(Number((100 - Number(input)).toFixed(4))); }
 function fmtCalcNative(n) { return n > 0 && n < 1 ? String(Number(n.toPrecision(2))) : String(Number(n.toFixed(2))); }
 function renderCostCalculator() {
   const el = byId("costResult");
@@ -238,7 +240,7 @@ function renderCostCalculator() {
   }
   const scenarios = calculateCostScenarios(calcState,api);
   const scenarioRow = (scenario) => `<tr data-cost-scenario-result="${esc(scenario.id)}">` +
-    `<th scope="row">${esc(scenario.label)}：输入 ${esc(scenario.input)}% / 输出 ${esc(100 - Number(scenario.input))}%，输入缓存 ${esc(scenario.cache)}%</th>` +
+    `<th scope="row">${esc(scenario.label)}：输入 ${esc(scenario.input)}% / 输出 ${esc(outputSharePct(scenario.input))}%，输入缓存 ${esc(scenario.cache)}%</th>` +
     `<td>${esc(fmtCalcCNY(scenario.costCNY))}</td><td>${esc(fmtCalcCNY(scenario.lowCNY))}–${esc(fmtCalcCNY(scenario.highCNY))}</td></tr>`;
   const scenarioTable = `<div class="cost-scenario-results"><table class="mini-table"><caption>三种示例计费情景（总工作量上下浮动 20%）</caption>` +
     `<thead><tr><th scope="col">情景与假设</th><th scope="col">基准月费</th><th scope="col">月费范围</th></tr></thead><tbody>` +
@@ -250,8 +252,96 @@ function renderCostCalculator() {
     `<p>${esc(cap)}。${result.costCNY > Number(calcState.budget) ? "当前工作量超出月预算。" : "当前工作量在月预算内。"}</p><p>${esc(cache)}</p>` +
     `<p>按 ${esc(calcState.days)} 个工作日、每天 ${esc(calcState.requests)} 次请求，每个工作日约 ${esc(fmtCalcCNY(result.costCNY / Number(calcState.days)))}${perRequest}。${budgetLeft}。</p>` +
     `<p>工具与地区沿用「帮我选」：${esc(SERVICE_TOOL_LABELS[pickerState.tool] || "不限工具")} · ${esc(REGION_LABEL[pickerState.region] || "不限地区")}。这里估算所选模型的 API 推理账单，工具订阅、税费和支付手续费需另行核对；套餐内额度不能直接抵扣 API 账单。</p>` +
-    `<p>上方费用按当前输入 ${esc(calcState.input)}% / 输出 ${esc(100 - Number(calcState.input))}%、输入缓存命中 ${esc(calcState.cache)}% 计算。工作量上下浮动 20% 时约 ${esc(fmtCalcCNY(result.costCNY * 0.8))}–${esc(fmtCalcCNY(result.costCNY * 1.2))}/月。</p>` + scenarioTable +
-    `<p>轻度、日常、重度及三种情景都是可编辑的示例假设，不代表真实用户用量，也不是费用预测或套餐额度承诺。典型沿用页面的 80% 输入 / 95% 缓存基准；缓存单价未填写时，三个情景均按普通输入价计费。范围只模拟总工作量 ±20%，不包含价格变动、动态限流、工具费和税费。牌价核查 ${esc(check ? check.checkedAt : "未核实")} · <a href="${safeHref(api.url)}" target="_blank" rel="noopener">官网计费规则</a></p>` + quota;
+    `<p>上方费用按当前输入 ${esc(calcState.input)}% / 输出 ${esc(outputSharePct(calcState.input))}%、输入缓存命中 ${esc(calcState.cache)}% 计算。工作量上下浮动 20% 时约 ${esc(fmtCalcCNY(result.costCNY * 0.8))}–${esc(fmtCalcCNY(result.costCNY * 1.2))}/月。</p>` + scenarioTable +
+    `<p>轻度、日常、重度及三种情景都是可编辑的示例假设，不代表真实用户用量，也不是费用预测或套餐额度承诺。典型沿用页面的 80% 输入 / 95% 缓存基准；缓存单价未填写时，三个情景均按普通输入价计费。范围只模拟总工作量 ±20%，不包含价格变动、动态限流、工具费和税费。牌价核查 ${esc(check ? check.checkedAt : "未核实")} · <a href="${safeHref(api.url)}" target="_blank" rel="noopener">官网计费规则</a></p>` + quota + usageFitHtml(result.monthlyM);
+}
+
+/* ---------- 导入真实用量：解析在 js/usage-import.js，只在本机计算 ---------- */
+let usageImportSummary = null;
+let usageFitOpen = false;
+function usageModelKey(name) { return costModelKey(String(name || "").replace(/\s*[（(\[【].*$/, "")); }
+/* 日志里的模型 ID 只接受完全一致或带日期 / latest 后缀，避免把 opus-5-5 对到 opus-5 的牌价。 */
+function apiForUsageModel(model) {
+  const key = costModelKey(model);
+  if (!key) return null;
+  const matches = API_PRICES.filter((api) => isPriceConfirmed(api, "api") && [api.model, api.label].some((name) => {
+    const base = usageModelKey(name);
+    if (!base || !key.startsWith(base)) return false;
+    const rest = key.slice(base.length);
+    return rest === "" || /^\d{8}$/.test(rest) || rest === "latest";
+  }));
+  return matches.find((api) => api.vendor + "|" + api.model === calcState.model) || matches[0] || null;
+}
+function usageSummaryText(summary, api, source) {
+  const m = (n) => fmtTok(n / 1e6);
+  const period = summary.mode === "daily" ? `${summary.first} 至 ${summary.last}（${summary.spanDays} 天，活跃 ${summary.activeDays} 天）`
+    : summary.mode === "weekly" ? `${summary.first} 起的 ${summary.spanDays} 天（按周汇总）`
+    : `${summary.first} 至 ${summary.last}（${summary.months} 个月）`;
+  const parts = [
+    `已从${source}导入 ${period}：合计 ${m(summary.total)} tokens（未缓存输入 ${m(summary.input)}、缓存读取 ${m(summary.cacheRead)}、缓存写入 ${m(summary.cacheWrite)}、输出 ${m(summary.output)}${summary.requests != null ? `，${summary.requests.toLocaleString("zh-CN")} 次请求` : ""}）。`,
+    `折算每月约 ${m(summary.monthlyTokens)} tokens，输入占比 ${Number(summary.inputShare.toFixed(1))}%，输入缓存命中 ${Number(summary.cacheHit.toFixed(1))}%，已填入计算器。`,
+  ];
+  if (summary.spanDays != null && summary.spanDays < 7) parts.push("样本不足一周，月用量的折算偏差可能较大。");
+  if (summary.cacheWrite > 0) parts.push("缓存写入按普通输入价计算；Claude 的缓存写入实际约为输入价的 1.25 倍。");
+  if (summary.model) parts.push(api ? `主要模型 ${summary.model} 已对应 ${api.vendor} · ${displayModelName(api.label || api.model)} 的 API 牌价。` : `主要模型 ${summary.model} 没有精确匹配的 API 牌价，保留计算器当前模型。`);
+  parts.push("原始内容没有上传或保存。");
+  return parts.join("");
+}
+function applyUsageImport(text, source) {
+  const out = byId("usageImportResult");
+  let summary;
+  try { summary = summarizeUsage(parseUsageText(text)); }
+  catch (err) { if (out) out.textContent = err instanceof Error ? err.message : String(err); return false; }
+  const values = usageCalcValues(summary, calcState);
+  const api = apiForUsageModel(summary.model);
+  const scenario = Object.entries(COST_SCENARIOS).find(([, s]) => s.input === values.input && s.cache === values.cache);
+  usageImportSummary = summary;
+  usageFitOpen = true;
+  updateAppState(() => {
+    const model = api ? api.vendor + "|" + api.model : calcState.model;
+    setCostInputs({ ...values, scenario: scenario ? scenario[0] : APP_DEFAULTS.calc.scenario, model, cachePrice: model === calcState.model ? calcState.cachePrice : "" });
+  }, renderCostCalculator);
+  if (out) out.textContent = usageSummaryText(summary, api, source);
+  return true;
+}
+async function readUsageFiles(input) {
+  const files = Array.from(input.files || []);
+  const out = byId("usageImportResult");
+  if (!files.length) return;
+  if (files.reduce((n, f) => n + f.size, 0) > USAGE_IMPORT_MAX_CHARS) {
+    if (out) out.textContent = "文件合计超过 60 MB。请改用 ccusage 导出的按日 JSON（npx ccusage daily --json）。";
+    input.value = "";
+    return;
+  }
+  if (out) out.textContent = `正在本机读取 ${files.length} 个文件…`;
+  try {
+    const texts = await Promise.all(files.map((file) => file.text()));
+    applyUsageImport(texts.join("\n"), files.length === 1 ? "文件 " + files[0].name + " " : ` ${files.length} 个文件`);
+  } catch (err) {
+    if (out) out.textContent = "文件读取失败，请改为粘贴内容。";
+  } finally { input.value = ""; }
+}
+/* 用计算器当前的月总量对照各套餐的参考月量；地区、工具与任务沿用「帮我选」。 */
+function usagePlanFits(monthlyM) {
+  return PLANS.filter((p) => recommendablePlan(p) && isPersonalMonthly(p) && pickerPaymentQuote(p).available &&
+      (pickerState.region === "all" || p.region === pickerState.region) && matchesTool(p, pickerState.tool))
+    .map((p) => { const role = leadRole(planProfile(p)); return { p, role, met: role ? metricForRole(p, role) : null }; })
+    .filter((x) => x.met && (x.met.conf === "高" || x.met.conf === "中") && x.met.c.moLow != null)
+    .map((x) => ({ ...x, status: monthlyM <= x.met.c.moLow ? 0 : monthlyM <= x.met.c.moHigh ? 1 : 2 }))
+    .sort((a, b) => a.status - b.status || pickerMonthlyCNY(a.p) - pickerMonthlyCNY(b.p));
+}
+const USAGE_FIT_LABELS = ["保守够用", "落在参考区间", "超出参考额度"];
+function usageFitHtml(monthlyM) {
+  const fits = usagePlanFits(monthlyM);
+  const enough = fits.filter((x) => x.status === 0).length;
+  const row = (x) => `<tr><th scope="row">${esc(planTitle(x.p))}<br><span class="sub">${esc(priceLine(x.p))}</span></th>` +
+    `<td>${esc(roleDisplayName(x.p, x.role))}<br><span class="sub">参考 ${esc(tokSpan(x.met.c, "moLow", "moHigh"))}/月 · 置信${esc(x.met.conf)}</span></td>` +
+    `<td class="usage-fit-${x.status}">${USAGE_FIT_LABELS[x.status]}</td></tr>`;
+  const body = fits.length
+    ? `<table class="mini-table usage-fit-table"><thead><tr><th scope="col">套餐与月费</th><th scope="col">主力模型与参考月量</th><th scope="col">对照</th></tr></thead><tbody>${fits.slice(0, 8).map(row).join("")}</tbody></table>`
+    : "<p>当前地区与工具条件下，没有可按官方规则折算参考月量的套餐。</p>";
+  return `<details class="usage-fit" id="usageFit"${usageFitOpen ? " open" : ""}><summary>按这个用量对照套餐参考额度（${enough} 档保守够用，${fits.length} 档有参考月量）</summary>` +
+    `<p class="maintenance-meta">每月约 ${esc(fmtTok(monthlyM))} tokens。参考月量按 80% 输入、95% 缓存命中的统一假设折算；你的输入占比 ${esc(calcState.input)}%、缓存命中 ${esc(calcState.cache)}%，偏离越大越不准。不同模型的 token 不代表等效产出，购买前仍需核对窗口、共享池与工具费用。</p>${body}</details>`;
 }
 
 let planDetailsReturnFocus = null;
@@ -322,7 +412,19 @@ function bindServiceEvents() {
       }, () => { renderCostCalculator(); syncCostChips(); });
     });
   }
-  const reset = byId("costResetBtn"); if (reset) reset.addEventListener("click", () => updateAppState(() => { Object.assign(calcState,APP_DEFAULTS.calc); syncServiceControls(); },renderCostCalculator));
+  const reset = byId("costResetBtn"); if (reset) reset.addEventListener("click", () => updateAppState(() => {
+    Object.assign(calcState,APP_DEFAULTS.calc); syncServiceControls();
+    usageImportSummary = null;
+    const importResult = byId("usageImportResult"); if (importResult) importResult.textContent = "";
+  },renderCostCalculator));
+  const importBtn = byId("usageImportBtn"), importText = byId("usageImportText");
+  if (importBtn && importText) importBtn.addEventListener("click", () => applyUsageImport(importText.value, "粘贴内容"));
+  const fileBtn = byId("usageImportFileBtn"), fileInput = byId("usageImportFile");
+  if (fileBtn && fileInput) {
+    fileBtn.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", () => { readUsageFiles(fileInput); });
+  }
+  document.addEventListener("toggle", (e) => { const t = evtTarget(e); if (t && t.id === "usageFit") usageFitOpen = !!t.open; }, true);
   const form = byId("costForm"); if (form) form.addEventListener("submit", (e) => e.preventDefault());
   document.addEventListener("click", (e) => {
     const target = evtTarget(e); if (!target || !target.closest) return;
