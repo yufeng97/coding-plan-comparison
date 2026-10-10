@@ -14,12 +14,12 @@ async function expectNoPageOverflow(page, phase) {
       documentWidth: document.documentElement.scrollWidth,
       bodyWidth: document.body.scrollWidth,
       activeElement: document.activeElement?.id,
-      chart: [...document.querySelectorAll("#chartPublicBenchmark, #chartPublicBenchmark > div")].map((el) => {
+      chart: Array.from(document.querySelectorAll("#chartPublicBenchmark, #chartPublicBenchmark > div")).map((el) => {
         const rect = el.getBoundingClientRect();
         return { id: el.id, style: el.getAttribute("style"), left: rect.left, right: rect.right,
           width: rect.width, scrollWidth: el.scrollWidth, clientWidth: el.clientWidth };
       }),
-      outside: [...document.querySelectorAll("body *")].filter((el) => el.getClientRects().length && el.getBoundingClientRect().right > window.innerWidth + 1).slice(0, 40).map((el) => {
+      outside: Array.from(document.querySelectorAll("body *")).filter((el) => el.getClientRects().length && el.getBoundingClientRect().right > window.innerWidth + 1).slice(0, 40).map((el) => {
         let scrollParent = el.parentElement;
         while (scrollParent && getComputedStyle(scrollParent).overflowX === "visible") scrollParent = scrollParent.parentElement;
         const rect = el.getBoundingClientRect();
