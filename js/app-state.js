@@ -9,7 +9,7 @@ const CMP_MAX = 4;
 const personalState = { cat:"all", region:"all", billing:"M", q:"", limit:PERSONAL_DEFAULT_LIMIT, fromPicker:false };
 const rankState = { tier:"flagship", scope:"all", vendor:"all", fromPicker:false };
 const pickerState = { budget:"200", region:"cn", tool:"any", task:"both", billing:"M", priority:"quota" };
-const tableState = { search:"", cat:"all", region:"all", sortKey:"priceM", sortDir:1, fromPicker:false, extra:false };
+const tableState = { search:"", cat:"all", region:"all", vendor:"all", sortKey:"priceM", sortDir:1, fromPicker:false, extra:false };
 /** @type {{items: typeof PLANS}} */
 const cmpState = { items:[] };
 const metricsState = { model:"all", ver:"all", tier:"flagship", offer:"current", sortKey:"cpm", sortDir:1, fromPicker:false };
@@ -79,6 +79,7 @@ const URL_KEYS = {
   q: () => tableState.search,
   tcat: () => tableState.cat,
   tregion: () => tableState.region,
+  tvendor: () => tableState.vendor,
   tsort: () => tableState.sortKey + ":" + tableState.sortDir,
   tall: () => tableState.extra ? "1" : "0",
   /* 额度深度对比表 */
@@ -165,6 +166,8 @@ function applyUrlState(search = location.search) {
   pick("tcat", URL_VALID.tcat, tableState, "cat");
   pick("tregion", URL_VALID.tregion, tableState, "region");
   tableState.extra = p.get("tall") === "1";
+  /* 只接受价格表里确有记录的厂商。 */
+  pick("tvendor", new Set(["all", ...PLANS.filter(isOnSalePlan).map((plan) => plan.vendor)]), tableState, "vendor");
   const ts = p.get("tsort");
   if (ts) {
     const [key, dir] = ts.split(":");
@@ -225,6 +228,8 @@ function syncControlsFromState() {
   setVal("searchInput", tableState.search);
   setVal("selectCat", tableState.cat);
   setVal("selectRegion", tableState.region);
+  if (typeof populateTableVendors === "function") populateTableVendors();
+  setVal("selectVendor", tableState.vendor);
   setVal("metricsModel", metricsState.model);
   setVal("metricsVer", metricsState.ver); /* 模型下拉在 populateModelFilter 填充后再设值 */
   setVal("metricsTier", metricsState.tier);

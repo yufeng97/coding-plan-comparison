@@ -110,12 +110,12 @@ function syncPricingAuditUnlocked(workspace, options = {}) {
     }
   }
   const arrays = { plan: "PLANS", api: "API_PRICES", payg: "PAYG_REFERENCES" };
-  const allowed = new Set(["priceM", "priceY", "annualTotal", "autoRenewMonthly", "singleMonthPrice", "availability", "accessUnstable", "sameAs", "cur", "seat", "plan", "model", "label", "quota", "models", "tools", "note", "url", "inUSD", "outUSD", "inCNY", "outCNY", "apiIn", "apiOut", "apiCache", "source", "windowPeriod", "quotaSharing", "codingSurface", "includedModelQuota", "modelAccess", "purchaseCountries", "modelBaseRef", "modelIncludes", "modelExcludes", "ownClient"]);
+  const allowed = new Set(["priceM", "priceY", "annualTotal", "autoRenewMonthly", "singleMonthPrice", "availability", "billingUnit", "renewalOnly", "freeCodingEntry", "accessUnstable", "sameAs", "cur", "seat", "plan", "model", "label", "quota", "models", "tools", "note", "url", "inUSD", "outUSD", "inCNY", "outCNY", "apiIn", "apiOut", "apiCache", "source", "windowPeriod", "quotaSharing", "codingSurface", "includedModelQuota", "modelAccess", "purchaseCountries", "modelBaseRef", "modelIncludes", "modelExcludes", "ownClient"]);
   const edits = [];
   const newPlans = [];
   const changes = [];
   const identity = new Map();
-  const allowedNew = new Set(["id", "vendor", "cat", "region", "fieldRefs", "plan", "priceM", "priceY", "annualTotal", "autoRenewMonthly", "singleMonthPrice", "availability", "accessUnstable", "sameAs", "cur", "seat", "quota", "models", "tools", "note", "url", "windowPeriod", "quotaSharing", "codingSurface", "includedModelQuota", "modelAccess", "purchaseCountries", "modelBaseRef", "modelIncludes", "modelExcludes", "ownClient"]);
+  const allowedNew = new Set(["id", "vendor", "cat", "region", "fieldRefs", "plan", "priceM", "priceY", "annualTotal", "autoRenewMonthly", "singleMonthPrice", "availability", "billingUnit", "renewalOnly", "freeCodingEntry", "accessUnstable", "sameAs", "cur", "seat", "quota", "models", "tools", "note", "url", "windowPeriod", "quotaSharing", "codingSurface", "includedModelQuota", "modelAccess", "purchaseCountries", "modelBaseRef", "modelIncludes", "modelExcludes", "ownClient"]);
   function validateNewPlan(plan, record) {
     if (!plan || typeof plan !== "object" || Array.isArray(plan) || Object.keys(plan).some((key) => !allowedNew.has(key))) throw new Error("新增计划必须为完整 Plan schema");
     if (plan.id !== record.id || plan.vendor !== record.vendor || plan.plan !== record.name) throw new Error("新增计划永久 ID、厂商或名称与审计身份不一致");

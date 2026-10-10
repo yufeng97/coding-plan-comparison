@@ -309,6 +309,46 @@ test("评测数据下载超时后可重试；迟到的数据已就绪时重试�
   healthy(app);
 });
 
+test("超时后在旧请求返回前重试，迟到脚本与重试脚本都执行也不报重复声明", async () => {
+  for (const [hash, kind, file] of [["#updates", "maintenance", "js/maintenance-data.js"], ["#benchmarks", "benchmark", "js/benchmark-data.js"]]) {
+    const app = createApp({ lazyData: true, url: "http://127.0.0.1:8123/" + hash });
+    const status = app.elements.get(kind + "DataStatus");
+    assert.deepEqual(app.scriptLoads, [file]);
+    app.flushTimeouts(); await settle();
+    assert.match(status.innerHTML, /数据下载超时，请重试/);
+    app.run(`document.querySelector('#${kind}DataStatus [data-retry-data]')`).click();
+    assert.deepEqual(app.scriptLoads, [file, file], "卡住的旧请求不能阻止重试发出新请求");
+    /* 浏览器里已发出的旧脚本仍会执行；两份都执行时只覆盖同一份数据。 */
+    app.finishDataLoads(); await settle();
+    assert.equal(app.run(`optionalDataLoaded('${kind}')`), true);
+    assert.equal(status.textContent, "");
+    healthy(app);
+  }
+});
+
+test("导航「我的关注」用首屏摘要显示未读数，不下载完整维护数据；标为已读或取消关注后清除", async () => {
+  const summary = plain(createApp().run("MAINTENANCE_SUMMARY"));
+  const id = summary.changes[0].id, expected = summary.changes.filter((c) => c.id === id).length;
+  const app = createApp({ lazyData: true, storage: { "cp-followed-plans-v1": JSON.stringify({ planIds: [id], readChangeIds: [] }) } });
+  const badge = app.elements.get("followNavBadge");
+  assert.deepEqual(app.scriptLoads, [], "首屏不下载完整维护数据");
+  assert.equal(badge.hidden, false);
+  assert.match(badge.innerHTML, new RegExp(`>${expected}</span><span class="sr-only">，${expected} 条未读变更<`));
+  app.run("navigateToSection('#updates')");
+  app.finishDataLoads(); await settle();
+  assert.equal(badge.hidden, false, "完整数据加载后口径不变");
+  app.elements.get("markFollowReadBtn").click();
+  assert.equal(badge.hidden, true);
+  assert.equal(badge.innerHTML, "");
+
+  const other = createApp({ storage: { "cp-followed-plans-v1": JSON.stringify({ planIds: [id], readChangeIds: [] }) } });
+  assert.equal(other.elements.get("followNavBadge").hidden, false);
+  other.run(`toggleFollowPlan(${JSON.stringify(id)})`);
+  assert.equal(other.elements.get("followNavBadge").hidden, true, "取消关注后不再提醒");
+  assert.equal(createApp().elements.get("followNavBadge").hidden, true, "没有关注时不显示");
+  healthy(app); healthy(other);
+});
+
 test("关注页按需加载维护数据，公开JSON下载先补齐两份数据", async () => {
   const id = "plan-0002";
   const app = createApp({ lazyData: true, url: "http://127.0.0.1:8123/#updates", storage: { "cp-followed-plans-v1": JSON.stringify({ planIds: [id], readChangeIds: [] }) } });

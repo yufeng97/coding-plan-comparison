@@ -12,7 +12,7 @@
 6. **额度深度对比（进阶）**：TPS + 5h/周/月的 Tokens·额度价值·额度倍率，附推算方法论
 7. **每周可用 tokens 对比（进阶）**：官方额度折算与其他估算并列，支持图例筛选
 8. **团队/企业/云厂商**：席位价与整包价对比（对数刻度）
-9. **API 按量计费**：模型单价与 $10 购买力图；工作量计算器按官方缓存命中价计费，可从 ccusage 导入真实用量，并反查参考额度能覆盖该用量的套餐及订阅回本点
+9. **API 按量计费**：模型单价与 $10 购买力图；工作量计算器按官方缓存命中价计费，可从 ccusage 或 Claude Code / Codex 会话日志导入真实用量，并反查参考额度能覆盖该用量的套餐及订阅回本点
 10. **重要动态**：已核对的行业与套餐消息
 11. **模型公开评测**：DeepSWE、CursorBench、OSWorld、HLE 与 SWE-bench 的官方成绩，按版本与协议筛选、图表及导出
 12. **我的关注与套餐变更**：核查时效、复核日历、历史变化、本机关注、按厂商订阅 RSS 与关注同步链接
@@ -47,7 +47,7 @@
 | `scripts/server/serve.js` | 本地预览静态服务器（只监听 127.0.0.1，只读项目根内文件并拒绝隐藏路径） |
 | `scripts/news/collect-news.js` | 联网采集资讯候选与页面变化；保留缓存和来源错误，不改正式数据 |
 | `config/news-sources.json` / `review-calendar.json` | 官方监测、开放发现与有来源的复核日历 |
-| `js/app-maintenance.js` / `*-data.js` | 时效、变更、关注、贡献和测评服务及生成的公共数据（按需加载；`benchmark-summary.js` 为首屏评测摘要） |
+| `js/app-maintenance.js` / `*-data.js` | 时效、变更、关注、贡献和测评服务及生成的公共数据（按需加载；`benchmark-summary.js` 为首屏评测摘要，`maintenance-summary.js` 为首屏关注未读与复查间隔摘要） |
 | `scripts/maintenance/` / `data/` | 维护摘要、真实变更历史、RSS 构建与回归 |
 | `scripts/benchmarks/` / `benchmarks/` | 官方公开评测 adapter、带哈希证据的采集/审核、public-results.json 快照、固定任务验收与公共测评构建 |
 | `scripts/tests/` | Node 回归套件：metrics / data-regressions / app-{history,picker,charts,tables,service} / server / tools / pricing / pricing-sync / news / runners；共享页面替身在 app-harness.js（`lazyData` 模式经页面加载器按需载入数据，可分别推进下载完成、失败与超时）；Chromium、Firefox、WebKit 用例在 scripts/tests/browser/ |

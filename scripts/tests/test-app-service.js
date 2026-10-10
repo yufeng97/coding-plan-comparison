@@ -306,4 +306,41 @@ test("应用个人图条件停用本区支付切换，金额使用选购方式�
   healthy(app);
 });
 
+
+test("输入占比带小数时输出占比不出现浮点误差", () => {
+  const app = createApp();
+  app.run('calcState.input = "97.9"; renderCostCalculator();');
+  const html = app.elements.get("costResult").innerHTML;
+  assert.match(html, /当前输入 97\.9% \/ 输出 2\.1%/);
+  assert.doesNotMatch(html, /2\.09999/);
+  assert.equal(app.run('outputSharePct("80")'), "20");
+  healthy(app);
+});
+
+test("触屏设备用系统分享面板发送方案链接，取消不复制，失败时退回复制", async () => {
+  const app = createApp({ url: "http://127.0.0.1:8123/index.html?budget=500&region=intl" });
+  const btn = app.elements.get("shareResultsBtn");
+  assert.equal(btn.textContent, "复制当前方案链接", "桌面保持复制");
+  await app.run("shareCurrentResults()");
+  assert.match(app.run("copiedText"), /budget=500&region=intl/);
+  app.run(`window.matchMedia = (q) => ({ matches: q === "(pointer: coarse)" }); globalThis.shared = [];
+    navigator.share = async (data) => { shared.push(data); };`);
+  app.run("copiedText = ''");
+  await app.run("shareCurrentResults()");
+  const shared = JSON.parse(app.run("JSON.stringify(shared)"));
+  assert.equal(shared.length, 1);
+  assert.match(shared[0].url, /budget=500&region=intl/);
+  assert.match(shared[0].text, /^Coding Plan 选购条件：/);
+  assert.equal(app.run("copiedText"), "", "系统分享成功时不再复制");
+  assert.match(app.elements.get("serviceFeedback").textContent, /已打开系统分享/);
+  app.run(`navigator.share = async () => { const e = new Error("cancel"); e.name = "AbortError"; throw e; };`);
+  await app.run("shareCurrentResults()");
+  assert.equal(app.elements.get("serviceFeedback").textContent, "已取消分享。");
+  assert.equal(app.run("copiedText"), "");
+  app.run(`navigator.share = async () => { throw new Error("denied"); };`);
+  await app.run("shareCurrentResults()");
+  assert.match(app.run("copiedText"), /budget=500/, "其他失败退回复制链接");
+  healthy(app);
+});
+
 if (require.main === module) main();

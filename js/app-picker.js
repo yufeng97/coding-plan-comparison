@@ -524,10 +524,12 @@ function pickerSummaryText(url) {
   return lines.join("\n");
 }
 /* 同厂商、同一主力模型、更便宜的个人档。主计划按「窗口最大」选档时会跳过中档（如不限预算直接选 Max），
-   这里把被跳过的档（如 GLM Coding V3 Pro）补回可见，不然用户会以为厂商只有这一档。 */
+   这里把被跳过的档（如 GLM Coding V3 Pro）补回可见，不然用户会以为厂商只有这一档。
+   以日常模型为主的主计划（如 Cursor Ultra）按同一日常模型找省钱档，与 nextTier 的选角一致。 */
 function cheaperTiers(main) {
-  if (!main.headline) return [];
-  const roleId = main.headline.id;
+  const dailyLead = pickerState.task === "daily" || !main.headline;
+  const role = dailyLead ? main.loose[0] : main.headline;
+  if (!role) return [];
   const mainPrice = pickerMonthlyCNY(main.p) || 0;
   const rows = [];
   PLANS.forEach((p) => {
@@ -536,7 +538,7 @@ function cheaperTiers(main) {
     if (!matchesTool(p, pickerState.tool)) return;
     if ((pickerMonthlyCNY(p) || 0) >= mainPrice - BUDGET_EPS) return;
     const prof = planProfile(p);
-    if (prof.headline && prof.headline.id === roleId) rows.push(prof);
+    if (dailyLead ? prof.loose.some((r) => r.id === role.id) : prof.headline && prof.headline.id === role.id) rows.push(prof);
   });
   rows.sort((a, b) => (pickerMonthlyCNY(b.p) || 0) - (pickerMonthlyCNY(a.p) || 0));
   return rows;
@@ -705,7 +707,7 @@ function pickerVerificationHtml(p) {
   const check = priceCheckOf(p);
   if (!check) return lineHtml("本档核查", "暂无逐条核查记录，请在官网核对价格与权益。");
   const sources = check.sourceIds.map((id) => PRICE_CHECKS.sources[id]).filter(Boolean);
-  const date = lineHtml("本档核查", `${check.checkedAt} · ${priceCheckLabel(p)}${check.reason ? "。" + displayPriceReason(check.reason) : ""}`);
+  const date = lineHtml("本档核查", `${check.checkedAt}${checkAgeText(check.checkedAt)} · ${priceCheckLabel(p)}${check.reason ? "。" + displayPriceReason(check.reason) : ""}`);
   const evidence = sources.map((s) => `<li>${esc(displayPriceReason(s.evidence) || "来源页面记录")} ${safeHref(s.url) ? `<a href="${safeHref(s.url)}" target="_blank" rel="noopener">核查来源 ↗</a>` : ""}</li>`).join("");
   return date + (evidence ? `<details class="qc-verification"><summary>查看核查依据（${sources.length} 项）</summary><ul>${evidence}</ul></details>` : "");
 }

@@ -147,13 +147,10 @@ function mainlandAccessText(p) {
 function badgeHtml(p) {
   return planBadges(p).map((b) => `<span class="badge badge-${b.k}">${esc(b.t)}</span>`).join("");
 }
+/* 额度行经 ref 读取主表的结构化状态；未设 ref 的行无从判断购买资格，校验器会单列提示。 */
 function metricOfferOk(m) {
-  if (/已停售|已下架|老用户|一次性|预付/.test(m.plan || "")) return false;
-  if (m.ref != null) {
-    const p = findPlanReference(m.ref);
-    if (p && (isRetiredPlan(p) || !isPriceConfirmed(p) || isOneTimePlan(p) || isRenewalOnly(p) || !offerable(p))) return false;
-  }
-  return true;
+  const p = m.ref != null ? findPlanReference(m.ref) : null;
+  return !p || !(isRetiredPlan(p) || !isPriceConfirmed(p) || isOneTimePlan(p) || isRenewalOnly(p) || !offerable(p));
 }
 function adoptMetric(m, isEst) {
   const resolved = resolvePlan(m);
@@ -230,12 +227,36 @@ function priceCheckSources(p, kind = "plan") {
   const check = priceCheckOf(p, kind);
   return check ? check.sourceIds.map((id) => PRICE_CHECKS.sources[id] && PRICE_CHECKS.sources[id].url).filter(Boolean) : [];
 }
+/* 核查日期与「今天」都按北京时间的日历日比较。 */
+function chinaCalendarDay(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(now);
+  const value = (type) => parts.find((part) => part.type === type).value;
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
+/** 距核查日的天数；日期无效或晚于今天（时区差）时返回 null。 */
+function daysSince(date, today = chinaCalendarDay()) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date || ""))) return null;
+  const diff = Math.round((Date.parse(today + "T00:00:00Z") - Date.parse(date + "T00:00:00Z")) / 86400000);
+  return Number.isFinite(diff) && diff >= 0 ? diff : null;
+}
+/* 复查间隔与维护摘要一致（首屏摘要提供，缺省 14 天）。 */
+function staleAfterDays() {
+  return typeof MAINTENANCE_SUMMARY !== "undefined" && MAINTENANCE_SUMMARY.staleAfterDays > 0 ? MAINTENANCE_SUMMARY.staleAfterDays : 14;
+}
+/** 「（6 天前）」「（今天）」；超过复查间隔时注明。 */
+function checkAgeText(date) {
+  const age = daysSince(date);
+  if (age == null) return "";
+  return `（${age === 0 ? "今天" : age + " 天前"}${age >= staleAfterDays() ? "，超过复查间隔" : ""}）`;
+}
 function priceCheckHtml(p, kind = "plan") {
   const check = priceCheckOf(p, kind);
   const urls = priceCheckSources(p, kind);
   const links = urls.map((url, i) => `<a href="${safeHref(url)}" target="_blank" rel="noopener">核价来源${urls.length > 1 ? i + 1 : ""}</a>`).join(" · ");
   const explanation = check && check.status === "unverified" ? `<details class="price-check-details"><summary>核查说明</summary><p>${esc(displayPriceReason(check.reason))}</p></details>` : "";
-  return `${links || "—"}<span class="sub">${esc(priceCheckLabel(p, kind))}${check ? " · " + esc(check.checkedAt) : ""}</span>${explanation}`;
+  const age = check ? daysSince(check.checkedAt) : null;
+  const stale = age != null && age >= staleAfterDays();
+  return `${links || "—"}<span class="sub${stale ? " check-stale" : ""}">${esc(priceCheckLabel(p, kind))}${check ? " · " + esc(check.checkedAt) + esc(checkAgeText(check.checkedAt)) : ""}</span>${explanation}`;
 }
 
 /* 所有表格/对比/导出共用计价单位，不能把充值或席位费用当作个人月费。 */

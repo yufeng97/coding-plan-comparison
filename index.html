@@ -25,7 +25,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <script src="js/theme-init.js?v=31c1bf8"></script>
   <link rel="stylesheet" href="libs/fonts/fonts.css?v=17da4b4">
-  <link rel="stylesheet" href="css/style.css?v=64cf9cc">
+  <link rel="stylesheet" href="css/style.css?v=7547bdc">
 </head>
 <body>
 <div id="loadFailure" class="load-failure" role="alert" hidden>
@@ -41,7 +41,7 @@
     <nav class="primary-nav" aria-label="主要内容">
       <a href="#quick" data-site-view="compare" aria-current="page">选套餐</a>
       <a href="#benchmarks" data-site-view="benchmarks">模型评测</a>
-      <a href="#updates" data-site-view="updates">我的关注</a>
+      <a href="#updates" data-site-view="updates">我的关注<span class="nav-badge" id="followNavBadge" hidden></span></a>
     </nav>
     <button id="themeBtn" class="theme-btn" title="切换主题：暗色 → 亮色 → 跟随系统"><i class="ric" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z"/></svg></i></button>
   </div>
@@ -243,6 +243,7 @@
         <option value="cn">国内</option>
         <option value="intl">国际</option>
       </select>
+      <select id="selectVendor" class="select" aria-label="按厂商筛选数据表"><option value="all">全部厂商</option></select>
       <button type="button" class="chip" id="tableExtraToggle" aria-pressed="false">含中转站与待核价格</button>
       <span class="table-count" id="tableCount" role="status" aria-live="polite"></span>
       <button type="button" class="chip" id="tableResetBtn">清除筛选</button>
@@ -275,7 +276,7 @@
         <tbody id="tableBody"></tbody>
       </table>
     </div>
-    <button type="button" class="chip" id="tableMoreBtn" hidden>显示更多记录</button>
+    <div class="table-more-actions"><button type="button" class="chip" id="tableMoreBtn" hidden>显示更多记录</button><button type="button" class="chip" id="tableAllBtn" hidden>显示全部</button></div>
   </section>
 
   <!-- ======== 05 每百万 tokens 成本排行（进阶） ======== -->
@@ -356,7 +357,7 @@
         <tbody id="metricsBody"></tbody>
       </table>
     </div>
-    <button type="button" class="chip" id="metricsMoreBtn" hidden>显示更多额度记录</button>
+    <div class="table-more-actions"><button type="button" class="chip" id="metricsMoreBtn" hidden>显示更多额度记录</button><button type="button" class="chip" id="metricsAllBtn" hidden>显示全部</button></div>
     <p class="chart-note" id="metricsNote"></p>
     <details class="method-box">
       <summary>📐 方法论：官方没公布用量时，这些「≈估」行是怎么推算出来的？（6 种方法 + 3 个坑）</summary>
@@ -410,11 +411,11 @@
       <summary>按我的工作量计算 API 月费与套餐用量</summary>
       <p>填写每天的请求数和每次总 tokens，比较所选模型的按量费用与月预算。计算包括输入、输出和已知缓存单价；长上下文档位、工具费及税费仍按官网规则另计。</p>
       <details class="usage-import" id="usageImport">
-        <summary>从 ccusage 导入真实用量（可选）</summary>
-        <p class="maintenance-meta">在终端运行 <code>npx ccusage@latest daily --json</code>（Codex 用 <code>npx @ccusage/codex@latest daily --json</code>），把输出粘贴到下面或选择保存的 JSON 文件。只读取 token 计数和日期，数据在本页解析，不会上传。</p>
-        <label class="usage-import-field">ccusage JSON<textarea id="usageImportText" rows="5" spellcheck="false" placeholder='{"daily":[{"date":"2026-10-01","inputTokens":…}]}'></textarea></label>
+        <summary>从 ccusage 或会话日志导入真实用量（可选）</summary>
+        <p class="maintenance-meta">在终端运行 <code>npx ccusage@latest daily --json</code>（Codex 用 <code>npx @ccusage/codex@latest daily --json</code>），把输出粘贴到下面或选择保存的 JSON 文件；也可以直接选择 Claude Code（<code>~/.claude/projects</code>）或 Codex（<code>~/.codex/sessions</code>）的 <code>.jsonl</code> 会话日志，可多选。只读取 token 计数、日期和模型名，数据在本页解析，不会上传。</p>
+        <label class="usage-import-field">ccusage JSON 或会话日志<textarea id="usageImportText" rows="5" spellcheck="false" placeholder='{"daily":[{"date":"2026-10-01","inputTokens":…}]}'></textarea></label>
         <div class="service-actions">
-          <label class="chip usage-import-file">选择 JSON 文件<input type="file" id="usageImportFile" accept=".json,application/json"></label>
+          <label class="chip usage-import-file">选择文件（可多选）<input type="file" id="usageImportFile" accept=".json,.jsonl,application/json" multiple></label>
           <button type="button" class="chip" id="usageImportBtn">导入并计算</button>
         </div>
         <p id="usageImportFeedback" class="table-feedback" role="status" aria-live="polite"></p>
@@ -644,20 +645,21 @@
 
 <template id="chartLibraryTemplate"><script src="libs/echarts.min.js?v=14c5497"></script></template>
 <script defer src="js/app-loader.js?v=0127d10"></script>
-<script defer src="js/data.js?v=13f0ae3"></script>
-<script id="maintenanceDataSource" type="application/json" src="js/maintenance-data.js?v=516862e"></script>
-<script id="benchmarkDataSource" type="application/json" src="js/benchmark-data.js?v=72a0f38"></script>
+<script defer src="js/data.js?v=d3d0251"></script>
+<script id="maintenanceDataSource" type="application/json" src="js/maintenance-data.js?v=0025cde"></script>
+<script id="benchmarkDataSource" type="application/json" src="js/benchmark-data.js?v=f0456c2"></script>
+<script defer src="js/maintenance-summary.js?v=7497b24"></script>
 <script defer src="js/benchmark-summary.js?v=23e7cab"></script>
 <script defer src="js/project-data.js?v=b9931ec"></script>
 <script defer src="js/metrics.js?v=54c36b6"></script>
-<script defer src="js/app-core.js?v=bc3f192"></script>
-<script defer src="js/app-state.js?v=185b0a4"></script>
+<script defer src="js/app-core.js?v=9974e4e"></script>
+<script defer src="js/app-state.js?v=945440b"></script>
 <script defer src="js/app-charts.js?v=050071b"></script>
-<script defer src="js/app-picker.js?v=db0d070"></script>
-<script defer src="js/app-tables.js?v=c943aeb"></script>
-<script defer src="js/app-service.js?v=e50225b"></script>
-<script defer src="js/app-maintenance.js?v=8ee34c6"></script>
-<script defer src="js/app-events.js?v=f5bd159"></script>
+<script defer src="js/app-picker.js?v=59add8a"></script>
+<script defer src="js/app-tables.js?v=cf05f0c"></script>
+<script defer src="js/app-service.js?v=82e8d77"></script>
+<script defer src="js/app-maintenance.js?v=233c929"></script>
+<script defer src="js/app-events.js?v=05f35f1"></script>
 <script defer src="js/app-init.js?v=0008bbf"></script>
 </body>
 </html>

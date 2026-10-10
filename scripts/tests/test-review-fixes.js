@@ -289,6 +289,87 @@ test("导入用量换算成计算器条件并写入链接，按有用量天数�
   healthy(app);
 });
 
+const claudeLogLine = (id, day, model = "claude-opus-5-5-20260901") => JSON.stringify({ type: "assistant", timestamp: `2026-10-0${day}T10:00:00.000Z`, requestId: "req_" + id,
+  message: { id: "msg_" + id, model, usage: { input_tokens: 10, output_tokens: 500, cache_creation_input_tokens: 1000, cache_read_input_tokens: 20000 } } });
+const codexLog = () => {
+  const usage = (input, cached, output) => ({ input_tokens: input, cached_input_tokens: cached, output_tokens: output, reasoning_output_tokens: 100, total_tokens: input + output });
+  const event = (time, total, last) => JSON.stringify({ timestamp: time, type: "event_msg", payload: { type: "token_count", info: { total_token_usage: total, last_token_usage: last } } });
+  return [
+    JSON.stringify({ timestamp: "2026-10-01T10:00:00Z", type: "session_meta", payload: { id: "s1" } }),
+    JSON.stringify({ timestamp: "2026-10-01T10:00:01Z", type: "turn_context", payload: { model: "gpt-codex-test" } }),
+    JSON.stringify({ timestamp: "2026-10-01T10:01:00Z", type: "event_msg", payload: { type: "token_count", info: null } }),
+    event("2026-10-01T10:02:00Z", usage(5000, 4000, 300), usage(5000, 4000, 300)),
+    event("2026-10-01T10:02:01Z", usage(5000, 4000, 300), usage(5000, 4000, 300)),
+    event("2026-10-01T10:05:00Z", usage(12000, 10000, 700), usage(7000, 6000, 400)),
+  ].join("\n");
+};
+
+test("Claude Code / Codex 会话日志按消息去重解析，多份文件合并统计并识别主要模型", () => {
+  const app = createApp();
+  /** @param {string|string[]} value */
+  const parse = (value) => JSON.parse(app.run(`JSON.stringify(parseUsageExport(${JSON.stringify(value)}))`));
+  const claudeText = [claudeLogLine(1, 1), claudeLogLine(1, 1), claudeLogLine(2, 2),
+    JSON.stringify({ type: "user", timestamp: "2026-10-02T09:00:00Z", message: { role: "user", content: "hi" } }), "not json", ""].join("\n");
+  const claude = parse(claudeText);
+  assert.equal(claude.total, 2 * 21510, "流式重复写入的同一回复只计一次；缓存读写计入输入");
+  assert.equal(claude.activeDays, 2);
+  assert.equal(claude.cacheWrite, 2000);
+  assert.ok(Math.abs(claude.cacheRate - 40000 / 42020 * 100) < 1e-9);
+  assert.equal(claude.model, "claude-opus-5-5-20260901");
+  assert.equal(claude.modelShare, 1);
+  assert.equal(parse(claudeLogLine(3, 3)).total, 21510, "只有一行的日志也按会话日志解析");
+
+  const codex = parse(codexLog());
+  assert.equal(codex.total, 12700, "Codex 的缓存输入已含在输入里，累计未变的 token_count 不重复计入");
+  assert.ok(Math.abs(codex.cacheRate - 10000 / 12000 * 100) < 1e-9);
+  assert.equal(codex.model, "gpt-codex-test");
+
+  const both = parse([claudeText, codexLog()]);
+  assert.equal(both.total, 2 * 21510 + 12700);
+  assert.equal(both.activeDays, 2, "不同文件的同一天只算一次");
+  assert.equal(both.model, "claude-opus-5-5-20260901");
+  assert.equal(parse([claudeText, claudeText]).total, 2 * 21510, "重复选择同一份日志不重复计入");
+  assert.throws(() => app.run(`parseUsageExport(${JSON.stringify(JSON.stringify({ type: "user", message: { role: "user" } }))})`), /没有读到 token 用量/);
+  assert.throws(() => app.run('parseUsageExport("hello world")'), /不是有效的 JSON 或 JSONL/);
+  healthy(app);
+});
+
+test("日志模型只匹配完全一致或带日期后缀的牌价，主要模型占七成以上才换计算器模型", async () => {
+  const app = createApp();
+  assert.equal(app.run('(apiForUsageModel("claude-opus-5-5") || {}).model'), "Claude Opus 5.5");
+  assert.equal(app.run('(apiForUsageModel("claude-opus-5-5-latest") || {}).model'), "Claude Opus 5.5");
+  assert.equal(app.run('(apiForUsageModel("claude-opus-5-5-20260901") || {}).model'), "Claude Opus 5.5");
+  assert.equal(app.run('apiForUsageModel("claude-opus-5-7")'), null, "不把新版本对到旧版本");
+  assert.equal(app.run('apiForUsageModel("")'), null);
+
+  const text = app.elements.get("usageImportText"), feedback = app.elements.get("usageImportFeedback");
+  text.value = [claudeLogLine(1, 1), claudeLogLine(2, 2)].join("\n");
+  app.fire(app.elements.get("usageImportBtn"), "click");
+  assert.equal(app.run("calcState.model"), "Anthropic|Claude Opus 5.5");
+  assert.match(feedback.textContent, /主要模型 claude-opus-5-5-20260901 已对应 Anthropic · Claude Opus 5\.5 的 API 牌价/);
+  assert.doesNotMatch(app.location.href, /msg_|req_|20260901/, "链接只保存折算后的计算条件");
+
+  const before = app.run("calcState.model");
+  text.value = [claudeLogLine(1, 1), claudeLogLine(2, 2, "claude-unknown-9")].join("\n");
+  app.fire(app.elements.get("usageImportBtn"), "click");
+  assert.equal(app.run("calcState.model"), before);
+  assert.match(feedback.textContent, /混用了多个模型，保留计算器当前模型/);
+
+  /* 选择多份文件：合并导入，超出文本框回显上限时清空文本框，避免再次点击导入截断内容。 */
+  const file = app.elements.get("usageImportFile");
+  const big = [claudeLogLine(5, 5), "x".repeat(25000)].join("\n");
+  file.files = [{ size: big.length, text: async () => big }, { size: 10, text: async () => codexLog() }];
+  text.value = "旧内容";
+  app.fire(file, "change");
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(text.value, "");
+  assert.match(feedback.textContent, /已导入 2 个有用量的日子：共 0\.03M tokens/);
+  file.files = [{ size: 31 * 1024 * 1024, text: async () => "" }];
+  app.fire(file, "change");
+  assert.match(feedback.textContent, /内容超过 30MB/);
+  healthy(app);
+});
+
 test("按用量反查能覆盖的套餐，给出同模型按量费用与订阅回本点", () => {
   const app = createApp({ url: "http://127.0.0.1:8123/index.html?region=all&budget=any" });
   const rows = JSON.parse(app.run(`JSON.stringify(usageCoverageRows(30).map((r) => ({ id: r.p.id, moLow: r.c.moLow, conf: r.conf, price: r.quote.monthlyCNY, api: r.apiMonthlyCNY, breakEven: r.breakEvenM })))`));

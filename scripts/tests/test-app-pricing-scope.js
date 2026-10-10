@@ -3,7 +3,7 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs"), path = require("node:path");
 const { createApp, healthy, test, main } = require("./app-harness");
-const { validateData } = require("../build/validate-data");
+const { validateData, PLAN_MARKERS } = require("../build/validate-data");
 const near = (a,b) => assert.ok(Math.abs(a-b)<1e-8,`${a} != ${b}`);
 const plain = v => JSON.parse(JSON.stringify(v));
 
@@ -78,11 +78,34 @@ test("全年结构金额不受备注折月措辞影响，缺结构字段才估�
   healthy(app);
 });
 
-test("无限量和不限量不被当作限量发售，真正限量和抢购仍排除", () => {
+test("无限量和不限量不被当作限量发售，真正限量和抢购须标 availability:limited 并排除", () => {
+  const limited = PLAN_MARKERS.find((m) => m.field === 'availability: "limited"').name;
+  for(const name of ["无限量","不限量","专业版（无限量）"])assert.equal(limited.test(name),false,name);
+  for(const name of ["限量","专业版限量发售","抢购"])assert.equal(limited.test(name),true,name);
   const app=createApp();
-  for(const name of ["无限量","不限量","专业版（无限量）"])assert.equal(app.run(`offerable({plan:${JSON.stringify(name)}})`),true,name);
-  for(const name of ["限量","专业版限量发售","抢购"])assert.equal(app.run(`offerable({plan:${JSON.stringify(name)}})`),false,name);
+  assert.equal(app.run('offerable({plan:"专业版限量发售"})'),true,"页面不再按计划名猜测购买资格");
+  assert.equal(app.run('offerable({plan:"专业版",availability:"limited"})'),false);
   healthy(app);
+});
+
+test("计划名状态标记与结构化字段不一致时校验失败", () => {
+  const workspace=path.join(__dirname,"..","..");
+  const source=fs.readFileSync(path.join(workspace,"js/data.js"),"utf8");
+  /** @type {Array<{pattern: RegExp, field: string}>} */
+  const cases=[
+    { pattern: /(plan: "Starter 预付包（已下架）"[^\n]*?) availability: "retired",/, field: 'availability: "retired"' },
+    { pattern: /(plan: "Pro（4 周订阅）"[^\n]*?) billingUnit: "four-weeks",/, field: 'billingUnit: "four-weeks"' },
+    { pattern: /(plan: "GLM Coding V2 Lite（老用户续费）"[^\n]*?) renewalOnly: true,/, field: "renewalOnly: true" },
+  ];
+  for(const { pattern, field } of cases){
+    const broken=source.replace(pattern,"$1");
+    assert.notEqual(broken,source,field);
+    assert.ok(validateData({workspace,source:broken}).errors.some((e)=>e.includes("计划名标记与结构化字段不一致")&&e.includes(field)),field);
+  }
+  const extra=source.replace(/(plan: "GLM Coding V3 Lite"[^\n]*?seat: false,)/,'$1 renewalOnly: true,');
+  assert.notEqual(extra,source);
+  assert.ok(validateData({workspace,source:extra}).errors.some((e)=>e.includes("renewalOnly: true")),"多填的字段同样报错");
+  assert.deepEqual(validateData({workspace,source}).errors,[]);
 });
 
 test("分享URL及输入事件统一限制搜索长度，地址与控件保持同步", () => {
