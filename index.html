@@ -18,7 +18,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <script src="js/theme-init.js?v=6414a56"></script>
   <link rel="stylesheet" href="libs/fonts/fonts.css?v=17da4b4">
-  <link rel="stylesheet" href="css/style.css?v=928d9de">
+  <link rel="stylesheet" href="css/style.css?v=0fa8791">
 </head>
 <body>
 <div id="loadFailure" class="load-failure" role="alert" hidden>
@@ -99,6 +99,14 @@
         <button type="button" class="chip" data-value="hard" aria-pressed="false">复杂为主</button>
         <button type="button" class="chip active" data-value="both" aria-pressed="true">复杂和日常</button>
         <button type="button" class="chip" data-value="daily" aria-pressed="false">日常为主</button>
+        </div>
+      </div>
+      <div class="picker-row" data-pick="priority" role="group" aria-label="排序优先">
+        <span class="picker-label">优先</span>
+        <div class="picker-options">
+        <button type="button" class="chip active" data-value="quota" aria-pressed="true" title="按可折算额度、倍率与套餐类别排序">额度优先</button>
+        <button type="button" class="chip" data-value="ability" aria-pressed="false" title="按主编程评测中本档所含模型的名次排序">能力优先</button>
+        <button type="button" class="chip" data-value="price" aria-pressed="false" title="按所选支付方式月均价从低到高">省钱优先</button>
         </div>
       </div>
       <p class="picker-hint">Claude Code / Codex 包含第三方兼容接入。</p>
@@ -622,12 +630,12 @@
 <script src="js/project-data.js?v=b9931ec"></script>
 <script src="js/metrics.js?v=54c36b6"></script>
 <script src="js/app-core.js?v=dfdd53a"></script>
-<script src="js/app-state.js?v=aca5130"></script>
+<script src="js/app-state.js?v=3a82b4a"></script>
 <script src="js/app-charts.js?v=76a2012"></script>
-<script src="js/app-picker.js?v=635a12d"></script>
+<script src="js/app-picker.js?v=fa5f706"></script>
 <script src="js/app-tables.js?v=812dabc"></script>
 <script src="js/app-service.js?v=4275120"></script>
-<script src="js/app-maintenance.js?v=7939de3"></script>
+<script src="js/app-maintenance.js?v=267b01a"></script>
 <script src="js/app-events.js?v=4d88383"></script>
 <script src="js/app-init.js?v=268100a"></script>
 </body>

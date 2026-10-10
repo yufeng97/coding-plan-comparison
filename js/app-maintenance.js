@@ -206,6 +206,22 @@ function planCodingBenchmarks(p, role = null) {
     return row ? { protocol, row } : null;
   }).filter(Boolean);
 }
+/* 「能力优先」只用一个协议排序，不跨榜合成总分：取首屏摘要里排在最前的 DeepSWE 协议（最新版本）。 */
+function abilityProtocol() {
+  if (typeof BENCHMARK_SUMMARY === "undefined" || BENCHMARK_SUMMARY.schemaVersion !== 1) return null;
+  const protocols = BENCHMARK_SUMMARY.protocols;
+  return protocols.find((protocol) => String(protocol.family).toLowerCase() === "deepswe") || protocols[0] || null;
+}
+/* 本档明确包含、且属于当前任务系列的模型在该协议中的最佳名次；与卡片评测行同一精确版本匹配。 */
+function planAbilityRank(p, role = null) {
+  const protocol = abilityProtocol();
+  if (!protocol || !p || !publicPlanEligible(p)) return null;
+  const row = protocol.rows.find((r) => {
+    const name = publicModelDisplayName(r.model);
+    return (!role || role.re.test(name)) && publicModelIncluded(p, name);
+  });
+  return row ? { protocol, row } : null;
+}
 function publicModelPlansHtml(model) {
   const plans = publicModelPlans(model);
   const links = plans.map((p) => `<a href="?q=${encodeURIComponent(p.vendor + " " + p.plan)}#${isFreeCodingEntry(p) ? "free" : "table"}" data-benchmark-plan="${esc(p.id)}">${esc(planTitle(p))}</a>`);

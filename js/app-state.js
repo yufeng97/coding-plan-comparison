@@ -8,7 +8,7 @@ const CMP_MAX = 4;
 /** @type {{cat:string, region:string, billing:string, q:string, limit:number|null, fromPicker:boolean}} */
 const personalState = { cat:"all", region:"all", billing:"M", q:"", limit:PERSONAL_DEFAULT_LIMIT, fromPicker:false };
 const rankState = { tier:"flagship", scope:"all", vendor:"all", fromPicker:false };
-const pickerState = { budget:"200", region:"cn", tool:"any", task:"both", billing:"M" };
+const pickerState = { budget:"200", region:"cn", tool:"any", task:"both", billing:"M", priority:"quota" };
 const tableState = { search:"", cat:"all", region:"all", sortKey:"priceM", sortDir:1, fromPicker:false };
 /** @type {{items: typeof PLANS}} */
 const cmpState = { items:[] };
@@ -55,6 +55,7 @@ const URL_KEYS = {
   tool: () => pickerState.tool,
   task: () => pickerState.task,
   billing: () => pickerState.billing,
+  priority: () => pickerState.priority,
   papply: () => personalState.fromPicker ? "1" : "0",
   tapply: () => tableState.fromPicker ? "1" : "0",
   mapply: () => metricsState.fromPicker ? "1" : "0",
@@ -99,6 +100,7 @@ const URL_VALID = {
   tool: new Set(["any", "claude", "codex", "cursor", "own"]),
   task: new Set(["hard", "both", "daily"]),
   billing: new Set(["M", "A", "Y"]),
+  priority: new Set(["quota", "ability", "price"]),
   pcat: new Set(["all", "official", "tool", "cloud"]),
   pregion: new Set(["all", "cn", "intl"]),
   pbilling: new Set(["M", "Y"]),
@@ -136,6 +138,7 @@ function applyUrlState(search = location.search) {
   pick("tool", URL_VALID.tool, pickerState, "tool");
   pick("task", URL_VALID.task, pickerState, "task");
   pick("billing", URL_VALID.billing, pickerState, "billing");
+  pick("priority", URL_VALID.priority, pickerState, "priority");
   personalState.fromPicker = p.get("papply") === "1";
   tableState.fromPicker = p.get("tapply") === "1";
   metricsState.fromPicker = p.get("mapply") === "1";

@@ -68,7 +68,7 @@ test("同锚点popstate也恢复全部状态，push/replace不派发历史导航
   app.history.back();
   assert.equal(app.history.state.fixture, "saved");
   assert.equal(app.run("testHistoryEvents.join(',')"), "popstate", "相同hash只产生popstate");
-  assert.equal(app.run('JSON.stringify(pickerState)'), JSON.stringify({ budget: "500", region: "intl", tool: "codex", task: "daily", billing:"M" }));
+  assert.equal(app.run('JSON.stringify(pickerState)'), JSON.stringify({ budget: "500", region: "intl", tool: "codex", task: "daily", billing:"M", priority:"quota" }));
   assert.equal(app.run('JSON.stringify(personalState)'), JSON.stringify({ cat: "tool", region: "intl", billing: "Y", q: "Cursor", limit: null, fromPicker:false }));
   assert.equal(app.run('JSON.stringify(rankState)'), JSON.stringify({ tier: "all", scope: "credits", vendor:"all", fromPicker:false }));
   assert.equal(app.run('JSON.stringify(tableState)'), JSON.stringify({ search: "Cursor", cat: "tool", region: "intl", sortKey: "priceY", sortDir: -1, fromPicker:false }));
@@ -81,7 +81,7 @@ test("同锚点popstate也恢复全部状态，push/replace不派发历史导航
   assert.equal(app.location.search, expectedSearch, "历史恢复渲染不得重写目标URL");
   app.history.forward();
   assert.equal(app.history.state.fixture, "replaced");
-  assert.equal(app.run('JSON.stringify(pickerState)'), JSON.stringify({ budget: "200", region: "cn", tool: "any", task: "both", billing:"M" }));
+  assert.equal(app.run('JSON.stringify(pickerState)'), JSON.stringify({ budget: "200", region: "cn", tool: "any", task: "both", billing:"M", priority:"quota" }));
   assert.equal(app.run('JSON.stringify(personalState)'), JSON.stringify({ cat: "all", region: "all", billing: "M", q: "", limit: 20, fromPicker:false }));
   assert.equal(app.run("rankState.tier + ':' + rankState.scope"), "flagship:all");
   assert.equal(app.run("tableState.search + ':' + tableState.sortKey + ':' + tableState.sortDir"), ":priceM:1");

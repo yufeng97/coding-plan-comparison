@@ -608,4 +608,80 @@ test("日常为主的主计划也列出同一日常模型的省钱档，与升�
   healthy(app);
 });
 
+test("能力优先按主编程协议名次选主计划，省钱优先选最低月费；优先方式进入分享链接并拒绝非法值", () => {
+  const app = createApp({ url: "http://127.0.0.1:8123/index.html?priority=ability" });
+  healthy(app);
+  assert.equal(app.run("pickerState.priority"), "ability");
+  assert.match(app.location.search, /priority=ability/);
+  assert.match(app.elements.get("pickerPolicy").textContent, /能力优先：按 DeepSWE v1\.1 中本档明确包含的主力模型名次排序，不跨榜合成总分/);
+  const result = JSON.parse(app.run(`(() => {
+    const failures = []; let ranked = 0, combos = 0;
+    const rankOf = (x) => (planAbilityRank(x.p, leadRole(x)) || { row: { rank: PICKER_UNRANKED } }).row.rank;
+    for (const priority of ["ability", "price"]) for (const region of ["cn", "intl", "all"]) for (const budget of ["0", "100", "200", "500", "any"]) for (const task of ["hard", "both", "daily"]) {
+      Object.assign(pickerState, { priority, region, budget, task, tool: "any", billing: "M" });
+      const pool = eligibleProfiles(), main = chooseMain(pool), reps = rankedMains(pool);
+      if (!main) continue;
+      combos++;
+      const label = JSON.stringify(pickerState);
+      if (reps[0] !== main) failures.push("主计划不是排序第一 " + label);
+      const hardLed = task !== "daily" && pool.some((x) => x.headline);
+      const suitable = pool.filter((x) => hardLed ? x.headline : x.loose.length);
+      if (priority === "price") {
+        const cheapest = Math.min(...suitable.map((x) => pickerMonthlyCNY(x.p)));
+        if (pickerMonthlyCNY(main.p) > cheapest + 1e-9) failures.push("省钱优先未选最低月费 " + label);
+      } else {
+        const best = Math.min(...suitable.map(rankOf));
+        if (rankOf(main) !== best) failures.push("能力优先未选名次最好 " + label);
+        if (best < PICKER_UNRANKED) ranked++;
+      }
+    }
+    return JSON.stringify({ failures, ranked, combos });
+  })()`));
+  assert.deepEqual(result.failures, []);
+  assert.ok(result.ranked >= 20, "多数条件下应有可比较的评测名次");
+  /* 默认首页条件下，能力优先换成有主编程评测名次的套餐。 */
+  app.run('Object.assign(pickerState, { priority: "ability", region: "cn", budget: "200", task: "both", tool: "any", billing: "M" }); renderPicker();');
+  const main = app.run("(() => { const m = chooseMain(eligibleProfiles()); return planAbilityRank(m.p, m.headline) ? m.p.id : ''; })()");
+  assert.ok(main, "能力优先的主计划应有 DeepSWE 名次");
+  assert.match(mainCardHtml(app), /能力优先：DeepSWE v1\.1 第 \d+\/\d+ 名/);
+  const invalid = createApp({ url: "http://127.0.0.1:8123/index.html?priority=bogus" });
+  assert.equal(invalid.run("pickerState.priority"), "quota");
+  assert.doesNotMatch(invalid.location.search, /priority/);
+  healthy(app); healthy(invalid);
+});
+
+test("候选对比表按当前排序列出前三家，首行为主计划并带名次、额度依据与权益入口", () => {
+  const app = createApp({ url: "http://127.0.0.1:8123/index.html?budget=any&region=all" });
+  const grid = app.elements.get("quickGrid");
+  for (const priority of ["quota", "ability", "price"]) {
+    app.run(`pickerState.priority = ${JSON.stringify(priority)}; renderPicker();`);
+    const table = grid.querySelector(".picker-compare-table");
+    assert.ok(table, priority + " 应展示候选对比");
+    const rows = table.querySelectorAll("tbody tr");
+    assert.ok(rows.length >= 2 && rows.length <= 3);
+    const ids = rows.map((row) => row.querySelector("[data-view-plan]").dataset.viewPlan);
+    assert.equal(ids[0], app.run("chooseMain(eligibleProfiles()).p.id"));
+    assert.equal(new Set(ids.map((id) => app.run(`findPlanReference(${JSON.stringify(id)}).vendor`))).size, ids.length, "每家只取一档");
+    assert.ok(rows[0].querySelector(".picker-compare-tag"));
+    const text = (el) => [el, ...el.descendants()].map((e) => e.textContent).join("");
+    for (const row of rows) assert.match(text(row), /(DeepSWE v1\.1 (第 \d+\/\d+ 名|未上榜)).*(下限约|未公开可折算额度)/s);
+    assert.match(text(table.querySelector("caption")), new RegExp(app.run(`PICKER_PRIORITY_LABELS[${JSON.stringify(priority)}]`)));
+    assert.equal(table.closest(".qc-details"), null, "对比表在首层");
+  }
+  assert.doesNotMatch(grid.innerHTML, /NaN|undefined/);
+  healthy(app);
+});
+
+test("主计划首层写出同模型最便宜的档位，省钱优先时不重复提示", () => {
+  const app = createApp({ url: "http://127.0.0.1:8123/index.html?budget=any&region=cn&task=both" });
+  const card = () => app.elements.get("quickGrid").querySelector(".quick-card");
+  const cheaper = card().querySelector(".qc-cheaper");
+  assert.ok(cheaper, "不限预算的主计划应提示同模型最便宜档");
+  assert.equal(cheaper.closest(".qc-details"), null);
+  assert.match(cheaper.textContent, /^同模型最便宜：GLM Coding V3 Lite（¥\d+(?:\.\d+)?\/月）$/);
+  app.run('pickerState.priority = "price"; renderPicker();');
+  assert.equal(card().querySelector(".qc-cheaper"), null, "省钱优先的主计划已是同系列最低价");
+  healthy(app);
+});
+
 if (require.main === module) main();
