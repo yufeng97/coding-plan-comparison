@@ -122,6 +122,7 @@ test("评测排名图随版本、搜索和成本视图更新，主题和窄屏�
   expect(bounds.x + bounds.width).toBeLessThanOrEqual(375);
   expect(bounds.y).toBeGreaterThanOrEqual(0);
   expect(bounds.y + bounds.height).toBeLessThanOrEqual(812);
+  expect(await tooltip.evaluate((el) => el.scrollWidth <= el.clientWidth + 1 && el.scrollHeight <= el.clientHeight + 1)).toBe(true);
   await expectNoPageOverflow(page, "With benchmark tooltip");
   expect(errors).toEqual([]);
 });
