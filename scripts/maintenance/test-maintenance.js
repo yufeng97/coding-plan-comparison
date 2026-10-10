@@ -9,7 +9,7 @@ const { buildMaintenance, parseArgs, rssOf } = require("./build-maintenance");
 const { seededHistory, canonical, changeOf, validateHistory } = require("./history");
 const { rewindToFullAudit } = require("../tests/full-audit-baseline");
 const workspace = path.resolve(__dirname, "../..");
-const outputs = ["data/change-history.json", "data/maintenance.json", "js/maintenance-data.js", "changes.xml"];
+const outputs = ["data/change-history.json", "data/maintenance.json", "js/maintenance-data.js", "js/maintenance-summary.js", "changes.xml"];
 
 function fixture(run) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "coding-plan-maintenance-test-"));
@@ -24,6 +24,7 @@ function fixture(run) {
     const calendar = (events) => fs.writeFileSync(path.join(root, "config/review-calendar.json"), JSON.stringify({ schemaVersion: 1, events }));
     // Generated files copied as part of js must not affect the initial output snapshot.
     fs.rmSync(path.join(root, "js/maintenance-data.js"), { force: true });
+    fs.rmSync(path.join(root, "js/maintenance-summary.js"), { force: true });
     run({ root, snapshot, calendar });
   } finally {
     if (path.dirname(root) !== fs.realpathSync(os.tmpdir()) || !path.basename(root).startsWith("coding-plan-maintenance-test-")) throw new Error("拒绝清理未知维护测试目录");

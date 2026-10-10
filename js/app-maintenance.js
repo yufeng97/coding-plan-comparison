@@ -440,6 +440,19 @@ function followedChanges() {
 function unreadFollowedChanges() {
   return followedChanges().filter((c) => !followState.readChangeIds.includes(c.changeId));
 }
+/* 导航上的未读数：完整维护数据未下载时用首屏摘要里的变更 ID，口径与关注页一致。 */
+function followUnreadCount() {
+  if (optionalDataLoaded("maintenance")) return unreadFollowedChanges().length;
+  const changes = typeof MAINTENANCE_SUMMARY !== "undefined" && MAINTENANCE_SUMMARY.schemaVersion === 1 ? MAINTENANCE_SUMMARY.changes : [];
+  return changes.filter((c) => followState.planIds.includes(c.id) && !followState.readChangeIds.includes(c.changeId)).length;
+}
+function syncFollowBadge() {
+  const badge = byId("followNavBadge");
+  if (!badge) return;
+  const n = followUnreadCount();
+  badge.hidden = !n;
+  badge.innerHTML = n ? `<span aria-hidden="true">${n > 99 ? "99+" : n}</span><span class="sr-only">，${n} 条未读变更</span>` : "";
+}
 function followFeedback(text) {
   const el = byId("followFeedback");
   if (el) el.textContent = text + (followStorageMessage ? " " + followStorageMessage : "");
@@ -536,6 +549,7 @@ function followFeedLinks(plans) {
   return feeds.length ? `<p class="follow-feeds">按厂商订阅变更 RSS：${feeds.map((feed) => `<a href="${esc(feed.path)}" target="_blank" rel="noopener">${esc(shortVendor(feed.vendor))} ↗</a>`).join(" · ")}</p>` : "";
 }
 function renderFollowedChanges() {
+  syncFollowBadge();
   const list = byId("followedPlans"), changes = byId("followedChanges"), count = byId("followUnreadCount"), read = byId("markFollowReadBtn");
   if (!list || !changes || !count || !read) return;
   const plans = followState.planIds.map((id) => PLANS.find((p) => p.id === id)).filter(Boolean);

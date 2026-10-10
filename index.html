@@ -25,7 +25,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <script src="js/theme-init.js?v=31c1bf8"></script>
   <link rel="stylesheet" href="libs/fonts/fonts.css?v=17da4b4">
-  <link rel="stylesheet" href="css/style.css?v=64cf9cc">
+  <link rel="stylesheet" href="css/style.css?v=bd66a8b">
 </head>
 <body>
 <div id="loadFailure" class="load-failure" role="alert" hidden>
@@ -41,7 +41,7 @@
     <nav class="primary-nav" aria-label="主要内容">
       <a href="#quick" data-site-view="compare" aria-current="page">选套餐</a>
       <a href="#benchmarks" data-site-view="benchmarks">模型评测</a>
-      <a href="#updates" data-site-view="updates">我的关注</a>
+      <a href="#updates" data-site-view="updates">我的关注<span class="nav-badge" id="followNavBadge" hidden></span></a>
     </nav>
     <button id="themeBtn" class="theme-btn" title="切换主题：暗色 → 亮色 → 跟随系统"><i class="ric" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z"/></svg></i></button>
   </div>
@@ -647,6 +647,7 @@
 <script defer src="js/data.js?v=d3d0251"></script>
 <script id="maintenanceDataSource" type="application/json" src="js/maintenance-data.js?v=0025cde"></script>
 <script id="benchmarkDataSource" type="application/json" src="js/benchmark-data.js?v=f0456c2"></script>
+<script defer src="js/maintenance-summary.js?v=5026650"></script>
 <script defer src="js/benchmark-summary.js?v=23e7cab"></script>
 <script defer src="js/project-data.js?v=b9931ec"></script>
 <script defer src="js/metrics.js?v=54c36b6"></script>
@@ -655,8 +656,8 @@
 <script defer src="js/app-charts.js?v=050071b"></script>
 <script defer src="js/app-picker.js?v=d5ce4e7"></script>
 <script defer src="js/app-tables.js?v=ea95e62"></script>
-<script defer src="js/app-service.js?v=d43d392"></script>
-<script defer src="js/app-maintenance.js?v=8ee34c6"></script>
+<script defer src="js/app-service.js?v=b2805ee"></script>
+<script defer src="js/app-maintenance.js?v=233c929"></script>
 <script defer src="js/app-events.js?v=f5bd159"></script>
 <script defer src="js/app-init.js?v=0008bbf"></script>
 </body>

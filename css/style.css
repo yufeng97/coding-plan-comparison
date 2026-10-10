@@ -211,6 +211,8 @@ html[data-theme="light"] .brand-mark { color: #315f59; background: var(--brand);
 }
 .topnav a:hover, .primary-nav a:hover { color: var(--ink); background: var(--hover); text-decoration: none; }
 .topnav a[aria-current="location"], .primary-nav a[aria-current="page"] { color: var(--ink); background: var(--brand-soft); }
+.nav-badge { display: inline-block; min-width: 16px; margin-left: 4px; padding: 0 5px; border-radius: 8px; background: var(--red); color: #fff; font-size: 10.5px; font-weight: 700; line-height: 16px; text-align: center; vertical-align: 1px; }
+.nav-badge[hidden] { display: none; }
 .section-menu { margin-top: 18px; }
 .section-menu > summary { cursor: pointer; color: var(--muted); font-size: 13px; }
 .section-menu .topnav { margin-top: 10px; flex-wrap: wrap; overflow: visible; }
