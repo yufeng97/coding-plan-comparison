@@ -496,59 +496,23 @@
     <details class="method-box public-benchmark-guide"><summary>这些榜单适合回答什么问题？</summary><p>DeepSWE 与 CursorBench 聚焦代码任务，但各自的任务集、Agent、评分与版本不同，应在同一协议内比较。OSWorld 是图形界面操作任务，关注桌面与应用交互；HLE 是综合学术题目，关注知识与推理。GUI 或学术分数不能直接当成编程任务表现。</p><p>请同时查看版本、样本范围、是否使用工具及推理配置。分数说明来源中的评测条件，不保证你的具体任务、工具或套餐能获得同样结果。</p></details>
     <details class="method-box" id="contributorBenchmarkTools"><summary>贡献者工具：任务验收与记录提交（可选）</summary>
     <p class="maintenance-meta">下面的本地任务框架用于检查提交解答；公开模型榜单来自上方所列来源，二者分别记录。</p>
-    <div class="maintenance-panel">
-      <div class="benchmark-filters">
-        <label class="maintenance-select" for="benchmarkTask">任务<select id="benchmarkTask"><option value="all">全部任务</option></select></label>
-        <label class="maintenance-select" for="benchmarkTool">工具<select id="benchmarkTool"><option value="all">全部工具</option></select></label>
-        <label class="maintenance-select" for="benchmarkModel">模型<select id="benchmarkModel"><option value="all">全部模型</option></select></label>
-      </div>
-      <div id="benchmarkResults" aria-live="polite"></div>
-      <p class="maintenance-meta">生成费用取自真实 API 账单；订阅内使用不分摊单次费用。生成时间与验收运行时间分别记录；验收次数指同一解答的重复检查，不能当成模型独立尝试次数或成功率。</p>
-    </div>
-    <div id="benchmarkTasks"></div>
-    <details class="method-box"><summary>测评方法与记录导入说明</summary><p id="benchmarkMethodology"></p><p>贡献记录包含 taskId、model、tool、measuredAt、cost、currency、costBasis、generationSeconds、durationSeconds、passed、repeats、evidence 与 environment。evidence 须为可公开的 HTTPS 证据；costBasis 为 api-receipt 时填写实际账单，included-subscription 或 unknown 时 cost=null。</p><p>请在本地任务框架运行同一解答的验收，保存原始提示、解答与日志，再将记录交由维护者核对导入。本站不会在浏览器上传文件或自动发布结果。</p><a href="#contribute">复制或下载测评贡献模板 ↓</a></details>
+    <!-- 由 src/sections/ContributorBenchmarks.vue 渲染：筛选、贡献者记录、任务与测评方法。 -->
+    <div id="contributorBenchmarksApp"></div>
     </details>
   </section>
 
   <section class="section" id="updates">
     <div class="section-head"><h2><span class="sec-no">12</span>我的关注与套餐变更</h2><p>查看关注套餐的已确认变更，核对价格来源与复查安排。<a href="changes.xml">订阅全部变更 RSS ↗</a>；关注套餐后可单独订阅对应厂商。</p></div>
     <p id="maintenanceDataStatus" class="table-feedback optional-data-status" role="status" aria-live="polite"></p>
-    <div class="maintenance-grid">
-      <div class="maintenance-panel">
-        <h3>我关注的套餐</h3>
-        <p id="followStorageNote"></p>
-        <div id="followImport" class="follow-import" hidden></div>
-        <div class="maintenance-toolbar"><strong id="followUnreadCount"></strong><button type="button" class="chip" id="markFollowReadBtn" disabled>将当前变更标为已读</button><button type="button" class="chip" id="copyFollowLinkBtn" disabled>复制关注同步链接</button></div>
-        <p id="followFeedback" class="table-feedback" role="status" aria-live="polite"></p>
-        <div id="followedPlans"></div><div id="followedChanges"></div>
-      </div>
-      <div class="maintenance-panel">
-        <h3>查看套餐历史</h3>
-        <label class="maintenance-select" for="maintenancePlan">选择套餐<select id="maintenancePlan"><option value="">选择套餐</option></select></label>
-        <div id="maintenanceHistory"></div>
-        <details class="method-box"><summary>到期复查提示</summary><div id="maintenanceReviews"></div></details>
-      </div>
-    </div>
-    <details class="method-box" id="maintenanceSnapshot">
-      <summary>数据核查概况与下载</summary>
-      <div class="maintenance-panel" id="maintenanceSummary"></div>
-      <div class="maintenance-toolbar"><button type="button" class="chip" id="downloadPublicDataBtn">下载公开数据 JSON</button><span class="maintenance-meta">价格、核查、已确认历史与评测记录</span></div>
-      <p id="publicDataFeedback" class="table-feedback" role="status" aria-live="polite"></p>
-    </details>
-    <details class="method-box"><summary>逐条维护状态与来源</summary><label class="maintenance-select" for="maintenanceRecordFilter">记录范围<select id="maintenanceRecordFilter"><option value="all">全部记录</option><option value="unverified">待核实</option><option value="stale">超过复查间隔</option></select></label><div id="maintenanceRecords"></div></details>
+    <!-- 由 src/sections/FollowUpdates.vue 渲染：关注与已读、套餐历史、到期复查、核查概况与下载、逐条维护状态。 -->
+    <div id="updatesApp"></div>
     <p class="maintenance-meta">核查快照与已确认变更由维护脚本整理。变价候选、资讯与到期提示需复核；没有证据时不自动更新官方价格。</p>
   </section>
 
   <section class="section" id="contribute">
     <div class="section-head"><h2><span class="sec-no">13</span>帮助补全与纠错</h2><p>提交新厂商、官方变更证据或可复现测评，帮助其他人做选择。</p></div>
-    <div class="maintenance-panel">
-      <label class="maintenance-select" for="contributionType">贡献类型<select id="contributionType"><option value="correction">套餐纠错与更新</option><option value="vendor">收录新厂商 / 套餐</option><option value="benchmark">真实任务测评</option></select></label>
-      <p id="contributionDataStatus" class="table-feedback optional-data-status" role="status" aria-live="polite" hidden></p>
-      <p id="contributionProjectNote"></p>
-      <div class="maintenance-toolbar"><button type="button" class="chip" id="copyContributionBtn">复制证据模板</button><button type="button" class="chip" id="downloadContributionBtn">下载模板</button><a class="chip" id="contributionIssueLink" target="_blank" rel="noopener" hidden>前往项目 Issues ↗</a></div>
-      <p id="contributionFeedback" class="table-feedback" role="status" aria-live="polite"></p>
-      <label class="contribution-preview" for="contributionTemplate">证据模板（选中后可手动复制）<textarea id="contributionTemplate" rows="12" readonly spellcheck="false"></textarea></label>
-    </div>
+    <!-- 由 src/sections/Contribution.vue 渲染：贡献类型、证据模板、复制下载与 Issues 链接。 -->
+    <div class="maintenance-panel" id="contributionApp"></div>
   </section>
 
   <!-- ======== 14 数据来源与说明 ======== -->

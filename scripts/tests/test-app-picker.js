@@ -361,7 +361,7 @@ test("首屏评测摘要与评测页「每模型最佳配置」的模型、分�
   assert.deepEqual([...new Set(protocols.map((p) => p.family))], ["deepswe", "cursorbench", "SWE-bench"]);
   assert.deepEqual(protocols.filter((p) => p.family === "deepswe").map((p) => p.version), ["1.1", "1"]);
   for (const protocol of protocols) {
-    app.run(`publicBenchmarkState = { id: ${JSON.stringify(protocol.id)}, family: ${JSON.stringify(protocol.family)}, search: "", mode: "best" }`);
+    app.run(`Object.assign(publicBenchmarkState, { id: ${JSON.stringify(protocol.id)}, family: ${JSON.stringify(protocol.family)}, search: "", mode: "best" })`);
     assert.deepEqual(plain(app.run("publicBenchmarkRows().map(r => [r.model, r.score, r.rank])")), protocol.rows.map((r) => [r.model, r.score, r.rank]), protocol.id);
     assert.equal(protocol.total, protocol.rows.length);
   }

@@ -25,7 +25,7 @@
 |---|---|
 | `index.html` | 页面结构与 Vite 入口（`src/main.js`）；主题引导、加载失败提示和按需数据仍按经典脚本引用 |
 | `src/main.js` / `bootstrap.js` / `legacy-globals.js` | 入口按顺序执行：注入响应式状态工厂 → 旧脚本与已迁移的 Vue 区块 → 页面启动 → 迁移期兼容层（把旧脚本的顶层名称以 getter 挂到 window，供浏览器测试与调试读取） |
-| `src/sections/` | 已迁移的 Vue 区块与组件测试：`PublicBenchmarks.vue`（模型公开评测）及其子组件、`*.test.js`（Vitest + happy-dom） |
+| `src/sections/` | 已迁移的 Vue 区块与组件测试：模型公开评测（`PublicBenchmarks.vue`）、我的关注（`FollowUpdates.vue`）、贡献者工具（`ContributorBenchmarks.vue`）、帮助补全与纠错（`Contribution.vue`）及共用的子组件；`*.test.js` 用 Vitest + happy-dom，`src/test/setup.js` 提供真实按需数据 |
 | `js/legacy-scripts.json` | 旧脚本清单：Vite 合并顺序与页面虚拟 DOM 的执行顺序都以它为准 |
 | `vite.config.mjs` / `scripts/build/vite-legacy.mjs` | Vite 配置；旧脚本合并为 `virtual:legacy-lib` / `virtual:legacy-init`，经典脚本按内容哈希另存，构建只读入公共源目录 |
 | `css/style.css` | 样式（亮色默认；支持暗色与跟随系统；`--cat-*` 类别色变量是图表/图例/标签的单一色源） |
@@ -63,10 +63,11 @@
 - **旧脚本的构建方式**：Vite 把 `js/legacy-scripts.json` 列出的旧脚本按原顺序合并成两个模块：`virtual:legacy-lib`（除启动脚本外的全部旧脚本，共用一个模块作用域，与原来共用全局作用域等价，并导出全部顶层名称）和 `virtual:legacy-init`（`app-init.js`，页面启动）。源文件不改写成模块，页面虚拟 DOM、数据校验器和维护脚本照旧按经典脚本读取。合并时用语法树取顶层名称，重复声明直接报错；开发时 source map 逐行指回原文件。
 - **新代码**：放在 `src/`，按名从 `virtual:legacy-lib` 导入旧逻辑。只导入 lib 不会启动页面，组件测试据此单独载入旧逻辑。
 - **共享状态**：要与组件共享的状态在旧脚本里用 `appState()` 声明。Vite 页面中它返回 Vue 的 `reactive` 对象，组件和旧代码读写同一份数据；页面虚拟 DOM 中返回原对象。深层代理与原对象不全等：`cmpState` 这类保存 `PLANS` 引用的状态迁移时要用 `shallowReactive` 或 `markRaw`。
-- **旧代码通知组件**：按需数据是经典脚本定义的全局常量，不在响应式系统里。旧代码在数据到达时递增区块的修订号（如 `publicBenchmarkView.revision`）；图表懒加载、主题和尺寸变化时调用的 `renderPublicBenchmarkChart` 转给组件登记的重绘函数。
+- **旧代码通知组件**：按需数据是经典脚本定义的全局常量，不在响应式系统里。数据到达时 `refreshOptionalViews` 递增 `dataRevision.maintenance` / `dataRevision.benchmark`，组件据此重新读取；图表懒加载、主题和尺寸变化时调用的 `renderPublicBenchmarkChart` 转给组件登记的重绘函数。
 - **跨模块赋值**：模块的导入绑定是只读的，`app-init.js` 不能直接给其他旧脚本的 `let` 赋值，须经对方提供的函数（如 `setUrlRestoring`）。插件在启动模块末尾把 lib 引用到的启动函数（`navigateToSection`、`loadViewData`）挂到全局。
 - **兼容层**：`src/legacy-globals.js` 把旧脚本的顶层名称以只读 getter 挂到 `window`，现有浏览器测试和控制台调试照常读取 `chartCache`、`PLANS` 等；浏览器自带的同名属性不被覆盖。测试改为只读 DOM 后删除。
-- **已迁移区块**：模型公开评测（`src/sections/PublicBenchmarks.vue`）。迁移一个区块：渲染、事件与导出移进组件，共用的计算函数留在旧脚本；`index.html` 只留挂载点；渲染与交互断言从页面虚拟 DOM 测试移到组件测试；组件保留原有 ID、class 与 ARIA，浏览器测试不改即可作为回归依据。
+- **已迁移区块**：模型公开评测、我的关注与套餐变更、贡献者工具、帮助补全与纠错。迁移一个区块：渲染、事件与导出移进组件，共用的状态与计算函数留在旧脚本（状态用 `appState()` 声明）；`index.html` 只留挂载点；渲染与交互断言从页面虚拟 DOM 测试移到组件测试；组件保留原有 ID、class 与 ARIA，浏览器测试不改即可作为回归依据。
+- **关注按钮的分工**：推荐卡、数据表和完整权益窗口里的关注按钮由旧代码渲染，`syncWatchButtons` 按状态同步它们；组件里的按钮（`WatchButton.vue`）按 `followState` 自己渲染，`syncWatchButtons` 跳过 Vue 挂载容器（带 `data-v-app`）内的节点，避免两边改同一个节点。点击都经页面统一委托的 `toggleFollowPlan`。
 - **页面虚拟 DOM 的边界**：它只运行旧脚本，不运行 Vue 组件，所以构建期预渲染只覆盖仍由旧脚本渲染的区块（目前全部预渲染目标都是）。迁移预渲染目标之前，需要先把预渲染换成 Vue 的服务端渲染。
 - **不再支持 `file://` 直开**：入口是 ES 模块，浏览器不允许从 `file://` 加载。本地用 `npm run dev` 开发，`npm run serve` 预览发布产物。
 

@@ -2,7 +2,10 @@
 "use strict";
 
 const FOLLOW_KEY = "cp-followed-plans-v1";
-let followState = { version: 1, planIds: [], readChangeIds: [] };
+/* 我的关注、维护记录、贡献者测评、帮助补全与公开评测由 Vue 组件渲染（src/sections/）。本文件保留它们的状态、数据与计算，
+   「帮我选」、数据表和完整权益窗口等旧代码也在用。组件读写的状态用 appState() 声明；按需数据是经典脚本定义的全局常量，
+   不在响应式系统里，数据到达时递增 dataRevision，组件据此重新读取。 */
+const followState = appState({ version: 1, planIds: [], readChangeIds: [] });
 /* 关注同步链接 ?follow=plan-0002,plan-0031：只在打开页面时读取一次（启动后地址栏会规范化去掉该参数），
    由用户确认后才合并进本机关注；链接不含已读记录。 */
 function readFollowImport() {
@@ -11,20 +14,16 @@ function readFollowImport() {
     return [...new Set(raw.split(",").map((id) => id.trim()).filter((id) => /^plan-[a-z0-9-]{1,40}$/.test(id)))].slice(0, 500);
   } catch (e) { return []; }
 }
-let pendingFollowImport = readFollowImport();
-let followStorageAvailable = true;
-let followStorageMessage = "";
-let maintenancePlanId = "";
-let maintenanceRecordFilter = "all";
-let benchmarkFilter = { task: "all", tool: "all", model: "all" };
-let publicBenchmarkState = appState({ id: "deepswe-v1-1", family: "", search: "", mode: "best" });
+/* importIds：待用户确认的关注同步；storageMessage：本机存储不可用时的说明；feedback：最近一次关注操作的提示。 */
+const followView = appState({ importIds: readFollowImport(), storageMessage: "", feedback: "" });
+const maintenanceView = appState({ planId: "", recordFilter: "all", publicDataFeedback: "" });
+const benchmarkFilter = appState({ task: "all", tool: "all", model: "all" });
+const dataRevision = appState({ maintenance: 0, benchmark: 0 });
+const publicBenchmarkState = appState({ id: "deepswe-v1-1", family: "", search: "", mode: "best" });
 const publicBenchmarkChartState = appState({ metric: "score", limit: "20" });
-/* 公开评测区块由 Vue 组件渲染（src/sections/PublicBenchmarks.vue），本文件只保留数据与计算。
-   按需数据是经典脚本定义的全局常量，不在响应式系统里：数据到达时递增修订号，组件据此重新读取。 */
-const publicBenchmarkView = appState({ revision: 0 });
-/** @type {{ renderChart: (() => void) | null }} 组件挂载后登记图表重绘，供懒加载、主题与尺寸变化时调用 */
+/** @type {{ renderChart: (() => void) | null }} 公开评测组件挂载后登记图表重绘，供懒加载、主题与尺寸变化时调用 */
 const publicBenchmarkHooks = { renderChart: null };
-function renderPublicBenchmarks() { publicBenchmarkView.revision++; }
+function renderPublicBenchmarks() { dataRevision.benchmark++; }
 function renderPublicBenchmarkChart() { if (publicBenchmarkHooks.renderChart) publicBenchmarkHooks.renderChart(); }
 
 /** @returns {MaintenanceSnapshot} */
@@ -287,19 +286,17 @@ function cleanFollowState(value) {
 function loadFollowState() {
   try {
     const raw = localStorage.getItem(FOLLOW_KEY);
-    followState = cleanFollowState(raw ? JSON.parse(raw) : null);
+    Object.assign(followState, cleanFollowState(raw ? JSON.parse(raw) : null));
   } catch (e) {
-    followStorageAvailable = false;
-    followStorageMessage = "本机关注存储不可用或已损坏；本页仍可关注，关闭后不会保留。";
+    followView.storageMessage = "本机关注存储不可用或已损坏；本页仍可关注，关闭后不会保留。";
   }
 }
 function persistFollowState() {
   try {
     localStorage.setItem(FOLLOW_KEY, JSON.stringify(followState));
-    followStorageAvailable = true; followStorageMessage = "";
+    followView.storageMessage = "";
   } catch (e) {
-    followStorageAvailable = false;
-    followStorageMessage = "本机关注存储不可用；本页操作已生效，关闭后不会保留。";
+    followView.storageMessage = "本机关注存储不可用；本页操作已生效，关闭后不会保留。";
   }
 }
 function isPlanFollowed(id) { return followState.planIds.includes(id); }
@@ -308,8 +305,10 @@ function watchButtonHtml(p, extraClass = "") {
   const on = isPlanFollowed(p.id);
   return `<button type="button" class="watch-plan ${esc(extraClass)}${on ? " on" : ""}" data-watch-plan="${esc(p.id)}" aria-pressed="${on}" aria-label="${on ? "取消关注" : "关注"} ${esc(planTitle(p))}">${on ? "已关注" : "关注"}</button>`;
 }
+/* 同步旧代码渲染的关注按钮（推荐卡、数据表、完整权益窗口）。Vue 组件里的按钮由组件按状态渲染，不能从外部改动它的节点。 */
 function syncWatchButtons() {
   qsa("[data-watch-plan]").forEach((b) => {
+    if (b.closest && b.closest("[data-v-app]")) return;
     const p = PLANS.find((plan) => plan.id === b.dataset.watchPlan);
     if (!p) return;
     const on = isPlanFollowed(p.id);
@@ -318,6 +317,9 @@ function syncWatchButtons() {
     b.textContent = on ? "已关注" : "关注";
   });
 }
+function followedPlans() {
+  return followState.planIds.map((id) => PLANS.find((p) => p.id === id)).filter(Boolean);
+}
 function followedChanges() {
   return maintenanceData().changes.filter((c) => followState.planIds.includes(c.id));
 }
@@ -325,53 +327,57 @@ function unreadFollowedChanges() {
   return followedChanges().filter((c) => !followState.readChangeIds.includes(c.changeId));
 }
 function followFeedback(text) {
-  const el = byId("followFeedback");
-  if (el) el.textContent = text + (followStorageMessage ? " " + followStorageMessage : "");
+  const message = text + (followView.storageMessage ? " " + followView.storageMessage : "");
+  followView.feedback = message;
   const dialog = byId("planFollowFeedback");
-  if (dialog) dialog.textContent = text + (followStorageMessage ? " " + followStorageMessage : "");
+  if (dialog) dialog.textContent = message;
 }
 function toggleFollowPlan(id) {
   const p = PLANS.find((plan) => plan.id === id);
   if (!p) return false;
-  const focus = /** @type {HTMLElement | null} */ (document.activeElement);
-  const focusId = focus && focus.dataset ? focus.dataset.watchPlan : "";
-  const fromUpdates = focus && byId("updates") && byId("updates").contains(focus);
   const on = isPlanFollowed(id);
   followState.planIds = on ? followState.planIds.filter((v) => v !== id) : [...followState.planIds, id];
-  persistFollowState(); syncWatchButtons(); renderFollowedChanges();
+  persistFollowState(); syncWatchButtons();
   followFeedback(`${on ? "已取消关注" : "已关注"} ${planTitle(p)}。关注与已读记录仅保存在本机，不上传，也不包含在分享链接中。`);
-  if (fromUpdates && focusId && focus.isConnected === false) {
-    const replacement = byId("followedPlans").querySelector(`[data-watch-plan="${focusId}"]`);
-    if (!focusTableControl(replacement)) focusTableControl(byId("maintenancePlan"));
-  }
   return true;
 }
 function markFollowedChangesRead() {
   followState.readChangeIds = [...new Set([...followState.readChangeIds, ...followedChanges().map((c) => c.changeId)])];
-  persistFollowState(); renderFollowedChanges();
+  persistFollowState();
   followFeedback("已将当前关注套餐的已确认变更标为已读；之后新收录的变更仍会提示。");
-  focusTableControl(byId("maintenancePlan"));
+}
+/** 只保留 https 证据链接。 */
+function maintenanceSourceUrls(urls) {
+  return (urls || []).filter((url) => typeof url === "string" && /^https:\/\//i.test(url.trim())).map((url) => url.trim());
 }
 function maintenanceSources(urls) {
-  return (urls || []).filter((url) => /^https:\/\//i.test(url) && safeHref(url)).map((url, i) =>
-    `<a href="${safeHref(url)}" target="_blank" rel="noopener" tabindex="0">官方证据${i + 1} ↗</a>`).join(" · ");
+  return maintenanceSourceUrls(urls).map((url, i) => `<a href="${esc(url)}" target="_blank" rel="noopener" tabindex="0">官方证据${i + 1} ↗</a>`).join(" · ");
 }
 function changeValue(value) {
   if (value == null) return "未记录";
   return typeof value === "object" ? JSON.stringify(value) : String(value);
 }
-function changeFieldsHtml(change) {
-  const labels = { priceM: "月付价", priceY: "年付折月价", annualTotal: "年付全年金额", quota: "额度", models: "模型", tools: "工具", note: "备注", status: "核查状态", inUSD: "输入 USD/M", outUSD: "输出 USD/M", inCNY: "输入 CNY/M", outCNY: "输出 CNY/M", cacheUSD: "缓存 USD/M", cacheCNY: "缓存 CNY/M" };
-  return `<ul class="change-fields">` + change.fields.map((field) => `<li><strong>${esc(labels[field] || field)}</strong>：${esc(changeValue(change.before[field]))} → ${esc(changeValue(change.after[field]))}</li>`).join("") + `</ul>`;
+const CHANGE_FIELD_LABELS = { priceM: "月付价", priceY: "年付折月价", annualTotal: "年付全年金额", quota: "额度", models: "模型", tools: "工具", note: "备注", status: "核查状态", inUSD: "输入 USD/M", outUSD: "输出 USD/M", inCNY: "输入 CNY/M", outCNY: "输出 CNY/M", cacheUSD: "缓存 USD/M", cacheCNY: "缓存 CNY/M" };
+function changeKindLabel(kind) { return kind === "plan" ? "套餐" : kind === "api" ? "API" : "按量参考"; }
+/** @returns {{ label: string, before: string, after: string }[]} */
+function changeFields(change) {
+  return change.fields.map((field) => ({ label: CHANGE_FIELD_LABELS[field] || field, before: changeValue(change.before[field]), after: changeValue(change.after[field]) }));
 }
+/* 完整权益窗口（旧代码渲染）里的历史；我的关注页的历史由组件渲染同样的内容。 */
 function changeCardHtml(change, unread = false) {
-  return `<li class="change-card"><div><strong>${esc(change.vendor + " · " + change.name)}</strong>${unread ? '<span class="change-unread">未读</span>' : ""}</div><p class="maintenance-meta">确认于 ${esc(change.checkedAt)} · ${esc(change.kind === "plan" ? "套餐" : change.kind === "api" ? "API" : "按量参考")}</p>${changeFieldsHtml(change)}<p>${maintenanceSources(change.sourceUrls)}</p></li>`;
+  const fields = changeFields(change).map((f) => `<li><strong>${esc(f.label)}</strong>：${esc(f.before)} → ${esc(f.after)}</li>`).join("");
+  return `<li class="change-card"><div><strong>${esc(change.vendor + " · " + change.name)}</strong>${unread ? '<span class="change-unread">未读</span>' : ""}</div><p class="maintenance-meta">确认于 ${esc(change.checkedAt)} · ${esc(changeKindLabel(change.kind))}</p><ul class="change-fields">${fields}</ul><p>${maintenanceSources(change.sourceUrls)}</p></li>`;
+}
+function planChanges(id) { return maintenanceData().changes.filter((c) => c.id === id); }
+const PLAN_HISTORY_EMPTY = "尚未收录本档的已确认变更；当前值与核查日期见完整权益。首次收录是基线，不代表曾经涨价或降价。";
+function planHistorySummary(id) {
+  return optionalDataLoaded("maintenance") ? `已确认价格与权益历史（${planChanges(id).length} 条）` : "已确认价格与权益历史";
 }
 function planHistoryParts(id) {
-  if (!optionalDataLoaded("maintenance")) return { summary: "已确认价格与权益历史", body: "<p>展开后加载本档的已确认变更。</p>" };
-  const changes = maintenanceData().changes.filter((c) => c.id === id);
-  return { summary: `已确认价格与权益历史（${changes.length} 条）`,
-    body: changes.length ? `<ul class="change-list">${changes.map((c) => changeCardHtml(c)).join("")}</ul>` : `<p>尚未收录本档的已确认变更；当前值与核查日期见完整权益。首次收录是基线，不代表曾经涨价或降价。</p>` };
+  if (!optionalDataLoaded("maintenance")) return { summary: planHistorySummary(id), body: "<p>展开后加载本档的已确认变更。</p>" };
+  const changes = planChanges(id);
+  return { summary: planHistorySummary(id),
+    body: changes.length ? `<ul class="change-list">${changes.map((c) => changeCardHtml(c)).join("")}</ul>` : `<p>${PLAN_HISTORY_EMPTY}</p>` };
 }
 function planHistoryHtml(id) {
   const parts = planHistoryParts(id);
@@ -392,113 +398,81 @@ async function copyFollowLink() {
   followFeedback(ok ? "已复制关注同步链接。在另一台设备或浏览器打开后，选择「合并到本机关注」即可；链接只含套餐 ID，不含已读记录。"
     : "复制失败，请改用该设备手动关注。");
 }
-function renderFollowImport() {
-  const box = byId("followImport");
-  if (!box) return;
-  const plans = pendingFollowImport.map((id) => PLANS.find((p) => p.id === id)).filter(Boolean);
-  const fresh = plans.filter((p) => !isPlanFollowed(p.id));
-  box.hidden = !fresh.length;
-  box.innerHTML = fresh.length ? `<p>这个链接带来 ${plans.length} 档关注套餐，其中 ${fresh.length} 档尚未在本机关注：${esc(fresh.slice(0, 5).map(planTitle).join("、"))}${fresh.length > 5 ? " 等" : ""}。</p><div class="maintenance-toolbar"><button type="button" class="chip" data-follow-import="merge">合并到本机关注</button><button type="button" class="chip" data-follow-import="dismiss">忽略</button></div>` : "";
+/** 链接带来的、尚未在本机关注的套餐。 */
+function followImportPlans() {
+  const plans = followView.importIds.map((id) => PLANS.find((p) => p.id === id)).filter(Boolean);
+  return { plans, fresh: plans.filter((p) => !isPlanFollowed(p.id)) };
 }
 function applyFollowImport(merge) {
-  const valid = pendingFollowImport.filter((id) => PLANS.some((p) => p.id === id));
+  const valid = followView.importIds.filter((id) => PLANS.some((p) => p.id === id));
   if (merge) {
     followState.planIds = [...new Set([...followState.planIds, ...valid])].slice(0, 500);
-    persistFollowState(); syncWatchButtons(); renderFollowedChanges();
+    persistFollowState(); syncWatchButtons();
   }
-  pendingFollowImport = [];
-  renderFollowImport();
+  followView.importIds = [];
   followFeedback(merge ? `已合并链接里的 ${valid.length} 档关注，本机现关注 ${followState.planIds.length} 档。` : "已忽略链接里的关注套餐。");
-  focusTableControl(byId(merge ? "copyFollowLinkBtn" : "maintenancePlan"));
 }
 /* 只为关注的厂商列出订阅地址；路径来自维护摘要，格式固定为 feeds/<slug>.xml。 */
-function followFeedLinks(plans) {
-  if (!optionalDataLoaded("maintenance")) return "";
-  const feeds = [...new Set(plans.map((p) => p.vendor))]
+function followFeeds(plans) {
+  if (!optionalDataLoaded("maintenance")) return [];
+  return [...new Set(plans.map((p) => p.vendor))]
     .map((vendor) => (maintenanceData().feeds || []).find((feed) => feed.vendor === vendor))
-    .filter((feed) => feed && /^feeds\/[a-z0-9-]+\.xml$/.test(feed.path));
-  return feeds.length ? `<p class="follow-feeds">按厂商订阅变更 RSS：${feeds.map((feed) => `<a href="${esc(feed.path)}" target="_blank" rel="noopener">${esc(shortVendor(feed.vendor))} ↗</a>`).join(" · ")}</p>` : "";
-}
-function renderFollowedChanges() {
-  const list = byId("followedPlans"), changes = byId("followedChanges"), count = byId("followUnreadCount"), read = byId("markFollowReadBtn");
-  if (!list || !changes || !count || !read) return;
-  const plans = followState.planIds.map((id) => PLANS.find((p) => p.id === id)).filter(Boolean);
-  list.innerHTML = plans.length ? plans.map((p) => `<div class="followed-plan"><button type="button" class="chip" data-view-plan="${esc(p.id)}">${esc(planTitle(p))}</button>${watchButtonHtml(p)}</div>`).join("") : `<p>还没有关注的套餐。<a href="#quick">选择套餐并关注</a></p>`;
-  const unread = unreadFollowedChanges(), loaded = optionalDataLoaded("maintenance");
-  count.textContent = `${plans.length} 档关注` + (loaded ? ` · ${unread.length} 条未读变更` : "");
-  read.disabled = !unread.length;
-  const copy = byId("copyFollowLinkBtn");
-  if (copy) copy.disabled = !plans.length;
-  if (plans.length) list.innerHTML += followFeedLinks(plans);
-  changes.innerHTML = unread.length ? `<ul class="change-list">${unread.map((c) => changeCardHtml(c, true)).join("")}</ul>` : `<p>${!plans.length ? "关注后会展示本站收录的已确认变更。" : loaded ? "当前关注套餐没有未读的已确认变更。" : optionalPendingText("关注套餐的已确认变更")}</p>`;
-  const storage = byId("followStorageNote");
-  if (storage) storage.textContent = followStorageMessage || "只在当前浏览器保存关注与已读记录；不上传，不跨设备同步，清理浏览器数据后会消失。";
-}
-function renderMaintenanceHistory() {
-  const el = byId("maintenanceHistory"), select = byId("maintenancePlan");
-  if (!el || !select) return;
-  const p = PLANS.find((plan) => plan.id === maintenancePlanId);
-  select.value = maintenancePlanId;
-  if (!p) { el.innerHTML = "<p>选择套餐，查看当前核查状态与已确认变更。</p>"; return; }
-  const record = maintenanceData().records.find((r) => r.id === p.id);
-  const status = esc(record ? `核查 ${record.checkedAt || "日期未记录"} · ${maintenanceStatusLabel(record.status)}${record.stale ? " · 已超过复查间隔" : ""}。日期为本站核查日。`
-    : optionalDataLoaded("maintenance") ? "暂无逐条维护记录。" : optionalPendingText("核查日期与状态"));
-  /* 同一套餐重绘（如展开历史后数据才加载完）时原地更新，保留展开状态和 summary 焦点。 */
-  const statusLine = el.querySelector(".maintenance-plan-status"), history = el.querySelector("[data-plan-history]");
-  if (statusLine && history && history.dataset.planHistory === p.id) {
-    statusLine.innerHTML = status;
-    fillPlanHistory(history, planHistoryParts(p.id));
-    return;
-  }
-  el.innerHTML = `<div class="maintenance-plan-actions">${watchButtonHtml(p)}<button type="button" class="chip" data-view-plan="${esc(p.id)}">完整权益</button></div>` +
-    `<p class="maintenance-plan-status">${status}</p>${planHistoryHtml(p.id)}`;
+    .filter((feed) => feed && /^feeds\/[a-z0-9-]+\.xml$/.test(feed.path))
+    .map((feed) => ({ path: feed.path, label: shortVendor(feed.vendor) }));
 }
 function maintenanceStatusLabel(status) {
   return { verified: "已核实", changed: "核价信息已校正", unverified: "待核实", custom: "定制询价", retired: "已停售" }[status] || status || "待核实";
 }
-function renderMaintenanceRecords() {
-  const el = byId("maintenanceRecords"); if (!el) return;
-  const rows = maintenanceData().records.filter((r) => maintenanceRecordFilter === "all" || (maintenanceRecordFilter === "stale" ? r.stale : r.status === "unverified"));
-  el.innerHTML = rows.length ? `<ul class="maintenance-records">${rows.map((r) => `<li><strong>${esc(r.vendor + " · " + r.name)}</strong><span>${esc(maintenanceStatusLabel(r.status))}${r.stale ? " · 超期" : ""} · ${esc(r.checkedAt || "未核查")}</span>${maintenanceSources(r.sourceUrls)}</li>`).join("")}</ul>` : `<p>${optionalDataLoaded("maintenance") ? "当前条件没有记录。" : optionalPendingText("逐条维护状态")}</p>`;
+function maintenancePlanStatus(p) {
+  const record = maintenanceData().records.find((r) => r.id === p.id);
+  return record ? `核查 ${record.checkedAt || "日期未记录"} · ${maintenanceStatusLabel(record.status)}${record.stale ? " · 已超过复查间隔" : ""}。日期为本站核查日。`
+    : optionalDataLoaded("maintenance") ? "暂无逐条维护记录。" : optionalPendingText("核查日期与状态");
+}
+function maintenanceRecords(filter = maintenanceView.recordFilter) {
+  return maintenanceData().records.filter((r) => filter === "all" || (filter === "stale" ? r.stale : r.status === "unverified"));
 }
 function todayLocalIso() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
-function renderMaintenance() {
-  const data = maintenanceData(), el = byId("maintenanceSummary"); if (!el) return;
-  const s = data.summary, loaded = optionalDataLoaded("maintenance");
-  el.innerHTML = data.generatedAt ? `<p>维护快照 ${esc(data.generatedAt)} · 核查覆盖至 ${esc(data.checkedThrough || "未记录")}。快照按 ${esc(data.staleAfterDays || 14)} 天复查间隔标记超期。</p><dl class="trust-counts"><div><dt>覆盖记录</dt><dd>${s.total}</dd></div><div><dt>已核实</dt><dd>${s.verified}</dd></div><div><dt>待核实</dt><dd>${s.unverified}</dd></div><div><dt>需复查</dt><dd>${s.stale}</dd></div></dl>` : `<p>${loaded ? "维护快照暂未生成，请在完整数据表核对逐条来源。" : optionalPendingText("维护快照与核查统计")}</p>`;
-  const select = byId("maintenancePlan");
-  if (select) select.innerHTML = '<option value="">选择套餐</option>' + PLANS.map((p) => `<option value="${esc(p.id)}">${esc(planTitle(p))}</option>`).join("");
-  const due = data.reviews.filter((r) => /^\d{4}-\d{2}-\d{2}$/.test(r.reviewOn) && r.reviewOn <= todayLocalIso());
-  const reviews = byId("maintenanceReviews");
-  if (reviews) reviews.innerHTML = due.length ? `<ul class="review-list">${due.map((r) => `<li><strong>${esc(r.title)}</strong> · 复查日 ${esc(r.reviewOn)}${r.reviewOn < todayLocalIso() ? "（已到期）" : "（今天到期）"}<p>${esc(r.note || "到期需人工复查，不能据此认定价格或权益已变化。")}</p>${maintenanceSources([r.source])}</li>`).join("")}</ul>` : `<p>${loaded ? "当前没有已到期的复查安排。复查提示按本机日期计算，不代表已重新核验。" : optionalPendingText("到期复查提示")}</p>`;
-  renderMaintenanceHistory(); renderMaintenanceRecords(); renderFollowedChanges();
+/* 复查提示按本机日期计算，不代表已重新核验。 */
+function dueReviews() {
+  const today = todayLocalIso();
+  return maintenanceData().reviews.filter((r) => /^\d{4}-\d{2}-\d{2}$/.test(r.reviewOn) && r.reviewOn <= today)
+    .map((r) => ({ ...r, overdue: r.reviewOn < today }));
 }
 function benchmarkFilterOptions(key) {
   return [...new Set(benchmarkData().runs.map((r) => r[key]).filter((v) => typeof v === "string" && v))].sort();
 }
 function benchmarkText(value) { return Array.isArray(value) ? value.join("；") : String(value || ""); }
-function benchmarkRunHtml(run) {
+/** 贡献者实测记录的展示值：真实账单、生成时间与验收运行时间分开，未知不补零。 */
+function benchmarkRunView(run) {
   const task = benchmarkData().tasks.find((t) => t.id === run.taskId);
-  const cost = run.costBasis === "api-receipt" && typeof run.cost === "number" && Number.isFinite(run.cost) && run.cost >= 0 ? `${run.currency} ${run.cost}` : run.costBasis === "included-subscription" ? "订阅内使用，未分摊单次费用" : "费用未记录";
-  const duration = typeof run.durationSeconds === "number" && Number.isFinite(run.durationSeconds) ? `${run.durationSeconds} 秒` : "未记录";
-  const generation = typeof run.generationSeconds === "number" && Number.isFinite(run.generationSeconds) ? `${run.generationSeconds} 秒` : "未记录";
-  const evidence = /^https:\/\//i.test(run.evidence || "") && safeHref(run.evidence) ? `<a href="${safeHref(run.evidence)}" target="_blank" rel="noopener" tabindex="0">复现证据 ↗</a>` : "复现证据未记录";
-  return `<li class="benchmark-run"><h3>${esc(task ? task.title : run.taskId)} · ${esc(run.model)}</h3><p>${esc(run.tool)} · ${esc(run.measuredAt)} · ${run.passed === true ? "全部验收通过" : run.passed === false ? "验收未全部通过" : "验收状态未记录"}</p><dl class="benchmark-values"><div><dt>生成费用</dt><dd>${esc(cost)}</dd></div><div><dt>生成时间</dt><dd>${esc(generation)}</dd></div><div><dt>平均验收运行时间</dt><dd>${esc(duration)}</dd></div><div><dt>同一解答验收次数</dt><dd>${esc(run.repeats)}</dd></div></dl><p>环境：${esc(run.environment || "未记录")}</p><p>${evidence}</p></li>`;
+  const seconds = (value) => typeof value === "number" && Number.isFinite(value) ? `${value} 秒` : "未记录";
+  return {
+    title: `${task ? task.title : run.taskId} · ${run.model}`,
+    meta: `${run.tool} · ${run.measuredAt} · ${run.passed === true ? "全部验收通过" : run.passed === false ? "验收未全部通过" : "验收状态未记录"}`,
+    cost: run.costBasis === "api-receipt" && typeof run.cost === "number" && Number.isFinite(run.cost) && run.cost >= 0 ? `${run.currency} ${run.cost}`
+      : run.costBasis === "included-subscription" ? "订阅内使用，未分摊单次费用" : "费用未记录",
+    generation: seconds(run.generationSeconds),
+    duration: seconds(run.durationSeconds),
+    repeats: String(run.repeats),
+    environment: run.environment || "未记录",
+    evidenceUrl: maintenanceSourceUrls([run.evidence])[0] || "",
+  };
 }
-function renderBenchmarks() {
-  const el = byId("benchmarkResults"); if (!el) return;
-  const data = benchmarkData();
-  const rows = data.runs.filter((r) => (benchmarkFilter.task === "all" || r.taskId === benchmarkFilter.task) && (benchmarkFilter.tool === "all" || r.tool === benchmarkFilter.tool) && (benchmarkFilter.model === "all" || r.model === benchmarkFilter.model));
-  el.innerHTML = rows.length ? `<p>符合条件 ${rows.length} 条贡献者解答记录。不同任务、环境与币种分别展示，不合并成成功率或性能排名。</p><ul class="benchmark-runs">${rows.map(benchmarkRunHtml).join("")}</ul>` : `<p class="benchmark-empty">${!optionalDataLoaded("benchmark") ? optionalPendingText("贡献者任务与记录") : data.runs.length ? "当前筛选没有贡献者记录。" : "尚未收录贡献者任务记录。这里的验收工具用于复现提交的单份解答，未测量的数据不填充分数。"}</p>`;
-  const tasks = byId("benchmarkTasks");
-  if (tasks) tasks.innerHTML = data.tasks.filter((t) => benchmarkFilter.task === "all" || t.id === benchmarkFilter.task).map((t) => `<details class="method-box"><summary>${esc(t.title)}</summary><p>${esc(t.description)}</p><p><strong>验收条件：</strong>${esc(benchmarkText(t.acceptance))}</p><p>任务标识：<code>${esc(t.id)}</code></p></details>`).join("");
-  const method = byId("benchmarkMethodology"); if (method) method.textContent = benchmarkText(data.methodology);
+function benchmarkRuns() {
+  return benchmarkData().runs.filter((r) => (benchmarkFilter.task === "all" || r.taskId === benchmarkFilter.task)
+    && (benchmarkFilter.tool === "all" || r.tool === benchmarkFilter.tool) && (benchmarkFilter.model === "all" || r.model === benchmarkFilter.model));
 }
+/* 数据更新后，筛选值不在新数据里时回到「全部」。 */
+function normalizeBenchmarkFilter() {
+  if (!benchmarkData().tasks.some((t) => t.id === benchmarkFilter.task)) benchmarkFilter.task = "all";
+  for (const key of ["tool", "model"]) if (!benchmarkFilterOptions(key).includes(benchmarkFilter[key])) benchmarkFilter[key] = "all";
+}
+const CONTRIBUTION_TITLES = { correction: "套餐纠错与更新", vendor: "收录新厂商 / 套餐", benchmark: "真实任务测评" };
 function contributionTemplate(type) {
-  const p = PLANS.find((plan) => plan.id === maintenancePlanId);
+  const p = PLANS.find((plan) => plan.id === maintenanceView.planId);
   const common = `\n\n## 官方证据\n- HTTPS 来源链接：\n- 核对日期（YYYY-MM-DD）：\n- 官方原文/截图链接：\n- 适用国家、账号资格与活动限制：\n\n## 变更内容\n- 当前页面显示：\n- 应修正/补充为：\n- 价格币种、计费周期与全年总额：\n- 模型、工具、共享额度与重置窗口：\n\n不要填写账号、API Key、付款隐私或未获许可的内容。\n`;
   if (type === "benchmark") {
     const taskId = benchmarkFilter.task === "all" ? (benchmarkData().tasks[0] || {}).id || "" : benchmarkFilter.task;
@@ -506,80 +480,61 @@ function contributionTemplate(type) {
   }
   return `# ${type === "vendor" ? "申请收录新厂商 / 套餐" : "套餐纠错 / 更新证据"}\n\n厂商：${p ? p.vendor : ""}\n套餐：${p ? p.plan : ""}\n永久套餐 ID：${p ? p.id : ""}${common}`;
 }
-function renderContribution() {
-  const select = byId("contributionType"), preview = byId("contributionTemplate"); if (!select || !preview) return;
-  const dataStatus = byId("contributionDataStatus"); if (dataStatus) dataStatus.hidden = select.value !== "benchmark";
-  preview.value = contributionTemplate(select.value);
-  const issue = byId("contributionIssueLink"), status = byId("contributionProjectNote");
+/** 预填标题与证据模板的 Issues 地址；未配置公开仓库时为空。 */
+function contributionIssueUrl(type, body) {
   const base = typeof PUBLIC_PROJECT !== "undefined" ? PUBLIC_PROJECT.githubIssuesBase : null;
-  const href = typeof base === "string" && /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/issues\/?$/.test(base)
-    ? base.replace(/\/$/, "") + "/new?title=" + encodeURIComponent({ correction:"套餐纠错与更新", vendor:"收录新厂商 / 套餐", benchmark:"真实任务测评" }[select.value] || "套餐反馈") + "&body=" + encodeURIComponent(preview.value) : "";
-  if (issue) { issue.hidden = !href; if (href) issue.setAttribute("href", href); }
-  if (status) status.textContent = href ? "可复制证据模板后，到项目 Issues 提交；模板中请只包含可公开资料。" : "当前未配置公开仓库提交地址。可复制或下载证据模板，交给项目维护者；本站不会自动发送或上传。";
-}
-async function copyContributionTemplate() {
-  const preview = byId("contributionTemplate"), feedback = byId("contributionFeedback"); if (!preview || !feedback) return;
-  const ok = await copyTextToClipboard(preview.value);
-  feedback.textContent = ok ? "证据模板已复制；请补全真实来源后提交。" : "未能访问剪贴板，请选择下面的模板手动复制，或下载文件。";
-  if (!ok) { preview.focus(); if (typeof preview.select === "function") preview.select(); }
-}
-function downloadContributionTemplate() {
-  const select = byId("contributionType"), preview = byId("contributionTemplate"); if (!select || !preview) return;
-  downloadTextFile(preview.value, `coding-plan-${select.value}-evidence.md`, "text/markdown;charset=utf-8");
-  const feedback = byId("contributionFeedback"); if (feedback) feedback.textContent = "已生成本地证据模板文件；请补全后交给维护者，文件没有上传。";
+  return typeof base === "string" && /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/issues\/?$/.test(base)
+    ? base.replace(/\/$/, "") + "/new?title=" + encodeURIComponent(CONTRIBUTION_TITLES[type] || "套餐反馈") + "&body=" + encodeURIComponent(body) : "";
 }
 function downloadPublicData() {
   if (!optionalDataLoaded("maintenance") || !optionalDataLoaded("benchmark")) {
-    const feedback = byId("publicDataFeedback"); if (feedback) feedback.textContent = "正在加载完整公开数据…";
+    maintenanceView.publicDataFeedback = "正在加载完整公开数据…";
     Promise.all([ensureOptionalData("maintenance"), ensureOptionalData("benchmark")]).then(downloadPublicData, () => {
-      if (feedback) feedback.textContent = "公开数据加载失败，请重试下载。";
+      maintenanceView.publicDataFeedback = "公开数据加载失败，请重试下载。";
     });
     return;
   }
   const data = { schemaVersion: 1, meta: META, plans: PLANS, apiPrices: API_PRICES, paygReferences: PAYG_REFERENCES, priceChecks: PRICE_CHECKS, maintenance: maintenanceData(), benchmarks: benchmarkData() };
   downloadTextFile(JSON.stringify(data, null, 2) + "\n", `coding-plan-public-data-${META.updated}.json`, "application/json;charset=utf-8");
-  const feedback = byId("publicDataFeedback"); if (feedback) feedback.textContent = "已生成公开数据 JSON；不含本机关注、已读记录或待审队列。";
+  maintenanceView.publicDataFeedback = "已生成公开数据 JSON；不含本机关注、已读记录或待审队列。";
 }
-function refreshBenchmarkTaskChoices() {
-  const data = benchmarkData();
-  const task = byId("benchmarkTask"); if (task) task.innerHTML = '<option value="all">全部任务</option>' + data.tasks.map((t) => `<option value="${esc(t.id)}">${esc(t.title)}</option>`).join("");
-  if (!data.tasks.some((t) => t.id === benchmarkFilter.task)) benchmarkFilter.task = "all";
-  if (task) task.value = benchmarkFilter.task;
-  for (const key of ["tool", "model"]) {
-    const select = byId(key === "tool" ? "benchmarkTool" : "benchmarkModel");
-    const choices = benchmarkFilterOptions(key);
-    if (!choices.includes(benchmarkFilter[key])) benchmarkFilter[key] = "all";
-    if (select) {
-      select.innerHTML = `<option value="all">${key === "tool" ? "全部工具" : "全部模型"}</option>` + choices.map((v) => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
-      select.value = benchmarkFilter[key];
-    }
-  }
-}
+/* 按需数据到达后：清理关注状态、规范筛选，并通知组件重新读取；完整权益窗口里已渲染的历史原地更新。 */
 function refreshOptionalViews(kind) {
   if (kind === "maintenance") {
-    followState = cleanFollowState(followState);
-    renderMaintenance(); syncWatchButtons();
+    Object.assign(followState, cleanFollowState(followState));
+    dataRevision.maintenance++;
+    syncWatchButtons();
     /* 加载期间可能已收起；成功后也填充关闭的正文，避免再次展开仍停留在加载提示。 */
     qsa("[data-plan-history]").forEach((details) => fillPlanHistory(details, planHistoryParts(details.dataset.planHistory)));
   } else {
-    refreshBenchmarkTaskChoices(); renderPublicBenchmarks(); renderBenchmarks(); renderContribution();
+    normalizeBenchmarkFilter();
+    dataRevision.benchmark++;
   }
 }
+/* 打开辅助标签或需要按需数据时调用：状态行显示加载中、失败与重试入口（贡献页的测评模板也依赖评测数据）。 */
+function loadViewData(kind) {
+  const statuses = [byId(kind + "DataStatus"), kind === "benchmark" ? byId("contributionDataStatus") : null].filter(Boolean);
+  statuses.forEach((status) => { status.textContent = optionalDataLoaded(kind) ? "" : "正在加载本标签的数据…"; });
+  return ensureOptionalData(kind).then(() => {
+    statuses.forEach((status) => { status.textContent = ""; });
+    refreshOptionalViews(kind);
+  }, (err) => {
+    statuses.forEach((status) => { status.innerHTML = `${esc(err.message)}。<button type="button" class="chip" data-retry-data="${esc(kind)}">重新加载数据</button>`; });
+  });
+}
+/* 完整权益窗口里的历史按需加载；我的关注页的历史由组件自己处理。 */
+function onPlanHistoryToggle(event) {
+  const details = evtTarget(event);
+  if (!details || !details.open || !details.dataset || !details.dataset.planHistory || optionalDataLoaded("maintenance")) return;
+  fillPlanHistory(details, { summary: null, body: "<p>正在加载历史数据…</p>" });
+  ensureOptionalData("maintenance").then(() => {
+    refreshOptionalViews("maintenance");
+  }, () => {
+    fillPlanHistory(details, { summary: null, body: "<p>历史数据加载失败，请关闭后重新展开。</p>" });
+  });
+}
 function bindMaintenanceEvents() {
-  loadFollowState(); renderMaintenance(); syncWatchButtons(); renderFollowImport();
-  [["maintenancePlan", () => { maintenancePlanId = byId("maintenancePlan").value; renderMaintenanceHistory(); renderContribution(); }], ["maintenanceRecordFilter", () => { maintenanceRecordFilter = byId("maintenanceRecordFilter").value; renderMaintenanceRecords(); }], ["contributionType", () => {
-    renderContribution();
-    if (byId("contributionType").value === "benchmark") loadViewData("benchmark");
-  }]].forEach(([id, handler]) => { const el = byId(id); if (el) el.addEventListener("change", handler); });
-  refreshBenchmarkTaskChoices();
-  for (const [key, id] of Object.entries({ task: "benchmarkTask", tool: "benchmarkTool", model: "benchmarkModel" })) {
-    const select = byId(id); if (select) select.addEventListener("change", () => {
-      const allowed = key === "task" ? benchmarkData().tasks.map((t) => t.id) : benchmarkFilterOptions(key);
-      benchmarkFilter[key] = allowed.includes(select.value) ? select.value : "all";
-      renderBenchmarks(); renderContribution();
-    });
-  }
-  [["markFollowReadBtn", markFollowedChangesRead], ["copyFollowLinkBtn", copyFollowLink], ["copyContributionBtn", copyContributionTemplate], ["downloadContributionBtn", downloadContributionTemplate], ["downloadPublicDataBtn", downloadPublicData]].forEach(([id, handler]) => { const b = byId(id); if (b) b.addEventListener("click", handler); });
+  loadFollowState(); syncWatchButtons();
   document.addEventListener("click", (e) => {
     const target = evtTarget(e); if (!target || !target.closest) return;
     const plan = target.closest("[data-benchmark-plan]");
@@ -587,17 +542,6 @@ function bindMaintenanceEvents() {
       e.preventDefault(); showPlanDetails(plan.dataset.benchmarkPlan, plan);
     }
     const watch = target.closest("[data-watch-plan]"); if (watch) toggleFollowPlan(watch.dataset.watchPlan);
-    const followImport = target.closest("[data-follow-import]"); if (followImport) applyFollowImport(followImport.dataset.followImport === "merge");
   });
-  document.addEventListener("toggle", (event) => {
-    const details = evtTarget(event);
-    if (!details || !details.open || !details.dataset.planHistory || optionalDataLoaded("maintenance")) return;
-    fillPlanHistory(details, { summary: null, body: "<p>正在加载历史数据…</p>" });
-    ensureOptionalData("maintenance").then(() => {
-      refreshOptionalViews("maintenance");
-    }, () => {
-      fillPlanHistory(details, { summary: null, body: "<p>历史数据加载失败，请关闭后重新展开。</p>" });
-    });
-  }, true);
-  renderBenchmarks(); renderContribution();
+  document.addEventListener("toggle", onPlanHistoryToggle, true);
 }

@@ -15,7 +15,7 @@ const SEARCH_DELAY = 150;
 
 /* 按需数据是经典脚本定义的全局常量，不在响应式系统里：数据到达时旧代码递增 revision，依赖它的值随之重新读取。 */
 const fromData = (read) => computed(() => {
-  void legacy.publicBenchmarkView.revision;
+  void legacy.dataRevision.benchmark;
   return read();
 });
 const loaded = fromData(() => legacy.optionalDataLoaded("benchmark"));

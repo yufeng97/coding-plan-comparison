@@ -13,16 +13,6 @@ function boot(name, fn) {
 /* 主选购页和辅助资料按标签显示；锚点仍是可分享、可前进后退的入口。 */
 const AUXILIARY_VIEWS = new Set(["updates", "benchmarks", "sources", "contribute"]);
 let currentSiteView = "compare";
-function loadViewData(kind) {
-  const statuses = [byId(kind + "DataStatus"), kind === "benchmark" ? byId("contributionDataStatus") : null].filter(Boolean);
-  statuses.forEach((status) => { status.textContent = optionalDataLoaded(kind) ? "" : "正在加载本标签的数据…"; });
-  return ensureOptionalData(kind).then(() => {
-    statuses.forEach((status) => { status.textContent = ""; });
-    refreshOptionalViews(kind);
-  }, (err) => {
-    statuses.forEach((status) => { status.innerHTML = `${esc(err.message)}。<button type="button" class="chip" data-retry-data="${esc(kind)}">重新加载数据</button>`; });
-  });
-}
 function activatePageForTarget(target) {
   const section = target && (target.classList.contains("section") ? target : target.closest(".section"));
   const view = section && AUXILIARY_VIEWS.has(section.id) ? section.id : "compare";
