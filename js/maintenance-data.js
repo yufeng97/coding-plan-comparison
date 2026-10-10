@@ -6,7 +6,7 @@ const MAINTENANCE = {
   "staleAfterDays": 14,
   "rssSite": "https://coding-plan-comparison-tau.vercel.app/",
   "inputHashes": {
-    "data": "398c7b58a4c4e2f725720c57991d2482ae01f556f5030ce3dbfee17d5bad6836",
+    "data": "5a86aff14aab2833d3dc6bb1c3ad921d7b75bce181ec4791436c456a90fc70fd",
     "history": "baaaed71f81b976497cbe4898ffab6b5935d17422490a51a76722547286baa86",
     "calendar": "c59316c1df1af85df4bfe1e41dd78a01d089f6806e32f52e499111fe0fa1ed26"
   },
@@ -4000,6 +4000,308 @@ const MAINTENANCE = {
         "priceY": 12.6
       },
       "plan": "GLM Coding V3 Lite"
+    }
+  ],
+  "feeds": [
+    {
+      "vendor": "88code",
+      "path": "feeds/88code-7bbe1958.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "AICodeMirror",
+      "path": "feeds/aicodemirror-5f039c2d.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "AIGoCode",
+      "path": "feeds/aigocode-a7c47982.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "AWS",
+      "path": "feeds/aws-32fd72a0.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "AWS Kiro",
+      "path": "feeds/aws-kiro-0ecde887.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "Anthropic",
+      "path": "feeds/anthropic-744205e4.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "Augment Code",
+      "path": "feeds/augment-code-0bc4da79.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "Bolt.new",
+      "path": "feeds/bolt-new-8d21d8cc.xml",
+      "changes": 2
+    },
+    {
+      "vendor": "Canopy Wave",
+      "path": "feeds/canopy-wave-a039e91f.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "Chutes (chutes.ai)",
+      "path": "feeds/chutes-chutes-ai-06619be7.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "Cline",
+      "path": "feeds/cline-8a91b069.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "Cognition Devin Desktop（原 Windsurf）",
+      "path": "feeds/cognition-devin-desktop-51cb2f99.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "Cognition Devin（云 agent）",
+      "path": "feeds/cognition-devin-agent-b620dea1.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "Command Code",
+      "path": "feeds/command-code-890f3f4b.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "Cursor",
+      "path": "feeds/cursor-2c014f8f.xml",
+      "changes": 3
+    },
+    {
+      "vendor": "DeepSeek",
+      "path": "feeds/deepseek-0648d211.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "DevPass",
+      "path": "feeds/devpass-49048878.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "DuckCoding",
+      "path": "feeds/duckcoding-67246944.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "Factory (Droid)",
+      "path": "feeds/factory-droid-f0f76f4f.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "GitHub Copilot",
+      "path": "feeds/github-copilot-ed249d41.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "Google",
+      "path": "feeds/google-ce770667.xml",
+      "changes": 2
+    },
+    {
+      "vendor": "JetBrains AI",
+      "path": "feeds/jetbrains-ai-12a021f9.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "Kilo Code",
+      "path": "feeds/kilo-code-83abecfd.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "Lovable",
+      "path": "feeds/lovable-6a5b495b.xml",
+      "changes": 2
+    },
+    {
+      "vendor": "MiniMax",
+      "path": "feeds/minimax-b248f2e0.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "Mistral",
+      "path": "feeds/mistral-0cb39762.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "OpenAI",
+      "path": "feeds/openai-8b7d1a31.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "OpenCode (Anomaly/SST)",
+      "path": "feeds/opencode-anomaly-sst-b37c3c66.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "OpenRouter",
+      "path": "feeds/openrouter-eb70c3bc.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "PackyCode (Codex 站)",
+      "path": "feeds/packycode-codex-e587ccad.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "PackyCode/PackyAPI",
+      "path": "feeds/packycode-packyapi-0d9208b5.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "R4 Coder（r4.codes）",
+      "path": "feeds/r4-coder-r4-codes-b621de55.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "Replit",
+      "path": "feeds/replit-601a2965.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "Roo Code",
+      "path": "feeds/roo-code-8e248fda.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "Roo Code（Roomote）",
+      "path": "feeds/roo-code-roomote-443b4b94.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "Sourcegraph Amp",
+      "path": "feeds/sourcegraph-amp-32d9877a.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "Z.ai",
+      "path": "feeds/z-ai-39e22747.xml",
+      "changes": 3
+    },
+    {
+      "vendor": "Zed",
+      "path": "feeds/zed-a90e4dc6.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "ZenMux",
+      "path": "feeds/zenmux-b426c4a5.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "xAI",
+      "path": "feeds/xai-daeed48c.xml",
+      "changes": 2
+    },
+    {
+      "vendor": "七牛云",
+      "path": "feeds/vendor-df8045b4.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "华为云",
+      "path": "feeds/vendor-4f5d0b82.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "字节跳动 Trae（国内版）",
+      "path": "feeds/trae-3f76cb7f.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "字节跳动 Trae（国际版）",
+      "path": "feeds/trae-f85a0f72.xml",
+      "changes": 1
+    },
+    {
+      "vendor": "小米 MiMo",
+      "path": "feeds/mimo-8a7b0bfc.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "智谱 BigModel",
+      "path": "feeds/bigmodel-506d1ac0.xml",
+      "changes": 4
+    },
+    {
+      "vendor": "月之暗面 Kimi",
+      "path": "feeds/kimi-f49ebf79.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "火山引擎方舟（字节）",
+      "path": "feeds/vendor-61a9ad49.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "火山引擎（豆包/方舟）",
+      "path": "feeds/vendor-e0850137.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "百度 DuMate",
+      "path": "feeds/dumate-f09a5a43.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "百度千帆",
+      "path": "feeds/vendor-6dae25f8.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "百度文心快码 Comate",
+      "path": "feeds/comate-fd51dc3a.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "硅基流动 SiliconFlow",
+      "path": "feeds/siliconflow-caab5d8f.xml",
+      "changes": 2
+    },
+    {
+      "vendor": "腾讯云 CodeBuddy",
+      "path": "feeds/codebuddy-92db4b8e.xml",
+      "changes": 1
+    },
+    {
+      "vendor": "腾讯云 TokenHub",
+      "path": "feeds/tokenhub-ea10ba4c.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "腾讯云（LKEAP 知识引擎）",
+      "path": "feeds/lkeap-a6c496f5.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "讯飞星辰 MaaS",
+      "path": "feeds/maas-dcc39f2e.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "阶跃星辰 StepFun",
+      "path": "feeds/stepfun-52b7adcd.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "阿里云 Qoder CN（原通义灵码）",
+      "path": "feeds/qoder-cn-2a5f554a.xml",
+      "changes": 0
+    },
+    {
+      "vendor": "阿里云百炼",
+      "path": "feeds/vendor-d747d6f5.xml",
+      "changes": 0
     }
   ]
 };

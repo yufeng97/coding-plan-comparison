@@ -79,6 +79,7 @@ function bindEvents() {
     if (hit("#personalResetBtn")) { updateAppState(() => { cancelPersonalSearch(); resetPersonalFilters(); focusTableControl(byId("chartSearch")); }); return; }
     if (hit("[data-reset-table]")) { updateAppState(() => { cancelTableSearch(); resetTableFilters(); }); return; }
     if (hit("[data-reset-metrics]")) { updateAppState(resetMetricsFilters); return; }
+    if (hit("[data-table-extra]")) { updateAppState(() => { tableState.extra = true; renderTable(); focusTableControl(byId("tableExtraToggle")); }); return; }
     const addBtn = target.closest ? target.closest(".cmp-add") : null;
     if (addBtn) {
       const on = addBtn.classList.contains("on");
@@ -97,6 +98,8 @@ function bindEvents() {
         tableState.cat = "all";
         tableState.region = "all";
         tableState.fromPicker = false;
+        /* 图上排除的档位里有中转站和待核价格，跳转后一并显示，链接承诺的档位都能看到。 */
+        tableState.extra = true;
         const input = byId("searchInput");
         if (input) input.value = q;
         const cat = byId("selectCat");
@@ -132,6 +135,8 @@ function bindEvents() {
   });
   const resetBtn = byId("tableResetBtn");
   if (resetBtn) onState(resetBtn, "click", () => { cancelTableSearch(); resetTableFilters(); });
+  const extraToggle = byId("tableExtraToggle");
+  if (extraToggle) onState(extraToggle, "click", () => { tableState.extra = !tableState.extra; renderTable(); });
   /* 数据表导出与列开关 */
   const csvBtn = byId("exportCsvBtn");
   if (csvBtn) csvBtn.addEventListener("click", exportTableCsv);

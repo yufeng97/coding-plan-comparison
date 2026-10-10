@@ -370,8 +370,41 @@ function betterDailyTier(a, b) {
   if (ma !== mb) return ma > mb;
   return (pickerMonthlyCNY(a.p) || 0) < (pickerMonthlyCNY(b.p) || 0);
 }
-/* 复杂任务主计划的排序：模型档位 → 可折算额度 → 倍率 → 套餐类别 → 编程入口 → 月费。 */
+/* 推荐偏好只改变同一候选池里的先后，不改变预算、地区、工具和任务等资格条件。
+   额度优先是默认；模型能力只按 DeepSWE v1.1 已公布成绩比较，未上榜的排在后面，不跨评测合成分数；
+   价格优先先比所选付款方式的月均价。 */
+const PICKER_PRIORITY_LABELS = { quota: "额度优先", ability: "模型能力优先", price: "价格优先" };
+function pickerPriority() { return Object.prototype.hasOwnProperty.call(PICKER_PRIORITY_LABELS, pickerState.priority) ? pickerState.priority : "quota"; }
+/* 同一轮渲染里反复比较同一档位，评测匹配要跑多个正则；按「套餐 + 角色」缓存，renderPicker 每轮清空。 */
+let pickerAbilityCache = new Map();
+function abilityHit(p, role) {
+  if (!p || !role || typeof planProtocolScore !== "function") return null;
+  const key = p.id + "|" + role.id;
+  if (!pickerAbilityCache.has(key)) pickerAbilityCache.set(key, planProtocolScore(p, role));
+  return pickerAbilityCache.get(key);
+}
+function abilityValue(p, role) {
+  const hit = abilityHit(p, role);
+  return hit ? hit.row.score : -1;
+}
+/* 价格优先时同厂商同角色保留月费最低的一档，月费相同再按原规则比较额度。 */
+function cheaperThen(better) {
+  return (a, b) => {
+    const diff = (pickerMonthlyCNY(a.p) || 0) - (pickerMonthlyCNY(b.p) || 0);
+    return Math.abs(diff) > BUDGET_EPS ? diff < 0 : better(a, b);
+  };
+}
+/* 复杂任务主计划的排序（额度优先）：模型档位 → 可折算额度 → 倍率 → 套餐类别 → 编程入口 → 月费。 */
 function hardMainOrder(a, b, withPrice = true) {
+  const priority = pickerPriority();
+  if (priority === "price" && withPrice) {
+    const diff = (pickerMonthlyCNY(a.p) || 0) - (pickerMonthlyCNY(b.p) || 0);
+    if (Math.abs(diff) > BUDGET_EPS) return diff;
+  }
+  if (priority === "ability") {
+    const diff = abilityValue(b.p, b.headline) - abilityValue(a.p, a.headline);
+    if (diff) return diff;
+  }
   return bandRank(b.headline.band) - bandRank(a.headline.band)
     || knownTokens(b.p, b.headline) - knownTokens(a.p, a.headline)
     || multiplier(b.p) - multiplier(a.p)
@@ -379,8 +412,10 @@ function hardMainOrder(a, b, withPrice = true) {
     || (hasCodingSurface(b.p) ? 1 : 0) - (hasCodingSurface(a.p) ? 1 : 0)
     || (withPrice ? (pickerMonthlyCNY(a.p) || 0) - (pickerMonthlyCNY(b.p) || 0) : 0);
 }
+/* 同厂商同主力模型只保留一档代表：价格优先保留最便宜的一档，其余偏好保留额度最大的一档。 */
 function hardRepresentatives(pool) {
-  return representatives(pool.filter((x) => x.headline), (x) => x.p.vendor + "|" + x.headline.id);
+  return representatives(pool.filter((x) => x.headline), (x) => x.p.vendor + "|" + x.headline.id,
+    pickerPriority() === "price" ? cheaperThen(betterWindow) : betterWindow);
 }
 function chooseHardMain(pool) {
   const reps = hardRepresentatives(pool);
@@ -393,22 +428,100 @@ function priceDecidedMain(main, pool) {
   return hardRepresentatives(pool).some((x) => x.p !== main.p && hardMainOrder(main, x, false) === 0 &&
     (pickerMonthlyCNY(x.p) || 0) > (pickerMonthlyCNY(main.p) || 0) + BUDGET_EPS);
 }
+function dailyRepresentatives(pool) {
+  return representatives(pool.filter((x) => x.loose.length), (x) => x.p.vendor + "|" + x.loose[0].id,
+    pickerPriority() === "price" ? cheaperThen(betterDailyTier) : betterDailyTier);
+}
+function dailyOrder(a, b) {
+  const priority = pickerPriority();
+  if (priority === "price") {
+    const diff = (pickerMonthlyCNY(a.p) || 0) - (pickerMonthlyCNY(b.p) || 0);
+    if (Math.abs(diff) > BUDGET_EPS) return diff;
+  }
+  if (priority === "ability") {
+    const diff = abilityValue(b.p, b.loose[0]) - abilityValue(a.p, a.loose[0]);
+    if (diff) return diff;
+  }
+  return 0;
+}
+/* 日常主计划的排序（额度优先）：独立日常池 → 纯日常档 → 可折算额度 → 月费。 */
+function dailyMainOrder(a, b) {
+  const preferred = dailyOrder(a, b);
+  if (preferred) return preferred;
+  const sep = (hasSeparateDaily(b) ? 1 : 0) - (hasSeparateDaily(a) ? 1 : 0);
+  if (sep) return sep;
+  const pure = (b.headline ? 0 : 1) - (a.headline ? 0 : 1);
+  if (pure) return pure;
+  const tok = knownTokens(b.p, b.loose[0]) - knownTokens(a.p, a.loose[0]);
+  if (tok) return tok;
+  return (pickerMonthlyCNY(a.p) || 0) - (pickerMonthlyCNY(b.p) || 0);
+}
 function chooseDailyMain(pool) {
-  const reps = representatives(pool.filter((x) => x.loose.length), (x) => x.p.vendor + "|" + x.loose[0].id, betterDailyTier);
-  reps.sort((a, b) => {
-    const sep = (hasSeparateDaily(b) ? 1 : 0) - (hasSeparateDaily(a) ? 1 : 0);
-    if (sep) return sep;
-    const pure = (b.headline ? 0 : 1) - (a.headline ? 0 : 1);
-    if (pure) return pure;
-    const tok = knownTokens(b.p, b.loose[0]) - knownTokens(a.p, a.loose[0]);
-    if (tok) return tok;
-    return (pickerMonthlyCNY(a.p) || 0) - (pickerMonthlyCNY(b.p) || 0);
-  });
+  const reps = dailyRepresentatives(pool);
+  reps.sort(dailyMainOrder);
   return reps[0] || null;
 }
 function chooseMain(pool) {
   if (pickerState.task === "daily") return chooseDailyMain(pool);
   return chooseHardMain(pool) || (pickerState.task === "both" ? chooseDailyMain(pool) : null);
+}
+/* 当前偏好下排在最前的几档（主计划居首），对比表与推荐摘要共用同一顺序。 */
+function rankedCandidates(pool, main, limit = 3) {
+  if (!main) return [];
+  const hard = pickerState.task === "daily" ? [] : hardRepresentatives(pool).sort((a, b) => hardMainOrder(a, b));
+  const daily = pickerState.task === "hard" ? [] : dailyRepresentatives(pool).filter((x) => pickerState.task === "daily" || !x.headline).sort(dailyMainOrder);
+  const list = [main];
+  for (const x of pickerState.task === "daily" ? daily : hard.concat(daily)) {
+    if (list.length >= limit) break;
+    if (!list.some((y) => y.p === x.p)) list.push(x);
+  }
+  return list;
+}
+function candidateRole(x) { return pickerState.task === "daily" || !x.headline ? x.loose[0] : x.headline; }
+function abilityText(x) {
+  const hit = abilityHit(x.p, candidateRole(x));
+  return hit ? `第 ${hit.row.rank}/${hit.protocol.total} 名 · ${publicScoreText(hit.row.score, hit.protocol.unit)}` : "未上榜";
+}
+function quotaEvidenceText(x) {
+  const evidence = tokenEvidence(x.p, candidateRole(x));
+  return evidence ? `约 ${fmtTok(evidence.tokens)}/月 · 置信${evidence.conf}` : "未公开";
+}
+/* 主计划与排在其后的两档并排：月费、主力模型、可折算额度和编程评测一眼可比，不必展开每张卡。 */
+function pickerCompareHtml(rows) {
+  if (rows.length < 2) return "";
+  const cells = (x, i) => {
+    const role = candidateRole(x);
+    return [
+      ["套餐", `${esc(planTitle(x.p))}${i === 0 ? '<span class="qc-compare-tag">主计划</span>' : ""}`],
+      ["所选付款月均", esc(priceLine(x.p))],
+      ["主力模型", esc(role ? roleDisplayName(x.p, role) : "—")],
+      ["月额度参考下限", esc(quotaEvidenceText(x))],
+      ["DeepSWE v1.1", esc(abilityText(x))],
+      ["对比", `<button type="button" class="qc-action cmp-add" data-plan-id="${esc(x.p.id)}" data-vendor="${esc(x.p.vendor)}" data-plan="${esc(x.p.plan)}">＋对比</button>`],
+    ];
+  };
+  const head = cells(rows[0], 0).map(([label]) => `<th scope="col">${label}</th>`).join("");
+  const body = rows.map((x, i) => `<tr${i === 0 ? ' class="is-current"' : ""}>` + cells(x, i).map(([label, value], j) =>
+    j === 0 ? `<th scope="row" data-label="${label}">${value}</th>` : `<td data-label="${label}">${value}</td>`).join("") + "</tr>").join("");
+  return `<div class="picker-compare table-wrap" tabindex="0" role="region" aria-label="候选对比，可横向滚动"><table class="qc-compare"><caption>前 ${rows.length} 档对比 · ${esc(PICKER_PRIORITY_LABELS[pickerPriority()])}</caption><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+/* 纯文本摘要便于转发到聊天工具；金额与额度沿用页面同一口径，链接带上当前条件。 */
+function pickerSummaryText(url) {
+  const pool = eligibleProfiles();
+  const main = chooseMain(pool);
+  const tool = { any:"不限工具", claude:"Claude Code", codex:"Codex", cursor:"Cursor", own:"自家工具" }[pickerState.tool] || "不限工具";
+  const task = { hard:"复杂为主", both:"复杂和日常", daily:"日常为主" }[pickerState.task] || "";
+  const budget = pickerState.budget === "any" ? "不限预算" : pickerState.budget === "0" ? "免费" : "≤¥" + pickerState.budget;
+  const region = { cn:"国内", intl:"国际", all:"不限地区" }[pickerState.region] || "";
+  const lines = [`Coding Plan 比价中心 · 推荐摘要（数据版本 ${META.updated}）`,
+    `条件：${budget} · ${region} · ${tool} · ${task} · ${PICKER_BILLING_LABELS[pickerState.billing]} · ${PICKER_PRIORITY_LABELS[pickerPriority()]}`];
+  if (!main) lines.push("当前条件没有匹配的套餐：" + pickerEmptyReason(pool));
+  else rankedCandidates(pool, main).forEach((x, i) => {
+    const role = candidateRole(x);
+    lines.push(`${i === 0 ? "主计划" : "候选 " + (i + 1)}：${planTitle(x.p)} — ${priceLine(x.p)}；${role ? roleDisplayName(x.p, role) : "附赠模型"}；额度参考下限 ${quotaEvidenceText(x)}；DeepSWE v1.1 ${abilityText(x)}`);
+  });
+  lines.push("价格、额度与购买资格以官网为准。", url);
+  return lines.join("\n");
 }
 /* 同厂商、同一主力模型、更便宜的个人档。主计划按「窗口最大」选档时会跳过中档（如不限预算直接选 Max），
    这里把被跳过的档（如 GLM Coding V3 Pro）补回可见，不然用户会以为厂商只有这一档。 */
@@ -600,7 +713,10 @@ function pickerPlanActions(p) {
   if (!p) return "";
   return `<div class="qc-actions"><button type="button" class="qc-action cmp-add" data-plan-id="${esc(p.id)}" data-vendor="${esc(p.vendor)}" data-plan="${esc(p.plan)}">＋对比</button><button type="button" class="qc-action" data-view-plan="${esc(p.id)}" aria-label="查看 ${esc(planTitle(p))} 完整权益">完整权益</button></div>`;
 }
+/* renderPicker 每轮重建前清空；quickCard 记下已出卡的永久 ID，「其他候选」据此去重，不再从生成的 HTML 反查。 */
+let pickerCardPlanIds = new Set();
 function quickCard(accent, title, value, reasons, plan, body = "", extra = "") {
+  if (plan) pickerCardPlanIds.add(plan.id);
   const href = plan ? safeHref(plan.url) : "";
   const name = plan ? `<b class="qc-plan">${esc(planTitle(plan))}</b>` : "";
   const details = body + extra + (plan ? pickerPaymentSummaryHtml(plan) + `<div class="badge-row">${badgeHtml(plan)}</div>` + pickerPaymentHtml(plan) : "");
@@ -615,10 +731,16 @@ function quickCard(accent, title, value, reasons, plan, body = "", extra = "") {
     ${details ? `<details class="qc-details"><summary>价格、额度${extra ? "、评测" : ""}与核查详情</summary><div class="qc-sub">${details}</div></details>` : ""}
   </div>`;
 }
+/* 国际档的提醒：登记了官方支持地区说明时直接写明中国大陆是否在服务范围内。 */
+function intlAvoidHtml(p) {
+  const access = mainlandAccessOf(p);
+  const lead = access ? (access.status === "unsupported" ? "官方支持地区不含中国大陆；" : "在中国大陆部分模型不可用；") : "";
+  return `<div class="qc-avoid">${esc(lead)}需要外币或国际账号支付。</div>`;
+}
 function pickerUsageGuide(p) {
   const qualification = p.purchaseCountries && p.purchaseCountries.length
     ? `仅限 ${p.purchaseCountries.join("、")}，购买前核对账号与支付资格。`
-    : p.region === "intl" ? "国际档需自行核对所在地、账号和支付资格；地区筛选不保证每个国家可购买。" : "国内档仍需核对购买账号、活动资格与续费条件。";
+    : p.region === "intl" ? `国际档需自行核对所在地、账号和支付资格；地区筛选不保证每个国家可购买。中国大陆：${mainlandAccessText(p)}` : "国内档仍需核对购买账号、活动资格与续费条件。";
   const window = p.windowPeriod === "unknown" || !p.windowPeriod ? "重置窗口尚未确认，不能按固定时间估计恢复。" : `公开窗口：${resolvedField(p, "quota")}；实际恢复以账户页面和官方规则为准。`;
   return `<details class="qc-usage-guide"><summary>模型、工具与额度用完后的做法</summary>${lineHtml("支持模型", resolvedField(p, "models"))}${lineHtml("支持工具", resolvedField(p, "tools"))}${lineHtml("购买资格", qualification)}${lineHtml("打满后", `${window} 先暂停可延后任务并查看剩余额度；使用其他已确认套餐时先核对共享池与费用。自备 Key、工具订阅或按量加购可能另收费，未知推理费用不计作免费。`)}</details>`;
 }
@@ -667,16 +789,19 @@ function mainCard(main, pool) {
   }
   bits.push(pickerVerificationHtml(p));
   bits.push(pickerUsageGuide(p));
-  if (p.region === "intl" && pickerState.region !== "cn") bits.push(`<div class="qc-avoid">需要外币或国际账号支付。</div>`);
+  if (p.region === "intl" && pickerState.region !== "cn") bits.push(intlAvoidHtml(p));
   const title = dailyLead || !main.headline ? "主计划 · 日常" : "主计划 · 复杂任务";
   return quickCard(PICK_ACCENT[0], title, moneyHtml(p), reasons, p, bits.join(""), pickerBenchmarkHtml(p, role) + tierComparisonHtml(main, role));
 }
-/* 公开编程评测只作模型能力参考，不参与推荐排序；成绩对应评测时的推理与 Agent 配置。 */
+/* 公开编程评测默认只作模型能力参考；选「模型能力优先」时按 DeepSWE v1.1 参与排序。成绩对应评测时的推理与 Agent 配置。 */
+function benchmarkRankingNote() {
+  return pickerPriority() === "ability" ? "本次按 DeepSWE v1.1 参与排序" : "不参与推荐排序";
+}
 function pickerBenchmarkHtml(p, role) {
   const hits = typeof planCodingBenchmarks === "function" ? planCodingBenchmarks(p, role) : [];
   if (!hits.length) return "";
   const items = hits.map(({ protocol, row }) => `<li><b>${esc(protocol.name)}</b> 第 ${row.rank}/${protocol.total} 名 · ${esc(publicModelDisplayName(row.model))} ${esc(publicScoreText(row.score, protocol.unit))}</li>`).join("");
-  return `<div class="qc-bench"><p class="qc-bench-title">公开编程评测<span>${role ? "本档当前任务系列内的已测型号" : "本档所含模型"}的最佳名次，不参与推荐排序</span></p><ul>${items}</ul><p class="qc-bench-note">只对应成绩行标明的具体型号、推理与 Agent 配置，不套用于同系列其他版本；套餐内未必能用同样配置。<a href="#benchmarks">查看评测</a></p></div>`;
+  return `<div class="qc-bench"><p class="qc-bench-title">公开编程评测<span>${role ? "本档当前任务系列内的已测型号" : "本档所含模型"}的最佳名次，${benchmarkRankingNote()}</span></p><ul>${items}</ul><p class="qc-bench-note">只对应成绩行标明的具体型号、推理与 Agent 配置，不套用于同系列其他版本；套餐内未必能用同样配置。<a href="#benchmarks">查看评测</a></p></div>`;
 }
 /* 同厂商、同一主力模型的各档位并排列出，预算不限时也能看到更便宜的档位与额度差。 */
 function tierComparisonHtml(main, role, { reference = false, ignoreRegion = false } = {}) {
@@ -789,7 +914,7 @@ function ownVendorCard(main) {
     bits.push(`<div class="qc-miss">高于当前预算${cap}。<button type="button" class="linkish" data-set-picker="budget=any">把预算放开</button></div>`);
   } else if (main && !regionMiss) bits.push(lineHtml("和主计划", `它没有赢下这组条件的主计划（见第一张卡）。${OWN_VENDOR_NOTE[vendor] || ""}`));
   if (regionMiss) bits.push(`<div class="qc-avoid">${esc(vendor)} 只有国际档，当前地区筛选把它排除了。<button type="button" class="linkish" data-set-picker="region=all">把地区改成「不限」再看</button></div>`);
-  else if (plan.region === "intl") bits.push(`<div class="qc-avoid">需要外币或国际账号支付。</div>`);
+  else if (plan.region === "intl") bits.push(intlAvoidHtml(plan));
   const reasons = [
     meteredTask ? "复杂任务模型在按量池，需核对额度与费用" : taskMiss ? `${shortVendor(vendor)} 个人档都没有匹配所选任务的模型，仅供对照` : `所选工具的原生订阅${role ? ` · ${roleDisplayName(plan, role)}` : ""}`,
     meteredTask ? "套餐月费不等于所有复杂任务的总费用" : taskMiss ? "任务能力需另行核对；此卡仅供参考" : picked.withinBudget ? pickerState.budget === "any" ? "预算不限，按任务与公开额度优先选档" : "预算内按任务与公开额度优先选档"
@@ -842,7 +967,9 @@ function pickerChoiceReason(profile) {
   const evidence = tokenEvidenceText(profile.p, role);
   if (evidence) parts.push(`额度可按官方规则折算：${evidence}，可核对用量`);
   else parts.push("可用 token 总量没有可按官方规则折算的依据，主要按模型用途、公开额度规则和月费比较");
-  if (typeof planCodingBenchmarks === "function" && planCodingBenchmarks(profile.p, role).length) parts.push("卡片上的公开编程评测只作模型能力参考，不参与排序");
+  if (pickerPriority() === "ability") parts.push(abilityHit(profile.p, role) ? "已按 DeepSWE v1.1 已公布成绩优先排序" : "主力模型未进入 DeepSWE v1.1，按额度与月费比较");
+  else if (typeof planCodingBenchmarks === "function" && planCodingBenchmarks(profile.p, role).length) parts.push("卡片上的公开编程评测只作模型能力参考，不参与排序");
+  if (pickerPriority() === "price") parts.push("已按所选付款方式的月均价优先选档");
   return parts.join("；") + "。";
 }
 /* 先给省钱候选，再给排序中的另一选择；尽量来自不同厂商，单厂商筛选仍可比较不同档位。 */
@@ -881,6 +1008,8 @@ function renderPicker() {
   const previousFocus = document.activeElement;
   const focusedPlanId = previousFocus && byId("quickGrid").contains(previousFocus) ? previousFocus.getAttribute("data-plan-id") || previousFocus.getAttribute("data-view-plan") : "";
   syncPickerChips();
+  pickerCardPlanIds = new Set();
+  pickerAbilityCache = new Map();
   const pool = eligibleProfiles();
   const grid = byId("quickGrid");
   const note = byId("pickerNote");
@@ -890,10 +1019,15 @@ function renderPicker() {
     const basis = pickerState.task === "daily"
       ? "在当前条件内，日常优先独立额度池，再比较可折算额度和月费。"
       : "在当前条件内，复杂任务按模型用途分组，再比较可折算额度、倍率与套餐类别。";
+    const priority = pickerPriority() === "ability"
+      ? "当前为「模型能力优先」：先比较主力模型在 DeepSWE v1.1 的已公布成绩，未上榜的排在后面，再按上述规则比较；不同评测不合成总分。"
+      : pickerPriority() === "price" ? "当前为「价格优先」：在满足任务与条件的档位中先选所选付款方式月均价最低的，再按上述规则比较。" : "";
     policy.textContent = basis + (pickerState.budget === "any"
       ? "预算不限会优先较大额度档；省钱档与公开评测见详情。"
-      : "公开评测仅供能力参考；额度未知时结合套餐类别与月费选择。");
+      : "公开评测仅供能力参考；额度未知时结合套餐类别与月费选择。") + priority;
   }
+  const rulesNote = byId("pickerRulesNote");
+  if (rulesNote) rulesNote.textContent = `已包含的日常覆盖写在主卡中；可选补充列出合计月费。升级参考最多跨到下一预算档，其他候选和自家订阅供对照，无需同时购买。模型用途按 ${MODEL_ROLES_ASOF} 归类；未公开额度与共享规则请核对官网。中转站与国家限定套餐不参与通用推荐。`;
   const billingNote = byId("pickerBillingNote");
   if (billingNote) billingNote.textContent = pickerState.billing === "Y"
     ? "预算按年付月均比较；首次一次支付全年，金额见卡片。"
@@ -912,10 +1046,9 @@ function renderPicker() {
     return;
   }
   const cards = [mainCard(main, pool), dailyCard(main, pool), upgradeCard(main), own].filter(Boolean);
-  /* 每张卡的对比按钮带永久套餐 ID，用它排除已展示的档位。 */
-  const shownIds = new Set(cards.flatMap((html) => [...html.matchAll(/class="qc-action cmp-add" data-plan-id="([^"]+)"/g)].map((m) => m[1])));
+  const shownIds = new Set(pickerCardPlanIds);
   grid.dataset.cardCount = String(cards.length);
-  grid.innerHTML = cards.join("") + alternativeCards(main, pool, shownIds);
+  grid.innerHTML = cards.join("") + pickerCompareHtml(rankedCandidates(pool, main)) + alternativeCards(main, pool, shownIds);
   /* 对比按钮重绘后要恢复到可见入口；仅恢复仍存在的同套餐折叠区。 */
   if (focusedPlanId) {
     const replacement = Array.from(grid.querySelectorAll("[data-plan-id], [data-view-plan]")).find((el) => el.getAttribute("data-plan-id") === focusedPlanId || el.getAttribute("data-view-plan") === focusedPlanId);
@@ -924,7 +1057,7 @@ function renderPicker() {
     const alternatives = replacement && replacement.closest(".picker-alternatives");
     if (alternatives) alternatives.setAttribute("open", "");
   }
-  note.textContent = `符合条件 ${pool.length} 档。已包含的日常覆盖写在主卡中；可选补充列出合计月费。升级参考最多跨到下一预算档，其他候选和自家订阅供对照，无需同时购买。模型用途按 ${MODEL_ROLES_ASOF} 归类；未公开额度与共享规则请核对官网。`;
+  note.textContent = `符合条件 ${pool.length} 档 · ${PICKER_PRIORITY_LABELS[pickerPriority()]}。规则与口径见下方「推荐规则与口径」。`;
   syncTableCmpButtons(previousFocus);
   if (typeof syncServiceControls === "function") syncServiceControls();
   refreshPickerScopes();
@@ -933,7 +1066,7 @@ function auditProfiles() {
   /* 断言隐含「国内 + 不限预算 + 不限工具」的筛选前提（如智谱省钱档），先锁定状态，
      结束后还原，避免 ?debug=1 时污染页面正在展示的推荐。 */
   const saved = { ...pickerState };
-  Object.assign(pickerState, { budget: "any", region: "cn", tool: "any", task: "both", billing:"M" });
+  Object.assign(pickerState, { budget: "any", region: "cn", tool: "any", task: "both", billing:"M", priority:"quota" });
   try {
     const by = (vendor, plan) => PLANS.find((p) => p.vendor === vendor && p.plan === plan);
     const idOf = (p) => { const h = planProfile(p).headline; return h ? h.id : ""; };

@@ -33,12 +33,12 @@
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",
-    "@types/node": "20.19.43",
+    "@types/node": "22.20.4",
     "echarts": "6.1.0",
     "esbuild": "0.28.2",
     "typescript": "5.9.3"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   }
 }

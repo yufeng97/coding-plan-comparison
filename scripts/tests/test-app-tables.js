@@ -21,7 +21,9 @@ test("比较和导出保留一次性/席位/4周单位、数据日期/汇率和�
   assert.equal(app.run("isPersonalMonthly(testFourWeek)"), false, "4周费用不能当作自然月月费");
   app.run('Object.assign(personalState, { cat: "all", region: "all", q: "", limit: null }); renderPersonalChart(); resetTableFilters();');
   assert.equal(app.run("chartCache.chartPersonal.option.series[0].data.some(d => isFourWeekPlan(d._p))"), false, "个人月费图不应混入4周档");
-  assert.equal(app.run("computeTableRows().includes(testFourWeek)"), true, "4周档仍应保留在完整数据表");
+  assert.equal(app.run("isRelay(testFourWeek) && computeTableRows().includes(testFourWeek)"), false, "4周档来自中转站，默认收起");
+  assert.equal(app.run("tableState.extra = true; computeTableRows().includes(testFourWeek)"), true, "4周档仍应保留在完整数据表");
+  app.run("tableState.extra = false;");
   app.run('cmpState.items = PLANS.filter(p => p.vendor === "Anthropic" && ["Claude Pro", "Claude Max 5x"].includes(p.plan)); renderCmpModal();');
   assert.match(app.elements.get("cmpTable").innerHTML, /cmp-best-price/);
   const csv = app.run("tableRowsCsv([testOnce, testSeat, testFourWeek, testMirror])");
@@ -33,7 +35,7 @@ test("比较和导出保留一次性/席位/4周单位、数据日期/汇率和�
   assert.match(csv, /数据更新日期|数据截至/);
   assert.match(markdown, /数据更新日期|数据截至/);
   assert.doesNotMatch(csv, /同 PRO 档/);
-  app.run('tableState.search = "AICodeMirror MAX"; renderTable();');
+  app.run('tableState.search = "AICodeMirror MAX"; tableState.extra = true; renderTable();');
   app.fire(app.elements.get("exportCsvBtn"), "click");
   assert.equal(app.downloads.length, 1);
   assert.match(app.downloads[0].filename, /^coding-plans-.*\.csv$/);
@@ -68,7 +70,7 @@ test("数据表空态保留对比选择、禁用空导出，清除筛选取消�
   app.fire(search, "input");
   app.fire(app.elements.get("tableEmptyResetBtn"), "click");
   app.flushTimeouts();
-  assert.equal(app.run("computeTableRows().length"), app.run("PLANS.filter(isOnSalePlan).length"));
+  assert.equal(app.run("computeTableRows().length"), app.run("PLANS.filter(isOnSalePlan).filter((p) => !tableExtraHidden(p)).length"), "清除后回到默认范围：中转站与待核价格默认不显示");
   assert.equal(search.value, "");
   assert.equal(app.run("document.activeElement.id"), "searchInput");
   assert.equal(app.elements.get("exportCsvBtn").disabled, false);
@@ -515,7 +517,7 @@ test("多关键词与厂商别名搜索保留型号、空白及标点归一化",
   assert.ok(app.run('computeTableRows().some(p => /Kimi/.test(p.vendor))'));
   for (const query of ["", "   ", " _-./· "]) {
     app.run(`tableState.search = ${JSON.stringify(query)};`);
-    assert.equal(app.run("computeTableRows().length"), app.run("PLANS.filter(isOnSalePlan).length"));
+    assert.equal(app.run("computeTableRows().length"), app.run("PLANS.filter(isOnSalePlan).filter((p) => !tableExtraHidden(p)).length"));
   }
   assert.equal(app.run('queryHit("gpt6sol", "GPT-6 Sol")'), true);
   assert.equal(app.run('queryHit("gpt6sol", "GPT-6 Luna")'), false);

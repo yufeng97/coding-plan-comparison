@@ -36,6 +36,8 @@ interface Plan {
   fieldRefs?: Partial<Record<"models" | "tools" | "quota", string | [string, string]>>;
   /** 官网标明售罄、仅候补：仍是公开标价，但不能下单。 */
   availability?: "sold-out";
+  /** 官网或文档实测访问异常（如返回 403、连接失败）；页面据此显示「访问不稳」，不从备注文字推断。 */
+  accessUnstable?: boolean;
   /** 同一订阅的重复条目指向主条目永久 ID；保留核价与历史，不再单独展示和推荐。 */
   sameAs?: string;
   /** 主标价为连续包月价时，另记不续费的单月购买价，供「月付标价」口径对照。 */
@@ -59,6 +61,8 @@ interface MaintenanceSnapshot {
   records: { id: string; kind: string; vendor: string; name: string; checkedAt: string; status: string; sourceUrls: string[]; ageDays: number | null; stale: boolean }[];
   reviews: { id: string; title: string; planIds?: string[]; vendor?: string; reviewOn: string; source: string; note?: string }[];
   changes: MaintenanceChange[];
+  /** 分厂商变更订阅：path 为相对站点根目录的 feeds/<slug>.xml。 */
+  feeds?: { vendor: string; path: string; changes: number }[];
 }
 interface BenchmarkTask { id: string; title: string; description: string; acceptance: string | string[]; }
 interface BenchmarkRun {
