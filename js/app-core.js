@@ -147,13 +147,10 @@ function mainlandAccessText(p) {
 function badgeHtml(p) {
   return planBadges(p).map((b) => `<span class="badge badge-${b.k}">${esc(b.t)}</span>`).join("");
 }
+/* 额度行经 ref 读取主表的结构化状态；未设 ref 的行无从判断购买资格，校验器会单列提示。 */
 function metricOfferOk(m) {
-  if (/已停售|已下架|老用户|一次性|预付/.test(m.plan || "")) return false;
-  if (m.ref != null) {
-    const p = findPlanReference(m.ref);
-    if (p && (isRetiredPlan(p) || !isPriceConfirmed(p) || isOneTimePlan(p) || isRenewalOnly(p) || !offerable(p))) return false;
-  }
-  return true;
+  const p = m.ref != null ? findPlanReference(m.ref) : null;
+  return !p || !(isRetiredPlan(p) || !isPriceConfirmed(p) || isOneTimePlan(p) || isRenewalOnly(p) || !offerable(p));
 }
 function adoptMetric(m, isEst) {
   const resolved = resolvePlan(m);

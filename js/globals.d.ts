@@ -34,8 +34,14 @@ interface Plan {
   modelAccess?: "included" | "byok" | "metered";
   purchaseCountries?: string[];
   fieldRefs?: Partial<Record<"models" | "tools" | "quota", string | [string, string]>>;
-  /** 官网标明售罄、仅候补：仍是公开标价，但不能下单。 */
-  availability?: "sold-out";
+  /** sold-out：官网售罄、仅候补；retired：已停售或下架；limited：限量抢购。均不进入推荐。 */
+  availability?: "sold-out" | "retired" | "limited";
+  /** 非月付计价单位：一次性预付或每 4 周收费；月付省略。 */
+  billingUnit?: "one-time" | "four-weeks";
+  /** 仅老用户可续费，新用户不能购买。 */
+  renewalOnly?: true;
+  /** 免费档不能当编程工具（聊天免费档、应用构建器等）时显式排除。 */
+  freeCodingEntry?: false;
   /** 官网或文档实测访问异常（如返回 403、连接失败）；页面据此显示「访问不稳」，不从备注文字推断。 */
   accessUnstable?: boolean;
   /** 同一订阅的重复条目指向主条目永久 ID；保留核价与历史，不再单独展示和推荐。 */

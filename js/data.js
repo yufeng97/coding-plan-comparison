@@ -85,10 +85,11 @@ function matchModelRoles(text) {
  * 有意用全局函数而非模块：浏览器端 data.js 先于 app.js 加载，零构建直接引用；
  * 校验器在 VM 沙箱中运行同一份 data.js，天然复用，避免两边逻辑漂移。
  * ============================================================ */
-function isRetiredPlan(p) { return /已停售|已下架/.test((p && p.plan) || "") || (priceCheckOf(p) || {}).status === "retired"; }
-function isOneTimePlan(p) { return /一次性|预付/.test((p && p.plan) || ""); }
-function isRenewalOnly(p) { return /老用户/.test((p && p.plan) || ""); }
-function isFourWeekPlan(p) { return /4\s*周|四周|4\s*weeks?/i.test((p && p.plan) || ""); }
+/* 分类只读结构化字段；计划名里的「已下架」「一次性」等标记由校验器核对与字段一致，不参与页面判断。 */
+function isRetiredPlan(p) { return !!p && (p.availability === "retired" || (priceCheckOf(p) || {}).status === "retired"); }
+function isOneTimePlan(p) { return !!p && p.billingUnit === "one-time"; }
+function isRenewalOnly(p) { return !!p && p.renewalOnly === true; }
+function isFourWeekPlan(p) { return !!p && p.billingUnit === "four-weeks"; }
 /* 同一订阅按不同入口记了两条时（如 Devin Desktop 与云 agent），重复条目用 sameAs 指向主条目：
    保留核价记录与历史，不再单独计入免费入口、价格图、价格表和推荐。 */
 function isDuplicateListing(p) { return !!(p && p.sameAs); }
@@ -102,21 +103,17 @@ function isPersonalMonthly(p) {
    已下架不算。聊天免费档、无 API 的网页档、自家应用构建器不算。 */
 function isFreeCodingEntry(p) {
   if (!p || p.priceM !== 0 || isRetiredPlan(p) || !isPriceConfirmed(p) || isDuplicateListing(p)) return false;
-  if (p.vendor === "Lovable" || p.vendor === "Bolt.new") return false;
-  if (p.plan === "Claude Free" || p.plan === "Grok Free") return false;
-  if (p.vendor === "ZenMux" && p.plan === "Free") return false;
-  return true;
+  /* freeCodingEntry:false 显式排除聊天免费档、应用构建器等不能当编程工具的免费档。 */
+  return p.freeCodingEntry !== false;
 }
 /* 在售且明码标价（用于完整数据表与「在售订阅计划」统计卡；免费档、按量/定制、已停售不计） */
 function isOnSalePlan(p) {
   return !!(p && p.priceM > 0 && !isRetiredPlan(p) && !isDuplicateListing(p));
 }
-/* 能否直接下单。看计划名与结构化的售罄标记：备注里的补货限制或「限量模型」不把整档移出推荐。 */
+/* 能否直接下单。售罄与限量抢购用 availability 标注：备注里的补货限制或「限量模型」不把整档移出推荐。 */
 function offerable(p) {
-  const name = String((p && p.plan) || "");
   if (isSoldOut(p) || isDuplicateListing(p)) return false;
-  if (/抢购/.test(name)) return false;
-  return !/(?:^|[^不无])限量/.test(name);
+  return !(p && p.availability === "limited");
 }
 /* 编程工具本身免费不等于推理免费；国别专属档须明确满足购买资格。 */
 function hasIncludedModelQuota(p) {
@@ -222,7 +219,7 @@ function hasOwnClient(p) {
 /** @type {Plan[]} */
 const PLANS = [
   /* ---------- 模型官方订阅 · 国际 ---------- */
-  { id: "plan-0001", vendor: "Anthropic", plan: "Claude Free", cat: "official", region: "intl", priceM: 0, priceY: 0, cur: "USD", seat: false,
+  { id: "plan-0001", vendor: "Anthropic", plan: "Claude Free", cat: "official", region: "intl", priceM: 0, priceY: 0, cur: "USD", seat: false, freeCodingEntry: false,
     windowPeriod: "5h",
     quota: "用量按滚动 5 小时窗口重置；官方明确不含 Claude Code",
     models: "Claude Sonnet 5.5 / Haiku 4.5（不含 Opus）",
@@ -366,7 +363,7 @@ const PLANS = [
     note: "年付 $45/user/月，月付 $54/user/月",
     url: "https://codeassist.google/" },
 
-  { id: "plan-0023", vendor: "xAI", plan: "Grok Free", cat: "official", region: "intl", priceM: 0, priceY: 0, cur: "USD", seat: false,
+  { id: "plan-0023", vendor: "xAI", plan: "Grok Free", cat: "official", region: "intl", priceM: 0, priceY: 0, cur: "USD", seat: false, freeCodingEntry: false,
     quota: "约 10 prompts / 2 小时（第三方观察口径）",
     models: "Grok 4.3（受限）",
     tools: "grok.com、X app",
@@ -445,35 +442,35 @@ const PLANS = [
     url: "https://z.ai/subscribe" },
 
   /* ---- Z.ai V1/V2（历史版本） ---- */
-  { id: "plan-0034", vendor: "Z.ai", plan: "GLM Coding V1 Lite（已停售）", cat: "official", region: "intl", priceM: 3, priceY: null, cur: "USD", seat: false,
+  { id: "plan-0034", vendor: "Z.ai", plan: "GLM Coding V1 Lite（已停售）", cat: "official", region: "intl", priceM: 3, priceY: null, cur: "USD", seat: false, availability: "retired",
     windowPeriod: "5h", quotaSharing: "shared",
     quota: "约 120 prompts/5h（10 并发）；无每周上限",
     models: "GLM-4.5 时代",
     tools: "Claude Code",
     note: "2025-09 上线（$3/$15，Exclusive to Claude Code）；2026-02-12 停售；存量 2026-04-30 关自动续订",
     url: "https://docs.z.ai/devpack/transition.md" },
-  { id: "plan-0035", vendor: "Z.ai", plan: "GLM Coding V1 Pro（已停售）", cat: "official", region: "intl", priceM: 15, priceY: null, cur: "USD", seat: false,
+  { id: "plan-0035", vendor: "Z.ai", plan: "GLM Coding V1 Pro（已停售）", cat: "official", region: "intl", priceM: 15, priceY: null, cur: "USD", seat: false, availability: "retired",
     windowPeriod: "5h", quotaSharing: "shared",
     quota: "约 600 prompts/5h（30 并发）；无每周上限",
     models: "GLM-4.5 时代",
     tools: "Claude Code",
     note: "同上",
     url: "https://docs.z.ai/devpack/transition.md" },
-  { id: "plan-0036", vendor: "Z.ai", plan: "GLM Coding V2 Lite（老用户续费）", cat: "official", region: "intl", priceM: 18, priceY: null, cur: "USD", seat: false,
+  { id: "plan-0036", vendor: "Z.ai", plan: "GLM Coding V2 Lite（老用户续费）", cat: "official", region: "intl", priceM: 18, priceY: null, cur: "USD", seat: false, renewalOnly: true,
     windowPeriod: "5h", quotaSharing: "shared",
     quota: "约 80 prompts/5h + 约 400 prompts/周；高峰 3x/非高峰 2x 抵扣",
     models: "GLM-5 系列",
     tools: "Claude Code",
     note: "2026-02-12 上线（2-4 月间从 $3→$10→$18 多次调价）；V2 老用户可续订/升档",
     url: "https://docs.z.ai/devpack/notice/usage-revision.md" },
-  { id: "plan-0037", vendor: "Z.ai", plan: "GLM Coding V2 Pro（老用户续费）", cat: "official", region: "intl", priceM: 72, priceY: null, cur: "USD", seat: false,
+  { id: "plan-0037", vendor: "Z.ai", plan: "GLM Coding V2 Pro（老用户续费）", cat: "official", region: "intl", priceM: 72, priceY: null, cur: "USD", seat: false, renewalOnly: true,
     windowPeriod: "5h", quotaSharing: "shared",
     quota: "约 400 prompts/5h + 约 2,000 prompts/周",
     models: "GLM-5 系列",
     tools: "Claude Code",
     note: "同上",
     url: "https://docs.z.ai/devpack/notice/usage-revision.md" },
-  { id: "plan-0038", vendor: "Z.ai", plan: "GLM Coding V2 Max（老用户续费）", cat: "official", region: "intl", priceM: 160, priceY: null, cur: "USD", seat: false,
+  { id: "plan-0038", vendor: "Z.ai", plan: "GLM Coding V2 Max（老用户续费）", cat: "official", region: "intl", priceM: 160, priceY: null, cur: "USD", seat: false, renewalOnly: true,
     windowPeriod: "5h", quotaSharing: "shared",
     quota: "约 1,600 prompts/5h + 约 8,000 prompts/周",
     models: "GLM-5 系列",
@@ -503,25 +500,25 @@ const PLANS = [
     url: "https://opencode.ai/docs/enterprise" },
 
   /* ---- R4 Coder（第三方国产模型 API 中转，2026-09-29 官网直抓更新） ---- */
-  { id: "plan-0042", vendor: "R4 Coder（r4.codes）", plan: "Starter 预付包（已下架）", cat: "tool", region: "cn", priceM: 5, priceY: null, cur: "USD", seat: false,
+  { id: "plan-0042", vendor: "R4 Coder（r4.codes）", plan: "Starter 预付包（已下架）", cat: "tool", region: "cn", priceM: 5, priceY: null, cur: "USD", seat: false, availability: "retired", billingUnit: "one-time",
     quota: "（已下架）原：一次性 $5 预付含 $30 可用额度（6 倍面值），30 天有效；最高 6 并发；模型折扣：Kimi K3 0.28 折、GLM 5.2 0.42 折、DeepSeek V4 Flash 0.83 折",
     models: "Kimi K3、GLM 5.3/5.3-Flash、DeepSeek V4.1 Flash/V4 Pro 等纯开源模型（无 Claude/GPT）",
     tools: "单一端点 api.r4.codes/v1 同时支持 OpenAI/Anthropic 协议；可接 Claude Code、Codex 等",
     note: "⚠️ 2026-09-30 确认下架（用户报告 + 官方现行首页已无该档，当日缓存旧页仍显示）；同时官网新增 $50 Code Max 档",
     url: "https://r4.codes/" },
-  { id: "plan-0043", fieldRefs: {"tools":"plan-0042"}, vendor: "R4 Coder（r4.codes）", plan: "Code Max 预付包", cat: "tool", region: "cn", priceM: 50, priceY: null, cur: "USD", seat: false, availability: "sold-out",
+  { id: "plan-0043", fieldRefs: {"tools":"plan-0042"}, vendor: "R4 Coder（r4.codes）", plan: "Code Max 预付包", cat: "tool", region: "cn", priceM: 50, priceY: null, cur: "USD", seat: false, availability: "sold-out", billingUnit: "one-time",
     quota: "一次性 $50 预付含 $300 可用额度（6 倍面值），30 天有效；最高 8 并发（各档中最高）",
     models: "Kimi K3、GLM 5.3/5.3-Flash、DeepSeek V4.1 Flash（-50% 促销档）、Step 5 Preview、U2 Flash（-90%）等纯开源模型",
     tools: "同 Starter",
     note: "2026-10-04 官网 Code Max 标为 Sold out，仅提供候补名单；一次性 $50 预付含 $300 额度、30 天有效、最高 8 并发，不是自动月续订。",
     url: "https://r4.codes/" },
-  { id: "plan-0044", fieldRefs: {"models":"plan-0042","tools":"plan-0042"}, vendor: "R4 Coder（r4.codes）", plan: "Code Lite 预付包", cat: "tool", region: "cn", priceM: 10, priceY: null, cur: "USD", seat: false, availability: "sold-out",
+  { id: "plan-0044", fieldRefs: {"models":"plan-0042","tools":"plan-0042"}, vendor: "R4 Coder（r4.codes）", plan: "Code Lite 预付包", cat: "tool", region: "cn", priceM: 10, priceY: null, cur: "USD", seat: false, availability: "sold-out", billingUnit: "one-time",
     quota: "一次性 $10 预付含 $60 可用额度（6 倍面值），30 天有效；最高 6 并发",
     models: "同 Starter（Kimi K3、GLM 5.3、DeepSeek V4 系列等）",
     tools: "同 Starter",
     note: "2026-10-04 官网名称 Code Lite，标为 Sold out，仅提供候补名单；一次性 $10 预付含 $60 额度、30 天有效、最高 6 并发。",
     url: "https://r4.codes/" },
-  { id: "plan-0045", fieldRefs: {"models":"plan-0042","tools":"plan-0042"}, vendor: "R4 Coder（r4.codes）", plan: "Code Pro 预付包", cat: "tool", region: "cn", priceM: 20, priceY: null, cur: "USD", seat: false, availability: "sold-out",
+  { id: "plan-0045", fieldRefs: {"models":"plan-0042","tools":"plan-0042"}, vendor: "R4 Coder（r4.codes）", plan: "Code Pro 预付包", cat: "tool", region: "cn", priceM: 20, priceY: null, cur: "USD", seat: false, availability: "sold-out", billingUnit: "one-time",
     quota: "一次性 $20 预付含 $120 可用额度（6 倍面值），30 天有效；最高 6 并发",
     models: "同 Starter",
     tools: "同 Starter",
@@ -529,7 +526,7 @@ const PLANS = [
     url: "https://r4.codes/" },
 
   /* ---- ZenMux（企业级 LLM API 聚合平台，保险赔付机制，Flows 订阅制 + 按量） ---- */
-  { id: "plan-0046", vendor: "ZenMux", plan: "Free", cat: "tool", region: "intl", priceM: 0, priceY: 0, cur: "USD", seat: false,
+  { id: "plan-0046", vendor: "ZenMux", plan: "Free", cat: "tool", region: "intl", priceM: 0, priceY: 0, cur: "USD", seat: false, freeCodingEntry: false,
     windowPeriod: "5h",
     quota: "5 Flows/5h，仅限网页 Studio 聊天，无 API 访问",
     models: "Claude、GPT、Gemini、GLM、Kimi、MiniMax 等（100+ 模型目录）",
@@ -571,7 +568,7 @@ const PLANS = [
     tools: "Claude Code、Codex（CC 分组禁止接 Cline/OpenCode 等第三方工具，违者封号）",
     note: "注册赠 $1；首充 9 折码；退款收 5% 手续费；07-22 公告 Claude Max 倍率 2→2.5",
     url: "https://packyapi.com/" },
-  { id: "plan-0052", vendor: "PackyCode (Codex 站)", plan: "Codex 包月（已停售）", cat: "tool", region: "cn", priceM: 60, priceY: null, cur: "CNY", seat: false,
+  { id: "plan-0052", vendor: "PackyCode (Codex 站)", plan: "Codex 包月（已停售）", cat: "tool", region: "cn", priceM: 60, priceY: null, cur: "CNY", seat: false, availability: "retired",
     quota: "约 ¥60/枚（限购 1 枚/月，超出 ¥80/枚）；宣传 $60 额度可跑 Codex 约 1,500–2,500 次任务",
     models: "GPT/Codex 系列",
     tools: "Codex CLI（独立端点 codex-api.packycode.com/v1）",
@@ -595,13 +592,13 @@ const PLANS = [
     tools: "同 PRO 档",
     note: "年付 ¥12,954（折合 ¥1,079/月）；季付 ¥3,399；社区有'粉转黑、频繁调规则'评价",
     url: "https://www.aicodemirror.com/api/pricing" },
-  { id: "plan-0056", vendor: "88code", plan: "FREE（已下架）", cat: "tool", region: "cn", priceM: 0, priceY: 0, cur: "CNY", seat: false, accessUnstable: true,
+  { id: "plan-0056", vendor: "88code", plan: "FREE（已下架）", cat: "tool", region: "cn", priceM: 0, priceY: 0, cur: "CNY", seat: false, accessUnstable: true, availability: "retired",
     quota: "已停发。文档写明 FREE 不再向公众发放，仅包月用户可生成",
     models: "Claude、Codex",
     tools: "Claude Code、Codex",
     note: "2026-09-30：www.88code.ai 返回 403，docs.88code.org 连接失败；可达快照写明 FREE 已不发放。不列入免费 Coding 入口",
     url: "https://docs.88code.org/88code/pricing.html" },
-  { id: "plan-0057", vendor: "88code", plan: "PayGo（¥66 一次性 200 刀）", cat: "tool", region: "cn", priceM: 66, priceY: null, cur: "CNY", seat: false, accessUnstable: true,
+  { id: "plan-0057", vendor: "88code", plan: "PayGo（¥66 一次性 200 刀）", cat: "tool", region: "cn", priceM: 66, priceY: null, cur: "CNY", seat: false, accessUnstable: true, billingUnit: "one-time",
     quota: "一次性 200 刀额度（非月付）；Claude/Codex 均支持，Codex 0.5 倍消耗",
     models: "Claude、Codex",
     tools: "Claude Code、Codex",
@@ -625,7 +622,7 @@ const PLANS = [
     tools: "Claude Code、Codex",
     note: "文档由 ¥598 调整为 ¥698。站点访问不稳定（403）",
     url: "https://docs.88code.org/88code/pricing.html" },
-  { id: "plan-0061", vendor: "88code", plan: "PayGo（¥666 一次性 1988 刀）", cat: "tool", region: "cn", priceM: 666, priceY: null, cur: "CNY", seat: false, accessUnstable: true,
+  { id: "plan-0061", vendor: "88code", plan: "PayGo（¥666 一次性 1988 刀）", cat: "tool", region: "cn", priceM: 666, priceY: null, cur: "CNY", seat: false, accessUnstable: true, billingUnit: "one-time",
     quota: "一次性 1988 刀额度（非月付）；一对一支持",
     models: "Claude、Codex",
     tools: "Claude Code、Codex",
@@ -637,19 +634,19 @@ const PLANS = [
     tools: "Claude Code、Codex",
     note: "⚠️ 6/21 起已关闭新用户注册；退款收 5% 手续费；国内开票 ¥200 起；社区口碑'稳得一批'但仅限老用户",
     url: "https://www.duckcoding.ai/pricing" },
-  { id: "plan-0063", vendor: "AIGoCode", plan: "Pro（4 周订阅）", cat: "tool", region: "cn", priceM: 399, priceY: null, cur: "CNY", seat: false,
+  { id: "plan-0063", vendor: "AIGoCode", plan: "Pro（4 周订阅）", cat: "tool", region: "cn", priceM: 399, priceY: null, cur: "CNY", seat: false, billingUnit: "four-weeks",
     quota: "4 周总额度 440，每 7 天发放 110；额度以官网 credits 口径计。",
     models: "Claude 系列",
     tools: "Claude Code",
     note: "2026-10-04 直接核对官网：Pro 正常价与本站原记录相同，4 周订阅，不按自然月计算；官网称额度每 7 天发放，未列年付价。",
     url: "https://www.aigocode.net/" },
-  { id: "plan-0064", vendor: "AIGoCode", plan: "Max（4 周订阅）", cat: "tool", region: "cn", priceM: 899, priceY: null, cur: "CNY", seat: false,
+  { id: "plan-0064", vendor: "AIGoCode", plan: "Max（4 周订阅）", cat: "tool", region: "cn", priceM: 899, priceY: null, cur: "CNY", seat: false, billingUnit: "four-weeks",
     quota: "4 周总额度 1040，每 7 天发放 260；额度以官网 credits 口径计。",
     models: "Claude 系列",
     tools: "Claude Code",
     note: "2026-10-04 直接核对官网：Max 正常价与本站原记录相同，4 周订阅，不按自然月计算；官网称额度每 7 天发放，未列年付价。",
     url: "https://www.aigocode.net/" },
-  { id: "plan-0065", vendor: "AIGoCode", plan: "Ultra（4 周订阅）", cat: "tool", region: "cn", priceM: 1799, priceY: null, cur: "CNY", seat: false,
+  { id: "plan-0065", vendor: "AIGoCode", plan: "Ultra（4 周订阅）", cat: "tool", region: "cn", priceM: 1799, priceY: null, cur: "CNY", seat: false, billingUnit: "four-weeks",
     quota: "4 周总额度 2120，每 7 天发放 530；额度以官网 credits 口径计。",
     models: "Claude 系列",
     tools: "Claude Code",
@@ -1019,7 +1016,7 @@ const PLANS = [
     note: "可与按量充值并用",
     url: "https://docs.cline.bot/getting-started/clinepass.md" },
 
-  { id: "plan-0119", vendor: "Roo Code", plan: "开源版（已下架）", cat: "tool", region: "intl", priceM: 0, priceY: 0, cur: "USD", seat: false,
+  { id: "plan-0119", vendor: "Roo Code", plan: "开源版（已下架）", cat: "tool", region: "intl", priceM: 0, priceY: 0, cur: "USD", seat: false, availability: "retired",
     modelAccess: "byok", includedModelQuota: false,
     quota: "VS Code 扩展已于 2026-05-15 停更，不再发版",
     models: "BYOK 任意",
@@ -1112,7 +1109,7 @@ const PLANS = [
     note: "无订阅制；按量付费 + 5.5% 平台费（Business 8%）",
     url: "https://openrouter.ai/pricing" },
 
-  { id: "plan-0133", vendor: "Lovable", plan: "Free", cat: "tool", region: "intl", priceM: 0, priceY: 0, cur: "USD", seat: false,
+  { id: "plan-0133", vendor: "Lovable", plan: "Free", cat: "tool", region: "intl", priceM: 0, priceY: 0, cur: "USD", seat: false, freeCodingEntry: false,
     quota: "5 个每日 build credits（月上限 30）+ 每日 chat + 每月 20 Cloud credits + 4 AI credits",
     models: "Lovable 内置模型集",
     tools: "仅 Lovable 自家应用构建，不是 Coding Agent 模型额度",
@@ -1137,7 +1134,7 @@ const PLANS = [
     note: "联系销售",
     url: "https://docs.lovable.dev/introduction/subscription-plans.md" },
 
-  { id: "plan-0137", vendor: "Bolt.new", plan: "Free", cat: "tool", region: "intl", priceM: 0, priceY: 0, cur: "USD", seat: false,
+  { id: "plan-0137", vendor: "Bolt.new", plan: "Free", cat: "tool", region: "intl", priceM: 0, priceY: 0, cur: "USD", seat: false, freeCodingEntry: false,
     quota: "300K tokens/日上限、1M tokens/月；带水印",
     models: "Bolt 内置模型集",
     tools: "仅 Bolt.new 自家网页应用构建，不是 Coding Agent 模型额度",
@@ -1231,42 +1228,42 @@ const PLANS = [
    * 国内 Coding Plan 订阅
    * ============================================================ */
   /* ---- 智谱 BigModel V1/V2 历史版本 ---- */
-  { id: "plan-0151", vendor: "智谱 BigModel", plan: "GLM Coding V1 Lite（已停售）", cat: "official", region: "cn", priceM: 20, priceY: null, cur: "CNY", seat: false,
+  { id: "plan-0151", vendor: "智谱 BigModel", plan: "GLM Coding V1 Lite（已停售）", cat: "official", region: "cn", priceM: 20, priceY: null, cur: "CNY", seat: false, availability: "retired",
     windowPeriod: "5h", quotaSharing: "shared",
     quota: "每 5 小时约 120 次 prompt（10 并发）；无每周上限",
     models: "GLM-4.5 时代",
     tools: "Claude Code",
     note: "2025-09 上线（'20 元用到大饱'）；2026-02-12 起新用户只能买 V2；存量 2026-04-30 关自动续订",
     url: "https://docs.bigmodel.cn/cn/coding-plan/overview" },
-  { id: "plan-0152", vendor: "智谱 BigModel", plan: "GLM Coding V1 Pro（已停售）", cat: "official", region: "cn", priceM: 100, priceY: null, cur: "CNY", seat: false,
+  { id: "plan-0152", vendor: "智谱 BigModel", plan: "GLM Coding V1 Pro（已停售）", cat: "official", region: "cn", priceM: 100, priceY: null, cur: "CNY", seat: false, availability: "retired",
     windowPeriod: "5h", quotaSharing: "shared",
     quota: "每 5 小时约 600 次 prompt（30 并发）；无每周上限",
     models: "GLM-4.5 时代",
     tools: "Claude Code",
     note: "同上",
     url: "https://docs.bigmodel.cn/cn/coding-plan/overview" },
-  { id: "plan-0153", vendor: "智谱 BigModel", plan: "GLM Coding V1 Max（已停售）", cat: "official", region: "cn", priceM: 200, priceY: null, cur: "CNY", seat: false,
+  { id: "plan-0153", vendor: "智谱 BigModel", plan: "GLM Coding V1 Max（已停售）", cat: "official", region: "cn", priceM: 200, priceY: null, cur: "CNY", seat: false, availability: "retired",
     windowPeriod: "5h", quotaSharing: "shared",
     quota: "每 5 小时约 2,400 次 prompt（50 并发）；无每周上限",
     models: "GLM-4.5 时代",
     tools: "Claude Code",
     note: "¥200/月是历史记录，来源为第三方 GitHub 聚合仓库，官方未再公开该停售档价格",
     url: "https://docs.bigmodel.cn/cn/coding-plan/notice/usage-revision" },
-  { id: "plan-0154", vendor: "智谱 BigModel", plan: "GLM Coding V2 Lite（老用户续费）", cat: "official", region: "cn", priceM: 49, priceY: 39.2, cur: "CNY", seat: false,
+  { id: "plan-0154", vendor: "智谱 BigModel", plan: "GLM Coding V2 Lite（老用户续费）", cat: "official", region: "cn", priceM: 49, priceY: 39.2, cur: "CNY", seat: false, renewalOnly: true,
     windowPeriod: "5h", quotaSharing: "shared",
     quota: "每 5 小时约 80 次 prompt + 每周约 400 次；高峰 3x/非高峰 2x 抵扣",
     models: "GLM-5 系列",
     tools: "Claude Code、Codex、ZCode 等",
     note: "2026-02-12 上线；老用户可按 ¥49 续费；新用户不可购",
     url: "https://docs.bigmodel.cn/cn/coding-plan/notice/usage-revision" },
-  { id: "plan-0155", fieldRefs: {"tools":"plan-0154"}, vendor: "智谱 BigModel", plan: "GLM Coding V2 Pro（老用户续费）", cat: "official", region: "cn", priceM: 149, priceY: 119.2, cur: "CNY", seat: false,
+  { id: "plan-0155", fieldRefs: {"tools":"plan-0154"}, vendor: "智谱 BigModel", plan: "GLM Coding V2 Pro（老用户续费）", cat: "official", region: "cn", priceM: 149, priceY: 119.2, cur: "CNY", seat: false, renewalOnly: true,
     windowPeriod: "5h", quotaSharing: "shared",
     quota: "每 5 小时约 400 次 prompt + 每周约 2,000 次",
     models: "GLM-5 系列",
     tools: "同上",
     note: "包季 9 折 ¥134.1/月；包年 8 折 ¥119.2/月",
     url: "https://docs.bigmodel.cn/cn/coding-plan/notice/usage-revision" },
-  { id: "plan-0156", fieldRefs: {"tools":"plan-0155"}, vendor: "智谱 BigModel", plan: "GLM Coding V2 Max（老用户续费）", cat: "official", region: "cn", priceM: 469, priceY: 375.2, cur: "CNY", seat: false,
+  { id: "plan-0156", fieldRefs: {"tools":"plan-0155"}, vendor: "智谱 BigModel", plan: "GLM Coding V2 Max（老用户续费）", cat: "official", region: "cn", priceM: 469, priceY: 375.2, cur: "CNY", seat: false, renewalOnly: true,
     windowPeriod: "5h", quotaSharing: "shared",
     quota: "每 5 小时约 1,600 次 prompt + 每周约 8,000 次",
     models: "GLM-5 系列",
@@ -1646,7 +1643,7 @@ const PLANS = [
     tools: "同个人版",
     note: "限时价（标准座席原 ¥198）；承诺不使用数据训练模型；个人版与团队版可同时购买、独立计费",
     url: "https://help.aliyun.com/zh/model-studio/token-plan-overview" },
-  { id: "plan-0209", vendor: "阿里云百炼", plan: "Coding Plan Pro（限量抢购）", cat: "cloud", region: "cn", priceM: 200, priceY: null, cur: "CNY", seat: false,
+  { id: "plan-0209", vendor: "阿里云百炼", plan: "Coding Plan Pro（限量抢购）", cat: "cloud", region: "cn", priceM: 200, priceY: null, cur: "CNY", seat: false, availability: "limited",
     windowPeriod: "5h",
     quota: "每 5 小时 6,000 次请求 + 每周 45,000 次 + 每月 90,000 次（按调用次数计，与 token 消耗无关）",
     models: "qwen3.7-plus、qwen3.6-plus、kimi-k2.5、glm-5、MiniMax-M2.5 等",
