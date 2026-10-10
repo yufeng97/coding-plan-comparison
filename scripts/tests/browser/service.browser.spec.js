@@ -50,7 +50,7 @@ test("图表加载失败保留文字数据，重试只重新加载图表", async
 
 test("费用公式、预算临界点和分享URL刷新一致", async ({ page }) => {
   await page.goto("/?crequests=100&ctokens=20000&cdays=22&cinput=80&ccache=50&ccacheprice=0.2&cbudget=100#s4");
-  await page.locator("#costCalculator summary").click();
+  await page.locator("#costCalculator > summary").click();
   /* 默认模型Sonnet 5.5：44M总量，80%输入；半数缓存0.2，其余输入2、输出10。 */
   await expect(page.locator("#costResult")).toContainText("$126.72");
   await expect(page.locator("#costResult")).toContainText("超出月预算");
@@ -58,7 +58,7 @@ test("费用公式、预算临界点和分享URL刷新一致", async ({ page }) 
   await expect(page.locator("#costResult")).toContainText("$440");
   await expect(page).toHaveURL(/cinput=0/);
   await page.reload();
-  await page.locator("#costCalculator summary").click();
+  await page.locator("#costCalculator > summary").click();
   await expect(page.locator("#costInput")).toHaveValue("0");
   await expect(page.locator("#costResult")).toContainText("$440");
   await page.locator("#costTokens").fill("0");
