@@ -545,4 +545,14 @@ test("降级对比窗口包含核查说明且跳过收起详情内的链接", ()
   healthy(app);
 });
 
+
+test("额度表空态的模型档提示与下拉选项文字一致", () => {
+  const app = createApp();
+  app.run('metricsState.model = "__none__"; renderMetricsTable();');
+  const html = app.elements.get("metricsBody").innerHTML;
+  assert.match(html, /含轻量模型/);
+  assert.doesNotMatch(html, /全部模型档/);
+  healthy(app);
+});
+
 if (require.main === module) main();

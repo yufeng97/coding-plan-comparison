@@ -306,4 +306,15 @@ test("应用个人图条件停用本区支付切换，金额使用选购方式�
   healthy(app);
 });
 
+
+test("输入占比带小数时输出占比不出现浮点误差", () => {
+  const app = createApp();
+  app.run('calcState.input = "97.9"; renderCostCalculator();');
+  const html = app.elements.get("costResult").innerHTML;
+  assert.match(html, /当前输入 97\.9% \/ 输出 2\.1%/);
+  assert.doesNotMatch(html, /2\.09999/);
+  assert.equal(app.run('outputSharePct("80")'), "20");
+  healthy(app);
+});
+
 if (require.main === module) main();

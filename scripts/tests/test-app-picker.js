@@ -590,4 +590,21 @@ test("Cursor 复杂任务参考说明按量池费用，模型能力不被错误�
   healthy(app);
 });
 
+
+test("日常为主的主计划也列出同一日常模型的省钱档，与升级参考选角一致", () => {
+  const app = createApp({ url: "http://127.0.0.1:8123/index.html?budget=any&region=intl&task=daily" });
+  healthy(app);
+  const main = JSON.parse(app.run(`(() => { const m = chooseMain(eligibleProfiles()); return JSON.stringify({ vendor: m.p.vendor, plan: m.p.plan, loose: m.loose.map((r) => r.id), cheaper: cheaperTiers(m).map((x) => ({ plan: x.p.plan, loose: x.loose.map((r) => r.id), price: pickerMonthlyCNY(x.p) })), price: pickerMonthlyCNY(m.p) }); })()`));
+  assert.ok(main.loose.length, "日常为主的主计划应带日常模型");
+  assert.ok(main.cheaper.length > 0, main.vendor + " " + main.plan + " 应列出同一日常模型的更便宜档位");
+  for (const tier of main.cheaper) {
+    assert.ok(tier.loose.includes(main.loose[0]), tier.plan + " 应包含主计划的日常模型");
+    assert.ok(tier.price < main.price, tier.plan + " 应比主计划便宜");
+  }
+  /* 复杂任务主计划仍按主力模型选省钱档。 */
+  app.run('Object.assign(pickerState, { budget: "any", region: "cn", tool: "any", task: "both", billing: "M" }); renderPicker();');
+  assert.equal(app.run('cheaperTiers(planProfile(PLANS.find((p) => p.vendor === "智谱 BigModel" && p.plan === "GLM Coding V3 Max"))).some((x) => x.p.plan === "GLM Coding V3 Pro")'), true);
+  healthy(app);
+});
+
 if (require.main === module) main();
