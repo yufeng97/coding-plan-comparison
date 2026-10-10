@@ -10,8 +10,8 @@ for (const width of [375, 1280]) {
       await page.goto("/" + sharedQuery + "#" + section);
       await page.waitForFunction(() => window["codingPlanReady"] === true);
       await page.locator("#cmpCloseBtn").click();
-      await page.waitForFunction("typeof chartCache !== 'undefined' && !!chartCache." + chart);
-      await page.evaluate("chartCache." + chart + ".dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: 0 })");
+      await page.waitForFunction(id => !!window["chartCache"]?.[id], chart);
+      await page.evaluate(id => window["chartCache"][id].dispatchAction({ type: "showTip", seriesIndex: 0, dataIndex: 0 }), chart);
       await expect.poll(() => page.locator('div[style*="z-index: 2000"]').count()).toBeGreaterThan(0);
 
       for (const [view, data] of [["benchmarks", "benchmark"], ["updates", "maintenance"]]) {

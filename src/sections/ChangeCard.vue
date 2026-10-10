@@ -1,9 +1,9 @@
-<script setup>
+<script setup lang="ts">
 /* 一条已确认变更：字段的前后值与官方证据。 */
-import * as legacy from "virtual:legacy-lib";
+import * as legacy from "@domain/runtime";
 import SourceLinks from "./SourceLinks.vue";
 
-defineProps({ change: { type: Object, required: true }, unread: { type: Boolean, default: false } });
+defineProps<{ change: MaintenanceChange; unread?: boolean }>();
 </script>
 
 <template>

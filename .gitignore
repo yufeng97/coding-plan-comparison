@@ -9,6 +9,7 @@ audit/.pricing.lock
 **/.fonts-backup-*/
 js/data.js.bak
 node_modules/
+.domain-types/
 .site-build/
 playwright-report/
 test-results/

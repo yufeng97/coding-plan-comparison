@@ -43,7 +43,7 @@ for (const file of suite) {
 }
 if (!process.exitCode) {
   console.log("全部 Node 回归通过：" + suite.length + " 个套件");
-  /* Vue 组件测试（src/**\/*.test.js，happy-dom） */
+  /* Vue 组件测试（src/**\/*.test.ts，happy-dom） */
   const cli = path.join(path.dirname(require.resolve("vitest/package.json")), require("vitest/package.json").bin.vitest);
   const vitest = spawnSync(process.execPath, [cli, "run"], { stdio: "inherit", cwd: path.resolve(__dirname, "..", "..") });
   if (vitest.error) throw vitest.error;

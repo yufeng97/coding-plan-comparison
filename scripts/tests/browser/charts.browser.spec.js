@@ -36,12 +36,11 @@ test("空白和被忽略的符号保持20档，展开与收起仍可操作", asy
   const errors = trackErrors(page);
   await openPersonal(page);
   for (const value of [" ", "---", " . / _ · "]) {
-    const oldToggle = await page.locator("#showAllPersonal").elementHandle();
-    expect(oldToggle).not.toBeNull();
     await page.locator("#chartSearch").fill(value);
-    /* 等待真实防抖渲染替换旧按钮，避免默认20档让断言在渲染前就通过。 */
-    await oldToggle.evaluate((el) => new Promise((resolve) => { if (!el.isConnected) resolve(); else new MutationObserver((_m, obs) => { obs.disconnect(); resolve(); }).observe(el.parentNode, { childList: true }); }));
-    await oldToggle.dispose();
+    /* Vue 保留按钮节点；等待防抖搜索提交及图表稳定，再核对默认条数与焦点。 */
+    await expect.poll(() => page.evaluate("personalState.q")).toBe(value);
+    await expect.poll(() => page.evaluate("chartCache.chartPersonal.getOption().series[0].data.length")).toBe(20);
+    await expect(page.locator("#chartSearch")).toBeFocused();
     await expect(page.locator("#showAllPersonal")).toBeVisible();
     expect(await page.evaluate("chartCache.chartPersonal.getOption().series[0].data.length")).toBe(20);
     await expect(page.locator("#notePersonal")).not.toContainText("同名模型还有");
@@ -95,6 +94,29 @@ test("个人图表空态清除后恢复20档和真实画布", async ({ page }) =
   expect(await page.evaluate("chartCache.chartPersonal.getOption().series[0].data.length")).toBe(20);
   expect(await page.evaluate("chartCache.chartPersonal.getWidth()")).toBeGreaterThan(100);
   expect(await page.evaluate("chartCache.chartPersonal.getHeight()")).toBeGreaterThan(400);
+  expect(errors).toEqual([]);
+});
+
+test("手机空结果分享链接首屏和空态不加载图表，清除搜索后仍首次绘图", async ({ page }) => {
+  const errors = trackErrors(page);
+  /** @type {string[]} */
+  const chartRequests = [];
+  page.on("request", request => { if (/\/libs\/echarts(?:[.-]|\.js)/.test(request.url())) chartRequests.push(request.url()); });
+  await page.setViewportSize({ width: 375, height: 900 });
+  await page.goto("/?pq=__不匹配任何计划__");
+  await expect(page.locator("#chartSearch")).toHaveValue("__不匹配任何计划__");
+  await page.waitForTimeout(900); // Cover the first periodic lazy fallback, beyond initial startup.
+  expect(chartRequests).toEqual([]);
+  expect(await page.evaluate("typeof echarts")).toBe("undefined");
+  await page.locator("#chartPersonalEmpty").scrollIntoViewIfNeeded();
+  await expect(page.locator("#chartPersonalEmpty")).toBeVisible();
+  await page.waitForTimeout(200);
+  expect(chartRequests).toEqual([]);
+  await page.locator("#personalResetBtn").click();
+  await expect(page.locator("#chartSearch")).toBeFocused();
+  await expect(page.locator("#chartPersonal canvas")).toHaveCount(1);
+  await expect.poll(() => page.evaluate("chartCache.chartPersonal.getOption().series[0].data.length")).toBe(20);
+  expect(chartRequests).toHaveLength(1);
   expect(errors).toEqual([]);
 });
 

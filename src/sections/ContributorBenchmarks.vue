@@ -1,23 +1,20 @@
-<script setup>
+<script setup lang="ts">
 /* 贡献者工具：本地任务框架的验收记录、任务说明与测评方法。公开模型榜单另见 PublicBenchmarks.vue。 */
 import { computed } from "vue";
-import * as legacy from "virtual:legacy-lib";
-import { targetValue } from "./dom.js";
+import * as legacy from "@domain/runtime";
+import { targetValue } from "./dom";
+import { fromData } from "./optional-data";
 
 const filter = legacy.benchmarkFilter;
-const fromData = (read) => computed(() => {
-  void legacy.dataRevision.benchmark;
-  return read();
-});
-const loaded = fromData(() => legacy.optionalDataLoaded("benchmark"));
-const data = fromData(() => legacy.benchmarkData());
-const choices = fromData(() => ({ tool: legacy.benchmarkFilterOptions("tool"), model: legacy.benchmarkFilterOptions("model") }));
-const runs = fromData(() => legacy.benchmarkRuns().map((run) => ({ id: run.id, ...legacy.benchmarkRunView(run) })));
+const loaded = fromData("benchmark", () => legacy.optionalDataLoaded("benchmark"));
+const data = fromData("benchmark", () => legacy.benchmarkData());
+const choices = fromData("benchmark", () => ({ tool: legacy.benchmarkFilterOptions("tool"), model: legacy.benchmarkFilterOptions("model") }));
+const runs = fromData("benchmark", () => legacy.benchmarkRuns().map((run) => ({ id: run.id, ...legacy.benchmarkRunView(run) })));
 const tasks = computed(() => data.value.tasks.filter((task) => filter.task === "all" || task.id === filter.task));
 const emptyText = computed(() => !loaded.value ? legacy.optionalPendingText("贡献者任务与记录")
   : data.value.runs.length ? "当前筛选没有贡献者记录。" : "尚未收录贡献者任务记录。这里的验收工具用于复现提交的单份解答，未测量的数据不填充分数。");
 
-function choose(key, value) {
+function choose(key: "task" | "tool" | "model", value: string) {
   const allowed = key === "task" ? data.value.tasks.map((task) => task.id) : choices.value[key];
   filter[key] = allowed.includes(value) ? value : "all";
 }

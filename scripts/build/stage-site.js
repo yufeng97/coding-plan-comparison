@@ -58,7 +58,7 @@ async function viteBuild(outDir, root) {
   await build({ root, configFile: path.join(root, "vite.config.mjs"), logLevel: "warn", build: { outDir, emptyOutDir: true } });
 }
 
-/** @param {string} [workspace] @param {{ build?: (outDir: string, root: string) => Promise<void>, prerender?: (html: string) => string }} [options]
+/** @param {string} [workspace] @param {{ build?: (outDir: string, root: string) => Promise<void>, prerender?: (html: string) => string | Promise<string> }} [options]
  * build 默认是 Vite 构建（测试可替换）；prerender 只在发布本仓库时注入首屏静态内容。
  * @returns {Promise<{ directory: string, files: string[] }>} */
 async function stageSite(workspace = repositoryRoot, options = {}) {
@@ -78,7 +78,7 @@ async function stageSite(workspace = repositoryRoot, options = {}) {
   try {
     await (options.build || viteBuild)(stage, root);
     const entry = path.join(stage, "index.html");
-    if (options.prerender) fs.writeFileSync(entry, options.prerender(fs.readFileSync(entry, "utf8")));
+    if (options.prerender) fs.writeFileSync(entry, await options.prerender(fs.readFileSync(entry, "utf8")));
     for (const rel of listFiles(stage)) {
       if (!publicSiteFile(rel) || hiddenSegment(rel)) throw new Error(`构建产物不在公共白名单：${rel}`);
     }

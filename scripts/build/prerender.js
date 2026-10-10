@@ -1,17 +1,14 @@
 #!/usr/bin/env node
-/* 构建期首屏预渲染：在页面虚拟 DOM 中运行真实页面脚本，把默认条件下由数据生成的内容写进发布用的 index.html。
+/* 构建期首屏预渲染：隔离运行真实 Vue App，把默认状态生成的内容写进发布用的 index.html。
  * 搜索引擎、链接预览和脚本尚未执行的访问者能直接看到推荐、套餐价格、免费入口、动态与来源；
  * 浏览器执行脚本后按当前条件重绘这些容器。带查询参数的链接在重绘前隐藏预渲染内容，避免先闪出默认推荐。 */
 "use strict";
-const { createApp } = require("../lib/page-vm");
-
-/* 只预渲染「选套餐」视图里由数据决定、无需交互状态即可阅读的容器。来源清单、核对记录和不确定性说明
-   体积大且默认折叠，留给脚本渲染，控制发布页 HTML 的体积。 */
-const PRERENDER_TARGETS = [
-  "priceAuditSummary", "statsRow", "quickGrid", "pickerNote", "pickerPolicy", "pickerRulesNote",
-  "freeGrid", "freeCount", "tableBody", "tableCount", "dynamicsList", "apiDetailBody",
-];
-const escapeText = (value) => String(value).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { execFile } = require('node:child_process');
+const { promisify } = require('node:util');
+const run = promisify(execFile);
 
 /** 把容器的渲染结果写入空的同名元素，并标记 data-prerendered。容器在源文件中必须为空，避免误替换嵌套内容。
  * @param {string} html @param {string} id @param {string} content */
@@ -30,20 +27,21 @@ function injectContainer(html, id, content) {
   return html.slice(0, open) + opening + ">" + content + html.slice(closeAt);
 }
 
-/** @param {string} html 已带缓存版本号的发布用 index.html @returns {string} */
-function prerenderIndex(html) {
-  const app = createApp({ width: 1280 });
-  if (app.errors.length) throw new Error("预渲染时页面脚本报错：" + app.errors.join("；"));
-  let out = html;
-  for (const id of PRERENDER_TARGETS) {
-    const element = app.elements.get(id);
-    if (!element) throw new Error("页面虚拟 DOM 缺少预渲染目标：" + id);
-    const content = element.innerHTML || escapeText(element.textContent || "");
-    if (!content.trim()) continue;
-    if (/<script\b|\son[a-z]+\s*=|javascript:/i.test(content)) throw new Error("预渲染内容含可执行代码：" + id);
-    out = injectContainer(out, id, content);
+/** @param {string} html 已带缓存版本号的发布用 index.html @returns {Promise<string>} */
+async function prerenderIndex(html) {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'coding-plan-ssr-'));
+  const output = path.join(directory, 'render.json');
+  try {
+    await run(process.execPath, [path.join(__dirname, 'render-vue.mjs'), output], { cwd: path.resolve(__dirname, '../..'), timeout: 120000, maxBuffer: 4 * 1024 * 1024 });
+    const { rendered, teleports } = JSON.parse(fs.readFileSync(output, 'utf8'));
+    if (/<script\b|\son[a-z]+\s*=|javascript:/i.test(rendered + teleports)) throw new Error('Vue 预渲染含可执行内容');
+    // Dialogs are closed in the static default view. Client mounting creates their
+    // Teleport nodes once; inserting server Teleports here would leave duplicate IDs.
+    return injectContainer(html, 'app', rendered);
+  } finally {
+    if (path.dirname(directory) !== fs.realpathSync(os.tmpdir()) || !path.basename(directory).startsWith('coding-plan-ssr-')) throw new Error('拒绝清理未知预渲染目录');
+    fs.rmSync(directory, { recursive: true, force: true });
   }
-  return out;
 }
 
-module.exports = { prerenderIndex, injectContainer, PRERENDER_TARGETS };
+module.exports = { prerenderIndex, injectContainer };

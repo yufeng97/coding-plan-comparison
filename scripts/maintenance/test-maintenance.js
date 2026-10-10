@@ -14,7 +14,8 @@ const outputs = ["data/change-history.json", "data/maintenance.json", "js/mainte
 function fixture(run) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "coding-plan-maintenance-test-"));
   try {
-    for (const file of ["index.html", "js", "css", "libs"]) fs.cpSync(path.join(workspace, file), path.join(root, file), { recursive: true });
+    /* 维护与核价回放使用生产候选校验，夹具保留完整 Vue/TypeScript 入口依赖。 */
+    for (const file of ["index.html", "src", "js", "css", "libs"]) fs.cpSync(path.join(workspace, file), path.join(root, file), { recursive: true });
     fs.mkdirSync(path.join(root, "audit"));
     fs.mkdirSync(path.join(root, "config"));
     fs.copyFileSync(path.join(workspace, "audit/pricing-verification-2026-10-04.json"), path.join(root, "audit/pricing-verification-2026-10-04.json"));

@@ -41,7 +41,7 @@
 
 **按工作量估算**：可从 ccusage 导入真实用量（`npx ccusage@latest daily --json`，只在本页解析），自动换算输入占比、缓存命中率和每月使用天数；缓存单价留空时按官方缓存命中价计费（不含缓存写入与存储费），未录入官方缓存价的模型按普通输入价计算。结果下方列出参考月额度下限能覆盖该用量的套餐、同模型按量费用与订阅回本点。推荐旁的「按我的用量核对」带入预算及可精确匹配的模型，并展开 API 区计算器。可以用轻度使用、日常开发、高强度使用预设起步，再修改每天请求数、每次输入加输出的总 tokens、使用天数、输入占比、输入缓存命中率和人民币月预算。保守／典型／乐观情景明确采用不同输入与缓存假设，各自展示预计月费及工作量上下浮动 20% 的范围；预设与情景是示例，手动编辑后相应高亮取消。缓存单价选填并标明原币，留空时采用官方缓存命中价，未录入官方价的模型按普通输入价计算；模型、币种和核价来源沿用同一份价格数据。套餐参考月量会说明模型是否匹配及折算假设；跨模型或假设不同的 token 数不用于保证额度够用。排行与额度表另外显示参考额度上下界对应的满额折算成本区间，主值仍按区间中点排序。所有计算在本页完成，保存条件使用本地存储，不上传用户输入。
 
-**加载与阅读**：发布页预渲染了默认推荐、价格表与免费入口，脚本执行前即可阅读；页面脚本由 Vite 打包为带内容哈希的模块。手机默认收起长介绍和进阶筛选，优先显示预算与地区；进阶摘要显示当前工具和任务条件。价格数据、推荐、表格及文字明细先显示，ECharts 在接近图表或跳转图表章节时加载。图表失败可局部重试，主脚本失败显示重新加载入口。
+**加载与阅读**：发布页通过 Vue 服务端渲染生成默认推荐、价格表与免费入口，脚本执行前即可阅读；浏览器挂载同一套 Vue 组件，按当前链接和本机状态接管页面。TypeScript 入口由 Vite 打包为带内容哈希的模块。手机默认收起长介绍和进阶筛选，优先显示预算与地区；进阶摘要显示当前工具和任务条件。价格数据、推荐、表格及文字明细先显示，ECharts 在接近图表或跳转图表章节时加载。图表失败可局部重试，主脚本失败显示重新加载入口。
 
 ## 本地开发
 
@@ -50,19 +50,22 @@
 ```bash
 npm run dev          # Vite 开发服务器（只监听 127.0.0.1，改动即时生效）
 npm run serve        # 生成发布产物后用自带静态服务器预览（只监听 127.0.0.1，只提供 .site-build/ 内的文件）
-npm run check        # 页面脚本语法
-npm run typecheck    # 旧脚本 checkJs 与 Vue 组件（vue-tsc）类型检查
-npm run types:legacy # 旧脚本顶层声明变化后，更新组件使用的类型声明
+npm run check        # 审计输入与生成数据脚本语法
+npm run catalog:build # 修改审计数据后重新生成 src/domain/catalog.ts
+npm run catalog:check # 只检查生成的目录与审计输入一致，不改文件
+npm run typecheck    # 数据目录一致性、TS 业务模块、严格 Vue/模板/组件测试及工具类型检查
 npm run validate     # 数据结构、引用、来源与日期
 npm test             # 25 个 Node 回归套件 + Vue 组件测试
 npm run test:unit    # 只跑 Vue 组件测试（Vitest）
 npm run test:browser # 构建后用 Chromium / Firefox / WebKit 做真实浏览器回归
-npm run build:site   # 生成带预渲染的发布产物 .site-build/
+npm run build:site   # Vite + Vue SSR 生成发布产物 .site-build/
 ```
 
-页面正在从经典脚本逐步迁移到 Vue 3：旧脚本仍在 `js/`，由 Vite 按 `js/legacy-scripts.json` 的顺序合并；已迁移的区块是 `src/sections/` 下的组件。说明见 [架构与发布](docs/architecture.md#前端结构与迁移)。
+前端已完成 Vue 3 + Vite + TypeScript 迁移：`src/App.vue` 组织整页，`src/sections/` 负责原生组件渲染与交互，`src/domain/` 保存共享状态、推荐、额度计算、URL 与导出逻辑。所有页面业务代码使用显式 ES 模块，旧的经典脚本合并插件与虚拟模块类型声明已经删除。Vue 组件、模板和测试使用严格 TypeScript；业务模块由单独的 TypeScript 配置检查，保留原有空值与非严格推断语义，未声称全仓严格化。说明见 [架构与发布](docs/architecture.md#前端结构与迁移)。
 
-修改数据后还需 `npm run maintenance:build`（维护摘要、变更 RSS 与分厂商订阅）；详细流程见 [数据维护手册](docs/maintenance.md)。
+`js/data.js` 等审计与维护输入仍是数据的编辑源，构建生成并提交 `src/domain/catalog.ts`；`catalog:check` 防止两份内容漂移。旧 HTML 渲染器仅保留在测试夹具中，生产渲染使用 Vue。浏览器回归使用真实发布产物，Node 回归通过测试适配器执行当前 TypeScript 业务逻辑。
+
+修改数据后运行 `npm run catalog:build` 与 `npm run maintenance:build`（维护摘要、变更 RSS 与分厂商订阅）；评测摘要变化后也需重新生成目录。详细流程见 [数据维护手册](docs/maintenance.md)。
 
 ## 免责声明
 

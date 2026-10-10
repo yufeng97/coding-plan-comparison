@@ -7,7 +7,7 @@ const vm = require("node:vm");
 const root = path.join(__dirname, "..", "..");
 const dataPath = path.join(root, "js/data.js");
 const dataSource = fs.readFileSync(dataPath, "utf8");
-const metricsSource = fs.readFileSync(path.join(root, "js/metrics.js"), "utf8");
+const metricsSource = require('./fixtures/read-typescript').classicSource('src/domain/metrics.ts');
 const validatorSource = fs.readFileSync(path.join(root, "scripts/build/validate-data.js"), "utf8");
 
 function load() {
@@ -380,7 +380,7 @@ for (const [label, mutation, expected] of invalidFixtures) {
   });
 }
 
-test("校验器提示已结束的限时活动、复制的周额度与过期首页日期，但不阻断同步", () => {
+test("校验器提示已结束的限时活动与复制周额度，Vue 首页日期直接读取版本", () => {
   const result = validateFixture([
     "PLANS.find(p=>p.id==='plan-0157').note+='；双节活动（09-25~10-07）全天按非高峰消耗';",
     "PLANS.find(p=>p.id==='plan-0066').note+='；截至 2026-10-04 的用量说明';",
@@ -392,7 +392,8 @@ test("校验器提示已结束的限时活动、复制的周额度与过期首�
   assert.match(result.output, /已结束的限时活动日期.*plan-0157（09-25~10-07）/);
   assert.doesNotMatch(result.output, /plan-0066（至/, "「截至」是时点说明，不是活动截止");
   assert.match(result.output, /相同周额度但额度原文不同.*plan-0031.*plan-0032/);
-  assert.match(result.output, /#heroDate 的静态日期 .* 与 META\.updated 2026-10-10 不一致/);
+  assert.doesNotMatch(result.output, /#heroDate 的静态日期 .* 不一致/);
+  assert.match(fs.readFileSync(path.join(root, 'src/App.vue'), 'utf8'), /id="heroDate">\{\{ META\.updated \}\}/, '首页日期绑定审计版本，无静态日期漂移');
 });
 
 test("核查说明改写去掉字段名与「库存」术语，保留真实商品库存的说法", () => {

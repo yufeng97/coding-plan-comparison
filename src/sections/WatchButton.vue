@@ -1,13 +1,13 @@
-<script setup>
-/* 关注按钮。点击由页面统一委托处理（data-watch-plan → toggleFollowPlan），这里只按关注状态渲染。 */
+<script setup lang="ts">
+/* 关注按钮按响应式关注状态渲染并提交本机关注变更。 */
 import { computed } from "vue";
-import * as legacy from "virtual:legacy-lib";
+import * as legacy from "@domain/runtime";
 
-const props = defineProps({ plan: { type: Object, required: true } });
+const props = defineProps<{ plan: Plan }>();
 const on = computed(() => legacy.followState.planIds.includes(props.plan.id));
 </script>
 
 <template>
   <button type="button" class="watch-plan" :class="{ on }" :data-watch-plan="plan.id" :aria-pressed="on"
-    :aria-label="`${on ? '取消关注' : '关注'} ${legacy.planTitle(plan)}`">{{ on ? "已关注" : "关注" }}</button>
+    @click.stop="legacy.toggleFollowPlan(plan.id)" :aria-label="`${on ? '取消关注' : '关注'} ${legacy.planTitle(plan)}`">{{ on ? "已关注" : "关注" }}</button>
 </template>

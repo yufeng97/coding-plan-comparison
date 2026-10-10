@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* ============================================================
  * 额度换算与模型分类的单元测试：node scripts/tests/test-metrics.js
- * 零依赖（node:assert + vm），载入 js/data.js + js/metrics.js 后
+ * node:assert + vm 载入审计输入和当前 src/domain/metrics.ts 后
  * 用手算基准值锁定公式。改动换算假设（缓存率、80/20、4.33 等）
  * 或旗舰正则后必须跑本脚本；退出码 0=通过 1=失败。
  * ============================================================ */
@@ -11,8 +11,9 @@ const path = require("path");
 const assert = require("assert");
 const root = path.join(__dirname, "..", "..");
 
-const src = ["js/data.js", "js/metrics.js"]
-  .map((f) => fs.readFileSync(path.join(root, f), "utf8"))
+const { classicSource } = require('./fixtures/read-typescript');
+const src = ["js/data.js", "src/domain/metrics.ts"]
+  .map((f) => f.endsWith('.ts') ? classicSource(f) : fs.readFileSync(path.join(root, f), "utf8"))
   .join("\n;\n");
 const sandbox = { console };
 sandbox.globalThis = sandbox;
@@ -186,9 +187,9 @@ test("限量只看计划名", () => {
 
 console.log("auditProfiles（帮我选）");
 test("默认数据下 auditProfiles 不报错", () => {
-  /* 与页面虚拟 DOM 相同的执行顺序（index.html 中的经典脚本 + js/legacy-scripts.json），不含启动脚本 */
-  const files = require("../lib/page-vm").scripts.filter((file) => file !== "js/app-init.js");
-  const code = files.map((f) => fs.readFileSync(path.join(root, f), "utf8")).join("\n;\n");
+  /* 当前 TypeScript 业务计算；本用例不加载 DOM 渲染夹具或启动逻辑。 */
+  const files = require("../lib/page-vm").scripts.filter((file) => file !== "src/domain/startup.ts" && !file.startsWith('scripts/tests/fixtures/'));
+  const code = files.map((f) => f.endsWith('.ts') ? classicSource(f) : fs.readFileSync(path.join(root, f), "utf8")).join("\n;\n");
   const errors = [];
   const fakeConsole = { log() {}, warn() {}, error(...a) { errors.push(a.join(" ")); } };
   const box = {

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* 零依赖用户流程回归的测试入口：页面虚拟 DOM 在 scripts/lib/page-vm.js（构建期预渲染共用），
+/* Node 用户流程回归的测试入口：测试专用虚拟 DOM 在 scripts/lib/page-vm.js，Vue SSR 使用实际组件，
  * 这里只保留断言辅助与用例调度。各域用例见 test-app-*.js。 */
 "use strict";
 

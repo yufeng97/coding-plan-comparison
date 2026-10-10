@@ -1,53 +1,52 @@
-<script setup>
+<script setup lang="ts">
 /* 我的关注与套餐变更：关注与已读、关注同步、套餐历史、到期复查、核查概况与下载、逐条维护状态。
- * 状态与计算在 js/app-maintenance.js（推荐卡、数据表和完整权益窗口里的关注按钮也读写同一份 followState）。 */
+ * 状态与计算在 domain/runtime（推荐卡、数据表和完整权益窗口读写同一份 followState）。 */
 import { computed, nextTick, ref, watch } from "vue";
-import * as legacy from "virtual:legacy-lib";
+import * as legacy from "@domain/runtime";
 import ChangeCard from "./ChangeCard.vue";
 import PlanHistory from "./PlanHistory.vue";
 import SourceLinks from "./SourceLinks.vue";
 import WatchButton from "./WatchButton.vue";
-import { targetValue } from "./dom.js";
+import { targetValue } from "./dom";
+import { fromData } from "./optional-data";
 
 const follow = legacy.followState;
 const view = legacy.followView;
 const maintenance = legacy.maintenanceView;
-const RECORD_FILTERS = [["all", "全部记录"], ["unverified", "待核实"], ["stale", "超过复查间隔"]];
+const RECORD_FILTERS = [["all", "全部记录"], ["unverified", "待核实"], ["stale", "超过复查间隔"]] as const;
 
-/* 维护数据按需下载，到达时 dataRevision.maintenance 递增，依赖它的值随之重新读取。 */
-const fromData = (read) => computed(() => {
-  void legacy.dataRevision.maintenance;
-  return read();
-});
-const loaded = fromData(() => legacy.optionalDataLoaded("maintenance"));
-const snapshot = fromData(() => legacy.maintenanceData());
+const loaded = fromData("maintenance", () => legacy.optionalDataLoaded("maintenance"));
+const snapshot = fromData("maintenance", () => legacy.maintenanceData());
 const plans = computed(() => legacy.followedPlans());
-const feeds = fromData(() => legacy.followFeeds(plans.value));
-const unread = fromData(() => legacy.unreadFollowedChanges());
+const feeds = fromData("maintenance", () => legacy.followFeeds(plans.value));
+const unread = fromData("maintenance", () => legacy.unreadFollowedChanges());
 const importInfo = computed(() => legacy.followImportPlans());
 const importNames = computed(() => importInfo.value.fresh.slice(0, 5).map(legacy.planTitle).join("、") + (importInfo.value.fresh.length > 5 ? " 等" : ""));
 const unreadCountText = computed(() => `${plans.value.length} 档关注` + (loaded.value ? ` · ${unread.value.length} 条未读变更` : ""));
 const storageNote = computed(() => view.storageMessage || "只在当前浏览器保存关注与已读记录；不上传，不跨设备同步，清理浏览器数据后会消失。");
 const selectedPlan = computed(() => legacy.PLANS.find((p) => p.id === maintenance.planId) || null);
-const planStatus = fromData(() => selectedPlan.value ? legacy.maintenancePlanStatus(selectedPlan.value) : "");
-const reviews = fromData(() => legacy.dueReviews());
-const records = fromData(() => legacy.maintenanceRecords(maintenance.recordFilter));
+const planStatus = fromData("maintenance", () => selectedPlan.value ? legacy.maintenancePlanStatus(selectedPlan.value) : "");
+const reviews = fromData("maintenance", () => legacy.dueReviews());
+const records = fromData("maintenance", () => legacy.maintenanceRecords(maintenance.recordFilter));
 
-const planSelect = ref(null);
-const copyLinkButton = ref(null);
+const planSelect = ref<HTMLSelectElement | null>(null);
+const copyLinkButton = ref<HTMLButtonElement | null>(null);
 function markRead() {
   legacy.markFollowedChangesRead();
   legacy.focusTableControl(planSelect.value);
 }
-async function applyImport(merge) {
+function showDetails(id: string, event: Event) {
+  legacy.showPlanDetails(id, event.currentTarget as HTMLElement | null);
+}
+async function applyImport(merge: boolean) {
   legacy.applyFollowImport(merge);
   await nextTick();
   legacy.focusTableControl(merge ? copyLinkButton.value : planSelect.value);
 }
 /* 在关注列表里取消关注时，按钮随该档一起消失；焦点落回页面顶部前，移到同一面板的套餐选择框。 */
-let lastWatchButton = null;
-function rememberFocus(event) {
-  lastWatchButton = event.target.closest ? event.target.closest("[data-watch-plan]") : null;
+let lastWatchButton: Element | null = null;
+function rememberFocus(event: FocusEvent) {
+  lastWatchButton = (event.target as Element | null)?.closest("[data-watch-plan]") ?? null;
 }
 watch(() => follow.planIds.length, async () => {
   await nextTick();
@@ -79,7 +78,7 @@ watch(() => follow.planIds.length, async () => {
       <div id="followedPlans">
         <template v-if="plans.length">
           <div v-for="plan in plans" :key="plan.id" class="followed-plan">
-            <button type="button" class="chip" :data-view-plan="plan.id">{{ legacy.planTitle(plan) }}</button>
+            <button type="button" class="chip" :data-view-plan="plan.id" @click.stop="showDetails(plan.id, $event)">{{ legacy.planTitle(plan) }}</button>
             <WatchButton :plan="plan" />
           </div>
           <p v-if="feeds.length" class="follow-feeds">按厂商订阅变更 RSS：<template v-for="(feed, index) in feeds" :key="feed.path"><template v-if="index"> · </template><a :href="feed.path" target="_blank" rel="noopener">{{ feed.label }} ↗</a></template></p>
@@ -103,7 +102,7 @@ watch(() => follow.planIds.length, async () => {
         <template v-if="selectedPlan">
           <div class="maintenance-plan-actions">
             <WatchButton :plan="selectedPlan" />
-            <button type="button" class="chip" :data-view-plan="selectedPlan.id">完整权益</button>
+            <button type="button" class="chip" :data-view-plan="selectedPlan.id" @click.stop="showDetails(selectedPlan.id, $event)">完整权益</button>
           </div>
           <p class="maintenance-plan-status">{{ planStatus }}</p>
           <PlanHistory :key="selectedPlan.id" :plan-id="selectedPlan.id" />

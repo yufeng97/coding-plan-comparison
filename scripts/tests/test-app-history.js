@@ -293,6 +293,30 @@ test("用户锚点跳转聚焦目标章节，初始分享锚点保持原焦点",
   healthy(shared);
 });
 
+test("初始分享锚点等待图表时容许布局滚动，用户滚轮或PageUp仍取消导航", async () => {
+  for (const action of ["layout", "wheel", "PageUp"]) {
+    const app = createApp();
+    const before = app.scrolls.length;
+    app.run(`globalThis.initialChartsReady = false;
+      globalThis.initialChartGate = new Promise(resolve => { globalThis.finishInitialCharts = resolve; });
+      chartLibraryReady = () => initialChartsReady;
+      ensureChartLibrary = () => initialChartGate;
+      byId("s4").getBoundingClientRect = () => ({ top: 0 });
+      navigateToSection("#s3b", false, false, true);
+      window.scrollY = 4000;`);
+    app.fireWindow("scroll");
+    assert.equal(app.run('qs(\'.topnav a[aria-current="location"]\').getAttribute("href")'), "#s4", "模拟 SSR 行数与字体变化后位置暂时落在旧锚点下方");
+    if (action === "wheel") app.fireWindow("wheel");
+    if (action === "PageUp") app.fireWindow("keydown", { key: "PageUp" });
+    app.run("initialChartsReady = true; finishInitialCharts();");
+    await new Promise(resolve => setImmediate(resolve));
+    if (action === "layout") assert.equal(app.scrolls.at(-1).id, "s3b", "图表就绪后初始分享链接按最终布局重新对齐");
+    else assert.equal(app.scrolls.length, before, action + " 明确取消待完成的初始导航");
+    assert.equal(app.run("document.activeElement"), app.run("document.body"), "分享链接不抢键盘焦点");
+    healthy(app);
+  }
+});
+
 test("章节高亮按真实滚动间距及章节留白判断，字体完成只刷新用户当前位置", async () => {
   let finishFonts = () => {};
   const fontsReady = new Promise((resolve) => { finishFonts = () => resolve(null); });
@@ -460,6 +484,47 @@ test("历史事件前原生fragment清空焦点仍找回方案按钮，主动离
   app.fireWindow("popstate");
   assert.ok(app.run("document.activeElement") === app.run("document.body"), "主动离开方案按钮后不抢回焦点");
   healthy(app);
+});
+
+test("历史恢复保留的方案节点失焦到页面或锚点时补回焦点，其他控件保留用户选择", () => {
+  const app = createApp({ url: "http://127.0.0.1:8123/index.html#table" });
+  app.run("revealTablePlan('plan-0002');");
+  const button = () => app.elements.get("tableBody").querySelectorAll(".cmp-add").find((el) => el.dataset.planId === "plan-0002");
+  /* Vue 的 keyed row 可以保留节点；模拟浏览器在这轮更新/fragment导航中清空焦点。 */
+  for (const lostBeforeEvent of [false, true]) for (const destination of ["document.body", "byId('table')", "byId('shareResultsBtn')"]) {
+    button().focus();
+    app.history.pushState(null, "", app.location.search ? app.location.pathname + "#table" : "?q=Anthropic#table");
+    if (lostBeforeEvent) app.run("document.activeElement = document.body;");
+    app.run(`renderTable = () => { const target = ${destination}; if (target === document.body) document.activeElement = target; else target.focus(); };`);
+    app.fireWindow("popstate");
+    const expected = destination === "byId('shareResultsBtn')" ? app.elements.get("shareResultsBtn") : button();
+    assert.equal(app.run("document.activeElement"), expected);
+    assert.equal(button().isConnected, true);
+  }
+  button().focus();
+  app.history.pushState(null, "", app.location.search ? app.location.pathname + "#table" : "?q=Anthropic#table");
+  app.run("renderTable = () => { document.activeElement = document.body; }; revealTablePlan = () => { byId('shareResultsBtn').focus(); return true; };");
+  app.fireWindow("popstate");
+  assert.equal(app.run("document.activeElement"), app.elements.get("shareResultsBtn"), "展开目标页期间用户转到其他控件时不能抢回");
+  healthy(app);
+});
+
+test("后退保留keyed方案节点且不触发focusin，前进清焦时仍找回同一方案", () => {
+  for (const destination of ["document.body", "byId('table')"]) {
+    const app = createApp({ url: "http://127.0.0.1:8123/index.html?q=Anthropic#table" });
+    const button = app.elements.get("tableBody").querySelectorAll(".cmp-add").find((el) => el.dataset.planId === "plan-0002");
+    button.focus();
+    /* 保留实际节点和焦点：这次历史恢复不会产生新的 focusin。 */
+    app.run("renderTable = () => {};");
+    app.history.pushState(null, "", app.location.pathname + "#table");
+    app.fireWindow("popstate");
+    assert.equal(app.run("document.activeElement"), button);
+    app.history.pushState(null, "", "?q=Anthropic#table");
+    app.run(`const target = ${destination}; if (target === document.body) document.activeElement = target; else target.focus();`);
+    app.fireWindow("popstate");
+    assert.equal(app.run("document.activeElement"), button, "再次进入旧 URL 时不能因过时缓存丢失方案身份");
+    healthy(app);
+  }
 });
 
 if (require.main === module) main();

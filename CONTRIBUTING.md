@@ -49,6 +49,7 @@ API 条目的 `apiCache` 是同币种的缓存命中（读取）单价，只在�
 npm run pricing:sync -- --incremental --input audit/incremental.json
 npm run maintenance:build
 npm run benchmark:build
+npm run catalog:build
 npm run check
 npm run typecheck
 npm run validate

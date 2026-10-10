@@ -23,7 +23,8 @@ function dataOf(source) {
 function fixture(run) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "coding-plan-sync-test-"));
   try {
-    for (const item of ["index.html", "js", "css", "libs"]) fs.cpSync(path.join(workspace, item), path.join(root, item), { recursive: true });
+    /* 候选数据校验同时检查实际 Vue/TypeScript 应用入口；临时工作区复制完整公共源码布局。 */
+    for (const item of ["index.html", "src", "js", "css", "libs"]) fs.cpSync(path.join(workspace, item), path.join(root, item), { recursive: true });
     fs.mkdirSync(path.join(root, "audit"));
     for (const file of inputs) fs.copyFileSync(path.join(workspace, "audit", file), path.join(root, "audit", file));
     const checkedAt = JSON.parse(fs.readFileSync(path.join(root, "audit", inputs[0]), "utf8")).checkedAt;

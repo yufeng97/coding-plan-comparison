@@ -39,18 +39,17 @@ test("页面脚本由一个模块入口加载，主题脚本在样式前同步�
   const tags = [...html.matchAll(/<script\b([^>]*)\bsrc="([^"?]+)[^"]*"([^>]*)><\/script>/g)]
     .map((m) => ({ file: m[2], attrs: m[1] + m[3], at: m.index }));
   const classic = tags.filter((t) => t.file.startsWith("js/") && !/type="application\/json"/.test(t.attrs)).map((t) => t.file);
-  assert.deepEqual(classic, ["js/theme-init.js", "js/app-loader.js"], "其余旧脚本经 Vite 合并，不再逐个写在页面里");
+  assert.deepEqual(classic, ["js/theme-init.js", "js/app-loader.js"], "应用逻辑通过 TypeScript 模块入口加载");
   const theme = tags.find((t) => t.file === "js/theme-init.js"), loader = tags.find((t) => t.file === "js/app-loader.js");
   const entry = tags.find((t) => /\btype="module"/.test(t.attrs));
   assert.doesNotMatch(theme.attrs, /\b(?:defer|async)\b/, "主题脚本须在首帧前生效");
   assert.ok(theme.at < html.indexOf('rel="stylesheet"'), "主题脚本在样式之前");
   assert.match(loader.attrs, /\bdefer\b/);
-  assert.ok(entry && entry.file === "src/main.js" && !/\basync\b/.test(entry.attrs));
+  assert.ok(entry && entry.file === "src/main.ts" && !/\basync\b/.test(entry.attrs));
   /* Vite 把入口模块移到 head 末尾，加载提示须写在 head 中才能先于入口执行。 */
   assert.ok(loader.at < html.indexOf("</head>"), "加载提示须在 head 中");
-  const legacy = JSON.parse(fs.readFileSync(path.join(root, "js", "legacy-scripts.json"), "utf8"));
-  assert.ok(legacy.lib.length >= 10);
-  assert.equal(legacy.init, "js/app-init.js");
+  assert.ok(fs.existsSync(path.join(root, 'src/App.vue')));
+  assert.ok(fs.existsSync(path.join(root, 'src/domain/startup.ts')));
 });
 
 test("API 明细表只有一个渲染入口，图表加载前后名称一致", () => {
@@ -178,21 +177,35 @@ test("数据表默认收起中转站与待核价格，开关可显示、可分�
   healthy(app);
 });
 
-test("构建期预渲染写入默认推荐与价格表，启动后按链接条件重绘并移除标记", () => {
+test("构建期真实 Vue 预渲染写入默认推荐与价格表，只有应用根容器带标记", async () => {
   const { prerenderIndex, injectContainer } = require("../build/prerender");
-  const out = prerenderIndex(html);
-  assert.match(out, /id="tableBody" data-prerendered><tr>/);
-  assert.match(out, /id="quickGrid" data-prerendered><div class="quick-card"/);
-  assert.match(out, /id="freeGrid" data-prerendered>\s*<div class="free-card">/);
+  const { Window } = await import("happy-dom");
+  const out = await prerenderIndex(html);
+  const window = new Window({ settings: { disableJavaScriptEvaluation: true, disableJavaScriptFileLoading: true, disableCSSFileLoading: true } });
+  try {
+    window.document.write(out);
+    const document = window.document;
+    assert.deepEqual(Array.from(document.querySelectorAll("[data-prerendered]")).map((node) => node.id), ["app"]);
+    assert.ok(document.querySelectorAll("#tableBody tr").length > 0, "默认价格表由 Vue 服务端渲染");
+    assert.ok(document.querySelectorAll("#quickGrid > .quick-card .qc-plan").length > 0, "默认推荐有真实 Vue 卡片");
+    assert.ok(document.querySelectorAll("#freeGrid .free-card").length > 0, "免费入口在静态 HTML 中可见");
+    const ids = Array.from(document.querySelectorAll("[id]")).map((node) => node.id);
+    assert.equal(new Set(ids).size, ids.length, "静态页面没有重复组件或 Teleport ID");
+  } finally { await window.happyDOM.close(); }
   assert.doesNotMatch(out, /<script\b(?![^>]*\bsrc=)[^>]*>[^<]+<\/script>/, "不注入内联脚本，CSP 仍禁止内联");
+  assert.throws(() => injectContainer('<div id="x"><p>old</p></div>', "x", "new"), /应为空/);
+  assert.throws(() => injectContainer("<div></div>", "x", "new"), /缺失或重复/);
+});
+
+test("历史 VM 启动边界按链接条件运行并清理首屏标记", () => {
+  const shell = fs.readFileSync(path.join(root, "scripts/tests/fixtures/page-shell.html"), "utf8").replace('id="quickGrid"', 'id="quickGrid" data-prerendered');
   for (const url of ["http://127.0.0.1:8123/index.html", "http://127.0.0.1:8123/index.html?budget=500&tall=1#table"]) {
-    const app = createApp({ html: out, url });
+    const app = createApp({ html: shell, url });
     healthy(app);
     assert.equal(app.run('document.querySelectorAll("[data-prerendered]").length'), 0, "启动后不再隐藏任何容器");
     assert.equal(app.run('document.documentElement.classList.contains("has-query")'), false);
+    assert.equal(app.run("pickerState.budget"), new URL(url).searchParams.get("budget") || "200");
   }
-  assert.throws(() => injectContainer('<div id="x"><p>old</p></div>', "x", "new"), /应为空/);
-  assert.throws(() => injectContainer("<div></div>", "x", "new"), /缺失或重复/);
 });
 
 test("发布产物附带分享图等公共静态文件，跳过隐藏文件且不越出白名单", () => {

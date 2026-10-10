@@ -275,21 +275,22 @@ test("搜索延迟重绘时保留快速进入的对比按钮，筛掉方案则�
   await page.goto("/?q=Anthropic#table");
   const add = page.locator('#tableBody .cmp-add[data-plan-id="plan-0002"]');
   for (const query of ["Claude", "Cursor"]) {
-    const previous = await page.evaluateHandle((query) => {
+    await page.evaluate((query) => {
       const search = /** @type {HTMLInputElement} */ (document.getElementById("searchInput"));
       search.value = query;
       search.dispatchEvent(new Event("input", { bubbles: true }));
       const button = /** @type {HTMLElement} */ (document.querySelector('#tableBody .cmp-add[data-plan-id="plan-0002"]'));
       button.focus();
-      return button;
     }, query);
-    await expect.poll(() => previous.evaluate((element) => element.isConnected)).toBe(false);
+    /* Vue preserves rows by permanent plan ID. Check the displayed result and focus,
+       instead of requiring the old innerHTML renderer to detach every button. */
+    await expect.poll(() => page.evaluate(() => [...document.querySelectorAll("#tableBody .cmp-add")].map(button => button.getAttribute("data-plan-id")).join(";"))).toBe(
+      await page.evaluate("computeTableRows().slice(0, responsivePageSize()).map(plan => plan.id).join(';')"));
     if (query === "Claude") await expect(add).toBeFocused();
     else {
       await expect(add).toHaveCount(0);
       await expect(page.locator("#searchInput")).toBeFocused();
     }
-    await previous.dispose();
   }
 });
 

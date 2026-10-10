@@ -465,25 +465,19 @@ function validateData(options = {}) {
     for (const u of g.urls) check(u.startsWith("http"), `SOURCES url 非法: ${u}`);
   }
 
-  /* ---- index.html 与旧脚本清单的引用、文件存在性 ---- */
+  /* ---- Vue/TypeScript 入口及公共资源引用 ---- */
   const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-  /* 旧脚本经 Vite 合并为模块，顺序登记在 js/legacy-scripts.json，不再逐个写在 index.html 里。 */
-  const legacyScripts = JSON.parse(fs.readFileSync(path.join(root, "js", "legacy-scripts.json"), "utf8"));
-  const bundled = [...legacyScripts.lib, legacyScripts.init];
-  for (const f of ["js/data.js", "js/metrics.js", "js/app-core.js", "js/app-charts.js", "js/app-picker.js", "js/app-tables.js", "js/app-init.js"]) {
-    check(bundled.includes(f), `js/legacy-scripts.json 未登记: ${f}`);
+  /* Audited input and explicit application modules must be present. */
+  for (const f of ["js/data.js", "src/main.ts", "src/App.vue", "src/domain/catalog.ts", "src/domain/runtime.ts", "src/domain/startup.ts"]) {
     check(fs.existsSync(path.join(root, f)), `文件不存在: ${f}`);
   }
-  /* ECharts 精简包在构建时生成（入口 src/charts/echarts.js，由构建与工具回归检查），这里只确认页面保留加载入口。 */
+  /* ECharts 精简包在构建时生成（入口 src/charts/echarts.ts，由构建与工具回归检查），这里只确认页面保留加载入口。 */
   check(html.includes('src="libs/echarts.js"'), "index.html 缺少 ECharts 精简包的加载入口（chartLibraryTemplate）");
   for (const f of ["css/style.css", "libs/fonts/fonts.css"]) {
     check(html.includes(f), `index.html 未引用: ${f}`);
     check(fs.existsSync(path.join(root, f)), `文件不存在: ${f}`);
   }
-  check(html.includes("chartPersonal") && html.includes("metricsBody") && html.includes("dynamicsList"),
-    "index.html 缺少关键 DOM 容器");
-  check(html.includes("cmpBar") && html.includes("cmpModal") && html.includes("cmpTable"),
-    "index.html 缺少并排对比容器");
+  check(html.includes('id="app"') && html.includes('src="src/main.ts"'), 'index.html 缺少 Vue 挂载点或 TypeScript 入口');
   /* 静态日期占位在无脚本或抓取预览时可见；核价同步推进版本后需同步更新（只警告，不阻断同步）。 */
   /* 分享卡片图随站发布（img/ 由 build:site 附带），绝对地址的路径部分须对应仓库里的文件。 */
   const ogImage = html.match(/<meta property="og:image" content="([^"]+)">/);

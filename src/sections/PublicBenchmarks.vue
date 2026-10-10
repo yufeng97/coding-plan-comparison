@@ -1,31 +1,27 @@
-<script setup>
+<script setup lang="ts">
 /* 模型公开评测：筛选、协议说明、排名图表、成绩表与导出。
- * 状态（publicBenchmarkState / publicBenchmarkChartState）和计算函数仍在 js/app-maintenance.js，
- * 「帮我选」等旧代码也在用；本组件只负责渲染与交互。 */
+ * 状态（publicBenchmarkState / publicBenchmarkChartState）和计算函数在 domain/runtime，
+ * 与推荐区共享计算；本组件负责渲染与交互。 */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import * as legacy from "virtual:legacy-lib";
-import { targetValue } from "./dom.js";
+import * as legacy from "@domain/runtime";
+import { targetValue } from "./dom";
+import { fromData } from "./optional-data";
 import PlanLinks from "./PlanLinks.vue";
 import SourceLink from "./SourceLink.vue";
 
 const state = legacy.publicBenchmarkState;
 const chartState = legacy.publicBenchmarkChartState;
-const CHART_METRICS = [{ id: "score", label: "排名分数" }, { id: "cost", label: "每任务成本" }];
+const CHART_METRICS = [{ id: "score", label: "排名分数" }, { id: "cost", label: "每任务成本" }] as const;
 const CHART_LIMITS = ["10", "20", "all"];
 const SEARCH_DELAY = 150;
 
-/* 按需数据是经典脚本定义的全局常量，不在响应式系统里：数据到达时旧代码递增 revision，依赖它的值随之重新读取。 */
-const fromData = (read) => computed(() => {
-  void legacy.dataRevision.benchmark;
-  return read();
-});
-const loaded = fromData(() => legacy.optionalDataLoaded("benchmark"));
-const protocols = fromData(() => legacy.publicBenchmarkData().benchmarks);
-const families = fromData(() => legacy.publicBenchmarkFamilies());
-const familyProtocols = fromData(() => legacy.publicBenchmarkLabels(protocols.value.filter((b) => b.family === state.family)));
-const selected = fromData(() => legacy.selectedPublicBenchmark());
-const rows = fromData(() => legacy.publicBenchmarkRows());
-const chartRows = fromData(() => legacy.publicBenchmarkChartRows());
+const loaded = fromData("benchmark", () => legacy.optionalDataLoaded("benchmark"));
+const protocols = fromData("benchmark", () => legacy.publicBenchmarkData().benchmarks);
+const families = fromData("benchmark", () => legacy.publicBenchmarkFamilies());
+const familyProtocols = fromData("benchmark", () => legacy.publicBenchmarkLabels(protocols.value.filter((b) => b.family === state.family)));
+const selected = fromData("benchmark", () => legacy.selectedPublicBenchmark());
+const rows = fromData("benchmark", () => legacy.publicBenchmarkRows());
+const chartRows = fromData("benchmark", () => legacy.publicBenchmarkChartRows());
 
 /* 协议不在当前用途下时 selectedPublicBenchmark 会回退到该用途的默认协议；写回状态，下拉框与导出保持一致。 */
 watch(selected, (benchmark) => {
@@ -34,6 +30,7 @@ watch(selected, (benchmark) => {
 
 const tableRows = computed(() => rows.value.map((r) => {
   const plans = legacy.publicModelPlans(r.model);
+  const unit = selected.value ? selected.value.unit : "";
   return {
     ...r,
     name: legacy.publicModelDisplayName(r.model),
@@ -41,7 +38,7 @@ const tableRows = computed(() => rows.value.map((r) => {
     configuration: legacy.publicBenchmarkConfiguration(r),
     plans,
     newer: legacy.publicNewerVersion(r.model, plans),
-    scoreText: legacy.publicScoreText(r.score, selected.value.unit),
+    scoreText: legacy.publicScoreText(r.score, unit),
     uncertaintyLabel: legacy.publicUncertaintyLabel(r),
     costText: legacy.publicCostText(r.costUSD),
     checkedDate: legacy.publicBenchmarkDate(r.checkedAt),
@@ -55,33 +52,33 @@ const modeNote = computed(() => state.mode === "all"
   : "每模型取本协议已公布的最高分配置；名次仅适用于当前记录，搜索保留原名次。");
 
 /* ---------- 筛选 ---------- */
-function chooseFamily(value) {
+function chooseFamily(value: string) {
   if (!protocols.value.some((b) => b.family === value)) return;
   state.family = value;
   state.id = "";
 }
-function chooseProtocol(value) {
+function chooseProtocol(value: string) {
   if (protocols.value.some((b) => b.id === value)) state.id = value;
 }
-const searchInput = ref(null);
+const searchInput = ref<HTMLInputElement | null>(null);
 const searchText = ref(state.search);
-let searchTimer = null;
+let searchTimer: ReturnType<typeof setTimeout> | undefined;
 /* 与数据表搜索一致：输入停顿后再筛选。 */
-function onSearchInput(value) {
+function onSearchInput(value: string) {
   searchText.value = value.slice(0, 200);
   clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => { searchTimer = null; state.search = searchText.value; }, SEARCH_DELAY);
+  searchTimer = setTimeout(() => { searchTimer = undefined; state.search = searchText.value; }, SEARCH_DELAY);
 }
 function clearSearch() {
   clearTimeout(searchTimer);
-  searchTimer = null;
+  searchTimer = undefined;
   searchText.value = "";
   state.search = "";
   legacy.focusTableControl(searchInput.value);
 }
 
 /* ---------- 图表 ---------- */
-const chartHost = ref(null);
+const chartHost = ref<HTMLElement | null>(null);
 const hasCost = computed(() => rows.value.some((r) => r.costUSD != null));
 /* 当前协议没有成本数据时只能按分数作图。 */
 watch(hasCost, (value) => { if (!value) chartState.metric = "score"; }, { immediate: true });
@@ -105,16 +102,19 @@ const chartDescription = computed(() => {
   const items = chartRows.value.map((r) => `第 ${r.rank} 名 ${legacy.publicModelDisplayName(r.model)}：${costMetric.value ? legacy.publicCostText(r.costUSD) : legacy.publicScoreText(r.score, benchmark.unit)}`);
   return `${benchmark.name}，${costMetric.value ? "评测每任务成本" : benchmark.metric}。${items.join("；")}`.slice(0, 240);
 });
-function chooseChartLimit(value) {
+function chooseChartLimit(value: string) {
   if (CHART_LIMITS.includes(value)) chartState.limit = value;
 }
+
+/** ECharts 回调参数里本组件用到的字段 */
+type ChartItem = { dataIndex: number; value: number };
 
 async function renderChart() {
   await nextTick(); /* 先让容器的显隐与高度跟上最新状态，ECharts 再按实际尺寸绘制 */
   const host = chartHost.value, benchmark = selected.value;
   if (!host || !benchmark || !rows.value.length) return;
   familyColors.value = legacy.publicChartColors();
-  const section = host.closest(".section");
+  const section = host.closest<HTMLElement>(".section");
   if (section && section.hidden) return;
   if (legacy.deferChartRender("chartPublicBenchmark", legacy.renderPublicBenchmarkChart)) return;
   const shown = chartRows.value, cost = costMetric.value, families = chartFamilies.value, colors = familyColors.value;
@@ -124,20 +124,20 @@ async function renderChart() {
     animation: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     grid: { left: 8, right: cost ? 78 : 64, top: 12, bottom: 46, containLabel: true },
     // Fixed positioning keeps wrapped tooltips out of WebKit's chart scroll extent.
-    tooltip: { ...legacy.tipStyle(host, true), extraCssText: "position: fixed; max-width: min(420px, calc(100vw - 24px)); box-sizing: border-box; white-space: normal; overflow-wrap: anywhere; z-index: 2000;", trigger: "item", formatter: (item) => {
+    tooltip: { ...legacy.tipStyle(host, true), extraCssText: "position: fixed; max-width: min(420px, calc(100vw - 24px)); box-sizing: border-box; white-space: normal; overflow-wrap: anywhere; z-index: 2000;", trigger: "item", formatter: (item: ChartItem) => {
       const r = shown[item.dataIndex]; if (!r) return "";
       return `<b>#${r.rank} ${esc(legacy.publicModelDisplayName(r.model))}</b><br/>${esc(benchmark.name)} · ${esc(benchmark.metric)}：${esc(legacy.publicScoreText(r.score, benchmark.unit))}<br/>${esc(legacy.publicBenchmarkConfiguration(r))}<br/>每任务成本：${esc(legacy.publicCostText(r.costUSD))}<br/>${esc(r.uncertainty || "置信区间未公布")}`;
     } },
     xAxis: { type: "value", min: 0, ...(!cost && benchmark.unit === "%" ? { max: 100 } : {}), name: cost ? "USD / 任务" : benchmark.metric + "（" + benchmark.unit + "）", nameLocation: "middle", nameGap: 28, nameTextStyle: { color: PAL.dim, fontSize: 11 }, ...legacy.axisStyle() },
-    yAxis: { type: "category", inverse: true, data: labels, axisTick: { show: false }, axisLine: { lineStyle: { color: PAL.axisLine } }, axisLabel: { ...legacy.chartAxisLabel(host, 12), lineHeight: 14, formatter: (label) => legacy.publicChartAxisName(label, host.getBoundingClientRect().width < 480) } },
+    yAxis: { type: "category", inverse: true, data: labels, axisTick: { show: false }, axisLine: { lineStyle: { color: PAL.axisLine } }, axisLabel: { ...legacy.chartAxisLabel(host, 12), lineHeight: 14, formatter: (label: string) => legacy.publicChartAxisName(label, host.getBoundingClientRect().width < 480) } },
     series: [{ type: "bar", data: shown.map((r) => cost ? r.costUSD : r.score), barWidth: 17,
-      itemStyle: { color: cost ? PAL.gold : (item) => colors[families[item.dataIndex].id], borderRadius: [0, 3, 3, 0] },
-      label: { show: true, position: "right", color: PAL.text, fontSize: 11, formatter: (item) => cost ? legacy.publicCostText(item.value) : legacy.publicScoreText(item.value, benchmark.unit) } }],
+      itemStyle: { color: cost ? PAL.gold : (item: ChartItem) => colors[families[item.dataIndex].id], borderRadius: [0, 3, 3, 0] },
+      label: { show: true, position: "right", color: PAL.text, fontSize: 11, formatter: (item: ChartItem) => cost ? legacy.publicCostText(item.value) : legacy.publicScoreText(item.value, benchmark.unit) } }],
   }, true);
   legacy.markChartsForResize(["chartPublicBenchmark"]);
   legacy.resizeVisibleCharts();
 }
-/* 旧代码在懒加载、视图切换、主题与尺寸变化时调用 renderPublicBenchmarkChart，经此转给组件。 */
+/* 导航、主题和尺寸变化通过共享绘图入口通知组件。 */
 watch([chartRows, costMetric, () => state.mode], renderChart);
 function hideTooltip() {
   const chart = legacy.chartCache.chartPublicBenchmark;

@@ -41,7 +41,8 @@ test("图表跳表清除旧 cloud/cn 条件并定位，清除按钮恢复默认�
   assert.equal(app.elements.get("selectCat").value, "all");
   assert.equal(app.elements.get("selectRegion").value, "all");
   assert.equal(app.location.hash, "#table");
-  assert.equal(app.run("LAZY_DONE.size"), app.run('LAZY_CHARTS.filter((item) => byId(item.el).compareDocumentPosition(byId("table")) & 4).length'), "只预先渲染数据表之前的图表");
+  assert.equal(app.run("LAZY_DONE.size"), app.run('LAZY_CHARTS.filter((item) => chartHostAvailable(byId(item.el)) && (byId(item.el).compareDocumentPosition(byId("table")) & 4)).length'), "只预先渲染数据表之前可显示的图表");
+  assert.equal(app.run('LAZY_DONE.has("chartPersonal")'), false, "Claude Team 搜索为空时，隐藏的个人图仍保留首次懒加载资格");
   const params = new URLSearchParams(app.location.search);
   assert.equal(params.get("q"), "Claude Team");
   assert.equal(params.has("tcat"), false);

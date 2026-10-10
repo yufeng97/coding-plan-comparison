@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-/* 页面虚拟 DOM：按 index.html 的真实顺序加载页面脚本与 app-init，供回归测试和构建期预渲染共用。
- * DOM / ECharts / 存储 / 定时器是边界替身；推荐、渲染、事件、URL 与启动代码均为真实实现。
+/* 回归测试虚拟 DOM：运行当前 TS 计算与启动逻辑，历史 DOM 适配器提供迁移结果比对。
+ * DOM / ECharts / 存储 / 定时器是边界替身；Vue 渲染由组件测试和浏览器测试覆盖。
  * 轴宽度等布局只检查配置预算，不代替真实浏览器的像素和可访问性检查。 */
 "use strict";
 
@@ -10,18 +10,17 @@ const path = require("node:path");
 const vm = require("node:vm");
 const { Blob } = require("node:buffer");
 const root = path.resolve(__dirname, "..", "..");
-const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-/* index.html 里仍按经典脚本加载的只有主题引导、加载提示和按需数据入口；type="application/json" 的是按需数据的入口描述，
-   页面在访问相应标签时才下载。其余旧脚本由 Vite 合并为模块，这里按 js/legacy-scripts.json 的同一顺序直接执行源文件。 */
-const legacyScripts = JSON.parse(fs.readFileSync(path.join(root, "js", "legacy-scripts.json"), "utf8"));
+const html = fs.readFileSync(path.join(root, "scripts/tests/fixtures/page-shell.html"), "utf8");
+const { classicSource } = require('../tests/fixtures/read-typescript');
+/* 经典资源逻辑路径映射到它们的 TypeScript 源码。按需数据仍按原始审计输入执行。 */
+const classicEntries = { 'js/theme-init.js': 'src/browser/theme.ts', 'js/app-loader.js': 'src/browser/loader.ts' };
 const scriptTags = [
   ...[...html.matchAll(/<script\b([^>]*)\bsrc="(js\/[^"?]+)(?:\?[^"]*)?"([^>]*)>/g)]
-    .map((m) => ({ file: m[2], optional: /\btype="application\/json"/.test(m[1] + m[3]) })),
-  ...legacyScripts.lib.map((file) => ({ file, optional: false })),
-  { file: legacyScripts.init, optional: false },
+    .map((m) => ({ file: classicEntries[m[2]] || m[2], optional: /\btype="application\/json"/.test(m[1] + m[3]) })),
+  ...['js/data.js', 'js/benchmark-summary.js', 'js/project-data.js', 'src/domain/metrics.ts', 'src/domain/runtime.ts', 'scripts/tests/fixtures/maintenance-renderers.js', 'scripts/tests/fixtures/core-chart-service-renderers.js', 'scripts/tests/fixtures/table-renderers.js', 'scripts/tests/fixtures/picker-renderers.js', 'src/domain/startup.ts'].filter(file => fs.existsSync(path.join(root, file))).map(file => ({ file, optional: false })),
 ];
 const scripts = scriptTags.map((tag) => tag.file);
-assert.equal(scripts.at(-1), "js/app-init.js", "页面启动脚本必须按真实顺序加载");
+assert.equal(scripts.at(-1), "src/domain/startup.ts", "页面启动逻辑必须在业务模块之后加载");
 
 function decodeHtml(s) {
   return String(s).replace(/&(?:amp|lt|gt|quot|#39);/g, (v) => ({ "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'" }[v]));
@@ -248,7 +247,12 @@ function createApp(options = {}) {
     const event = { type, target: window, ...extra };
     for (const fn of windowEvents.get(type) || []) fn(event);
   }
-  const window = { innerWidth: width, innerHeight: 800, scrollY: 0, addEventListener: (type, fn) => addListener(windowEvents, type, fn), matchMedia, scrollTo() {} };
+  const window = {
+    innerWidth: width, innerHeight: 800, scrollY: 0,
+    addEventListener: (type, fn) => addListener(windowEvents, type, fn),
+    removeEventListener(type, fn) { windowEvents.set(type, (windowEvents.get(type) || []).filter((listener) => listener !== fn)); },
+    matchMedia, scrollTo() {},
+  };
   const savedStorage = new Map(Object.entries(options.storage || {}));
   const localStorage = {
     getItem(key) { if (options.storageReadThrows) throw new Error("storage read denied"); return savedStorage.get(key) ?? null; },
@@ -318,11 +322,11 @@ function createApp(options = {}) {
   for (const { file, optional } of scriptTags) {
     /* lazyData：按需数据不在启动时载入，由页面追加 <script> 后经 loadScriptElement 模拟下载。 */
     if (lazyData && optional) continue;
-    if (file === "js/app-init.js") {
+    if (file === "src/domain/startup.ts") {
       sandbox.countAudit = () => auditCalls++;
       run("const originalTestAudit = auditProfiles; auditProfiles = function () { countAudit(); return originalTestAudit(); };");
     }
-    vm.runInContext(fs.readFileSync(path.join(root, file), "utf8"), sandbox, { filename: file, timeout: 30000 });
+    vm.runInContext(file.endsWith('.ts') ? classicSource(file) : fs.readFileSync(path.join(root, file), "utf8"), sandbox, { filename: file, timeout: 30000 });
   }
   return { run, elements, charts, timeline, scrolls, errors, warnings, downloads, location, history, fire, fireWindow, get auditCalls() { return auditCalls; },
     get scriptLoads() { return scriptLoads.slice(); }, finishDataLoads,

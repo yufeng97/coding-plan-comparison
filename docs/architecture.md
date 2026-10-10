@@ -23,71 +23,74 @@
 
 | 文件 | 说明 |
 |---|---|
-| `index.html` | 页面结构与 Vite 入口（`src/main.js`）；主题引导、加载失败提示和按需数据仍按经典脚本引用 |
-| `src/main.js` / `bootstrap.js` / `legacy-globals.js` | 入口按顺序执行：注入响应式状态工厂 → 旧脚本与已迁移的 Vue 区块 → 页面启动 → 迁移期兼容层（把旧脚本的顶层名称以 getter 挂到 window，供浏览器测试与调试读取） |
-| `src/sections/` | 已迁移的 Vue 区块与组件测试：模型公开评测（`PublicBenchmarks.vue`）、我的关注（`FollowUpdates.vue`）、贡献者工具（`ContributorBenchmarks.vue`）、帮助补全与纠错（`Contribution.vue`）及共用的子组件；`*.test.js` 用 Vitest + happy-dom，`src/test/setup.js` 提供真实按需数据 |
-| `js/legacy-scripts.json` | 旧脚本清单：Vite 合并顺序与页面虚拟 DOM 的执行顺序都以它为准 |
-(m) => m + "| `src/legacy.d.ts` / `scripts/build/legacy-types.mjs` | 旧脚本顶层名称在 `virtual:legacy-lib` / `virtual:legacy-init` 下的类型声明（生成后提交）；旧脚本的顶层声明变化后运行 `npm run types:legacy`，`npm run typecheck` 发现过期会失败 |\n"| `css/style.css` | 样式（亮色默认；支持暗色与跟随系统；`--cat-*` 类别色变量是图表/图例/标签的单一色源） |
-| `js/data.js` | 全部数据与共享资格函数（订阅计划使用永久 ID；额度数据经 `ref` 引用 `PLANS` 的名称、币种和价格，改价只改一处） |
-| `js/metrics.js` | 额度换算纯计算（`computeMetrics`、`blendPrice`、旗舰判定等；无 DOM，测试与校验器共用）。排行「旗舰」复用 `data.js` 的 `MODEL_ROLES` 正则，只另登记 Sonnet、Kimi K2.x、GPT-5.x 为非轻量主力 |
-| `js/app-loader.js` | 主数据与功能脚本加载失败提示、重新加载入口 |
-| `js/app-core.js` | 常量、工具、主题、统计卡、内联 SVG 图标、ECharts 按需加载及图表错误恢复 |
-| `js/app-charts.js` | 五组 ECharts 渲染（API 组含两个画布）、排行/API 文字明细与免费入口卡 |
-| `js/app-picker.js` | 「帮我选」推荐引擎与卡片 |
-| `js/app-tables.js` | 数据表、导出与并排对比；`PLAN_COLUMNS` 共用数据表/CSV/Markdown 取值，`METRICS_COLUMNS` 共用额度表头/排序/渲染 |
-| `js/app-service.js` | 方案分享、本机常用条件、完整权益窗口与工作量费用计算 |
-| `js/app-init.js` | 启动、图表懒加载（IntersectionObserver）、`?debug=1` 自检 |
-| `js/app-state.js` | 各区块默认状态与 URL 编解码，状态更新后统一同步网址 |
-| `js/app-events.js` | 页面控件事件绑定，初始化时显式注册 |
-| `src/charts/echarts.js` | ECharts 按需精简包入口（仅柱状图 + Grid/Tooltip/Legend/Title/AxisPointer）；构建时由 npm 包生成 `libs/echarts-<hash>.js`，版本跟随 package.json |
+| `index.html` | HTML 外壳、`#app` 挂载点与 Vite 入口（`src/main.ts`）；主题引导、加载提示、按需数据与 ECharts 保留逻辑入口地址 |
+| `src/main.ts` / `src/App.vue` | 恢复 URL 与本机状态 → 挂载整页 Vue 组件 → 启动导航、按需加载及共享服务；App 模板供浏览器与 Vue SSR 共用 |
+| `src/sections/` | 全部原生 Vue 区块：推荐与控件、价格及额度图、免费入口、数据表、并排对比、完整权益、费用计算、评测、关注、贡献和来源；共用按钮及单元格组件保留原 ID、class、ARIA。`*.test.ts` 用 Vitest + happy-dom，`src/test/setup.ts` 提供真实按需数据 |
+| `src/domain/runtime.ts` / `startup.ts` | TypeScript 共享状态、推荐、费用计算、URL 编解码、导出、关注、按需数据、ECharts 加载与页面启动；通过显式 ES 模块导出，组件从 `@domain/runtime` 导入 |
+| `src/domain/metrics.ts` / `model-types.ts` | 额度换算纯计算与业务类型（`computeMetrics`、`blendPrice`、旗舰判定等）；无 DOM，测试与校验器共用。排行「旗舰」复用目录中的 `MODEL_ROLES` |
+| `src/domain/catalog.ts` / `scripts/build/catalog-types.mjs` | 从审计数据、首屏评测摘要与公开项目配置确定性生成的类型化目录；生成文件提交，`catalog:check` 发现输入漂移时失败 |
+| `src/types.d.ts` / `tsconfig.domain.json` | 数据与外部浏览器 API 类型，以及保留原空值推断语义的业务模块检查；生成 `.domain-types/`，严格 UI 检查经 `@domain/*` 读取声明，Vite 同名别名解析到实际 TS 源文件 |
+| `src/legacy-globals.ts` | 现有浏览器回归与调试使用的只读 getter；读取当前 TS 模块实时导出，浏览器自带的同名属性不覆盖 |
+| `src/browser/theme.ts` / `loader.ts` | 首帧主题与主入口加载失败提示；构建为先于应用入口执行的经典脚本，保留失败重试与 CSP 外链约定 |
+| `css/style.css` | 样式（亮色默认；支持暗色与跟随系统；`--cat-*` 类别色变量是图表/图例/标签的单一色源） |
+| `js/data.js` / `benchmark-summary.js` / `project-data.js` | 刻意保留的审计及维护输入；订阅永久 ID、引用权益、首屏评测摘要和公开项目配置在此维护，生成 TS 目录后进入应用 |
+| `src/charts/echarts.ts` | ECharts 按需精简包入口（仅柱状图 + Grid/Tooltip/Legend/Title/AxisPointer）；构建时由 npm 包生成 `libs/echarts-<hash>.js`，版本跟随 package.json |
 | `libs/fonts/` | Manrope、IBM Plex Mono 本地子集；39 个字体声明共用 21 份内容去重资产 |
 | `scripts/lib/paths.js` / `atomic-swap.js` | 共享的「路径是否在根内 / 封锁段」判断、目录级原子交换（暂存→备份→切换→回滚）与逐文件替换回滚 |
-| `scripts/build/` | 构建与校验工具：vite-legacy（含 ECharts 精简包生成）、vendor-fonts、stage-site、prerender、deploy-site、check-syntax、validate-data、sync-pricing-audit |
-| `scripts/lib/page-vm.js` | 页面虚拟 DOM：按 index.html 中的经典脚本与 `js/legacy-scripts.json` 的顺序运行旧脚本源文件，回归测试与构建期预渲染共用（不运行 Vue 组件） |
+| `scripts/build/` | 构建与校验工具：vite-assets（公共源白名单、经典资源哈希与 ECharts 生成）、catalog-types、vendor-fonts、stage-site、prerender、render-vue、deploy-site、check-syntax、validate-data、sync-pricing-audit |
+| `scripts/lib/page-vm.js` / `scripts/tests/fixtures/` | 仅供 Node 回归的页面边界：适配器将当前 TypeScript 模块转为 VM 脚本，测试专用 HTML 渲染器与页面外壳提供旧断言的 DOM；夹具不参与生产构建，也不负责 SSR |
 | `img/` | 分享卡片图（og:image），由 build:site 随站发布 |
 | `feeds/` | `npm run maintenance:build` 生成的分厂商变更 RSS |
 | `scripts/server/serve.js` | 发布产物预览服务器（`serve.js .site-build`；只监听 127.0.0.1，只读站点目录内的白名单文件并拒绝隐藏路径） |
 | `scripts/news/collect-news.js` | 联网采集资讯候选与页面变化；保留缓存和来源错误，不改正式数据 |
 | `config/news-sources.json` / `review-calendar.json` | 官方监测、开放发现与有来源的复核日历 |
-| `js/app-maintenance.js` / `*-data.js` | 时效、变更、关注、贡献和测评服务及生成的公共数据（按需加载；`benchmark-summary.js` 为首屏评测摘要）。公开评测的渲染已迁到 Vue 组件，这里保留它的状态与计算 |
+| `js/maintenance-data.js` / `benchmark-data.js` | 维护和评测生成的公共数据，按需加载；状态与计算在 TS 业务模块，展示在 Vue 组件 |
 | `scripts/maintenance/` / `data/` | 维护摘要、真实变更历史、RSS 构建与回归 |
 | `scripts/benchmarks/` / `benchmarks/` | 官方公开评测 adapter、带哈希证据的采集/审核、public-results.json 快照、固定任务验收与公共测评构建 |
-| `scripts/tests/` | Node 回归套件：metrics / data-regressions / app-{history,picker,charts,tables,service} / server / tools / pricing / pricing-sync / news / runners；共享页面替身在 app-harness.js（`lazyData` 模式经页面加载器按需载入数据，可分别推进下载完成、失败与超时）；Chromium、Firefox、WebKit 用例在 scripts/tests/browser/，测试 `build:site` 生成的发布产物；Vue 组件测试在 `src/**/*.test.js`，由 `npm test` 一并运行 |
+| `scripts/tests/` | Node 回归套件：metrics / data-regressions / app-{history,picker,charts,tables,service} / server / tools / pricing / pricing-sync / news / runners；共享页面替身在 app-harness.js（`lazyData` 模式经页面加载器按需载入数据，可分别推进下载完成、失败与超时）；Chromium、Firefox、WebKit 用例在 scripts/tests/browser/，测试 `build:site` 生成的发布产物；Vue 组件测试在 `src/**/*.test.ts`，由 `npm test` 一并运行 |
 | `audit/` | 258 条价格的原始库存、分组官网证据与 JSON/CSV 合并台账；不复制到公共部署产物 |
 
 ## 前端结构与迁移
 
-页面正从经典脚本逐步迁移到 Vue 3（Vite 构建）。迁移按区块进行，每一步都能单独发布。
+经典页面逻辑到 Vue 3 + Vite + TypeScript 的迁移已经完成。整页由单一 `App.vue` 组织，各区块使用原生 Vue 模板，不用 `v-html` 包装原渲染器。经典业务脚本、合并清单、虚拟模块与 `src/legacy.d.ts` 已移除；审计数据和维护工具保留原有编辑格式。
 
-- **旧脚本的构建方式**：Vite 把 `js/legacy-scripts.json` 列出的旧脚本按原顺序合并成两个模块：`virtual:legacy-lib`（除启动脚本外的全部旧脚本，共用一个模块作用域，与原来共用全局作用域等价，并导出全部顶层名称）和 `virtual:legacy-init`（`app-init.js`，页面启动）。源文件不改写成模块，页面虚拟 DOM、数据校验器和维护脚本照旧按经典脚本读取。合并时用语法树取顶层名称，重复声明直接报错；开发时 source map 逐行指回原文件。
-- **新代码**：放在 `src/`，按名从 `virtual:legacy-lib` 导入旧逻辑。只导入 lib 不会启动页面，组件测试据此单独载入旧逻辑。
-- **共享状态**：要与组件共享的状态在旧脚本里用 `appState()` 声明。Vite 页面中它返回 Vue 的 `reactive` 对象，组件和旧代码读写同一份数据；页面虚拟 DOM 中返回原对象。深层代理与原对象不全等：`cmpState` 这类保存 `PLANS` 引用的状态迁移时要用 `shallowReactive` 或 `markRaw`。
-- **旧代码通知组件**：按需数据是经典脚本定义的全局常量，不在响应式系统里。数据到达时 `refreshOptionalViews` 递增 `dataRevision.maintenance` / `dataRevision.benchmark`，组件据此重新读取；图表懒加载、主题和尺寸变化时调用的 `renderPublicBenchmarkChart` 转给组件登记的重绘函数。
-- **跨模块赋值**：模块的导入绑定是只读的，`app-init.js` 不能直接给其他旧脚本的 `let` 赋值，须经对方提供的函数（如 `setUrlRestoring`）。插件在启动模块末尾把 lib 引用到的启动函数（`navigateToSection`、`loadViewData`）挂到全局。
-- **兼容层**：`src/legacy-globals.js` 把旧脚本的顶层名称以只读 getter 挂到 `window`，现有浏览器测试和控制台调试照常读取 `chartCache`、`PLANS` 等；浏览器自带的同名属性不被覆盖。测试改为只读 DOM 后删除。
-- **已迁移区块**：模型公开评测、我的关注与套餐变更、贡献者工具、帮助补全与纠错。迁移一个区块：渲染、事件与导出移进组件，共用的状态与计算函数留在旧脚本（状态用 `appState()` 声明）；`index.html` 只留挂载点；渲染与交互断言从页面虚拟 DOM 测试移到组件测试；组件保留原有 ID、class 与 ARIA，浏览器测试不改即可作为回归依据。
-- **关注按钮的分工**：推荐卡、数据表和完整权益窗口里的关注按钮由旧代码渲染，`syncWatchButtons` 按状态同步它们；组件里的按钮（`WatchButton.vue`）按 `followState` 自己渲染，`syncWatchButtons` 跳过 Vue 挂载容器（带 `data-v-app`）内的节点，避免两边改同一个节点。点击都经页面统一委托的 `toggleFollowPlan`。
-- **页面虚拟 DOM 的边界**：它只运行旧脚本，不运行 Vue 组件，所以构建期预渲染只覆盖仍由旧脚本渲染的区块（目前全部预渲染目标都是）。迁移预渲染目标之前，需要先把预渲染换成 Vue 的服务端渲染。
+- **模块与启动**：共享逻辑从 `@domain/runtime` 导入，只导入模块不会执行页面启动。`main.ts` 先恢复 URL、关注等本机状态，再挂载组件并调用 `startApplication`。启动与业务之间的导航回调用显式钩子连接，不依赖经典脚本全局作用域。
+- **共享状态**：业务模块直接使用 Vue `reactive`；保存目录对象引用的 `cmpState` 用 `shallowReactive`，替换选择数组时保持原套餐对象身份。推荐、表格、关注与完整权益窗口读取同一份状态，Vue 拥有这些容器的 DOM。
+- **按需数据与图表**：维护和评测仍按经典数据资产下载。`refreshOptionalViews` 递增 `dataRevision.maintenance` / `dataRevision.benchmark`，组件据此重算；图表加载、主题与尺寸变化通过组件登记的重绘钩子处理，卸载时释放图表资源。
+- **类型边界**：组件、模板、视图模型和组件测试使用严格 TypeScript。原业务计算已经是显式 TS 模块，但 `tsconfig.domain.json` 保留原非严格推断及空值语义并执行类型检查；生成的 `.domain-types/` 供严格 UI 检查使用。生产源未用 `@ts-nocheck` 跳过检查，也不把这一阶段描述为全仓严格化。
+- **审计目录**：`catalog:build` 从 `js/data.js`、`benchmark-summary.js`、`project-data.js` 确定性生成 `catalog.ts`，保留正则、资格函数、永久 ID 与明确的 `Plan[]`、核查及评测类型。生成文件应随维护输入一同提交；`catalog:check` 只检查漂移，不改仓库。维护输入变化后先重建目录再提交。
+- **关注与对比按钮**：推荐、数据表、完整权益和关注列表复用 Vue 按钮组件，直接从共享状态计算选中、禁用与 ARIA；统一服务处理套餐身份与关注变更。旧同步函数不改写 Vue 所有的节点。
+- **静态首屏**：`render-vue.mjs` 在隔离进程里通过 Vite 加载同一个 App，调用 Vue `renderToString`；happy-dom 仅提供浏览器 API 边界。SSR 不运行启动、图表下载或用户存储恢复。浏览器按 URL 与本机状态重新挂载；静态输出不插入关闭窗口的 Teleport 节点，避免重复 ID。
+- **回归边界**：Node VM 执行当前 TS 计算，旧 HTML 断言的渲染器只在 `scripts/tests/fixtures/`；Vue 组件测试与真实浏览器检查生产渲染及交互。`legacy-globals.ts` 的只读 getter 仅为既有浏览器断言和调试保留，生产组件使用模块导入。
 - **不再支持 `file://` 直开**：入口是 ES 模块，浏览器不允许从 `file://` 加载。本地用 `npm run dev` 开发，`npm run serve` 预览发布产物。
+
+迁移完成项：
+
+- [x] 整页 Vue 组件、共享按钮、表格与图表区块。
+- [x] TypeScript 入口、业务模块、额度计算、浏览器预启动脚本与组件测试。
+- [x] 显式 ES 模块与审计目录生成检查，删除经典业务脚本合并及虚拟声明设施。
+- [x] Vue SSR 默认首屏、测试专用 VM 适配器、公共产物白名单。
+
+本轮完整验证结果见[变更日志](../CHANGES.md)。
 
 ## 开发与架构约定
 
-- **脚本加载顺序**：`theme-init.js` 在 head 同步执行，首帧前应用主题；`app-loader.js` 在 head 中 `defer`，先于 Vite 注入的入口模块执行，入口下载失败或启动中断时显示重新加载提示。其余旧脚本合并成一个带内容哈希的模块文件，不再有逐个串行下载的问题；顺序以 `js/legacy-scripts.json` 为准。服务和控件监听显式注册，初始化由 `app-init.js` 驱动。
+- **脚本加载顺序**：`src/browser/theme.ts` 生成的经典脚本在 head 同步执行，首帧前应用主题；`loader.ts` 生成的加载提示脚本在 head 中 `defer`，入口下载失败或启动中断时显示重新加载提示。两者沿用 HTML 的逻辑资源地址并在发布时按哈希改写。业务入口是 `src/main.ts`，Vite 处理其显式模块依赖；Vue 控件事件在模板声明，共享服务及导航由 `startup.ts` 显式初始化。
 - **图表库按需加载**：ECharts 地址保留在 `index.html` 的 inert template 中，构建时按内容哈希另存并改写地址；首屏不执行该脚本。所有首次图表请求共用加载 Promise，重绘使用最新状态；文字明细独立渲染。章节导航等待库和已有待渲染图表，再确定滚动位置；较新的导航和回到顶部动作取消旧请求。API 两个画布按同组处理错误和重试。
 - **永久套餐 ID**：每条 `PLANS` 的 `id` 一经发布便不可变、不可复用；改名称、改价、调整顺序时保留原 ID，新计划使用新 ID。额度行的 `ref` 使用此 ID，名称、币种和价格统一由引用计划引入；周期优先保留额度行的明确口径，否则沿用计划。旧 `[vendor, plan]` 引用仍可解析，仅用于兼容。`weeklyChart: false` 标记与 `PLAN_TOKENS` 档位同额度的重复行（如智谱国内版），每周 tokens 图据此排除，不靠厂商名硬编码。
 - **厂商名规范**：同一厂商在 `PLANS`、`API_PRICES`、`PAYG_REFERENCES`、指标行中使用同一 `vendor` 字符串（同一厂商的不同产品线各用专名，如 腾讯云 CodeBuddy / 腾讯云 TokenHub / 腾讯云（LKEAP 知识引擎））；图表缩写由 `VENDOR_SHORT` 承担，校验器会对同厂商同型号的牌价做币种与数值交叉校验。
 - **单一数据源**：类别色走 CSS 变量 `--cat-*`（JS 的 `refreshCategoryColors()` 在主题切换时重读）；数据表正文、CSV 与 Markdown 共享 `PLAN_COLUMNS`，各渠道按配置选列；额度表的列定义只在 `METRICS_COLUMNS` 一处。已有继承权益均通过 `fieldRefs` 的永久 ID 明确目标，新增继承也填写目标 ID，追加权益保留且循环引用安全中止。解析器保留旧文本名称及「同上」相邻位置的兼容能力，不用它们建立新数据引用。
 - **推荐元数据**：`windowPeriod` 与 `quotaSharing` 分别描述重置周期与模型额度是否共享，缺省表示未知；`codingSurface`、`includedModelQuota`、`modelAccess` 与 `purchaseCountries` 分别描述编程入口、是否包含推理、自备模型和国家限定资格。`modelBaseRef` 通过计划引用继承模型，`modelIncludes`/`modelExcludes` 显式补充和排除模型，`ownClient` 明确自家编程入口；校验器检查字段类型、引用及混合继承环。填有依据的事实，未知情况不靠条数或文案猜测。月 credits 及无 5h 上限的套餐不生成虚假的 5h 额度，官方与估算的重复周额度按稳定引用去重。
 - **资源版本与发布范围**：Vite 按内容哈希命名入口、样式与字体；仍按经典脚本加载的主题引导、加载提示、按需数据和 ECharts 由 `classic-scripts` 插件同样按内容哈希另存，不再需要 `?v=` 版本号。构建只读入 `index.html`、`src/`、`js/`、`css/`、`libs/`、`img/` 与 `node_modules/` 内的文件，词法路径和真实路径（展开 junction、符号链接后）都要满足，私有或隐藏目录不会经链接进入产物。`.gitattributes` 固定文本检出为 LF。
-- **开发环境与校验**：Node.js 22.12+（Vite 8 的要求），首次运行 `npm ci`。开发依赖固定版本并提交 lockfile。`npm run typecheck` 先确认 `src/legacy.d.ts` 与旧脚本一致，再分别检查浏览器旧脚本（`jsconfig.json`）、工具与测试（`jsconfig.node.json`）、Vue 组件及其模板（`vue-tsc -p jsconfig.vue.json`，不含 Node 类型）和组件测试（`jsconfig.vitest.json`）；新增页面脚本自动纳入，不需手改命令。`npm run validate` 检查数据结构、引用、有限数字、日期和价格区间；同一套规则可校验内存候选源码。`npm run test` 执行 25 个 Node 套件和 Vue 组件测试（Vitest），包含额度公式、真实数据、VM 用户流程、HTTP 服务、审计无效输入/幂等/失败回滚、资讯采集解析/新厂商/缓存/失败处理、字体去重/失败回滚、缓存与公共产物回归。`npm run test:browser` 先生成发布产物，再对 Chromium、Firefox、WebKit 运行同一批真实浏览器用例，覆盖图表、历史导航、服务功能及桌面/手机布局。CI 在 Linux 与 Windows 安装三种浏览器并执行各项检查，浏览器缓存键包含 lockfile 哈希；失败保留截图；CI 首次重试才录制 trace，避免正常回归的全页快照开销（[Playwright 官方建议](https://playwright.dev/docs/trace-viewer#tracing-on-ci)）。本地需要追踪时显式加 --trace on。
-- **ECharts 精简包**：入口 `src/charts/echarts.js` 只注册页面用到的图表与组件，构建时用 esbuild 打成经典脚本；新增图表类型或组件时在入口里注册。仍按经典脚本加载是为了失败可重试：Chromium 会缓存失败的动态 `import()`，同一地址重试不会再请求。
+- **开发环境与校验**：Node.js 22.12+（Vite 8 的要求），首次运行 `npm ci`。开发依赖固定版本并提交 lockfile。`npm run typecheck` 先检查生成目录与审计输入一致，再检查 TS 业务模块并生成 `.domain-types/`，随后检查 Vue 组件及模板（`tsconfig.app.json`，严格模式且不含 Node 类型）、组件测试（`tsconfig.vitest.json`）和数据/工具脚本（checkJs）。业务模块使用单独的非严格配置保留已有推断语义；这仍是类型检查，不是跳过检查。测试专用经典渲染夹具由 VM 注入全局环境，通过运行回归验证，不纳入工具的独立 checkJs 程序。`npm run validate` 检查数据结构、引用、有限数字、日期和价格区间；同一套规则可校验内存候选源码。`npm test` 执行 25 个 Node 套件和 Vue 组件测试，包含额度公式、真实数据、VM 用户流程、HTTP 服务、审计无效输入/幂等/失败回滚、资讯与字体工具、目录生成漂移、Vue SSR 和公共产物回归。`npm run test:browser` 先生成发布产物，再对 Chromium、Firefox、WebKit 运行真实浏览器用例，覆盖图表、历史导航、服务功能及桌面/手机布局。CI 在 Linux 与 Windows 安装三种浏览器并执行各项检查，浏览器缓存键包含 lockfile 哈希；失败保留截图，首次重试才录制 trace（[Playwright 官方建议](https://playwright.dev/docs/trace-viewer#tracing-on-ci)）。本地需要追踪时显式加 `--trace on`。
+- **ECharts 精简包**：入口 `src/charts/echarts.ts` 只注册页面用到的图表与组件，构建时用 esbuild 打成经典脚本；新增图表类型或组件时在入口里注册。仍按经典脚本加载是为了失败可重试：Chromium 会缓存失败的动态 `import()`，同一地址重试不会再请求。
 - **第三方产物出处**：`libs/README.md` 记录版本与来源。`npm run vendor:fonts` 将所有字体下载到暂存目录，检查 WOFF2 后按 SHA-256 内容去重并整组替换；失败保留或恢复旧目录。相同字节只存一份，CSS 保留各字重和 unicode-range 映射；成功替换时清理旧子集；构建时 Vite 按内容哈希重新命名。当前字体离线去重由 39 个文件降为 21 个，452,796 → 227,880 字节，减少约 49.7%。
 - **目录交换失败**：对临时占用错误 `EPERM/EBUSY/EACCES`，每次目录改名最多尝试 5 次，等待合计不超过 375ms；其他错误直接失败。切换与恢复都失败时保留旧目录备份并报告路径，不在调用方清理中删除恢复依据。
 - **调试**：给 URL 加 `?debug=1` 会在控制台跑「帮我选」的 headline 断言（`auditProfiles`），正常访问不执行。
 
 ## 生成产物与部署
 
-`npm run build:site` 用 Vite 构建到暂存目录，再在页面虚拟 DOM 中运行旧脚本，把默认条件下的推荐、价格表、免费入口、动态和 API 明细预渲染进发布用 `index.html`（容器标记 `data-prerendered`）：搜索引擎、链接预览和脚本执行前的访问者可直接阅读；带筛选参数的链接在脚本按链接条件重绘前隐藏这些默认内容，启动完成后移除标记。随后附带已确认变化 RSS `changes.xml`、分享卡片图 `img/`、分厂商 RSS `feeds/` 与 `vercel.json`，最后整目录原子替换 `.site-build/`；任一步失败都保留原来的产物。产物只允许公共白名单内的文件，工具、依赖、项目凭据及历史 `.vercel/output` 都不会进入。直接用 `vercel` 命令部署仓库根目录得到的是未构建的源码，页面无法运行，请用下面的 `npm run deploy`；`.vercelignore` 仍保证这种情况下 `scripts/`、README 等仓库文件不会被公开。
+`npm run build:site` 先从审计输入同步类型化目录，用 Vite 将 TS/Vue 应用构建到暂存目录，再用 Vue 服务端渲染同一个 `App.vue`，把默认条件下的推荐、价格表、免费入口、动态和 API 明细写入发布用 `index.html` 的 `#app`（标记 `data-prerendered`）。搜索引擎、链接预览和脚本执行前的访问者可直接阅读；浏览器先恢复当前 URL 与本机状态，再挂载 Vue 接管页面并移除静态标记。带筛选参数的链接在接管前隐藏默认首屏，避免先展示不匹配的推荐。SSR 使用隔离进程和浏览器边界替身，不执行图表加载或页面启动。随后附带已确认变化 RSS `changes.xml`、分享卡片图 `img/`、分厂商 RSS `feeds/` 与 `vercel.json`，最后整目录原子替换 `.site-build/`；任一步失败都保留原来的产物。产物只允许公共白名单内的文件，测试夹具、`.domain-types/`、工具、依赖、项目凭据及历史 `.vercel/output` 都不会进入。直接用 `vercel` 命令部署仓库根目录得到的是未构建的源码，页面无法运行，请用下面的 `npm run deploy`；`.vercelignore` 仍保证工具与说明文档不会被公开。
 
 ```bash
 npm run build:site

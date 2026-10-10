@@ -85,24 +85,32 @@ async function main() {
     assert.deepEqual(tree(previous.directory), before);
     assert.equal(fs.readdirSync(root).some((name) => /^\.site-(stage|backup)-/.test(name)), false);
   }));
-  await test("旧脚本合并插件：只取顶层声明（含解构），重复声明报错，source map 逐行指回原文件", async () => {
-    const { topLevelNames, concatWithMap, legacyApp } = await import("../build/vite-legacy.mjs");
-    const code = ['"use strict";', "const A = 1, { b, c: [d, ...e] } = {};", "let f;", "function g() { const inner = 1; }", "class H {}", "(function () { var hidden = 1; })();"].join("\n");
-    assert.deepEqual(topLevelNames(code, "x.js"), ["A", "b", "d", "e", "f", "g", "H"]);
-    const joined = concatWithMap(["// glue", { file: "/a.js", code: "one\ntwo" }, { file: "/b.js", code: "three" }]);
-    assert.equal(joined.code, "// glue\none\ntwo\nthree");
-    assert.deepEqual(joined.map.sources, ["/a.js", "/b.js"]);
-    /* 第 1 行是胶水代码不映射；第 2、3 行映射 a.js 的第 1、2 行；第 4 行映射 b.js 的第 1 行 */
-    assert.equal(joined.map.mappings, ";AAAA;AACA;ACDA");
-    await fixture(async (root, write) => {
-      write("js/a.js", "const SHARED = 1;"); write("js/b.js", "function SHARED() {}"); write("js/init.js", "init();");
-      write("js/legacy-scripts.json", JSON.stringify({ lib: ["js/a.js", "js/b.js"], init: "js/init.js" }));
-      const plugin = legacyApp({ root });
-      assert.throws(() => plugin.load.call({ addWatchFile() {} }, "\0virtual:legacy-lib"), /SHARED.*重复声明/);
-    });
+  await test("生产入口直接加载 Vue 与 TypeScript ES 模块，构建不再使用经典脚本合并插件", async () => {
+    const root = path.resolve(__dirname, "..", "..");
+    const main = fs.readFileSync(path.join(root, "src/main.ts"), "utf8");
+    const config = fs.readFileSync(path.join(root, "vite.config.mjs"), "utf8");
+    assert.match(main, /create(?:SSR)?App/);
+    assert.match(main, /App\.vue/);
+    assert.doesNotMatch(main + config, /virtual:legacy|legacyApp/);
+    const { build } = await import("esbuild");
+    const result = await build({ entryPoints: [path.join(root, "src/domain/runtime.ts")], bundle: true, platform: "node", format: "cjs", external: ["vue"], write: false, logLevel: "silent" });
+    const code = result.outputFiles[0].text;
+    assert.doesNotMatch(code, /virtual:legacy/);
+    const module = { exports: {} };
+    require("node:vm").runInNewContext(code, { require, module, exports: module.exports, console, window: { innerWidth: 1280 }, location: new URL("https://example.com/"), URLSearchParams, setTimeout, clearTimeout });
+    const runtime = module.exports;
+    assert.equal(typeof runtime.chooseMain, "function");
+    assert.equal(typeof runtime.calculateWorkload, "function");
+    assert.ok(runtime.PLANS.length > 200);
+    assert.ok(runtime.PLANS.every(plan => typeof plan.id === "string"));
+    assert.equal(runtime.pickerState.billing, "M");
+    for (const name of ["badgeHtml", "priceCheckHtml", "watchButtonHtml", "maintenanceSources", "changeCardHtml", "planHistoryParts", "planHistoryHtml", "fillPlanHistory", "usageCoverageHtml", "mainCard"]) {
+      assert.equal(name in runtime, false, name + " 只属于测试渲染边界");
+    }
+    assert.doesNotMatch(code, /scripts[\\/]tests[\\/]fixtures|Test-only classic HTML rendering boundary/);
   });
   await test("构建只读入公共源目录，经 junction 指向私有目录的模块和资源被拒绝", () => fixture(async (root, write) => {
-    const { assertPublicSource, publicSourcesOnly } = await import("../build/vite-legacy.mjs");
+    const { assertPublicSource, publicSourcesOnly } = await import("../build/vite-assets.mjs");
     write("audit/secret.js", "PRIVATE_SECRET_MARKER");
     assert.doesNotThrow(() => assertPublicSource(root, path.join(root, "js/extra.js")));
     assert.throws(() => assertPublicSource(root, path.join(root, "audit/secret.js")), /公共目录以外/);
@@ -111,7 +119,7 @@ async function main() {
     try {
       const guard = publicSourcesOnly({ root });
       assert.throws(() => guard.load(path.join(link, "secret.js") + "?import"), /公共目录以外.*audit/);
-      assert.equal(guard.load("\0virtual:legacy-lib"), null);
+      assert.equal(guard.load("\0vite-generated-module"), null);
       const bundle = { font: { type: "asset", originalFileNames: ["libs/alias/secret.js"] }, ok: { type: "asset", originalFileNames: ["libs/fonts/gf-0.woff2"] } };
       assert.throws(() => guard.generateBundle({}, bundle), /公共目录以外/);
       delete bundle.font;
@@ -119,9 +127,9 @@ async function main() {
     } finally { fs.unlinkSync(link); }
   }));
   await test("ECharts 精简包由 npm 包构建：经典脚本执行后登记全局 echarts，版本与依赖一致", async () => {
-    const { bundleEcharts } = await import("../build/vite-legacy.mjs");
+    const { bundleEcharts } = await import("../build/vite-assets.mjs");
     const root = path.resolve(__dirname, "..", "..");
-    const code = (await bundleEcharts(root, "src/charts/echarts.js")).toString("utf8");
+    const code = (await bundleEcharts(root, "src/charts/echarts.ts")).toString("utf8");
     assert.doesNotMatch(code, /^\s*(?:import|export)\s/m, "必须是经典脚本，页面按 <script> 插入");
     const sandbox = { console, setTimeout, clearTimeout, navigator: { userAgent: "node" } };
     sandbox.globalThis = sandbox; sandbox.window = sandbox; sandbox.self = sandbox;
@@ -129,17 +137,56 @@ async function main() {
     assert.equal(sandbox.echarts.version, require("echarts/package.json").version);
     assert.equal(typeof sandbox.echarts.init, "function");
   });
-  await test("旧脚本类型声明：每个顶层名称挂到对应模块，let 保持可变，--check 能发现过期", () => fixture(async (root, write) => {
-    const { legacyTypes } = await import("../build/legacy-types.mjs");
-    write("js/a.js", "const SHARED = 1;\nlet counter = 0;\nfunction helper() {}");
-    write("js/init.js", "function start() {}");
-    write("js/legacy-scripts.json", JSON.stringify({ lib: ["js/a.js"], init: "js/init.js" }));
-    const types = legacyTypes(root);
-    assert.match(types, /type LegacyType\$SHARED = typeof SHARED;/);
-    assert.match(types, /declare module "virtual:legacy-lib" \{\n  export const SHARED: LegacyType\$SHARED;\n  export let counter: LegacyType\$counter;\n  export const helper: LegacyType\$helper;\n\}/);
-    assert.match(types, /declare module "virtual:legacy-init" \{\n  export const start: LegacyType\$start;\n\}/);
+  await test("审计输入确定性生成类型化目录，保留永久 ID、正则、共享字段与评测摘要", () => fixture(async (root, write) => {
+    const { catalogSource, writeCatalog, CATALOG_FILE } = await import("../build/catalog-types.mjs");
+    write("js/data.js", 'const RATE_USD_CNY = 6.71; const PLANS = [{id:"stable-id",plan:"fixture",quota:"shared"}]; const MODEL_ROLES = [{re:/glm-5/i}]; const PRICE_CHECKS = {checkedAt:"2026-10-10",sources:{},rows:{}}; function resolvedField(p,key,seen) { return p[key]; }');
+    write("js/benchmark-summary.js", 'const BENCHMARK_SUMMARY = {schemaVersion:1,checkedAt:"2026-10-10",protocols:[]};');
+    write("js/project-data.js", 'const PUBLIC_PROJECT = Object.freeze({siteUrl:"https://example.com/"});');
+    const source = catalogSource(root);
+    assert.equal(source, catalogSource(root));
+    assert.match(source, /PLANS: Plan\[\]/);
+    assert.match(source, /BENCHMARK_SUMMARY: BenchmarkSummary/);
+    assert.match(source, /sources: Record<string/);
+    assert.match(source, /seen\?: any/);
+    assert.match(source, /export \{ RATE_USD_CNY, PLANS, MODEL_ROLES, PRICE_CHECKS, resolvedField, BENCHMARK_SUMMARY, PUBLIC_PROJECT \};/);
+    const ts = require("typescript");
+    const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+    const module = { exports: {} };
+    require("node:vm").runInNewContext(code, { module, exports: module.exports });
+    assert.equal(module.exports.PLANS[0].id, "stable-id");
+    assert.ok(module.exports.MODEL_ROLES[0].re.test("GLM-5"));
+    assert.equal(module.exports.resolvedField(module.exports.PLANS[0], "quota"), "shared");
+    assert.equal(writeCatalog(root).changed, true);
+    assert.equal(writeCatalog(root).changed, false);
+    assert.equal(writeCatalog(root, { check: true }).changed, false);
+    const file = path.join(root, CATALOG_FILE), before = fs.readFileSync(file, "utf8");
+    write("js/project-data.js", 'const PUBLIC_PROJECT = Object.freeze({siteUrl:"https://changed.example.com/"});');
+    assert.throws(() => writeCatalog(root, { check: true }), /已过期/);
+    assert.equal(fs.readFileSync(file, "utf8"), before, "检查模式不改仓库");
+    write("js/project-data.js", "const PLANS = [];");
+    assert.throws(() => catalogSource(root), /PLANS.*重复声明/);
     const real = path.resolve(__dirname, "..", "..");
-    assert.equal(fs.readFileSync(path.join(real, "src/legacy.d.ts"), "utf8"), legacyTypes(real), "仓库里的 src/legacy.d.ts 须与旧脚本一致（npm run types:legacy）");
+    assert.equal(fs.readFileSync(path.join(real, CATALOG_FILE), "utf8"), catalogSource(real));
+  }));
+  await test("Vue SSR 首屏包含可读推荐、价格表与免费入口，并保留模块入口供浏览器接管", async () => {
+    const root = path.resolve(__dirname, "..", "..");
+    const { prerenderIndex } = require("../build/prerender");
+    const html = await prerenderIndex(fs.readFileSync(path.join(root, "index.html"), "utf8"));
+    assert.match(html, /class="quick-card"/);
+    assert.match(html, /class="qc-plan"/);
+    assert.match(html, /id="tableBody"[^>]*>[\s\S]*?<tr/);
+    assert.match(html, /id="freeGrid"[^>]*>[\s\S]*?free-card/);
+    assert.match(html, /type="module"[^>]*src="(?:\.?\/)?src\/main\.ts"/);
+    assert.doesNotMatch(html, /virtual:legacy|src="js\/app-(?:core|picker|tables|init)\.js"/);
+  });
+  await test("目录生成不经公共路径链接读入私有审计内容", () => fixture(async (root, write) => {
+    const { catalogSource } = await import("../build/catalog-types.mjs");
+    write("audit/private/data.js", "const PRIVATE_SECRET_MARKER = 'must-not-publish';");
+    const input = path.join(root, "js"), backup = path.join(root, "js-original");
+    fs.renameSync(input, backup);
+    fs.symlinkSync(path.join(root, "audit/private"), input, process.platform === "win32" ? "junction" : "dir");
+    try { assert.throws(() => catalogSource(root), /公共目录以外.*audit/); }
+    finally { fs.unlinkSync(input); fs.renameSync(backup, input); }
   }));
   await test("字体第二个下载失败保留整组旧字体与 CSS", () => fixture(async (root) => {
     const dir = path.join(root, "libs/fonts"), before = snapshot(dir);
