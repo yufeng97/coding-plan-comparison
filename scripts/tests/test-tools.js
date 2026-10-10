@@ -376,6 +376,14 @@ async function main() {
       assert.equal(waits, failedRequest - 1);
     }
   }));
+  await test("部署收到非JSON网关页时报告HTTP状态，且回显的token已脱敏", () => fixture(async (root) => {
+    writeAssetPlan(createAssetPlan(root));
+    let waits = 0;
+    await assert.rejects(deploySite(root, [], { token: "mock-token", wait: async (_ms, value) => { waits++; return value; },
+      fetcher: async () => new Response("<html><body>502 Bad Gateway mock-token</body></html>", { status: 502, headers: { "Content-Type": "text/html" } }) }),
+    (/** @type {Error} */ error) => /Vercel 502：响应不是 JSON/.test(error.message) && error.message.includes("502 Bad Gateway") && !error.message.includes("mock-token"));
+    assert.equal(waits, 0);
+  }));
   await test("部署网络超时拒绝会向调用方失败，且不会启动轮询", () => fixture(async (root) => {
     writeAssetPlan(createAssetPlan(root));
     let requests = 0, waits = 0;

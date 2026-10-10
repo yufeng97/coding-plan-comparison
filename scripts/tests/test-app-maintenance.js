@@ -309,6 +309,23 @@ test("评测数据下载超时后可重试；迟到的数据已就绪时重试�
   healthy(app);
 });
 
+test("超时后在旧请求返回前重试，迟到脚本与重试脚本都执行也不报重复声明", async () => {
+  for (const [hash, kind, file] of [["#updates", "maintenance", "js/maintenance-data.js"], ["#benchmarks", "benchmark", "js/benchmark-data.js"]]) {
+    const app = createApp({ lazyData: true, url: "http://127.0.0.1:8123/" + hash });
+    const status = app.elements.get(kind + "DataStatus");
+    assert.deepEqual(app.scriptLoads, [file]);
+    app.flushTimeouts(); await settle();
+    assert.match(status.innerHTML, /数据下载超时，请重试/);
+    app.run(`document.querySelector('#${kind}DataStatus [data-retry-data]')`).click();
+    assert.deepEqual(app.scriptLoads, [file, file], "卡住的旧请求不能阻止重试发出新请求");
+    /* 浏览器里已发出的旧脚本仍会执行；两份都执行时只覆盖同一份数据。 */
+    app.finishDataLoads(); await settle();
+    assert.equal(app.run(`optionalDataLoaded('${kind}')`), true);
+    assert.equal(status.textContent, "");
+    healthy(app);
+  }
+});
+
 test("关注页按需加载维护数据，公开JSON下载先补齐两份数据", async () => {
   const id = "plan-0002";
   const app = createApp({ lazyData: true, url: "http://127.0.0.1:8123/#updates", storage: { "cp-followed-plans-v1": JSON.stringify({ planIds: [id], readChangeIds: [] }) } });

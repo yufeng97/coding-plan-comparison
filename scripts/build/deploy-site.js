@@ -64,7 +64,12 @@ async function deploySite(workspace, args = [], options = {}) {
   try {
     const request = async (url, init = {}) => {
       const response = await fetcher(url, { ...init, headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, signal: AbortSignal.timeout(30000) });
-      const result = /** @type {{id?:string,readyState?:string,url?:string,errorMessage?:string,error?:{message?:string},dryRun?:boolean,files?:string[]}} */ (JSON.parse(redact(JSON.stringify(await response.json()))));
+      /* 网关错误可能返回 HTML；先读文本再解析，错误信息保留 HTTP 状态码。 */
+      const text = await response.text();
+      let parsed;
+      try { parsed = JSON.parse(text); }
+      catch { throw new Error("Vercel " + response.status + "：响应不是 JSON（" + redact(text.replace(/\s+/g, " ").trim().slice(0, 120)) + "）"); }
+      const result = /** @type {{id?:string,readyState?:string,url?:string,errorMessage?:string,error?:{message?:string},dryRun?:boolean,files?:string[]}} */ (JSON.parse(redact(JSON.stringify(parsed))));
       if (!response.ok) throw new Error("Vercel " + response.status + "：" + (result.error?.message || "请求失败"));
       return result;
     };

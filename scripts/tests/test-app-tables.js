@@ -555,4 +555,18 @@ test("额度表空态的模型档提示与下拉选项文字一致", () => {
   healthy(app);
 });
 
+test("完整权益窗口只在有选购口径时列出相应行，来源与核价来源可直接点击", () => {
+  const app = createApp();
+  app.run('showPlanDetails("plan-0002")');
+  let html = app.elements.get("planDetailsBody").innerHTML;
+  assert.doesNotMatch(html, /选购支付口径|选购首次付款/, "未应用选购条件时不列空行");
+  assert.match(html, /<dt>来源<\/dt><dd><a href="https:\/\/[^"]+" target="_blank" rel="noopener">官网页面 ↗<\/a>/);
+  assert.match(html, /<dt>价格核查来源<\/dt><dd><a href="https:\/\//);
+  app.run('closePlanDetails(); tableState.fromPicker = true; showPlanDetails("plan-0002")');
+  html = app.elements.get("planDetailsBody").innerHTML;
+  assert.match(html, /<dt>选购支付口径<\/dt><dd>[^<—]/);
+  assert.equal(app.run('linkListHtml(["javascript:alert(1)"], "x")'), "—", "非 http(s) 地址不生成链接");
+  healthy(app);
+});
+
 if (require.main === module) main();

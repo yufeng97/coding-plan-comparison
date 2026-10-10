@@ -304,7 +304,7 @@ function showPlanDetails(id, trigger = null) {
   if (isCmpModalOpen()) closeCmpModal();
   planDetailsReturnFocus = trigger || document.activeElement;
   byId("planDetailsTitle").textContent = planTitle(p);
-  byId("planDetailsBody").innerHTML = `<dl class="plan-detail-fields">` + PLAN_COLUMNS.filter((c) => c.markdown !== false).map((c) => `<div><dt>${esc(c.label)}</dt><dd>${esc(c.value(p) || "—")}</dd></div>`).join("") + `</dl>` +
+  byId("planDetailsBody").innerHTML = `<dl class="plan-detail-fields">` + PLAN_COLUMNS.filter((c) => c.markdown !== false && !(c.pickerOnly && !c.value(p))).map((c) => `<div><dt>${esc(c.label)}</dt><dd>${c.detailCell ? c.detailCell(p) : esc(c.value(p) || "—")}</dd></div>`).join("") + `</dl>` +
     `<div class="maintenance-plan-actions">${typeof watchButtonHtml === "function" ? watchButtonHtml(p) : ""}<a href="${safeHref(p.url)}" target="_blank" rel="noopener">官网购买与权益规则 ↗</a></div>` +
     `<p id="planFollowFeedback" class="table-feedback" role="status" aria-live="polite">${typeof followStorageMessage === "string" ? esc(followStorageMessage) : ""}</p>` +
     (typeof planHistoryHtml === "function" ? planHistoryHtml(p.id) : "");
