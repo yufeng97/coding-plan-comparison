@@ -120,7 +120,7 @@ function renderPersonalChart() {
     : annualMode ? "没有匹配的公开年付套餐；未列年付价的档位已排除。请更换关键词或清除筛选。" : "没有匹配的个人月付套餐。请更换关键词或清除筛选。";
   /* 初始化/缩放时需要真实容器宽度，空态在完成配置后再隐藏 canvas。 */
   el.hidden = false;
-  el.style.height = chartHeight(shown.length, 30, 130, 420) + "px";
+  el.style.height = chartHeight(shown.length, chartRowHeight(el, 30), 130, 420) + "px";
   const chart = makeChart("chartPersonal");
 
   const labels = shown.map((p) => (isRelay(p) ? "中转 · " : "") + shortVendor(p.vendor) + " · " + p.plan + (p.region === "cn" ? "·国内" : ""));
@@ -202,7 +202,7 @@ function renderTeamChart() {
     (p) => isPriceConfirmed(p) && !isRetiredPlan(p) && (p.cat === "team" || p.seat) && p.priceM != null && p.priceM > 0
   ).sort((a, b) => Number(!a.seat) - Number(!b.seat) || cnyOf(a, "M") - cnyOf(b, "M"));
   const el = byId("chartTeam");
-  el.style.height = chartHeight(rows.length, 30, 130, 380) + "px";
+  el.style.height = chartHeight(rows.length, chartRowHeight(el, 30), 130, 380) + "px";
   const chart = makeChart("chartTeam");
 
   const data = rows.map((p) => ({
@@ -307,7 +307,7 @@ function renderTokensChart() {
   const rows = /** @type {TokenRow[]} */ ([...officialBars, ...community].map((r) => ({ ...r, midM: (r.lowM + r.highM) / 2 })));
   rows.sort((a, b) => b.midM - a.midM);
 
-  el.style.height = chartHeight(rows.length, 30, 150, 420) + "px";
+  el.style.height = chartHeight(rows.length, chartRowHeight(el, 30), 150, 420) + "px";
 
   const cats = rows.map((r) => r.label);
   /* 对数轴不堆叠 high-low（差值不能当作单独的 log 值）。先画到上限的淡色柱，
@@ -385,6 +385,14 @@ function renderTokensChart() {
 }
 
 /* ---------- API 按量价格 ---------- */
+/* 图表纵轴与明细表共用「厂商 · 模型」：label 里的平台后缀（(Z.ai) / [硅基] 等）由厂商前缀承担，
+   厂商名与模型名重复时（DeepSeek · DeepSeek V4-Pro）去掉重复的厂商词。 */
+function apiChartLabel(a) {
+  const vendor = shortVendor(a.vendor);
+  let model = displayModelName(String(a.label || a.model).replace(/\s*[(（\[【].*$/, "").trim());
+  if (model.toLowerCase().startsWith(vendor.toLowerCase() + " ")) model = model.slice(vendor.length + 1);
+  return vendor + " · " + model;
+}
 function renderApiChart() {
   if (deferChartRender("chartApi",renderApiChart)) return;
   const apiEl = byId("chartApi");
@@ -397,16 +405,8 @@ function renderApiChart() {
     .filter((a) => a.inUSD != null && a.outUSD != null)
     .sort((x, y) => x.outUSD - y.outUSD);
   const rows = detailRows.filter((a) => isPriceConfirmed(a, "api"));
-  /* 统一纵轴标签：厂商 · 模型。label 里的平台后缀（(Z.ai) / [硅基] 等）由厂商前缀承担，
-     厂商名与模型名重复时（DeepSeek · DeepSeek V4-Pro）去掉重复的厂商词。 */
-  const apiLabel = (a) => {
-    const vendor = shortVendor(a.vendor);
-    let model = displayModelName(String(a.label || a.model).replace(/\s*[(（\[【].*$/, "").trim());
-    if (model.toLowerCase().startsWith(vendor.toLowerCase() + " ")) model = model.slice(vendor.length + 1);
-    return vendor + " · " + model;
-  };
-  const cats = rows.map(apiLabel);
-  apiEl.style.height = chartHeight(rows.length, 28, 72, 640) + "px";
+  const cats = rows.map(apiChartLabel);
+  apiEl.style.height = chartHeight(rows.length, chartRowHeight(apiEl, 28), 72, 640) + "px";
 
   const fmtPrice = (a, inU, outU) =>
     a.cur === "CNY"
@@ -423,7 +423,7 @@ function renderApiChart() {
           const href = safeHref(a.url);
           const shown = displayModelName(a.label || a.model);
           const idLine = a.model && displayModelName(a.model) !== shown ? `<span style="color:${PAL.dim}">计费 ID：${esc(a.model)}</span><br/>` : "";
-          return `<b>${esc(apiLabel(a))}</b>${a.region === "cn" ? " · 国内" : ""}<br/>${idLine}
+          return `<b>${esc(apiChartLabel(a))}</b>${a.region === "cn" ? " · 国内" : ""}<br/>${idLine}
             ${fmtPrice(a, a.inUSD, a.outUSD)}<br/>
             ${a.note ? `<span style="color:${PAL.dim}">${esc(trunc(a.note, 120))}</span><br/>` : ""}
             ${href ? `<span style="color:${PAL.dim};font-size:11.5px">来源：${href}</span>` : ""}`;
@@ -450,8 +450,8 @@ function renderApiChart() {
      图例可点击过滤国际/国内；axis 触发 + 阴影指示器与左图一致。 */
   const chart2 = makeChart("chartPower");
   const el2 = byId("chartPower");
-  el2.style.height = chartHeight(rows.length, 26, 120, 420) + "px";
-  const power = rows.filter((a) => a.outUSD > 0).map((a) => ({ name: apiLabel(a), m: 10 / a.outUSD, a }));
+  el2.style.height = chartHeight(rows.length, chartRowHeight(el2, 26), 120, 420) + "px";
+  const power = rows.filter((a) => a.outUSD > 0).map((a) => ({ name: apiChartLabel(a), m: 10 / a.outUSD, a }));
   power.sort((x, y) => y.m - x.m);
   const POWER_COLORS = { intl: "#22d3ee", cn: "#34d399" };
   const powerSeriesData = power.map((p) => {
@@ -491,13 +491,8 @@ function renderApiChart() {
   );
   chart2.resize();
   bindChartLegend(chart2, "powerLegend", { "国际模型": POWER_COLORS.intl, "国内模型": POWER_COLORS.cn });
-  byId("apiDetailBody").innerHTML = detailRows.map((a) => {
-    const usd = (n) => "$" + Number(n.toFixed(4));
-    return `<tr><th scope="row">${esc(apiLabel(a))}</th><td>${esc(REGION_LABEL[a.region] || "—")}</td>` +
-      `<td>${usd(a.inUSD)}</td><td>${usd(a.outUSD)}</td>` +
-      `<td>${a.outUSD > 0 ? Number((10 / a.outUSD).toFixed(1)) + "M" : "—"}</td>` +
-      `<td>${priceCheckHtml(a, "api")}</td></tr>`;
-  }).join("");
+  /* 明细表只有一个渲染入口：首屏与图表重绘写出同一份标签和核价状态。 */
+  renderApiDetails();
   describeChart("chartApi", "API 按量单价对比 " + rows.length + " 款模型（左图）；$10 预算输出 token 购买力 " + power.length + " 行（右图）。两图采用对数刻度，相邻主刻度为十倍，完整价格见提示和下方明细。");
   describeChart("chartPower", "$10 预算输出 token 购买力 " + power.length + " 行；采用对数刻度，相邻主刻度为十倍。使用图例按钮筛选国内或国际模型，完整数值见下方明细。");
 }
@@ -627,8 +622,9 @@ function renderRankDetails() {
 }
 function renderRankChart() {
   if (typeof syncPickerScopeControls === "function") syncPickerScopeControls();
-  const title = byId("rankTitle");
-  if (title) title.innerHTML = '<span class="sec-no">02</span>每百万 tokens 满额使用折算成本（' + esc(rankPaymentLabel()) + '）';
+  /* 只更新标题里的支付口径，章节编号与「进阶」标记保持页面原样。 */
+  const titleBasis = byId("rankTitleBasis");
+  if (titleBasis) titleBasis.textContent = rankPaymentLabel();
   populateRankVendor();
   renderRankDetails();
   if (deferChartRender("chartRank",renderRankChart)) return;
@@ -641,7 +637,7 @@ function renderRankChart() {
   /* 两组之间插入一行分隔标签，柱值为空。 */
   const firstEstimate = rows.findIndex((r) => rankIsEstimate(r.m));
   const items = firstEstimate > 0 ? [...rows.slice(0, firstEstimate), null, ...rows.slice(firstEstimate)] : rows;
-  el.style.height = chartHeight(items.length, 30, 130, 420) + "px";
+  el.style.height = chartHeight(items.length, chartRowHeight(el, 30), 130, 420) + "px";
   const chart = makeChart("chartRank");
 
   const labels = items.map((r) => r ? (rankIsEstimate(r.m) ? "≈" : "") + metricChartLabel(r.m) : "— " + RANK_ESTIMATE_DIVIDER + " —");
@@ -728,6 +724,6 @@ function renderApiDetails() {
     input:a.cur === "CNY" ? a.inCNY / RATE : a.inUSD,
     output:a.cur === "CNY" ? a.outCNY / RATE : a.outUSD,
   })).filter((a) => Number.isFinite(a.input) && Number.isFinite(a.output)).sort((a,b) => a.output-b.output);
-  body.innerHTML = rows.map((a) => `<tr><th scope="row">${esc(shortVendor(a.vendor) + " · " + displayModelName(a.label || a.model))}</th><td>${esc(REGION_LABEL[a.region] || "—")}</td>` +
+  body.innerHTML = rows.map((a) => `<tr><th scope="row">${esc(apiChartLabel(a))}</th><td>${esc(REGION_LABEL[a.region] || "—")}</td>` +
     `<td>$${Number(a.input.toFixed(4))}</td><td>$${Number(a.output.toFixed(4))}</td><td>${a.output > 0 ? Number((10/a.output).toFixed(1)) + "M" : "—"}</td><td>${priceCheckHtml(a,"api")}</td></tr>`).join("");
 }

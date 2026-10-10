@@ -406,4 +406,7 @@ boot("chartResize", bindChartResize);
 boot("syncUrl", syncUrl);
 /* 直接打开分享锚点时也先铺好上方布局。 */
 if (location.hash) navigateToSection(location.hash, false, false);
+/* 构建期预渲染的容器已由上面的渲染按当前条件重写；去掉标记，带参数链接的内容随之显示。 */
+qsa("[data-prerendered]").forEach((el) => el.removeAttribute("data-prerendered"));
+document.documentElement.classList.remove("has-query");
 window["codingPlanReady"] = true;

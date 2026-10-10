@@ -41,7 +41,7 @@ test("图表跳表清除旧 cloud/cn 条件并定位，清除按钮恢复默认�
   assert.equal(app.elements.get("selectCat").value, "all");
   assert.equal(app.elements.get("selectRegion").value, "all");
   assert.equal(app.location.hash, "#table");
-  assert.equal(app.run("LAZY_DONE.size"), 5);
+  assert.equal(app.run("LAZY_DONE.size"), app.run('LAZY_CHARTS.filter((item) => byId(item.el).compareDocumentPosition(byId("table")) & 4).length'), "只预先渲染数据表之前的图表");
   const params = new URLSearchParams(app.location.search);
   assert.equal(params.get("q"), "Claude Team");
   assert.equal(params.has("tcat"), false);
@@ -50,7 +50,8 @@ test("图表跳表清除旧 cloud/cn 条件并定位，清除按钮恢复默认�
   app.fire(app.elements.get("tableResetBtn"), "click");
   assert.equal(app.run("tableState.search"), "");
   assert.equal(app.run("tableState.sortKey + ':' + tableState.sortDir"), "priceM:1");
-  assert.equal(app.run("computeTableRows().length"), app.run("PLANS.filter(isOnSalePlan).length"));
+  assert.equal(app.run("computeTableRows().length"), app.run("PLANS.filter(isOnSalePlan).filter((p) => !tableExtraHidden(p)).length"));
+  assert.equal(app.run("tableState.extra"), false, "清除筛选也收起中转站与待核价格");
 });
 
 test("个人图表显示全部可收起，空结果可清除并恢复20档与筛选按钮状态", () => {
@@ -418,17 +419,29 @@ test("亮暗主题的图表tooltip读取当前语义配色，切换后已加载�
   healthy(app);
 });
 
-test("390px 视口所有图表限制轴标签宽度并保留绘图区预算", () => {
+test("390px 视口把类别名放在柱子上方整行显示，绘图区不再被标签挤占", () => {
   const app = createApp({ width: 390, url: "http://127.0.0.1:8123/index.html#s4" });
   healthy(app);
   assert.equal(app.charts.size, 6);
   for (const [id, chart] of app.charts) {
     const option = chart.option, label = option.yAxis.axisLabel, grid = option.grid;
-    assert.ok(label.width > 0 && label.width <= 110, id + " 标签宽度应不超过110px");
+    const width = app.elements.get(id).getBoundingClientRect().width;
+    assert.equal(label.inside, true, id + " 窄屏标签应进入绘图区上方");
+    assert.equal(label.verticalAlign, "bottom", id);
+    assert.ok(label.width >= width - 60, id + " 标签应接近整行宽度，实际为 " + label.width);
     assert.equal(label.overflow, "truncate", id);
-    const available = app.elements.get(id).getBoundingClientRect().width - grid.left - grid.right - label.width - label.margin;
-    assert.ok(available > 70, id + " 配置下至少保留70px绘图区，实际为 " + available);
+    const available = width - grid.left - grid.right;
+    assert.ok(available > 180, id + " 绘图区应保留整行宽度，实际为 " + available);
   }
+  /* 名称占一行后行高相应增加，避免文字压到上一根柱子。 */
+  const rows = app.charts.get("chartRank").option.yAxis.data.length;
+  assert.ok(parseFloat(app.elements.get("chartRank").style.height) >= rows * 46, "窄屏排行图每行至少 46px");
+  const wide = createApp({ width: 1280, url: "http://127.0.0.1:8123/index.html#s4" });
+  for (const [id, chart] of wide.charts) {
+    const label = chart.option.yAxis.axisLabel;
+    assert.ok(!label.inside && label.width <= 260, id + " 宽屏保留左侧限宽标签");
+  }
+  healthy(wide);
 });
 
 if (require.main === module) main();

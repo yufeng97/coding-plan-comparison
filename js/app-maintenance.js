@@ -3,6 +3,15 @@
 
 const FOLLOW_KEY = "cp-followed-plans-v1";
 let followState = { version: 1, planIds: [], readChangeIds: [] };
+/* 关注同步链接 ?follow=plan-0002,plan-0031：只在打开页面时读取一次（启动后地址栏会规范化去掉该参数），
+   由用户确认后才合并进本机关注；链接不含已读记录。 */
+function readFollowImport() {
+  try {
+    const raw = new URLSearchParams(location.search).get("follow") || "";
+    return [...new Set(raw.split(",").map((id) => id.trim()).filter((id) => /^plan-[a-z0-9-]{1,40}$/.test(id)))].slice(0, 500);
+  } catch (e) { return []; }
+}
+let pendingFollowImport = readFollowImport();
 let followStorageAvailable = true;
 let followStorageMessage = "";
 let maintenancePlanId = "";
@@ -206,6 +215,18 @@ function planCodingBenchmarks(p, role = null) {
     return row ? { protocol, row } : null;
   }).filter(Boolean);
 }
+/* 「模型能力优先」只读一个协议，避免把不同评测的分数混排；摘要行已按分数降序，find 即本档最佳。 */
+const ABILITY_PROTOCOL_ID = "deepswe-v1-1";
+function planProtocolScore(p, role = null, protocolId = ABILITY_PROTOCOL_ID) {
+  if (typeof BENCHMARK_SUMMARY === "undefined" || BENCHMARK_SUMMARY.schemaVersion !== 1 || !p || !publicPlanEligible(p)) return null;
+  const protocol = BENCHMARK_SUMMARY.protocols.find((x) => x.id === protocolId);
+  if (!protocol) return null;
+  const row = protocol.rows.find((r) => {
+    const name = publicModelDisplayName(r.model);
+    return (!role || role.re.test(name)) && publicModelIncluded(p, name);
+  });
+  return row ? { protocol, row } : null;
+}
 function publicModelPlansHtml(model) {
   const plans = publicModelPlans(model);
   const links = plans.map((p) => `<a href="?q=${encodeURIComponent(p.vendor + " " + p.plan)}#${isFreeCodingEntry(p) ? "free" : "table"}" data-benchmark-plan="${esc(p.id)}">${esc(planTitle(p))}</a>`);
@@ -330,8 +351,7 @@ function renderPublicBenchmarks() {
 function publicBenchmarkCsv() {
   const benchmark = selectedPublicBenchmark(); if (!benchmark) return "";
   const columns = ["协议 ID", "评测", "版本", "范围", "协议配置", "展示模式", "名次", "模型", "推理配置", "Agent", "分数", "单位", "官方评测每任务成本 USD", "成本说明", "不确定性", "Tokens", "Steps", "成绩来源", "核查日期", "协议来源", "官方标注日期"];
-  const cell = (value) => { let s = String(value ?? ""); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return '"' + s.replace(/"/g, '""') + '"'; };
-  return [columns.map(cell).join(","), ...publicBenchmarkRows().map((r) => [benchmark.id, benchmark.name, benchmark.version, benchmark.scope, benchmark.configuration, publicBenchmarkState.mode === "all" ? "全部已公布配置" : "每模型最佳已公布配置", r.rank, r.model, r.reasoning, r.agent, r.score, benchmark.unit, r.costUSD, r.costNote, r.uncertainty, r.tokens, r.steps, r.sourceUrl, r.checkedAt, benchmark.sourceUrl, benchmark.sourceUpdatedAt].map(cell).join(","))].join("\r\n");
+  return [columns.map(csvCell).join(","), ...publicBenchmarkRows().map((r) => [benchmark.id, benchmark.name, benchmark.version, benchmark.scope, benchmark.configuration, publicBenchmarkState.mode === "all" ? "全部已公布配置" : "每模型最佳已公布配置", r.rank, r.model, r.reasoning, r.agent, r.score, benchmark.unit, r.costUSD, r.costNote, r.uncertainty, r.tokens, r.steps, r.sourceUrl, r.checkedAt, benchmark.sourceUrl, benchmark.sourceUpdatedAt].map(csvCell).join(","))].join("\r\n");
 }
 function downloadPublicBenchmarkCsv() {
   const benchmark = selectedPublicBenchmark(); if (!benchmark || !publicBenchmarkRows().length) return;
@@ -479,6 +499,42 @@ function fillPlanHistory(details, parts) {
   if (summary && parts.summary != null && summary.textContent !== parts.summary) summary.textContent = parts.summary;
   if (body) body.innerHTML = parts.body;
 }
+function followSyncUrl() {
+  return location.href.split(/[?#]/)[0] + "?follow=" + followState.planIds.join(",") + "#updates";
+}
+async function copyFollowLink() {
+  if (!followState.planIds.length) return;
+  const ok = await copyTextToClipboard(followSyncUrl());
+  followFeedback(ok ? "已复制关注同步链接。在另一台设备或浏览器打开后，选择「合并到本机关注」即可；链接只含套餐 ID，不含已读记录。"
+    : "复制失败，请改用该设备手动关注。");
+}
+function renderFollowImport() {
+  const box = byId("followImport");
+  if (!box) return;
+  const plans = pendingFollowImport.map((id) => PLANS.find((p) => p.id === id)).filter(Boolean);
+  const fresh = plans.filter((p) => !isPlanFollowed(p.id));
+  box.hidden = !fresh.length;
+  box.innerHTML = fresh.length ? `<p>这个链接带来 ${plans.length} 档关注套餐，其中 ${fresh.length} 档尚未在本机关注：${esc(fresh.slice(0, 5).map(planTitle).join("、"))}${fresh.length > 5 ? " 等" : ""}。</p><div class="maintenance-toolbar"><button type="button" class="chip" data-follow-import="merge">合并到本机关注</button><button type="button" class="chip" data-follow-import="dismiss">忽略</button></div>` : "";
+}
+function applyFollowImport(merge) {
+  const valid = pendingFollowImport.filter((id) => PLANS.some((p) => p.id === id));
+  if (merge) {
+    followState.planIds = [...new Set([...followState.planIds, ...valid])].slice(0, 500);
+    persistFollowState(); syncWatchButtons(); renderFollowedChanges();
+  }
+  pendingFollowImport = [];
+  renderFollowImport();
+  followFeedback(merge ? `已合并链接里的 ${valid.length} 档关注，本机现关注 ${followState.planIds.length} 档。` : "已忽略链接里的关注套餐。");
+  focusTableControl(byId(merge ? "copyFollowLinkBtn" : "maintenancePlan"));
+}
+/* 只为关注的厂商列出订阅地址；路径来自维护摘要，格式固定为 feeds/<slug>.xml。 */
+function followFeedLinks(plans) {
+  if (!optionalDataLoaded("maintenance")) return "";
+  const feeds = [...new Set(plans.map((p) => p.vendor))]
+    .map((vendor) => (maintenanceData().feeds || []).find((feed) => feed.vendor === vendor))
+    .filter((feed) => feed && /^feeds\/[a-z0-9-]+\.xml$/.test(feed.path));
+  return feeds.length ? `<p class="follow-feeds">按厂商订阅变更 RSS：${feeds.map((feed) => `<a href="${esc(feed.path)}" target="_blank" rel="noopener">${esc(shortVendor(feed.vendor))} ↗</a>`).join(" · ")}</p>` : "";
+}
 function renderFollowedChanges() {
   const list = byId("followedPlans"), changes = byId("followedChanges"), count = byId("followUnreadCount"), read = byId("markFollowReadBtn");
   if (!list || !changes || !count || !read) return;
@@ -487,6 +543,9 @@ function renderFollowedChanges() {
   const unread = unreadFollowedChanges(), loaded = optionalDataLoaded("maintenance");
   count.textContent = `${plans.length} 档关注` + (loaded ? ` · ${unread.length} 条未读变更` : "");
   read.disabled = !unread.length;
+  const copy = byId("copyFollowLinkBtn");
+  if (copy) copy.disabled = !plans.length;
+  if (plans.length) list.innerHTML += followFeedLinks(plans);
   changes.innerHTML = unread.length ? `<ul class="change-list">${unread.map((c) => changeCardHtml(c, true)).join("")}</ul>` : `<p>${!plans.length ? "关注后会展示本站收录的已确认变更。" : loaded ? "当前关注套餐没有未读的已确认变更。" : optionalPendingText("关注套餐的已确认变更")}</p>`;
   const storage = byId("followStorageNote");
   if (storage) storage.textContent = followStorageMessage || "只在当前浏览器保存关注与已读记录；不上传，不跨设备同步，清理浏览器数据后会消失。";
@@ -623,7 +682,7 @@ function refreshOptionalViews(kind) {
   }
 }
 function bindMaintenanceEvents() {
-  loadFollowState(); renderMaintenance(); syncWatchButtons();
+  loadFollowState(); renderMaintenance(); syncWatchButtons(); renderFollowImport();
   [["maintenancePlan", () => { maintenancePlanId = byId("maintenancePlan").value; renderMaintenanceHistory(); renderContribution(); }], ["maintenanceRecordFilter", () => { maintenanceRecordFilter = byId("maintenanceRecordFilter").value; renderMaintenanceRecords(); }], ["contributionType", () => {
     renderContribution();
     if (byId("contributionType").value === "benchmark") loadViewData("benchmark");
@@ -636,7 +695,7 @@ function bindMaintenanceEvents() {
       renderBenchmarks(); renderContribution();
     });
   }
-  [["markFollowReadBtn", markFollowedChangesRead], ["copyContributionBtn", copyContributionTemplate], ["downloadContributionBtn", downloadContributionTemplate], ["downloadPublicDataBtn", downloadPublicData]].forEach(([id, handler]) => { const b = byId(id); if (b) b.addEventListener("click", handler); });
+  [["markFollowReadBtn", markFollowedChangesRead], ["copyFollowLinkBtn", copyFollowLink], ["copyContributionBtn", copyContributionTemplate], ["downloadContributionBtn", downloadContributionTemplate], ["downloadPublicDataBtn", downloadPublicData]].forEach(([id, handler]) => { const b = byId(id); if (b) b.addEventListener("click", handler); });
   document.addEventListener("click", (e) => {
     const target = evtTarget(e); if (!target || !target.closest) return;
     const plan = target.closest("[data-benchmark-plan]");
@@ -644,6 +703,7 @@ function bindMaintenanceEvents() {
       e.preventDefault(); showPlanDetails(plan.dataset.benchmarkPlan, plan);
     }
     const watch = target.closest("[data-watch-plan]"); if (watch) toggleFollowPlan(watch.dataset.watchPlan);
+    const followImport = target.closest("[data-follow-import]"); if (followImport) applyFollowImport(followImport.dataset.followImport === "merge");
   });
   document.addEventListener("toggle", (event) => {
     const details = evtTarget(event);

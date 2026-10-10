@@ -63,6 +63,7 @@ const PLAN_COLUMNS = [
   { id: "priceCheckedAt", label: "价格核查日期", table: false, value: (p) => (priceCheckOf(p) || {}).checkedAt || "" },
   { id: "priceSources", label: "价格核查来源", table: false, value: (p) => priceCheckSources(p).join(" ; ") },
   { id: "priceCheckReason", label: "价格核查说明", table: false, value: (p) => displayPriceReason((priceCheckOf(p) || {}).reason || "") },
+  { id: "mainland", label: "中国大陆可用性", table: false, value: mainlandAccessText },
   { id: "updated", label: "数据更新日期", table: false, markdown: false, value: () => META.updated },
   { id: "rate", label: "参考汇率（USD/CNY）", table: false, markdown: false, value: () => RATE },
   { id: "rateInr", label: "参考汇率（INR/CNY）", table: false, markdown: false, value: () => RATE_INR_CNY },
@@ -74,16 +75,20 @@ function responsivePageSize() { return window.innerWidth < 768 ? 5 : 20; }
 let tableVisibleLimit = responsivePageSize();
 let tableViewFingerprint = "";
 
-/* 筛选 + 排序集中在这里：渲染与 CSV/Markdown 导出共用同一份结果 */
-function computeTableRows() {
+/* 中转站和价格待核实的历史价默认不显示，打开「含中转站与待核价格」后与其他筛选叠加；导出与当前显示一致。 */
+function tableExtraHidden(p) { return isRelay(p) || !isPriceConfirmed(p); }
+function tableFilteredPlans() {
   const q = tableState.search.trim().toLowerCase();
-  const onSale = PLANS.filter(isOnSalePlan);
-  const rows = onSale.filter((p) =>
+  return PLANS.filter(isOnSalePlan).filter((p) =>
     (tableState.cat === "all" || p.cat === tableState.cat) &&
     (tableState.region === "all" || p.region === tableState.region) &&
     (!tableState.fromPicker || matchesPickerPurchase(p)) &&
     (!q || queryHit(planSearchBlob(p), q))
   );
+}
+/* 筛选 + 排序集中在这里：渲染与 CSV/Markdown 导出共用同一份结果 */
+function computeTableRows() {
+  const rows = tableFilteredPlans().filter((p) => tableState.extra || !tableExtraHidden(p));
   const k = tableState.sortKey;
   const sortVal = (p) => k === "selectedMonthly" && tableState.fromPicker ? pickerMonthlyCNY(p) : (p[k] == null ? NaN : toCNY(p[k], p.cur));
   return rows.slice().sort((a, b) => {
@@ -125,7 +130,10 @@ function renderTable() {
   byId("planTable").classList.toggle("is-empty", rows.length === 0);
   const onSale = PLANS.filter(isOnSalePlan);
   const k = tableState.sortKey;
-  byId("tableCount").textContent = `已显示 ${visibleRows.length} / ${rows.length} 条匹配记录 · 共 ${onSale.length} 档`;
+  const hiddenExtra = tableState.extra ? 0 : tableFilteredPlans().filter(tableExtraHidden).length;
+  byId("tableCount").textContent = `已显示 ${visibleRows.length} / ${rows.length} 条匹配记录 · 共 ${onSale.length} 档` +
+    (hiddenExtra ? ` · 另有 ${hiddenExtra} 档中转站或待核价格未显示` : "");
+  syncTableExtraToggle(hiddenExtra);
   const more = byId("tableMoreBtn");
   if (more) {
     more.hidden = visibleRows.length >= rows.length;
@@ -146,7 +154,7 @@ function renderTable() {
     return `<td data-column="${esc(col.id)}" data-label="${esc(col.label)}"${cls ? ` class="${cls}"` : ""}>${col.cell ? col.cell(p) : esc(col.value(p))}</td>`;
   }).join("")}</tr>`).join("") : freeScope
     ? `<tr><td colspan="${PLAN_TABLE_COLUMNS.length}" class="table-empty"><b>选购预算为「免费」，公开标价表不含免费档</b><p>免费档在<a href="#free">免费 Coding 入口</a>；取消选购条件可查看全部标价记录。</p><button type="button" class="chip" data-apply-picker="table">取消选购条件</button></td></tr>`
-    : `<tr><td colspan="${PLAN_TABLE_COLUMNS.length}" class="table-empty"><b>没有匹配的公开标价记录</b><p>${esc(filters || "当前筛选")}没有结果。可以${tableState.fromPicker ? "调整「帮我选」条件、" : ""}调整关键词或清除筛选。${cmpState.items.length ? "已选的对比方案仍保留。" : ""}</p><button type="button" class="chip" id="tableEmptyResetBtn" data-reset-table>清除筛选</button></td></tr>`;
+    : `<tr><td colspan="${PLAN_TABLE_COLUMNS.length}" class="table-empty"><b>没有匹配的公开标价记录</b><p>${esc(filters || "当前筛选")}没有结果${hiddenExtra ? `，另有 ${hiddenExtra} 档中转站或待核价格未显示` : ""}。可以${tableState.fromPicker ? "调整「帮我选」条件、" : ""}调整关键词或清除筛选。${cmpState.items.length ? "已选的对比方案仍保留。" : ""}</p>${hiddenExtra ? '<button type="button" class="chip" data-table-extra>显示中转站与待核价格</button> ' : ""}<button type="button" class="chip" id="tableEmptyResetBtn" data-reset-table>清除筛选</button></td></tr>`;
   ["exportCsvBtn", "copyMdBtn"].forEach((id) => {
     const btn = byId(id);
     if (!btn) return;
@@ -154,7 +162,7 @@ function renderTable() {
     btn.title = rows.length ? (id === "exportCsvBtn" ? "下载当前筛选结果为 CSV（UTF-8）" : "复制当前筛选结果为 Markdown 表格") : "没有可导出的结果，请先调整筛选";
   });
   const reset = byId("tableResetBtn");
-  if (reset) reset.disabled = !tableState.fromPicker && !tableState.search && tableState.cat === "all" && tableState.region === "all" && tableState.sortKey === "priceM" && tableState.sortDir === 1;
+  if (reset) reset.disabled = !tableState.fromPicker && !tableState.extra && !tableState.search && tableState.cat === "all" && tableState.region === "all" && tableState.sortKey === "priceM" && tableState.sortDir === 1;
   if (typeof syncPickerScopeControls === "function") syncPickerScopeControls();
   tableFeedback("");
   syncTableCmpButtons();
@@ -165,6 +173,13 @@ function renderTable() {
   }
 }
 
+function syncTableExtraToggle(hiddenExtra) {
+  const toggle = byId("tableExtraToggle");
+  if (!toggle) return;
+  toggle.classList.toggle("active", tableState.extra);
+  toggle.setAttribute("aria-pressed", tableState.extra ? "true" : "false");
+  toggle.title = tableState.extra ? "隐藏中转站和价格待核实的历史记录" : `显示中转站和价格待核实的历史记录${hiddenExtra ? `（当前筛选下 ${hiddenExtra} 档）` : ""}`;
+}
 function showMoreTableRows() {
   const previousCount = Math.min(tableVisibleLimit, computeTableRows().length);
   tableVisibleLimit += responsivePageSize();
@@ -191,7 +206,7 @@ function revealTablePlan(planId) {
 }
 
 function resetTableFilters() {
-  Object.assign(tableState, { search: "", cat: "all", region: "all", sortKey: "priceM", sortDir: 1, fromPicker:false });
+  Object.assign(tableState, { search: "", cat: "all", region: "all", sortKey: "priceM", sortDir: 1, fromPicker:false, extra:false });
   byId("searchInput").value = "";
   byId("selectCat").value = "all";
   byId("selectRegion").value = "all";
@@ -207,15 +222,15 @@ function tableExportName(ext, description = null) {
   const day = d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0");
   return `coding-plans-${safe}-${day}.${ext}`;
 }
+/* 引号 doubling 之外，还要防 CSV 公式注入：以 = + - @ 开头的单元格加 ' 前缀，Excel 不会当公式执行。所有 CSV 导出共用。 */
+function csvCell(v) {
+  let s = String(v ?? "");
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+  return '"' + s.replace(/"/g, '""') + '"';
+}
 function tableRowsCsv(rows) {
-  /* 引号 doubling 之外，还要防 CSV 公式注入：以 = + - @ 开头的单元格加 ' 前缀，Excel 不会当公式执行 */
-  const cell = (v) => {
-    let s = String(v ?? "");
-    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
-    return '"' + s.replace(/"/g, '""') + '"';
-  };
-  const lines = [PLAN_COLUMNS.map((c) => cell(c.label)).join(",")]
-    .concat(rows.map((p) => PLAN_COLUMNS.map((c) => cell(c.value(p))).join(",")));
+  const lines = [PLAN_COLUMNS.map((c) => csvCell(c.label)).join(",")]
+    .concat(rows.map((p) => PLAN_COLUMNS.map((c) => csvCell(c.value(p))).join(",")));
   return lines.join("\r\n");
 }
 function downloadCsvText(csv, filename) {
@@ -522,6 +537,11 @@ function closeCmpModal() {
 }
 
 /* ---------- 动态 / 来源 / 说明 ---------- */
+/* 来源证据只增不改：记录改用新来源后，旧证据留在台账里，但不再作为当前依据展示。 */
+function currentPriceSources() {
+  const used = new Set(Object.values(PRICE_CHECKS.rows).flatMap((row) => row.sourceIds || []));
+  return Object.entries(PRICE_CHECKS.sources).filter(([id]) => used.has(id)).map(([, source]) => source);
+}
 function chinaCalendarDay(now = new Date()) {
   const parts = new Intl.DateTimeFormat("en", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(now);
   const value = (type) => parts.find((part) => part.type === type).value;
@@ -558,6 +578,7 @@ function renderMisc() {
   byId("dynamicsList").innerHTML = sorted.filter((d) => !d.checked).map((d) => dynItem(d, today)).join("");
   const checkList = byId("checkList");
   if (checkList) checkList.innerHTML = sorted.filter((d) => d.checked).map((d) => dynItem(d, today)).join("");
+  const priceSources = currentPriceSources();
   byId("sourceList").innerHTML =
     `<h3>📖 全部来源（官方定价页 / 权威报道）</h3>` +
     SOURCES.map(
@@ -565,8 +586,8 @@ function renderMisc() {
         const href = safeHref(u);
         return href ? `<li><a href="${href}" tabindex="0" target="_blank" rel="noopener">${esc(u)}</a></li>` : "";
       }).join("")}</ul></details>`
-    ).join("") + `<details class="method-box audit-sources"><summary>本次逐条核价来源（${Object.keys(PRICE_CHECKS.sources).length} 页）</summary><ul>` +
-    Object.values(PRICE_CHECKS.sources).map((s) => {
+    ).join("") + `<details class="method-box audit-sources"><summary>本次逐条核价来源（${priceSources.length} 页）</summary><ul>` +
+    priceSources.map((s) => {
       const href = safeHref(s.url);
       return href ? `<li><a href="${href}" tabindex="0" target="_blank" rel="noopener">${esc(s.url)}</a> — ${esc(displayPriceReason(s.evidence))}</li>` : "";
     }).join("") + `</ul></details>`;

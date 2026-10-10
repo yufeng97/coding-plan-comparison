@@ -28,6 +28,7 @@ const suite = [
   "test-benchmark-deepswe-cursor.js",
   "test-benchmark-osworld-hle.js",
   "test-runners.js",
+  "test-review-fixes.js",
 ];
 
 for (const file of suite) {

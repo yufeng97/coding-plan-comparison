@@ -38,11 +38,11 @@ function validateData(options = {}) {
   vm.createContext(sandbox);
   vm.runInContext(
     (options.source ?? fs.readFileSync(path.join(root, "js/data.js"), "utf8")) +
-      "\n;globalThis.__D={RATE_USD_CNY,RATE_INR_CNY,META,PRICE_CHECKS,PLANS,METRICS_RAW,ESTIMATES,PLAN_TOKENS,DYNAMICS,API_PRICES,PAYG_REFERENCES,SOURCES,UNCERTAIN,MODEL_ROLES,matchModelRoles,isRetiredPlan,isFreeCodingEntry,isOnSalePlan,isPersonalMonthly,resolvedField,hasOwnClient,offerable,findPlanReference,displayPriceReason,INTERNAL_TEXT_RE};",
+      "\n;globalThis.__D={RATE_USD_CNY,RATE_INR_CNY,META,PRICE_CHECKS,PLANS,METRICS_RAW,ESTIMATES,PLAN_TOKENS,DYNAMICS,API_PRICES,PAYG_REFERENCES,SOURCES,UNCERTAIN,MODEL_ROLES,matchModelRoles,isRetiredPlan,isFreeCodingEntry,isOnSalePlan,isPersonalMonthly,resolvedField,hasOwnClient,offerable,findPlanReference,displayPriceReason,INTERNAL_TEXT_RE,isRelay,CALC_DEFAULT_API,MAINLAND_ACCESS};",
     sandbox,
     { filename: "js/data.js" }
   );
-  const { RATE_USD_CNY, RATE_INR_CNY, META, PRICE_CHECKS, PLANS, METRICS_RAW, ESTIMATES, PLAN_TOKENS, DYNAMICS, API_PRICES, PAYG_REFERENCES, SOURCES, UNCERTAIN, MODEL_ROLES, matchModelRoles, isRetiredPlan, isFreeCodingEntry, isOnSalePlan, isPersonalMonthly, resolvedField, hasOwnClient, offerable, findPlanReference, displayPriceReason, INTERNAL_TEXT_RE } = sandbox.__D;
+  const { RATE_USD_CNY, RATE_INR_CNY, META, PRICE_CHECKS, PLANS, METRICS_RAW, ESTIMATES, PLAN_TOKENS, DYNAMICS, API_PRICES, PAYG_REFERENCES, SOURCES, UNCERTAIN, MODEL_ROLES, matchModelRoles, isRetiredPlan, isFreeCodingEntry, isOnSalePlan, isPersonalMonthly, resolvedField, hasOwnClient, offerable, findPlanReference, displayPriceReason, INTERNAL_TEXT_RE, isRelay, CALC_DEFAULT_API, MAINLAND_ACCESS } = sandbox.__D;
 
   const CATS = ["official", "tool", "cloud", "team"];
   const REGIONS = ["cn", "intl"];
@@ -72,6 +72,10 @@ function validateData(options = {}) {
     for (const id of row.sourceIds || []) check(!!PRICE_CHECKS.sources[id], "核价来源无法解析: " + key + " / " + id);
   }
   for (const key of Object.keys(PRICE_CHECKS.rows)) check(priceKeys.includes(key), "残留核价记录: " + key);
+  /* 来源证据只增不改：记录改用新来源后，旧来源保留为台账历史，页面只展示仍被引用的来源。 */
+  const referencedSources = new Set(Object.values(PRICE_CHECKS.rows).flatMap((row) => row.sourceIds || []));
+  const historicalSources = Object.keys(PRICE_CHECKS.sources).filter((id) => !referencedSources.has(id));
+  if (historicalSources.length) note(`${historicalSources.length} 个核价来源已不被当前记录引用，保留为证据历史且不在页面来源列表展示：${historicalSources.join("、")}`);
   for (const [id, source] of Object.entries(PRICE_CHECKS.sources)) {
     check(/^https:\/\//.test(source.url || ""), "核价来源 URL 非法: " + id);
     check(typeof source.evidence === "string" && !!source.evidence.trim(), "核价来源缺少证据: " + id);
@@ -118,6 +122,7 @@ function validateData(options = {}) {
     }
     check(p.purchaseCountries == null || (Array.isArray(p.purchaseCountries) && p.purchaseCountries.length > 0 && p.purchaseCountries.every((c) => /^[A-Z]{2}$/.test(c))), `PLANS purchaseCountries 必须为非空 ISO 国别数组: ${key}`);
     check(p.availability == null || p.availability === "sold-out", `PLANS availability 只能是 sold-out: ${key}`);
+    check(p.accessUnstable == null || typeof p.accessUnstable === "boolean", `PLANS accessUnstable 必须为布尔值: ${key}`);
     /* 单月价是不连续续费的购买价，不应低于作为主标价的连续包月价。 */
     check(p.singleMonthPrice == null || (finitePositive(p.singleMonthPrice) && p.priceM > 0 && p.singleMonthPrice >= p.priceM), `PLANS singleMonthPrice 必须为不低于月付标价的有限正数: ${key}`);
     if (p.sameAs != null) {
@@ -153,6 +158,9 @@ function validateData(options = {}) {
       `不能当 Coding Agent 的免费档须标明不列入（或已下架）且被 isFreeCodingEntry 排除: ${vendor}|${plan}`);
   }
   const freeCoding = PLANS.filter(isFreeCodingEntry);
+  /* 中转站只按 RELAY_VENDORS 名单判定；备注或档名写明中转站/号池却未登记，会被当作官方或工具订阅进入推荐。 */
+  const unregisteredRelays = PLANS.filter((p) => !isRelay(p) && /(?<!不是|并非|非|不属于)(?:仅提供中转|号池|中转站)/.test((p.note || "") + (p.plan || "")));
+  check(!unregisteredRelays.length, `备注写明中转站或号池，但厂商未登记到 RELAY_VENDORS：${unregisteredRelays.map((p) => p.id).join("、")}`);
   check(!PLANS.some((p) => isOnSalePlan(p) && !(p.priceM > 0)), "无月费的档不应计入在售有标价");
   check(PLANS.filter((p) => /老用户/.test(p.plan || "")).every((p) => !isPersonalMonthly(p)), "老用户续费档不应算个人在售月付");
   for (const p of PLANS) {
@@ -312,7 +320,13 @@ function validateData(options = {}) {
     if (a.cur === "CNY") check(finiteNonnegative(a.inCNY) && finitePositive(a.outCNY), `缺有限非负 inCNY/正 outCNY: ${key}`);
     check(typeof a.label === "string", `缺 label: ${key}`);
     check(typeof a.url === "string" && a.url.startsWith("http"), `url 非法: ${key}`);
+    /* apiCache 为同币种的缓存命中单价（每百万 tokens），只在官方写明本档缓存价时填写，费用计算器按它计价。 */
+    const inputPrice = a.cur === "USD" ? a.inUSD : a.inCNY;
+    check(a.apiCache == null || (finiteNonnegative(a.apiCache) && a.apiCache <= inputPrice), `API_PRICES 缓存价应介于 0 与输入价之间: ${key}`);
   }
+  const defaultRow = CALC_DEFAULT_API && PRICE_CHECKS.rows["api:" + CALC_DEFAULT_API.vendor + "|" + CALC_DEFAULT_API.model];
+  check(!!CALC_DEFAULT_API && API_PRICES.some((a) => a.vendor === CALC_DEFAULT_API.vendor && a.model === CALC_DEFAULT_API.model) && !!defaultRow && !["unverified", "retired"].includes(defaultRow.status),
+    "费用计算器默认模型 CALC_DEFAULT_API 必须指向价格已确认的 API_PRICES 条目");
 
   /* ---- 额度表官方按量对照 ---- */
   check(Array.isArray(PAYG_REFERENCES) && PAYG_REFERENCES.length > 0, "缺少 PAYG_REFERENCES");
@@ -344,6 +358,7 @@ function validateData(options = {}) {
     if (named) {
       const [namedIn, namedOut] = priceOf(named);
       check(named.cur === s.cur && namedIn === s.apiIn && namedOut === s.apiOut, `PAYG 与 API_PRICES 同型号价格不一致: ${key}`);
+      check(named.apiCache == null || named.apiCache === s.apiCache, `PAYG 与 API_PRICES 同型号缓存价不一致: ${key}`);
     } else note(`PAYG 未在 API_PRICES 单列同价行（Flash 等可只写在按量对照）: ${key}`);
   }
 
@@ -425,6 +440,25 @@ function validateData(options = {}) {
     warn(plans.length < 2 || texts.size === 1, `不同档位使用相同周额度但额度原文不同，请确认不是复制残留：${plans.map((p) => p.id).join("、")}`);
   }
 
+  /* ---- 中国大陆可用性：只登记有官方支持地区说明的厂商或档位 ---- */
+  const mainlandCovered = new Set();
+  const leaksBeforeMainland = leaks.length;
+  for (const entry of MAINLAND_ACCESS || []) {
+    const key = (entry && entry.vendor) + "|" + (entry && Array.isArray(entry.planIds) ? entry.planIds.join(",") : "全部档位");
+    check(!!entry && PLANS.some((p) => p.vendor === entry.vendor), `MAINLAND_ACCESS 厂商不在 PLANS 中: ${key}`);
+    check(!!entry && ["unsupported", "restricted"].includes(entry.status), `MAINLAND_ACCESS status 只能是 unsupported/restricted: ${key}`);
+    check(!!entry && isISODate(entry.checkedAt) && entry.checkedAt <= latestAllowed, `MAINLAND_ACCESS 核查日期非法或晚于今天: ${key}`);
+    check(!!entry && /^https:\/\//.test(entry.url || ""), `MAINLAND_ACCESS 来源须为 HTTPS: ${key}`);
+    check(!!entry && typeof entry.evidence === "string" && entry.evidence.trim().length > 10, `MAINLAND_ACCESS 缺官方说明摘要: ${key}`);
+    check(!entry || entry.planIds == null || (Array.isArray(entry.planIds) && entry.planIds.length > 0 && entry.planIds.every((id) => PLANS.some((p) => p.id === id && p.vendor === entry.vendor))), `MAINLAND_ACCESS planIds 须为该厂商的永久 ID: ${key}`);
+    if (entry) lint("中国大陆可用性 " + key, entry.evidence);
+    for (const id of entry && Array.isArray(entry.planIds) ? entry.planIds : PLANS.filter((p) => entry && p.vendor === entry.vendor).map((p) => p.id)) {
+      check(!mainlandCovered.has(id), `MAINLAND_ACCESS 重复登记同一档位: ${id}`);
+      mainlandCovered.add(id);
+    }
+  }
+  check(leaks.length === leaksBeforeMainland, `中国大陆可用性说明含内部字段名或开发用语：${leaks.slice(leaksBeforeMainland, leaksBeforeMainland + 2).join("；")}`);
+
   /* ---- SOURCES ---- */
   for (const g of SOURCES) {
     check(typeof g.group === "string" && Array.isArray(g.urls) && g.urls.length > 0, `SOURCES 分组异常: ${g.group || "?"}`);
@@ -442,6 +476,18 @@ function validateData(options = {}) {
   check(html.includes("cmpBar") && html.includes("cmpModal") && html.includes("cmpTable"),
     "index.html 缺少并排对比容器");
   /* 静态日期占位在无脚本或抓取预览时可见；核价同步推进版本后需同步更新（只警告，不阻断同步）。 */
+  /* 分享卡片图随站发布（img/ 由 build:site 附带），绝对地址的路径部分须对应仓库里的文件。 */
+  const ogImage = html.match(/<meta property="og:image" content="([^"]+)">/);
+  if (ogImage) {
+    /* 不用全局 URL：数据回归在新的 VM 上下文里运行本校验器，那里只有 ECMAScript 内置对象。 */
+    let rel = "";
+    try { rel = decodeURIComponent((ogImage[1].match(/^https:\/\/[^/]+\/([^?#]*)/) || [])[1] || ""); } catch { rel = ""; }
+    /* 只警告：核价同步在不含 img/ 的临时工作区校验候选数据，分享图缺失不应阻断数据同步；发布前的回归测试会检查文件。 */
+    warn(!!rel && /^img\//.test(rel) && fs.existsSync(path.join(root, rel)), `og:image 指向的文件不存在或不在 img/ 目录：${ogImage[1]}`);
+  }
+  /* 标题里的年月同样是静态文字，搜索结果与分享卡片会直接显示。 */
+  const titleMonth = html.match(/<title>[^<]*?(\d{4})年(\d{1,2})月[^<]*<\/title>/);
+  warn(!titleMonth || `${titleMonth[1]}-${titleMonth[2].padStart(2, "0")}` === String(META.updated).slice(0, 7), `index.html <title> 的年月 ${titleMonth && titleMonth[1] + "年" + titleMonth[2] + "月"} 与 META.updated ${META.updated} 不一致`);
   for (const id of ["heroDate", "footDate"]) {
     const literal = html.match(new RegExp(`id="${id}">([^<]*)<`));
     warn(!literal || literal[1] === META.updated, `index.html #${id} 的静态日期 ${literal && literal[1]} 与 META.updated ${META.updated} 不一致`);

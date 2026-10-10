@@ -26,16 +26,28 @@ test("80%输入的缓存折扣只作用于输入，人民币预算按换算单�
   healthy(app);
 });
 
-test("未填写缓存价时不采用虚构折扣或自动挪用API缓存价", () => {
+test("未填写缓存价时只采用已录入的官方缓存价，未录入时不虚构折扣", () => {
   const app = createApp();
+  /* usdApi 只有非结构化的 cacheUSD 字样，等同未录入官方缓存价。 */
   const ordinary = workload(app, { cache: "0", cachePrice: "" });
   const cached = workload(app, { cache: "100", cachePrice: "" });
   near(ordinary.costNative, 158.4);
   near(cached.costNative, 158.4);
   near(cached.costCNY, cached.noCacheCNY);
+  assert.equal(cached.cacheBasis, "none");
   assert.ok(workload(app, { cache: "100", cachePrice: "0.2" }).costNative < cached.costNative);
-  app.run('Object.assign(calcState, { cache: "100", cachePrice: "" }); renderCostCalculator();');
-  assert.match(app.elements.get("costResult").innerHTML, /未填写缓存单价，按普通输入价估算/);
+  /* 官方 apiCache 0.2：80% 输入全部命中缓存 → 0.8×0.2 + 0.2×10 = 2.16 美元/M。 */
+  const official = workload(app, { cache: "100", cachePrice: "" }, { ...usdApi, apiCache: 0.2 });
+  near(official.blended, 2.16);
+  assert.equal(official.cacheBasis, "official");
+  assert.equal(workload(app, { cache: "100", cachePrice: "1" }, { ...usdApi, apiCache: 0.2 }).cacheBasis, "custom", "手填缓存价优先于官方价");
+  app.run('Object.assign(calcState, { model: "Anthropic|Claude Sonnet 5.5", cache: "100", cachePrice: "" }); renderCostCalculator();');
+  assert.match(app.elements.get("costResult").innerHTML, /缓存命中按官方单价 \$0\.2\/1M 计费/);
+  assert.equal(app.elements.get("costCacheUnit").textContent, "美元");
+  assert.match(app.elements.get("costCachePrice").placeholder, /留空采用官方 \$0\.2/);
+  app.run('Object.assign(calcState, { model: "阿里云百炼|qwen3-coder-next", cache: "100", cachePrice: "" }); renderCostCalculator();');
+  assert.match(app.elements.get("costResult").innerHTML, /未录入官方缓存单价，缓存命中率暂不生效/);
+  assert.equal(app.elements.get("costCacheUnit").textContent, "人民币");
   healthy(app);
 });
 
