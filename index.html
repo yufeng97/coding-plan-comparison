@@ -410,11 +410,11 @@
       <summary>按我的工作量计算 API 月费与套餐用量</summary>
       <p>填写每天的请求数和每次总 tokens，比较所选模型的按量费用与月预算。计算包括输入、输出和已知缓存单价；长上下文档位、工具费及税费仍按官网规则另计。</p>
       <details class="usage-import" id="usageImport">
-        <summary>从 ccusage 导入真实用量（可选）</summary>
-        <p class="maintenance-meta">在终端运行 <code>npx ccusage@latest daily --json</code>（Codex 用 <code>npx @ccusage/codex@latest daily --json</code>），把输出粘贴到下面或选择保存的 JSON 文件。只读取 token 计数和日期，数据在本页解析，不会上传。</p>
-        <label class="usage-import-field">ccusage JSON<textarea id="usageImportText" rows="5" spellcheck="false" placeholder='{"daily":[{"date":"2026-10-01","inputTokens":…}]}'></textarea></label>
+        <summary>从 ccusage 或会话日志导入真实用量（可选）</summary>
+        <p class="maintenance-meta">在终端运行 <code>npx ccusage@latest daily --json</code>（Codex 用 <code>npx @ccusage/codex@latest daily --json</code>），把输出粘贴到下面或选择保存的 JSON 文件；也可以直接选择 Claude Code（<code>~/.claude/projects</code>）或 Codex（<code>~/.codex/sessions</code>）的 <code>.jsonl</code> 会话日志，可多选。只读取 token 计数、日期和模型名，数据在本页解析，不会上传。</p>
+        <label class="usage-import-field">ccusage JSON 或会话日志<textarea id="usageImportText" rows="5" spellcheck="false" placeholder='{"daily":[{"date":"2026-10-01","inputTokens":…}]}'></textarea></label>
         <div class="service-actions">
-          <label class="chip usage-import-file">选择 JSON 文件<input type="file" id="usageImportFile" accept=".json,application/json"></label>
+          <label class="chip usage-import-file">选择文件（可多选）<input type="file" id="usageImportFile" accept=".json,.jsonl,application/json" multiple></label>
           <button type="button" class="chip" id="usageImportBtn">导入并计算</button>
         </div>
         <p id="usageImportFeedback" class="table-feedback" role="status" aria-live="polite"></p>

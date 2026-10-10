@@ -366,45 +366,107 @@ function usageCoverageHtml(monthlyM, state = calcState) {
     `<p class="maintenance-meta">沿用帮我选的地区、工具和付款方式；只统计官方或中置信折算的额度，第三方与请求次数估算不列入。不同模型的 token 不等价，参考额度不保证可用量。「订阅回本点」指同模型按量费用追平月费所需的用量。${esc(basis)}</p></div>`;
 }
 
-/* ---------- 从 ccusage 导入用量 ---------- */
-const USAGE_IMPORT_MAX = 5 * 1024 * 1024;
-/* 兼容 ccusage 不同版本与子命令的 JSON：{daily:[…]}、{monthly:[…]}、{type, data:[…]}、{projects:{名称:[…]}}、直接数组。
-   只读取 token 计数和日期 / 月份。Claude 记录的缓存读写与输入分开计；Codex 的缓存输入计在输入之内。 */
-function parseUsageExport(text) {
-  if (String(text).length > USAGE_IMPORT_MAX) throw new Error("文件超过 5MB，请只导出最近的按日用量。");
-  let json;
-  try { json = JSON.parse(String(text)); } catch (err) { throw new Error("不是有效的 JSON，请粘贴 ccusage 的 --json 输出。"); }
-  const rows = Array.isArray(json) ? json
-    : !json || typeof json !== "object" ? []
-    : Array.isArray(json.daily) ? json.daily
-    : Array.isArray(json.monthly) ? json.monthly
-    : Array.isArray(json.data) ? json.data
-    : Array.isArray(json.sessions) ? json.sessions
-    : json.projects && typeof json.projects === "object" ? Object.values(json.projects).filter(Array.isArray).flat() : [];
+/* ---------- 从 ccusage 或会话日志导入用量 ---------- */
+const USAGE_IMPORT_MAX = 30 * 1024 * 1024;
+const USAGE_IMPORT_TOO_LARGE = "内容超过 30MB，请改用 ccusage 导出的按日 JSON（npx ccusage daily --json）。";
+/* Claude Code（~/.claude/projects）与 Codex（~/.codex/sessions）的 JSONL 会话日志，折成与 ccusage 相同字段的逐条记录。
+   Claude Code 会把同一次回复按流式片段重复写入，与 ccusage 一样按消息 ID + 请求 ID 去重；
+   Codex 在限额信息更新时会重复发出 token_count，累计用量未变的事件不重复计入。 */
+function usageRowsFromLog(text, seen) {
+  const rows = [];
+  let parsed = 0, codexTotal = "", codexModel = "";
+  for (const line of String(text).split(/\r?\n/)) {
+    if (!line.trim()) continue;
+    let event;
+    try { event = JSON.parse(line); } catch (err) { continue; }
+    parsed++;
+    if (!event || typeof event !== "object") continue;
+    const date = typeof event.timestamp === "string" ? event.timestamp.slice(0, 10) : "";
+    const message = event.message, usage = message && typeof message === "object" ? message.usage : null;
+    if (usage && typeof usage === "object") {
+      const id = message.id && event.requestId ? message.id + ":" + event.requestId : "";
+      if (id && seen.has(id)) continue;
+      if (id) seen.add(id);
+      rows.push({ date, model: typeof message.model === "string" ? message.model : "", inputTokens: usage.input_tokens, outputTokens: usage.output_tokens,
+        cacheCreationTokens: usage.cache_creation_input_tokens, cacheReadTokens: usage.cache_read_input_tokens });
+      continue;
+    }
+    const payload = event.payload && typeof event.payload === "object" ? event.payload : {};
+    if (event.type === "turn_context" && typeof payload.model === "string") codexModel = payload.model;
+    const info = payload.type === "token_count" && payload.info && typeof payload.info === "object" ? payload.info : null;
+    if (!info || !info.last_token_usage) continue;
+    const total = JSON.stringify(info.total_token_usage || null);
+    if (info.total_token_usage && total === codexTotal) continue;
+    codexTotal = total;
+    const last = info.last_token_usage;
+    rows.push({ date, model: codexModel, inputTokens: last.input_tokens, cachedInputTokens: last.cached_input_tokens, outputTokens: last.output_tokens });
+  }
+  if (!parsed) throw new Error("不是有效的 JSON 或 JSONL：请粘贴 ccusage 的 --json 输出，或 Claude Code / Codex 的会话日志。");
+  return rows;
+}
+/* 兼容 ccusage 不同版本与子命令的 JSON：{daily:[…]}、{monthly:[…]}、{type, data:[…]}、{projects:{名称:[…]}}、直接数组；
+   其余内容按 JSONL 会话日志解析。可传入多份文件的文本，合并统计。
+   只读取 token 计数、日期 / 月份和模型名。Claude 记录的缓存读写与输入分开计；Codex 的缓存输入计在输入之内。 */
+function parseUsageExport(texts) {
+  const sources = (Array.isArray(texts) ? texts : [texts]).map(String);
+  if (sources.reduce((n, t) => n + t.length, 0) > USAGE_IMPORT_MAX) throw new Error(USAGE_IMPORT_TOO_LARGE);
+  const seen = new Set();
+  const rows = sources.flatMap((source) => {
+    let json;
+    try { json = JSON.parse(source); } catch (err) { return usageRowsFromLog(source, seen); }
+    if (json && typeof json === "object" && !Array.isArray(json) && (json.message || json.payload || json.type === "turn_context")) return usageRowsFromLog(source, seen);
+    return Array.isArray(json) ? json
+      : !json || typeof json !== "object" ? []
+      : Array.isArray(json.daily) ? json.daily
+      : Array.isArray(json.monthly) ? json.monthly
+      : Array.isArray(json.data) ? json.data
+      : Array.isArray(json.sessions) ? json.sessions
+      : json.projects && typeof json.projects === "object" ? Object.values(json.projects).filter(Array.isArray).flat() : [];
+  });
   const count = (v) => typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : 0;
   let input = 0, output = 0, cacheRead = 0, cacheWrite = 0;
-  const days = new Set(), months = new Set();
+  const days = new Set(), months = new Set(), byModel = new Map();
   for (const row of rows) {
     if (!row || typeof row !== "object") continue;
     const rowInput = count(row.inputTokens), rowOutput = count(row.outputTokens);
     const read = count(row.cacheReadTokens), write = count(row.cacheCreationTokens), cached = count(row.cachedInputTokens);
     /* Codex 的 cachedInputTokens 是输入的子集；Claude 的缓存读写不含在 inputTokens 里。 */
     const codexCached = !row.cacheReadTokens && cached > 0 && cached <= rowInput;
-    input += codexCached ? rowInput : rowInput + read + write + (cached > rowInput ? cached : 0);
+    const rowAll = (codexCached ? rowInput : rowInput + read + write + (cached > rowInput ? cached : 0)) + rowOutput;
+    input += rowAll - rowOutput;
     cacheRead += codexCached ? cached : read + (cached > rowInput ? cached : 0);
     cacheWrite += write;
     output += rowOutput;
+    /* ccusage 的 modelsUsed 只有一项时才能归到单一模型。 */
+    const models = Array.isArray(row.modelsUsed) ? row.modelsUsed : [];
+    const model = typeof row.model === "string" && row.model ? row.model : models.length === 1 && typeof models[0] === "string" ? models[0] : "";
+    if (model && rowAll > 0) byModel.set(model, (byModel.get(model) || 0) + rowAll);
     const date = typeof row.date === "string" ? row.date.slice(0, 10) : "";
     if (/^\d{4}-\d{2}-\d{2}$/.test(date)) days.add(date);
     const month = typeof row.month === "string" ? row.month.slice(0, 7) : "";
     if (/^\d{4}-\d{2}$/.test(month)) months.add(month);
   }
   const total = input + output;
-  if (!(total > 0)) throw new Error("没有读到 token 用量；请确认粘贴的是 ccusage daily 或 monthly 的 --json 输出。");
+  if (!(total > 0)) throw new Error("没有读到 token 用量；请确认粘贴的是 ccusage daily 或 monthly 的 --json 输出，或含 token 记录的会话日志。");
   const sortedDays = [...days].sort();
   const spanDays = sortedDays.length ? Math.round((Date.parse(sortedDays[sortedDays.length - 1] + "T00:00:00Z") - Date.parse(sortedDays[0] + "T00:00:00Z")) / 86400000) + 1 : 0;
+  const top = [...byModel].sort((a, b) => b[1] - a[1])[0];
   return { input, output, cacheRead, cacheWrite, total, activeDays: days.size, spanDays, months: months.size,
-    inputShare: input / total * 100, cacheRate: input > 0 ? cacheRead / input * 100 : 0 };
+    inputShare: input / total * 100, cacheRate: input > 0 ? cacheRead / input * 100 : 0,
+    model: top ? top[0] : "", modelShare: top ? top[1] / total : 0 };
+}
+function usageModelKey(name) { return costModelKey(String(name || "").replace(/\s*[（(\[【].*$/, "")); }
+/* 日志里的模型 ID 只接受与牌价完全一致或带日期 / latest 后缀，避免把新版本对到旧版本的牌价。 */
+function apiForUsageModel(model) {
+  const key = costModelKey(model);
+  if (!key) return null;
+  const matches = API_PRICES.filter((api) => isPriceConfirmed(api, "api") && [api.model, api.label].some((name) => {
+    const base = usageModelKey(name);
+    if (!base || !key.startsWith(base)) return false;
+    const rest = key.slice(base.length);
+    return rest === "" || /^\d{8}$/.test(rest) || rest === "latest";
+  }));
+  return matches.find((api) => api.vendor + "|" + api.model === calcState.model) || matches[0] || null;
 }
 /* 把导入结果折成计算器的「每天请求数 × 每次 tokens × 每月天数」：保留当前请求数，只换算每次 tokens。
    按日记录用有用量的天数占比推算每月使用天数（不足一周的记录沿用当前天数）；按月记录取月均。 */
@@ -426,14 +488,21 @@ function importUsageText(text) {
   try {
     const usage = parseUsageExport(text);
     const values = usageToCalculator(usage);
+    /* 主要模型占七成以上才换成对应的 API 牌价；混用多个模型时保留计算器当前模型。 */
+    const api = usage.modelShare >= 0.7 ? apiForUsageModel(usage.model) : null;
     updateAppState(() => {
       setCostInputs(values);
+      if (api && calcState.model !== api.vendor + "|" + api.model) setCostInputs({ model:api.vendor + "|" + api.model,cachePrice:"" });
       const match = Object.entries(COST_SCENARIOS).find(([, s]) => s.input === values.input && s.cache === values.cache);
       calcState.scenario = match ? match[0] : APP_DEFAULTS.calc.scenario;
     }, () => { renderCostCalculator(); syncCostChips(); });
     const period = usage.activeDays ? `${usage.activeDays} 个有用量的日子` : usage.months ? `${usage.months} 个月` : "导入的记录";
+    const modelNote = !usage.model ? ""
+      : api ? `主要模型 ${usage.model} 已对应 ${api.vendor} · ${displayModelName(api.label || api.model)} 的 API 牌价。`
+      : usage.modelShare >= 0.7 ? `主要模型 ${usage.model} 没有精确匹配的 API 牌价，保留计算器当前模型。`
+      : "记录里混用了多个模型，保留计算器当前模型。";
     if (feedback) feedback.textContent = `已导入 ${period}：共 ${fmtTok(usage.total / 1e6)} tokens，输入占比 ${values.input}%，缓存命中 ${values.cache}%` +
-      `${usage.cacheWrite ? `（另有缓存写入 ${fmtTok(usage.cacheWrite / 1e6)}，计入输入、未单独计价）` : ""}。已换算为每天 ${values.requests} 次 × ${values.tokens} tokens × ${values.days} 天。`;
+      `${usage.cacheWrite ? `（另有缓存写入 ${fmtTok(usage.cacheWrite / 1e6)}，计入输入、未单独计价）` : ""}。已换算为每天 ${values.requests} 次 × ${values.tokens} tokens × ${values.days} 天。` + modelNote;
   } catch (err) {
     if (feedback) feedback.textContent = err instanceof Error ? err.message : String(err);
   }
@@ -442,12 +511,15 @@ function bindUsageImport() {
   const button = byId("usageImportBtn"), text = byId("usageImportText"), file = byId("usageImportFile");
   if (button && text) button.addEventListener("click", () => importUsageText(text.value));
   if (file) file.addEventListener("change", () => {
-    const chosen = file.files && file.files[0];
-    if (!chosen) return;
+    const chosen = Array.from(file.files || []);
+    if (!chosen.length) return;
     const feedback = byId("usageImportFeedback");
-    if (chosen.size > USAGE_IMPORT_MAX) { if (feedback) feedback.textContent = "文件超过 5MB，请只导出最近的按日用量。"; return; }
-    chosen.text().then((content) => { if (text) text.value = content.slice(0, 20000); importUsageText(content); },
-      () => { if (feedback) feedback.textContent = "无法读取这个文件，请改为粘贴 JSON。"; });
+    if (chosen.reduce((n, f) => n + f.size, 0) > USAGE_IMPORT_MAX) { if (feedback) feedback.textContent = USAGE_IMPORT_TOO_LARGE; return; }
+    /* 多份日志合并统计；文本框只回显能完整放下的内容，避免再次点击时导入截断的数据。 */
+    Promise.all(chosen.map((f) => f.text())).then((contents) => {
+      if (text) text.value = contents.length === 1 && contents[0].length <= 20000 ? contents[0] : "";
+      importUsageText(contents);
+    }, () => { if (feedback) feedback.textContent = "无法读取这个文件，请改为粘贴内容。"; });
   });
 }
 function bindServiceEvents() {
