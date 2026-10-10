@@ -19,13 +19,15 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://coding-plan-comparison-tau.vercel.app/img/og-card.png">
 <link rel="canonical" href="https://coding-plan-comparison-tau.vercel.app/">
-<link rel="alternate" type="application/rss+xml" title="Coding Plan 已确认变更" href="changes.xml?v=0f572d4">
+<link vite-ignore rel="alternate" type="application/rss+xml" title="Coding Plan 已确认变更" href="changes.xml">
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%23b9ff00'/%3E%3Ctext%20x='16'%20y='22'%20font-family='monospace'%20font-size='15'%20font-weight='bold'%20text-anchor='middle'%20fill='%2310110f'%3E%26lt;/%26gt;%3C/text%3E%3C/svg%3E">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
-  <script src="js/theme-init.js?v=31c1bf8"></script>
-  <link rel="stylesheet" href="libs/fonts/fonts.css?v=17da4b4">
-  <link rel="stylesheet" href="css/style.css?v=64cf9cc">
+  <script vite-ignore src="js/theme-init.js"></script>
+  <!-- 先于入口模块执行：入口下载失败或启动中断时显示重新加载提示 -->
+  <script vite-ignore defer src="js/app-loader.js"></script>
+  <link rel="stylesheet" href="libs/fonts/fonts.css">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <div id="loadFailure" class="load-failure" role="alert" hidden>
@@ -487,36 +489,8 @@
     <div class="section-head"><h2><span class="sec-no">11</span>模型公开评测</h2><p>查看公开来源的模型分数、评测配置与范围。每个版本和协议独立展示，不合成跨榜总分。</p></div>
     <p id="benchmarkDataStatus" class="table-feedback optional-data-status" role="status" aria-live="polite"></p>
     <div class="maintenance-panel public-benchmark-panel">
-      <div class="public-benchmark-controls">
-        <label class="maintenance-select" for="publicBenchmarkFamily">评测用途<select id="publicBenchmarkFamily"></select></label>
-        <label class="maintenance-select" for="publicBenchmarkSelect">版本与评测协议<select id="publicBenchmarkSelect"></select></label>
-        <label class="maintenance-select" for="publicBenchmarkMode">配置展示<select id="publicBenchmarkMode"><option value="best">每模型最佳配置</option><option value="all">全部配置</option></select></label>
-        <label class="maintenance-select" for="publicModelSearch">模型或配置关键词<input type="search" id="publicModelSearch" class="search-input" maxlength="200" placeholder="例如模型名、推理档位或 Agent"></label>
-        <button type="button" class="chip" id="publicModelClearBtn" disabled>清除搜索</button>
-      </div>
-      <div id="publicBenchmarkMeta"></div>
-      <p id="publicBenchmarkModeNote" class="maintenance-meta"></p>
-      <p id="publicBenchmarkCount" class="maintenance-meta" role="status" aria-live="polite"></p>
-      <div id="publicBenchmarkChartWrap" class="public-benchmark-chart" hidden>
-        <div class="public-chart-toolbar">
-          <div class="chip-group" role="group" aria-label="评测图表指标">
-            <button type="button" class="chip active" data-public-chart="score" aria-pressed="true">排名分数</button>
-            <button type="button" class="chip" data-public-chart="cost" aria-pressed="false">每任务成本</button>
-          </div>
-          <label class="public-chart-limit" for="publicBenchmarkChartLimit">图表条数<select id="publicBenchmarkChartLimit" class="select"><option value="10">前 10 条</option><option value="20" selected>前 20 条</option><option value="all">全部匹配</option></select></label>
-        </div>
-        <p id="publicBenchmarkChartNote" class="maintenance-meta"></p>
-        <div id="publicBenchmarkChartLegend" class="public-chart-legend" aria-label="模型系列配色"></div>
-        <div class="public-chart-plot" role="region" aria-label="当前评测协议的模型排名图表">
-          <div id="chartPublicBenchmark" class="chart" role="img" aria-label="模型评测排名"></div>
-        </div>
-      </div>
-      <p id="publicBenchmarkEmpty" class="benchmark-empty" hidden></p>
-      <div class="table-wrap public-benchmark-wrap" id="publicBenchmarkWrap" tabindex="0" role="region" aria-label="公开模型评测成绩，窄屏可横向滚动">
-        <table id="publicBenchmarkTable"><caption id="publicBenchmarkCaption">公开模型评测</caption><thead><tr><th scope="col">本协议名次</th><th scope="col">模型与配置</th><th scope="col">分数</th><th scope="col">评测每任务成本</th><th scope="col">来源与核查</th></tr></thead><tbody id="publicBenchmarkBody"></tbody></table>
-      </div>
-      <div class="maintenance-toolbar"><button type="button" class="chip" id="downloadPublicBenchmarkCsvBtn">下载当前榜 CSV</button><button type="button" class="chip" id="downloadPublicBenchmarkJsonBtn">下载全部评测 JSON</button></div>
-      <p id="publicBenchmarkFeedback" class="table-feedback" role="status" aria-live="polite"></p>
+      <!-- 由 src/sections/PublicBenchmarks.vue 渲染：筛选、协议说明、图表、成绩表与导出。 -->
+      <div id="publicBenchmarkApp"></div>
       <p class="maintenance-meta">分数显示到 1 位小数，成本显示到 2 位；导出保留原始精度。区间沿用来源，接近的分数不代表可靠领先；未公布的区间不补算。套餐链接只匹配模型列表明确列出该版本的在售档位，不保证订阅能使用评测的推理与 Agent 配置。原始模型 ID 与完整区间在「配置与评测说明」中。</p>
     </div>
     <details class="method-box public-benchmark-guide"><summary>这些榜单适合回答什么问题？</summary><p>DeepSWE 与 CursorBench 聚焦代码任务，但各自的任务集、Agent、评分与版本不同，应在同一协议内比较。OSWorld 是图形界面操作任务，关注桌面与应用交互；HLE 是综合学术题目，关注知识与推理。GUI 或学术分数不能直接当成编程任务表现。</p><p>请同时查看版本、样本范围、是否使用工具及推理配置。分数说明来源中的评测条件，不保证你的具体任务、工具或套餐能获得同样结果。</p></details>
@@ -642,22 +616,10 @@
   <p class="footer-mirror">访问地址：<a href="https://coding-plan-comparison-tau.vercel.app/" rel="noopener">主站（Vercel）</a> · <a href="https://yufeng97.github.io/coding-plan-comparison/" rel="noopener">备用（GitHub Pages）</a>，两处内容相同，一处打不开或较慢时可换另一处；分享链接的筛选条件在两处都有效。</p>
 </footer>
 
-<template id="chartLibraryTemplate"><script src="libs/echarts.min.js?v=14c5497"></script></template>
-<script defer src="js/app-loader.js?v=0127d10"></script>
-<script defer src="js/data.js?v=13f0ae3"></script>
-<script id="maintenanceDataSource" type="application/json" src="js/maintenance-data.js?v=516862e"></script>
-<script id="benchmarkDataSource" type="application/json" src="js/benchmark-data.js?v=72a0f38"></script>
-<script defer src="js/benchmark-summary.js?v=23e7cab"></script>
-<script defer src="js/project-data.js?v=b9931ec"></script>
-<script defer src="js/metrics.js?v=54c36b6"></script>
-<script defer src="js/app-core.js?v=bc3f192"></script>
-<script defer src="js/app-state.js?v=185b0a4"></script>
-<script defer src="js/app-charts.js?v=050071b"></script>
-<script defer src="js/app-picker.js?v=db0d070"></script>
-<script defer src="js/app-tables.js?v=c943aeb"></script>
-<script defer src="js/app-service.js?v=e50225b"></script>
-<script defer src="js/app-maintenance.js?v=8ee34c6"></script>
-<script defer src="js/app-events.js?v=f5bd159"></script>
-<script defer src="js/app-init.js?v=0008bbf"></script>
+<template id="chartLibraryTemplate"><script vite-ignore src="libs/echarts.min.js"></script></template>
+<script vite-ignore id="maintenanceDataSource" type="application/json" src="js/maintenance-data.js"></script>
+<script vite-ignore id="benchmarkDataSource" type="application/json" src="js/benchmark-data.js"></script>
+<!-- 旧脚本经 Vite 合并为模块（顺序见 js/legacy-scripts.json），已迁移的区块是 src/ 下的 Vue 组件。 -->
+<script type="module" src="src/main.js"></script>
 </body>
 </html>

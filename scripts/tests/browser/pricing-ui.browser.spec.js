@@ -1,11 +1,9 @@
 "use strict";
 
 const { test, expect } = require("@playwright/test");
-const path = require("node:path");
-const { pathToFileURL } = require("node:url");
 
 for (const width of [375, 1280]) {
-  test(`${width}px file直开核价来源可键盘展开且长网址不撑宽页面`, async ({ page }) => {
+  test(`${width}px 核价来源可键盘展开且长网址不撑宽页面`, async ({ page }) => {
     /** @type {string[]} */
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
@@ -13,8 +11,7 @@ for (const width of [375, 1280]) {
       if (message.type() === "error") errors.push(message.text());
     });
     await page.setViewportSize({ width, height: 900 });
-    const url = pathToFileURL(path.resolve(__dirname, "..", "..", "..", "index.html")).href;
-    await page.goto(url + "#sources");
+    await page.goto("/#sources");
     const updated = await page.evaluate("META.updated");
     await expect(page.locator("#heroDate")).toHaveText(updated);
     await expect(page.locator("#footDate")).toHaveText(updated);

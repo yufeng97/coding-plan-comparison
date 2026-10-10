@@ -44,10 +44,8 @@ jobs:
         run: |
           npm run maintenance:check
           npm run benchmark:check
-      - name: 额度换算、用户流程与 HTTP 服务回归
+      - name: 额度换算、用户流程、Vue 组件与 HTTP 服务回归
         run: npm run test
-      - name: 缓存版本号与文件一致（改动资产后须跑 npm run bump）
-        run: npm run cache:check
       - name: 安装 Chromium、Firefox 与 WebKit
         run: npx playwright install --with-deps chromium firefox webkit
       - name: 三种浏览器回归

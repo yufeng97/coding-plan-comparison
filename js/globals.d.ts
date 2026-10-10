@@ -1,5 +1,7 @@
 /* 页面加载的外部全局（无类型包），仅供编辑器 checkJs 使用 */
 declare const echarts: any;
+/** Vite 入口注入的状态工厂（Vue reactive），见 appState。 */
+declare var __codingPlanState: (<T extends Record<string, any>>(value: T) => T) | undefined;
 
 interface Plan {
   /** 永久标识：更名、调序时保留。 */

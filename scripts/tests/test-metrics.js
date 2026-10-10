@@ -186,9 +186,8 @@ test("限量只看计划名", () => {
 
 console.log("auditProfiles（帮我选）");
 test("默认数据下 auditProfiles 不报错", () => {
-  const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-  const files = [...html.matchAll(/<script\b[^>]*\bsrc=["'](js\/[^"'?]+)(?:\?[^"']*)?["']/g)]
-    .map((match) => match[1]).filter((file) => file !== "js/app-init.js");
+  /* 与页面虚拟 DOM 相同的执行顺序（index.html 中的经典脚本 + js/legacy-scripts.json），不含启动脚本 */
+  const files = require("../lib/page-vm").scripts.filter((file) => file !== "js/app-init.js");
   const code = files.map((f) => fs.readFileSync(path.join(root, f), "utf8")).join("\n;\n");
   const errors = [];
   const fakeConsole = { log() {}, warn() {}, error(...a) { errors.push(a.join(" ")); } };

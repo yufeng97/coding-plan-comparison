@@ -37,6 +37,8 @@ const MODEL_FILTER_VALUES = new Set([
   ...PAYG_REFERENCES.map((s) => s.model),
 ]);
 let URL_RESTORING = false;
+/* 历史恢复期间暂停写回地址栏。经 Vite 合并后 app-init.js 是独立模块，不能直接给本文件的 let 赋值。 */
+function setUrlRestoring(on) { URL_RESTORING = on; }
 let stateUpdateDepth = 0;
 
 /* 用户操作提交状态并持久化；渲染、主题和窗口缩放不写历史条目。 */

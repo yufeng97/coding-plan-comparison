@@ -71,6 +71,17 @@ function resolvePlan(m) {
   return m;
 }
 
+/* 迁移期状态工厂：Vite 入口（src/bootstrap.js）注入 Vue 的 reactive，组件与旧代码读写同一份响应式状态；
+   页面虚拟 DOM（Node 测试与构建期预渲染）没有这个钩子，返回原对象。 */
+/**
+ * @template {Record<string, any>} T
+ * @param {T} value
+ * @returns {T}
+ */
+function appState(value) {
+  return typeof globalThis.__codingPlanState === "function" ? globalThis.__codingPlanState(value) : value;
+}
+
 function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, (ch) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
@@ -81,7 +92,7 @@ function safeHref(u) {
   return /^https?:\/\//i.test(s) ? esc(s) : "";
 }
 
-/* 辅助视图的数据脚本在访问时下载；保留经典脚本以支持 file://。 */
+/* 辅助视图的数据脚本在访问时下载。它们是生成的经典脚本（构建时按内容哈希另存），页面虚拟 DOM 与维护脚本直接读取同一文件。 */
 const optionalDataLoads = {};
 function optionalDataLoaded(kind) {
   return kind === "maintenance" ? typeof MAINTENANCE !== "undefined" && MAINTENANCE.schemaVersion === 1

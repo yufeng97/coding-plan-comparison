@@ -41,4 +41,14 @@ for (const file of suite) {
     break;
   }
 }
-if (!process.exitCode) console.log("全部 Node 回归通过：" + suite.length + " 个套件");
+if (!process.exitCode) {
+  console.log("全部 Node 回归通过：" + suite.length + " 个套件");
+  /* Vue 组件测试（src/**\/*.test.js，happy-dom） */
+  const cli = path.join(path.dirname(require.resolve("vitest/package.json")), require("vitest/package.json").bin.vitest);
+  const vitest = spawnSync(process.execPath, [cli, "run"], { stdio: "inherit", cwd: path.resolve(__dirname, "..", "..") });
+  if (vitest.error) throw vitest.error;
+  if (vitest.status !== 0) {
+    process.exitCode = vitest.status || 1;
+    console.error("在组件测试处停止；修复后重新运行 npm run test");
+  }
+}

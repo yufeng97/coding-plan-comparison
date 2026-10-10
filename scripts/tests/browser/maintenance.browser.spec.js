@@ -4,7 +4,7 @@ test("历史加载中收起再展开显示结果，保留摘要节点与键盘�
   let releaseHistory = () => {};
   const historyReady = new Promise((resolve) => { releaseHistory = () => resolve(undefined); });
   let requested = false;
-  await page.route("**/js/maintenance-data.js*", async (route) => {
+  await page.route("**/js/maintenance-data*.js", async (route) => {
     requested = true;
     await historyReady;
     await route.continue();

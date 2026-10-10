@@ -465,9 +465,16 @@ function validateData(options = {}) {
     for (const u of g.urls) check(u.startsWith("http"), `SOURCES url 非法: ${u}`);
   }
 
-  /* ---- index.html 引用与文件存在性 ---- */
+  /* ---- index.html 与旧脚本清单的引用、文件存在性 ---- */
   const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-  for (const f of ["js/data.js", "js/metrics.js", "js/app-core.js", "js/app-charts.js", "js/app-picker.js", "js/app-tables.js", "js/app-init.js", "css/style.css", "libs/echarts.min.js", "libs/fonts/fonts.css"]) {
+  /* 旧脚本经 Vite 合并为模块，顺序登记在 js/legacy-scripts.json，不再逐个写在 index.html 里。 */
+  const legacyScripts = JSON.parse(fs.readFileSync(path.join(root, "js", "legacy-scripts.json"), "utf8"));
+  const bundled = [...legacyScripts.lib, legacyScripts.init];
+  for (const f of ["js/data.js", "js/metrics.js", "js/app-core.js", "js/app-charts.js", "js/app-picker.js", "js/app-tables.js", "js/app-init.js"]) {
+    check(bundled.includes(f), `js/legacy-scripts.json 未登记: ${f}`);
+    check(fs.existsSync(path.join(root, f)), `文件不存在: ${f}`);
+  }
+  for (const f of ["css/style.css", "libs/echarts.min.js", "libs/fonts/fonts.css"]) {
     check(html.includes(f), `index.html 未引用: ${f}`);
     check(fs.existsSync(path.join(root, f)), `文件不存在: ${f}`);
   }

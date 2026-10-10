@@ -35,15 +35,22 @@ test("中转站只按名单判定，备注写明中转却未登记时校验器�
   assert.deepEqual(validateData({ workspace: root, source: negated }).errors, [], "否定说法不应误报");
 });
 
-test("首屏页面脚本使用 defer 保持顺序，主题脚本仍在样式前同步执行", () => {
-  const tags = [...html.matchAll(/<script\b([^>]*)\bsrc="(js\/[^"?]+)[^"]*"([^>]*)><\/script>/g)]
-    .map((m) => ({ file: m[2], attrs: m[1] + m[3] }));
-  const page = tags.filter((t) => t.file !== "js/theme-init.js" && !/type="application\/json"/.test(t.attrs));
-  assert.ok(page.length >= 10);
-  for (const tag of page) assert.match(tag.attrs, /\bdefer\b/, tag.file + " 应 defer，避免 meta CSP 下逐个串行下载");
-  assert.ok(page.every((t) => !/\basync\b/.test(t.attrs)), "async 会打乱依赖顺序");
-  assert.doesNotMatch(tags.find((t) => t.file === "js/theme-init.js").attrs, /\b(?:defer|async)\b/, "主题脚本须在首帧前生效");
-  assert.equal(page.at(-1).file, "js/app-init.js");
+test("页面脚本由一个模块入口加载，主题脚本在样式前同步执行，加载提示先于入口", () => {
+  const tags = [...html.matchAll(/<script\b([^>]*)\bsrc="([^"?]+)[^"]*"([^>]*)><\/script>/g)]
+    .map((m) => ({ file: m[2], attrs: m[1] + m[3], at: m.index }));
+  const classic = tags.filter((t) => t.file.startsWith("js/") && !/type="application\/json"/.test(t.attrs)).map((t) => t.file);
+  assert.deepEqual(classic, ["js/theme-init.js", "js/app-loader.js"], "其余旧脚本经 Vite 合并，不再逐个写在页面里");
+  const theme = tags.find((t) => t.file === "js/theme-init.js"), loader = tags.find((t) => t.file === "js/app-loader.js");
+  const entry = tags.find((t) => /\btype="module"/.test(t.attrs));
+  assert.doesNotMatch(theme.attrs, /\b(?:defer|async)\b/, "主题脚本须在首帧前生效");
+  assert.ok(theme.at < html.indexOf('rel="stylesheet"'), "主题脚本在样式之前");
+  assert.match(loader.attrs, /\bdefer\b/);
+  assert.ok(entry && entry.file === "src/main.js" && !/\basync\b/.test(entry.attrs));
+  /* Vite 把入口模块移到 head 末尾，加载提示须写在 head 中才能先于入口执行。 */
+  assert.ok(loader.at < html.indexOf("</head>"), "加载提示须在 head 中");
+  const legacy = JSON.parse(fs.readFileSync(path.join(root, "js", "legacy-scripts.json"), "utf8"));
+  assert.ok(legacy.lib.length >= 10);
+  assert.equal(legacy.init, "js/app-init.js");
 });
 
 test("API 明细表只有一个渲染入口，图表加载前后名称一致", () => {

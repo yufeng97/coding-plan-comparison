@@ -93,8 +93,10 @@ function createServer(options = {}) {
 }
 
 if (require.main === module) {
-  createServer().listen(port, host, () => {
-    console.log("http://" + host + ":" + port);
+  /* node scripts/server/serve.js .site-build 预览构建产物（npm run serve 与浏览器测试即用此方式）；开发时用 npm run dev。 */
+  const siteRoot = process.argv[2] ? path.resolve(root, process.argv[2]) : undefined;
+  createServer({ root: siteRoot }).listen(port, host, () => {
+    console.log("http://" + host + ":" + port + (siteRoot ? "（" + path.relative(root, siteRoot) + "）" : ""));
   });
 }
 

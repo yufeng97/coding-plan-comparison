@@ -53,8 +53,6 @@ npm run check
 npm run typecheck
 npm run validate
 npm test
-npm run bump
-npm run cache:check
 npm run build:site
 ```
 

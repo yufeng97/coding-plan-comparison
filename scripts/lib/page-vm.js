@@ -11,9 +11,15 @@ const vm = require("node:vm");
 const { Blob } = require("node:buffer");
 const root = path.resolve(__dirname, "..", "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-/* type="application/json" 的脚本是按需数据的入口描述，页面在访问相应标签时才下载。 */
-const scriptTags = [...html.matchAll(/<script\b([^>]*)\bsrc="(js\/[^"?]+)(?:\?[^"]*)?"([^>]*)>/g)]
-  .map((m) => ({ file: m[2], optional: /\btype="application\/json"/.test(m[1] + m[3]) }));
+/* index.html 里仍按经典脚本加载的只有主题引导、加载提示和按需数据入口；type="application/json" 的是按需数据的入口描述，
+   页面在访问相应标签时才下载。其余旧脚本由 Vite 合并为模块，这里按 js/legacy-scripts.json 的同一顺序直接执行源文件。 */
+const legacyScripts = JSON.parse(fs.readFileSync(path.join(root, "js", "legacy-scripts.json"), "utf8"));
+const scriptTags = [
+  ...[...html.matchAll(/<script\b([^>]*)\bsrc="(js\/[^"?]+)(?:\?[^"]*)?"([^>]*)>/g)]
+    .map((m) => ({ file: m[2], optional: /\btype="application\/json"/.test(m[1] + m[3]) })),
+  ...legacyScripts.lib.map((file) => ({ file, optional: false })),
+  { file: legacyScripts.init, optional: false },
+];
 const scripts = scriptTags.map((tag) => tag.file);
 assert.equal(scripts.at(-1), "js/app-init.js", "页面启动脚本必须按真实顺序加载");
 

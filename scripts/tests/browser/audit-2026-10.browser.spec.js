@@ -1,11 +1,6 @@
 // @ts-check
 /* 2026-10 全面审查修复：手机表单字号、推荐对比表、窄屏图表标签、预渲染发布页与分享卡片。 */
-const fs = require("node:fs");
-const path = require("node:path");
 const { test, expect } = require("@playwright/test");
-const { prerenderIndex } = require("../../build/prerender");
-
-const root = path.resolve(__dirname, "..", "..", "..");
 
 test("手机上输入框与下拉字号不小于 16px，避免 iOS 聚焦时放大页面", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -41,15 +36,13 @@ test("窄屏图表把套餐名放在柱子上方，宽屏恢复左侧标签，�
   await expect.poll(() => page.evaluate("chartCache.chartRank.getOption().yAxis[0].axisLabel.inside")).toBe(false);
 });
 
-test("预渲染发布页在脚本执行前即可阅读，启动后按链接条件重绘并移除标记", async ({ browser, baseURL }) => {
-  const html = prerenderIndex(fs.readFileSync(path.join(root, "index.html"), "utf8"));
+/* 被测的 .site-build/ 由 build:site 生成，已含预渲染内容。 */
+test("预渲染发布页在脚本执行前即可阅读，启动后按链接条件重绘并移除标记", async ({ browser }) => {
   for (const javaScriptEnabled of [false, true]) {
     const context = await browser.newContext({ javaScriptEnabled });
     const page = await context.newPage();
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
-    await page.route(String(baseURL) + "/", (route) => route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: html }));
-    await page.route(String(baseURL) + "/?budget=500", (route) => route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: html }));
     if (!javaScriptEnabled) {
       await page.goto("/");
       await expect(page.locator("#quickGrid .quick-card").first()).toBeVisible();

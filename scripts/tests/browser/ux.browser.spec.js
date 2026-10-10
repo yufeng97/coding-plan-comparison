@@ -12,7 +12,7 @@ const tab = (page, name) => page.getByRole("link", { name, exact:true });
 test("首页按标签延迟加载资料，历史返回和回首页保留视图且不重复下载", async ({ page }) => {
   const requests = [];
   page.on("request", (request) => {
-    const match = new URL(request.url()).pathname.match(/\/(benchmark|maintenance)-data\.js$/);
+    const match = new URL(request.url()).pathname.match(/\/(benchmark|maintenance)-data(?:-\w+)?\.js$/);
     if (match) requests.push(match[1]);
   });
   await page.goto("/", { waitUntil:"networkidle" });
@@ -49,7 +49,7 @@ for (const [kind, label] of [["benchmark", "模型评测"], ["maintenance", "我
   test(`${label}下载失败显示局部重试，恢复数据后首页仍可使用`, async ({ page }) => {
     let fail = true;
     let attempts = 0;
-    await page.route(`**/js/${kind}-data.js*`, async (route) => {
+    await page.route(`**/js/${kind}-data*.js`, async (route) => {
       attempts++;
       if (fail) await route.abort(); else await route.continue();
     });
@@ -76,7 +76,7 @@ for (const [kind, label] of [["benchmark", "模型评测"], ["maintenance", "我
 
 test("历史数据尚未下载时关注操作保留已读ID，打开维护页后不会重新报未读", async ({ page }) => {
   let requested = false;
-  await page.route("**/js/maintenance-data.js*", async (route) => { requested = true; await route.continue(); });
+  await page.route("**/js/maintenance-data*.js", async (route) => { requested = true; await route.continue(); });
   await page.addInitScript(({ planId, readChangeIds }) => {
     localStorage.setItem("cp-followed-plans-v1", JSON.stringify({ version:1, planIds:[planId], readChangeIds }));
   }, { planId:followed.id, readChangeIds:readIds });
@@ -103,7 +103,7 @@ test("历史数据尚未下载时关注操作保留已读ID，打开维护页后
 
 test("测评贡献下载失败可在当前标签重试，任务筛选返回后仍与结果一致", async ({ page }) => {
   let fail = true;
-  await page.route("**/js/benchmark-data.js*", async (route) => {
+  await page.route("**/js/benchmark-data*.js", async (route) => {
     if (fail) await route.abort(); else await route.continue();
   });
   await page.goto("/#contribute", { waitUntil:"networkidle" });
@@ -128,7 +128,7 @@ test("测评贡献下载失败可在当前标签重试，任务筛选返回后�
 
 test("纠错链接预填真实项目与所选证据模板，来源组默认折叠", async ({ page }) => {
   const requests = [];
-  page.on("request", (request) => { if (/(benchmark|maintenance)-data\.js/.test(request.url())) requests.push(request.url()); });
+  page.on("request", (request) => { if (/(benchmark|maintenance)-data[-\w]*\.js/.test(request.url())) requests.push(request.url()); });
   await page.goto("/#contribute", { waitUntil:"networkidle" });
   const link = page.locator("#contributionIssueLink");
   await expect(link).toBeVisible();
@@ -170,7 +170,7 @@ test("评测显示合理精度和来源区间，套餐匹配不把5.5误当5", a
     const protocol = publicBenchmarkData().benchmarks.find(b => b.id === row.benchmarkId);
     publicBenchmarkState.id = protocol.id; publicBenchmarkState.family = protocol.family;
     publicBenchmarkState.search = row.model; publicBenchmarkState.mode = "all";
-    syncPublicBenchmarkChoices(); renderPublicBenchmarks();
+    renderPublicBenchmarks();
   })()`);
   await expect(page.locator(".public-score-uncertainty").filter({ hasText:"置信区间未公布" }).first()).toBeVisible();
   const versions = await page.evaluate(`(() => {
@@ -206,7 +206,7 @@ test("评测套餐链接按永久ID打开付费与免费权益，关闭后返回
       const protocol = publicBenchmarkData().benchmarks.find((item) => item.id === row.benchmarkId);
       publicBenchmarkState.id = protocol.id; publicBenchmarkState.family = protocol.family;
       publicBenchmarkState.search = row.model; publicBenchmarkState.mode = "best";
-      syncPublicBenchmarkChoices(); renderPublicBenchmarks();
+      renderPublicBenchmarks();
       const plan = PLANS.find((item) => item.id === planId);
       return { title:planTitle(plan), search:plan.vendor + " " + plan.plan, free:isFreeCodingEntry(plan) };
     })(${JSON.stringify(id)})`);

@@ -1,8 +1,6 @@
 "use strict";
 
 const { test, expect } = require("@playwright/test");
-const path = require("node:path");
-const { pathToFileURL } = require("node:url");
 
 /** @param {import('@playwright/test').Page} page */
 function trackErrors(page) {
@@ -22,10 +20,9 @@ async function openPersonal(page) {
   await expect.poll(() => page.evaluate("echarts.version")).toBe("6.1.0");
 }
 
-test("file直开保留本地脚本、真实图表与筛选操作", async ({ page }) => {
+test("发布产物加载真实图表并可筛选，控制台无报错", async ({ page }) => {
   const errors = trackErrors(page);
-  const url = pathToFileURL(path.resolve(__dirname, "..", "..", "..", "index.html")).href + "#s1";
-  await page.goto(url);
+  await page.goto("/index.html#s1");
   await expect(page.locator("#showAllPersonal")).toBeVisible();
   await expect(page.locator("#chartPersonal canvas")).toHaveCount(1);
   await page.locator("#chartSearch").fill("Claude");

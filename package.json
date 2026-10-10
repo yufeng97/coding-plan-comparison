@@ -4,10 +4,10 @@
   "version": "1.0.0",
   "description": "国内外 AI Coding Plan（编程订阅计划）价格与 token 额度可视化对比",
   "scripts": {
-    "serve": "node scripts/server/serve.js",
+    "dev": "vite",
+    "serve": "node scripts/build/stage-site.js && node scripts/server/serve.js .site-build",
     "validate": "node scripts/build/validate-data.js",
     "test": "node scripts/tests/run.js",
-    "bump": "node scripts/build/bump-versions.js",
     "check": "node scripts/build/check-syntax.js",
     "typecheck": "tsc -p jsconfig.json && tsc -p jsconfig.node.json",
     "test:tools": "node scripts/tests/test-tools.js",
@@ -25,20 +25,28 @@
     "maintenance:check": "node scripts/maintenance/build-maintenance.js --check",
     "test:news": "node scripts/tests/test-news.js && node scripts/tests/test-news-blog.js && node scripts/tests/test-news-blog-collection.js",
     "test:browser": "playwright test",
-    "cache:check": "node scripts/build/bump-versions.js --check",
     "vendor:fonts": "node scripts/build/vendor-fonts.js",
     "vendor:echarts": "node scripts/build/rebuild-echarts.js",
     "build:site": "node scripts/build/stage-site.js",
-    "deploy": "node scripts/build/deploy-site.js"
+    "deploy": "node scripts/build/deploy-site.js",
+    "test:unit": "vitest run"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",
     "@types/node": "22.20.4",
+    "@vitejs/plugin-vue": "6.0.9",
+    "@vue/test-utils": "2.5.1",
     "echarts": "6.1.0",
     "esbuild": "0.28.2",
-    "typescript": "5.9.3"
+    "happy-dom": "20.14.5",
+    "typescript": "5.9.3",
+    "vite": "8.3.4",
+    "vitest": "5.0.3"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.12"
+  },
+  "dependencies": {
+    "vue": "3.5.43"
   }
 }

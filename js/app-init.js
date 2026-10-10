@@ -251,7 +251,7 @@ function restoreHistoryState(search, restoreAnchor = true) {
   const pendingSearch = personalSearchTimer != null || tableSearchTimer != null;
   cancelPersonalSearch();
   cancelTableSearch();
-  URL_RESTORING = true;
+  setUrlRestoring(true);
   try {
     const before = shareableStateSignature();
     applyUrlState(typeof search === "string" ? search : location.search);
@@ -297,7 +297,7 @@ function restoreHistoryState(search, restoreAnchor = true) {
         if (!focusTableControl(restoredFocus)) focusTableControl(byId(isCmpModalOpen() ? "cmpCloseBtn" : "searchInput"));
       });
     }
-  } finally { URL_RESTORING = false; }
+  } finally { setUrlRestoring(false); }
 }
 window.addEventListener("popstate", restoreHistoryState);
 window.addEventListener("hashchange", () => {
