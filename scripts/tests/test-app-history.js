@@ -38,7 +38,7 @@ test("后退和前进恢复URL对应筛选，缺省参数还原默认且不抢�
   assert.equal(app.location.href, initial);
   assert.equal(app.run("tableState.search"), "");
   assert.equal(search.value, "");
-  assert.equal(app.run("computeTableRows().length"), app.run("PLANS.filter(isOnSalePlan).length"));
+  assert.equal(app.run("computeTableRows().length"), app.run("PLANS.filter(isOnSalePlan).filter((p) => !tableExtraHidden(p)).length"));
   assert.equal(app.run("document.activeElement"), search, "恢复历史不移动用户当前焦点");
   app.history.forward();
   assert.equal(app.location.href, filtered);
@@ -71,7 +71,7 @@ test("同锚点popstate也恢复全部状态，push/replace不派发历史导航
   assert.equal(app.run('JSON.stringify(pickerState)'), JSON.stringify({ budget: "500", region: "intl", tool: "codex", task: "daily", billing:"M", priority:"quota" }));
   assert.equal(app.run('JSON.stringify(personalState)'), JSON.stringify({ cat: "tool", region: "intl", billing: "Y", q: "Cursor", limit: null, fromPicker:false }));
   assert.equal(app.run('JSON.stringify(rankState)'), JSON.stringify({ tier: "all", scope: "credits", vendor:"all", fromPicker:false }));
-  assert.equal(app.run('JSON.stringify(tableState)'), JSON.stringify({ search: "Cursor", cat: "tool", region: "intl", vendor: "all", sortKey: "priceY", sortDir: -1, fromPicker:false }));
+  assert.equal(app.run('JSON.stringify(tableState)'), JSON.stringify({ search: "Cursor", cat: "tool", region: "intl", sortKey: "priceY", sortDir: -1, fromPicker:false, extra:false }));
   assert.equal(app.run('JSON.stringify(metricsState)'), JSON.stringify({ model: "GPT-6.1 Sol", ver: "V2", tier:"flagship", offer:"current", sortKey: "twk", sortDir: -1, fromPicker:false }));
   assert.equal(app.elements.get("chartSearch").value, "Cursor");
   assert.equal(app.elements.get("searchInput").value, "Cursor");

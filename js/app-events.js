@@ -79,6 +79,7 @@ function bindEvents() {
     if (hit("#personalResetBtn")) { updateAppState(() => { cancelPersonalSearch(); resetPersonalFilters(); focusTableControl(byId("chartSearch")); }); return; }
     if (hit("[data-reset-table]")) { updateAppState(() => { cancelTableSearch(); resetTableFilters(); }); return; }
     if (hit("[data-reset-metrics]")) { updateAppState(resetMetricsFilters); return; }
+    if (hit("[data-table-extra]")) { updateAppState(() => { tableState.extra = true; renderTable(); focusTableControl(byId("tableExtraToggle")); }); return; }
     const addBtn = target.closest ? target.closest(".cmp-add") : null;
     if (addBtn) {
       const on = addBtn.classList.contains("on");
@@ -96,16 +97,15 @@ function bindEvents() {
         tableState.search = q;
         tableState.cat = "all";
         tableState.region = "all";
-        tableState.vendor = "all";
         tableState.fromPicker = false;
+        /* 图上排除的档位里有中转站和待核价格，跳转后一并显示，链接承诺的档位都能看到。 */
+        tableState.extra = true;
         const input = byId("searchInput");
         if (input) input.value = q;
         const cat = byId("selectCat");
         const region = byId("selectRegion");
         if (cat) cat.value = "all";
         if (region) region.value = "all";
-        const vendor = byId("selectVendor");
-        if (vendor) vendor.value = "all";
         renderTable();
         navigateToSection("#table");
       });
@@ -125,8 +125,6 @@ function bindEvents() {
   });
   onState(byId("selectCat"), "change", (e) => { tableState.cat = e.target.value; renderTable(); });
   onState(byId("selectRegion"), "change", (e) => { tableState.region = e.target.value; renderTable(); });
-  const vendorSelect = byId("selectVendor");
-  if (vendorSelect) onState(vendorSelect, "change", (e) => { tableState.vendor = e.target.value; renderTable(); });
   const priceSort = byId("tablePriceSort");
   if (priceSort) onState(priceSort, "change", (e) => {
     const [key, dir] = e.target.value.split(":");
@@ -137,6 +135,8 @@ function bindEvents() {
   });
   const resetBtn = byId("tableResetBtn");
   if (resetBtn) onState(resetBtn, "click", () => { cancelTableSearch(); resetTableFilters(); });
+  const extraToggle = byId("tableExtraToggle");
+  if (extraToggle) onState(extraToggle, "click", () => { tableState.extra = !tableState.extra; renderTable(); });
   /* 数据表导出与列开关 */
   const csvBtn = byId("exportCsvBtn");
   if (csvBtn) csvBtn.addEventListener("click", exportTableCsv);
@@ -233,8 +233,6 @@ function bindMetricsEvents() {
   onState(byId("rankVendor"), "change", (e) => { rankState.vendor = e.target.value; renderRankChart(); });
   byId("tableMoreBtn").addEventListener("click", () => showMoreTableRows());
   byId("metricsMoreBtn").addEventListener("click", () => showMoreMetricsRows());
-  const tableAll = byId("tableAllBtn"); if (tableAll) tableAll.addEventListener("click", () => showMoreTableRows(true));
-  const metricsAll = byId("metricsAllBtn"); if (metricsAll) metricsAll.addEventListener("click", () => showMoreMetricsRows(true));
   let mobileTables = window.innerWidth < 768;
   window.addEventListener("resize", () => {
     const mobile = window.innerWidth < 768;

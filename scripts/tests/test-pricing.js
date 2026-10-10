@@ -103,7 +103,8 @@ test("待核每席位价格也退出团队图，历史金额保留在完整表",
     renderTeamChart();
   })()`);
   assert.equal(app.run("chartCache.chartTeam.option.series[0].data.some(d => d._p.id === pendingSeatPriceId)"), false);
-  assert.equal(app.run("computeTableRows().some(p => p.id === pendingSeatPriceId)"), true);
+  assert.equal(app.run("computeTableRows().some(p => p.id === pendingSeatPriceId)"), false, "待核价格默认收起");
+  assert.equal(app.run("tableState.extra = true; computeTableRows().some(p => p.id === pendingSeatPriceId)"), true, "打开开关后保留在完整表");
   healthy(app);
 });
 
@@ -116,7 +117,10 @@ test("待核个人价格保留在完整表和导出，退出推荐与个人价�
     Object.assign(pickerState, { region: 'all', budget: 'any', task: 'daily', tool: 'any' });
     tableState.search = 'Cursor Pro';
     renderPersonalChart(); renderTable();
+    globalThis.hiddenByDefault = !computeTableRows().includes(p);
+    tableState.extra = true; renderTable();
   })()`);
+  assert.equal(app.run("hiddenByDefault"), true, "待核价格默认不在表中");
   assert.equal(app.run("computeTableRows().includes(findPlanReference('plan-0098'))"), true);
   assert.equal(app.run("recommendablePlan(findPlanReference('plan-0098'))"), false);
   assert.equal(app.run("eligibleProfiles().some(x => x.p.id === 'plan-0098')"), false);
@@ -129,7 +133,9 @@ test("待核个人价格保留在完整表和导出，退出推荐与个人价�
   app.flushTimeouts();
   assert.match(app.elements.get("notePersonal").innerHTML, /价格待核实/);
   assert.ok(app.elements.get("showExcludedInTable"), "待核搜索应提供完整表入口");
+  app.run("tableState.extra = false;");
   app.fire(app.elements.get("showExcludedInTable"), "click");
+  assert.equal(app.run("tableState.extra"), true, "从图表跳转时显示被排除的待核档位");
   assert.equal(app.run("computeTableRows().some(p => p.id === 'plan-0098')"), true);
   const data = JSON.parse(app.run(`(() => {
     const p = findPlanReference('plan-0098');

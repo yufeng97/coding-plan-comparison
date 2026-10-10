@@ -12,19 +12,20 @@
 <meta property="og:title" content="Coding Plan 全球比价中心 · 逐条核价">
 <meta property="og:description" content="比较在售 AI 编程订阅的支付金额、可用额度与满额使用折算成本，按预算、工具和工作量核对适合自己的套餐。">
 <meta property="og:url" content="https://coding-plan-comparison-tau.vercel.app/">
-<meta property="og:image" content="https://coding-plan-comparison-tau.vercel.app/og-image.png">
+<meta property="og:image" content="https://coding-plan-comparison-tau.vercel.app/img/og-card.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Coding Plan 比价中心：国内外 AI 编程订阅的价格、额度与公开评测对比">
+<meta property="og:image:alt" content="Coding Plan 比价中心：按预算、工具和任务比较国内外 AI 编程订阅的价格、额度与公开评测">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="image_src" href="og-image.png?v=c92c17a">
-<link rel="alternate" type="application/rss+xml" title="Coding Plan 已确认变更" href="changes.xml?v=f7ef1e7">
+<meta name="twitter:image" content="https://coding-plan-comparison-tau.vercel.app/img/og-card.png">
+<link rel="canonical" href="https://coding-plan-comparison-tau.vercel.app/">
+<link rel="alternate" type="application/rss+xml" title="Coding Plan 已确认变更" href="changes.xml?v=0f572d4">
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%23b9ff00'/%3E%3Ctext%20x='16'%20y='22'%20font-family='monospace'%20font-size='15'%20font-weight='bold'%20text-anchor='middle'%20fill='%2310110f'%3E%26lt;/%26gt;%3C/text%3E%3C/svg%3E">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
-  <script src="js/theme-init.js?v=6414a56"></script>
+  <script src="js/theme-init.js?v=31c1bf8"></script>
   <link rel="stylesheet" href="libs/fonts/fonts.css?v=17da4b4">
-  <link rel="stylesheet" href="css/style.css?v=68ed894">
+  <link rel="stylesheet" href="css/style.css?v=64cf9cc">
 </head>
 <body>
 <div id="loadFailure" class="load-failure" role="alert" hidden>
@@ -40,7 +41,7 @@
     <nav class="primary-nav" aria-label="主要内容">
       <a href="#quick" data-site-view="compare" aria-current="page">选套餐</a>
       <a href="#benchmarks" data-site-view="benchmarks">模型评测</a>
-      <a href="#updates" data-site-view="updates">我的关注<span class="nav-badge" id="followNavBadge" hidden></span></a>
+      <a href="#updates" data-site-view="updates">我的关注</a>
     </nav>
     <button id="themeBtn" class="theme-btn" title="切换主题：暗色 → 亮色 → 跟随系统"><i class="ric" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z"/></svg></i></button>
   </div>
@@ -107,15 +108,15 @@
         <button type="button" class="chip" data-value="daily" aria-pressed="false">日常为主</button>
         </div>
       </div>
-      <div class="picker-row" data-pick="priority" role="group" aria-label="排序优先">
+      <div class="picker-row" data-pick="priority" role="group" aria-label="推荐优先">
         <span class="picker-label">优先</span>
         <div class="picker-options">
-        <button type="button" class="chip active" data-value="quota" aria-pressed="true" title="按可折算额度、倍率与套餐类别排序">额度优先</button>
-        <button type="button" class="chip" data-value="ability" aria-pressed="false" title="按主编程评测中本档所含模型的名次排序">能力优先</button>
-        <button type="button" class="chip" data-value="price" aria-pressed="false" title="按所选支付方式月均价从低到高">省钱优先</button>
+        <button type="button" class="chip active" data-value="quota" aria-pressed="true">额度</button>
+        <button type="button" class="chip" data-value="ability" aria-pressed="false">模型能力</button>
+        <button type="button" class="chip" data-value="price" aria-pressed="false">价格</button>
         </div>
       </div>
-      <p class="picker-hint">Claude Code / Codex 包含第三方兼容接入。</p>
+      <p class="picker-hint">Claude Code / Codex 包含第三方兼容接入。「模型能力」按 DeepSWE v1.1 已公布成绩排序。</p>
       </div>
       <details class="picker-payment" id="pickerPayment">
         <summary id="pickerPaymentSummary">付款：月付标价</summary>
@@ -132,35 +133,155 @@
     </div>
     <div class="service-actions" role="group" aria-label="分享和保存筛选条件">
       <button type="button" class="chip" id="shareResultsBtn">复制当前方案链接</button>
+      <button type="button" class="chip" id="copySummaryBtn">复制推荐摘要</button>
       <button type="button" class="chip" id="savePresetBtn">保存常用条件</button>
       <button type="button" class="chip" id="loadPresetBtn" disabled>恢复常用条件</button>
       <button type="button" class="chip" id="clearPresetBtn" disabled>删除已保存条件</button>
     </div>
     <p id="serviceFeedback" class="table-feedback" role="status" aria-live="polite"></p>
-    <p id="pickerPolicy" class="maintenance-meta" role="status" aria-live="polite"></p>
     <div class="quick-grid" id="quickGrid"></div>
-    <button type="button" class="chip workload-check" id="checkWorkloadBtn">按我的用量核对</button>
-    <p class="chart-note" id="pickerNote" role="status" aria-live="polite" aria-atomic="true"></p>
+    <div class="picker-after">
+      <button type="button" class="chip workload-check" id="checkWorkloadBtn">按我的用量核对</button>
+      <p class="chart-note" id="pickerNote" role="status" aria-live="polite" aria-atomic="true"></p>
+    </div>
+    <details class="method-box picker-rules" id="pickerRules">
+      <summary>推荐规则与口径</summary>
+      <p id="pickerPolicy" class="maintenance-meta"></p>
+      <p id="pickerRulesNote" class="maintenance-meta"></p>
+    </details>
     <details class="section-menu" id="sectionMenu">
-      <summary>更多比较：价格、额度与完整数据</summary>
+      <summary>更多比较：价格、免费入口、完整数据与进阶分析</summary>
       <nav class="topnav" aria-label="页面章节">
         <a href="#quick">帮我选</a>
-        <a href="#rank">性价比排行</a>
-        <a href="#s3b">额度对比</a>
         <a href="#s1">订阅价格</a>
-        <a href="#s2">团队档</a>
-        <a href="#s3">每周 tokens</a>
-        <a href="#s4">API 按量</a>
         <a href="#free">免费入口</a>
         <a href="#table">数据表</a>
+        <a href="#rank">性价比排行</a>
+        <a href="#s3b">额度对比</a>
+        <a href="#s3">每周 tokens</a>
+        <a href="#s2">团队档</a>
+        <a href="#s4">API 按量</a>
       </nav>
     </details>
   </section>
 
-  <!-- ======== 02 每百万 tokens 成本排行 ======== -->
+  <!-- ======== 02 个人订阅价格全景 ======== -->
+  <section class="section" id="s1">
+    <div class="section-head">
+      <h2><span class="sec-no">02</span>个人订阅价格全景</h2>
+      <p>已核实价格的个人月付档（免费档见「免费入口」；一次性预付、每 4 周收费和仅老用户续费在「数据表」保留原计价单位），按统一折算人民币从低到高排列。中转站用单独的颜色标出。悬停查看原币价格、额度口径与模型。</p>
+    </div>
+    <div class="controls" id="ctrl1">
+      <input type="search" id="chartSearch" class="search-input" maxlength="200" placeholder="搜索厂商 / 计划 / 模型…" aria-label="搜索个人订阅图表">
+      <div class="chip-group" id="chipCat" role="group" aria-label="类别">
+        <button type="button" class="chip active" data-cat="all" aria-pressed="true">全部类别</button>
+        <button type="button" class="chip" data-cat="official" aria-pressed="false">模型官方订阅</button>
+        <button type="button" class="chip" data-cat="tool" aria-pressed="false">第三方工具订阅</button>
+        <button type="button" class="chip" data-cat="cloud" aria-pressed="false">云厂商/API 套餐</button>
+      </div>
+      <div class="chip-group" id="chipRegion" role="group" aria-label="地区">
+        <button type="button" class="chip active" data-region="all" aria-pressed="true">全部地区</button>
+        <button type="button" class="chip" data-region="cn" aria-pressed="false">国内</button>
+        <button type="button" class="chip" data-region="intl" aria-pressed="false">国际</button>
+      </div>
+      <div class="chip-group" id="chipBilling" role="group" aria-label="计费周期">
+        <button type="button" class="chip active" data-billing="M" aria-pressed="true">月付</button>
+        <button type="button" class="chip" data-billing="Y" aria-pressed="false">年付（折月）</button>
+      </div>
+      <button type="button" class="chip" id="personalResetBtn">清除筛选</button>
+      <div class="legend-inline" id="chartLegend"></div>
+      <button type="button" class="chip" data-apply-picker="personal">应用当前选购条件</button>
+    </div>
+    <p id="personalScope" class="maintenance-meta"></p>
+    <div class="chart-card">
+      <div id="chartPersonalEmpty" class="chart-empty" hidden role="status">没有匹配的个人月付套餐。请更换关键词或清除筛选。</div>
+      <div id="chartPersonal" class="chart"></div>
+    </div>
+    <p class="chart-note" id="notePersonal"></p>
+    <p class="chart-note">手机上套餐名显示在价格柱上方；点按价格柱查看完整套餐信息，或到<a href="#table">数据表</a>搜索并勾选对比。</p>
+  </section>
+
+  <!-- ======== 03 免费 Coding 入口 ======== -->
+  <section class="section" id="free">
+    <div class="section-head">
+      <h2><span class="sec-no">03</span>免费 Coding 入口</h2>
+      <p>官方免费模型额度与编程工具免费档。卡片会区分免费推理和平台免费；需要自备 API Key（BYOK）或按量付费的工具，使用模型仍会产生费用。</p>
+    </div>
+    <div class="controls free-controls">
+      <div class="chip-group" id="chipFreeRegion" role="group" aria-label="免费入口地区">
+        <button type="button" class="chip active" data-free-region="all" aria-pressed="true">全部地区</button>
+        <button type="button" class="chip" data-free-region="cn" aria-pressed="false">国内</button>
+        <button type="button" class="chip" data-free-region="intl" aria-pressed="false">国际</button>
+      </div>
+      <div class="chip-group" id="chipFreeKind" role="group" aria-label="免费类型">
+        <button type="button" class="chip active" data-free-kind="all" aria-pressed="true">全部类型</button>
+        <button type="button" class="chip" data-free-kind="included" aria-pressed="false">含免费推理</button>
+        <button type="button" class="chip" data-free-kind="byok" aria-pressed="false">平台免费，推理另计</button>
+      </div>
+      <span class="table-count" id="freeCount" role="status" aria-live="polite"></span>
+    </div>
+    <div class="free-grid" id="freeGrid"></div>
+  </section>
+
+  <!-- ======== 04 数据表 ======== -->
+  <section class="section" id="table">
+    <div class="section-head">
+      <h2><span class="sec-no">04</span>公开标价记录</h2>
+      <p>列出有公开标价的记录（含一次性预付、仅老用户续费及待核实历史价）。来源栏逐条标注价格核查状态、日期及依据。免费档在「免费 Coding 入口」；已下架、聊天免费档和不能当编程工具的免费档不放进这张表。支持搜索、筛选与按价格排序。计划名下点「＋对比」，选满 2 档后底部会出现并排对比，最多 4 档。</p>
+    </div>
+    <div class="controls controls-table">
+      <input type="search" id="searchInput" class="search-input" maxlength="200" placeholder="搜索厂商 / 计划 / 模型…" aria-label="搜索数据表">
+      <select id="selectCat" class="select" aria-label="按类别筛选数据表">
+        <option value="all">全部类别</option>
+        <option value="official">模型官方订阅</option>
+        <option value="tool">第三方工具订阅</option>
+        <option value="cloud">云厂商/API 套餐</option>
+        <option value="team">团队 / 企业档</option>
+      </select>
+      <select id="selectRegion" class="select" aria-label="按地区筛选数据表">
+        <option value="all">全部地区</option>
+        <option value="cn">国内</option>
+        <option value="intl">国际</option>
+      </select>
+      <button type="button" class="chip" id="tableExtraToggle" aria-pressed="false">含中转站与待核价格</button>
+      <span class="table-count" id="tableCount" role="status" aria-live="polite"></span>
+      <button type="button" class="chip" id="tableResetBtn">清除筛选</button>
+      <button type="button" class="chip" id="tableColsToggle">全部列</button>
+      <button type="button" class="chip" id="copyMdBtn" title="复制当前筛选结果为 Markdown 表格">复制 Markdown</button>
+      <button type="button" class="chip" id="exportCsvBtn" title="下载当前筛选结果为 CSV（UTF-8）">导出 CSV</button>
+      <button type="button" class="chip" data-apply-picker="table">应用当前选购条件</button>
+      <select id="tablePriceSort" class="select" aria-label="价格表排序口径与方向">
+        <option value="priceM:1">目录价格 / 周期：从低到高</option>
+        <option value="priceM:-1">目录价格 / 周期：从高到低</option>
+        <option value="priceY:1">目录年付折月：从低到高</option>
+        <option value="priceY:-1">目录年付折月：从高到低</option>
+        <option value="selectedMonthly:1" disabled>所选支付月均：从低到高</option>
+        <option value="selectedMonthly:-1" disabled>所选支付月均：从高到低</option>
+      </select>
+    </div>
+    <p id="tableScope" class="maintenance-meta"></p>
+    <p class="table-feedback" id="tableFeedback" role="status" aria-live="polite"></p>
+    <div class="table-wrap" tabindex="0" role="region" aria-label="计划数据表，可横向滚动">
+      <table id="planTable" role="table">
+        <caption class="sr-only">公开标价记录、额度、模型与核价来源</caption>
+        <thead>
+          <tr>
+            <th>厂商</th><th>计划</th><th>类别</th><th>地区</th>
+            <th class="sortable" data-sort="priceM"><span>价格 / 周期</span></th>
+            <th class="sortable" data-sort="priceY"><span>年付折月</span></th>
+            <th>额度（官方口径）</th><th class="col-opt">模型</th><th class="col-opt">支持工具</th><th class="col-opt">备注</th><th>来源</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <button type="button" class="chip" id="tableMoreBtn" hidden>显示更多记录</button>
+  </section>
+
+  <!-- ======== 05 每百万 tokens 成本排行（进阶） ======== -->
   <section class="section" id="rank">
     <div class="section-head">
-      <h2 id="rankTitle"><span class="sec-no">02</span>每百万 tokens 满额使用折算成本（目录月付标价）</h2>
+      <h2 id="rankTitle"><span class="sec-no">05</span>每百万 tokens 满额使用折算成本（<span id="rankTitleBasis">目录月付标价</span>）<span class="sec-tag">进阶</span></h2>
       <p>按参考额度全部用满折算每百万 tokens 成本；用量较少时实际成本更高。实心柱依据官方额度规则，斜纹柱为第三方或请求次数估算，不代表模型质量或保证可用额度。</p>
     </div>
     <div class="controls">
@@ -197,12 +318,10 @@
     </details>
   </section>
 
-  
-
-<!-- ======== 03 额度深度对比 ======== -->
+  <!-- ======== 06 额度深度对比（进阶） ======== -->
   <section class="section" id="s3b">
     <div class="section-head">
-      <h2><span class="sec-no">03</span>额度深度对比</h2>
+      <h2><span class="sec-no">06</span>额度深度对比<span class="sec-tag">进阶</span></h2>
       <p>默认只看月费、主要模型、每月大约能用多少、每百万 tokens 成本和置信度。5 小时窗口、每周明细和推算方法可以展开。DeepSeek、GLM、Kimi、MiniMax、Qwen 的官方 API 按量价也在表里，按同一套假设折成每百万成本，点「每M tokens」会和套餐一起按价格排。</p>
     </div>
     <div class="controls controls-table">
@@ -237,7 +356,7 @@
         <tbody id="metricsBody"></tbody>
       </table>
     </div>
-    <div class="table-more-actions"><button type="button" class="chip" id="metricsMoreBtn" hidden>显示更多额度记录</button><button type="button" class="chip" id="metricsAllBtn" hidden>显示全部</button></div>
+    <button type="button" class="chip" id="metricsMoreBtn" hidden>显示更多额度记录</button>
     <p class="chart-note" id="metricsNote"></p>
     <details class="method-box">
       <summary>📐 方法论：官方没公布用量时，这些「≈估」行是怎么推算出来的？（6 种方法 + 3 个坑）</summary>
@@ -253,56 +372,10 @@
     </details>
   </section>
 
-<!-- ======== 04 个人订阅价格全景 ======== -->
-  <section class="section" id="s1">
-    <div class="section-head">
-      <h2><span class="sec-no">04</span>个人订阅价格全景</h2>
-      <p>已核实价格的个人月付档（免费档见「免费入口」；一次性预付、每 4 周收费和仅老用户续费在「数据表」保留原计价单位），按统一折算人民币从低到高排列。中转站用单独的颜色标出。悬停查看原币价格、额度口径与模型。</p>
-    </div>
-    <div class="controls" id="ctrl1">
-      <input type="search" id="chartSearch" class="search-input" maxlength="200" placeholder="搜索厂商 / 计划 / 模型…" aria-label="搜索个人订阅图表">
-      <div class="chip-group" id="chipCat" role="group" aria-label="类别">
-        <button type="button" class="chip active" data-cat="all" aria-pressed="true">全部类别</button>
-        <button type="button" class="chip" data-cat="official" aria-pressed="false">模型官方订阅</button>
-        <button type="button" class="chip" data-cat="tool" aria-pressed="false">第三方工具订阅</button>
-        <button type="button" class="chip" data-cat="cloud" aria-pressed="false">云厂商/API 套餐</button>
-      </div>
-      <div class="chip-group" id="chipRegion" role="group" aria-label="地区">
-        <button type="button" class="chip active" data-region="all" aria-pressed="true">全部地区</button>
-        <button type="button" class="chip" data-region="cn" aria-pressed="false">🇨🇳 国内</button>
-        <button type="button" class="chip" data-region="intl" aria-pressed="false">🌍 国际</button>
-      </div>
-      <div class="chip-group" id="chipBilling" role="group" aria-label="计费周期">
-        <button type="button" class="chip active" data-billing="M" aria-pressed="true">月付</button>
-        <button type="button" class="chip" data-billing="Y" aria-pressed="false">年付（折月）</button>
-      </div>
-      <button type="button" class="chip" id="personalResetBtn">清除筛选</button>
-      <div class="legend-inline" id="chartLegend"></div>
-      <button type="button" class="chip" data-apply-picker="personal">应用当前选购条件</button>
-    </div>
-    <p id="personalScope" class="maintenance-meta"></p>
-    <div class="chart-card">
-      <div id="chartPersonalEmpty" class="chart-empty" hidden role="status">没有匹配的个人月付套餐。请更换关键词或清除筛选。</div>
-      <div id="chartPersonal" class="chart"></div>
-    </div>
-    <p class="chart-note" id="notePersonal"></p>
-    <p class="chart-note">窄屏标签会缩略；点按价格柱查看完整套餐信息，或到<a href="#table">数据表</a>搜索并勾选对比。</p>
-  </section>
-
-  <!-- ======== 05 团队 / 企业 / 云厂商 ======== -->
-  <section class="section" id="s2">
-    <div class="section-head">
-      <h2><span class="sec-no">05</span>团队 / 企业档（席位 / 整包价格）</h2>
-      <p>按席位计费的团队与企业档（Claude Team、Copilot Business、Cursor Teams 等），以及云厂商企业级服务（AWS Q、Gemini Code Assist、阿里云灵码企业版、智谱 BigModel 团队版、百炼 Token Plan 团队版等）。标注「整包」的为按团队/账户整体计费（如 Roo Roomote 按团队规模、Augment Business 按账户），悬停可查看各自计价口径。云厂商面向个人的 API 套餐（腾讯云/百炼/方舟 Coding Plan 等）已归入上方「个人订阅价格全景」。</p>
-    </div>
-    <p class="chart-note">按席位与整包分组，各组内按价格排序。横轴为对数刻度，每大格增长 10 倍；柱长不能解读为价格倍数。</p>
-    <div class="chart-card"><div id="chartTeam" class="chart"></div></div>
-  </section>
-
-  <!-- ======== 06 每周可用 tokens 对比 ======== -->
+  <!-- ======== 07 每周可用 tokens 对比（进阶） ======== -->
   <section class="section" id="s3">
     <div class="section-head">
-      <h2><span class="sec-no">06</span>每周可用 tokens 对比（官方额度折算 + 社区推算）</h2>
+      <h2><span class="sec-no">07</span>每周可用 tokens 对比（官方额度折算 + 社区推算）<span class="sec-tag">进阶</span></h2>
       <p>跨厂商比较「一周能用多少 token」：<strong class="text-green">绿色柱</strong>为官方每周额度上限按官方积分系数、统一的 80/20 与 95% 缓存假设折成 tokens（上限含非高峰 5 折）；<strong class="text-gold">黄色柱</strong>为其他折算或社区推算。厂商按自身用量假设给出的估算只在提示中对照，不参与比较。方法与置信度见「额度深度对比」。不同模型的 token 数不能代表产出质量，点按柱形查看月费与依据。</p>
     </div>
     <div class="grid-2">
@@ -317,27 +390,34 @@
     </div>
   </section>
 
-  
+  <!-- ======== 08 团队 / 企业 / 云厂商 ======== -->
+  <section class="section" id="s2">
+    <div class="section-head">
+      <h2><span class="sec-no">08</span>团队 / 企业档（席位 / 整包价格）</h2>
+      <p>按席位计费的团队与企业档（Claude Team、Copilot Business、Cursor Teams 等），以及云厂商企业级服务（AWS Q、Gemini Code Assist、阿里云灵码企业版、智谱 BigModel 团队版、百炼 Token Plan 团队版等）。标注「整包」的为按团队/账户整体计费（如 Roo Roomote 按团队规模、Augment Business 按账户），悬停可查看各自计价口径。云厂商面向个人的 API 套餐（腾讯云/百炼/方舟 Coding Plan 等）已归入上方「个人订阅价格全景」。</p>
+    </div>
+    <p class="chart-note">按席位与整包分组，各组内按价格排序。横轴为对数刻度，每大格增长 10 倍；柱长不能解读为价格倍数。</p>
+    <div class="chart-card"><div id="chartTeam" class="chart"></div></div>
+  </section>
 
-  <!-- ======== 07 API 按量计费 ======== -->
+  <!-- ======== 09 API 按量计费 ======== -->
   <section class="section" id="s4">
     <div class="section-head">
-      <h2><span class="sec-no">07</span>API 按量计费：token 的单价</h2>
+      <h2><span class="sec-no">09</span>API 按量计费：token 的单价</h2>
       <p>订阅之外另一条路线：直接按 token 付费。左图为各厂商主流编程模型每百万 tokens 的输入/输出单价（统一折算美元，悬停可看原币，国内模型会标明）；右图为同等 $10 预算按<strong>输出价</strong>能买到的 token 量（青色为国际模型、绿色为国内模型）。</p>
     </div>
     <details class="method-box cost-calculator" id="costCalculator">
       <summary>按我的工作量计算 API 月费与套餐用量</summary>
       <p>填写每天的请求数和每次总 tokens，比较所选模型的按量费用与月预算。计算包括输入、输出和已知缓存单价；长上下文档位、工具费及税费仍按官网规则另计。</p>
       <details class="usage-import" id="usageImport">
-        <summary>导入我的真实用量（ccusage 报告或 Claude Code / Codex 日志，只在本机解析）</summary>
-        <p class="maintenance-meta">支持 <code>npx ccusage daily --json</code>、<code>npx @ccusage/codex daily --json</code> 的输出，也可以直接选择 Claude Code（<code>~/.claude/projects</code>）或 Codex（<code>~/.codex/sessions</code>）的 JSONL 会话日志。内容只在浏览器里读取，不上传、不保存；导入后会填好下方的请求数、tokens、天数、输入占比和缓存命中率。</p>
-        <label class="usage-import-text" for="usageImportText">粘贴 JSON 或 JSONL<textarea id="usageImportText" rows="5" spellcheck="false" placeholder='{"daily":[{"date":"2026-10-01","inputTokens":120000,"outputTokens":30000,"cacheReadTokens":2400000}]}'></textarea></label>
+        <summary>从 ccusage 导入真实用量（可选）</summary>
+        <p class="maintenance-meta">在终端运行 <code>npx ccusage@latest daily --json</code>（Codex 用 <code>npx @ccusage/codex@latest daily --json</code>），把输出粘贴到下面或选择保存的 JSON 文件。只读取 token 计数和日期，数据在本页解析，不会上传。</p>
+        <label class="usage-import-field">ccusage JSON<textarea id="usageImportText" rows="5" spellcheck="false" placeholder='{"daily":[{"date":"2026-10-01","inputTokens":…}]}'></textarea></label>
         <div class="service-actions">
-          <button type="button" class="chip" id="usageImportBtn">解析粘贴内容</button>
-          <button type="button" class="chip" id="usageImportFileBtn">选择日志或报告文件</button>
-          <input type="file" id="usageImportFile" accept=".json,.jsonl,.txt,application/json" multiple hidden>
+          <label class="chip usage-import-file">选择 JSON 文件<input type="file" id="usageImportFile" accept=".json,application/json"></label>
+          <button type="button" class="chip" id="usageImportBtn">导入并计算</button>
         </div>
-        <p id="usageImportResult" class="table-feedback" role="status" aria-live="polite"></p>
+        <p id="usageImportFeedback" class="table-feedback" role="status" aria-live="polite"></p>
       </details>
       <div class="service-actions" id="costPresets" role="group" aria-label="工作量预设">
         <button type="button" class="chip" data-cost-preset="light">轻度使用</button>
@@ -356,7 +436,7 @@
         <label>每月使用天数<input id="costDays" type="number" min="1" max="31" step="1" value="22"></label>
         <label>输入占比（%）<input id="costInput" type="number" min="0" max="100" step="any" value="80"></label>
         <label>输入缓存命中率（%）<input id="costCache" type="number" min="0" max="100" step="any" value="95"></label>
-        <label>缓存输入单价（原币 / 1M，选填）<input id="costCachePrice" type="number" min="0" max="1000000" step="any" placeholder="未填按普通输入价"></label>
+        <label>缓存命中单价（<span id="costCacheUnit">原币</span> / 1M，选填）<input id="costCachePrice" type="number" min="0" max="1000000" step="any" placeholder="留空采用官方缓存价"></label>
         <label>月预算（人民币）<input id="costBudget" type="number" min="0" max="1000000000" step="any" value="200"></label>
         <button type="button" class="chip" id="costResetBtn">恢复计算默认值</button>
       </form>
@@ -388,85 +468,6 @@
         </table>
       </div>
     </details>
-  </section>
-
-  
-
-  <!-- ======== 08 免费 Coding 入口 ======== -->
-  <section class="section" id="free">
-    <div class="section-head">
-      <h2><span class="sec-no">08</span>免费 Coding 入口</h2>
-      <p>官方免费模型额度与编程工具免费档。卡片会区分免费推理和平台免费；需要自备 API Key（BYOK）或按量付费的工具，使用模型仍会产生费用。</p>
-    </div>
-    <div class="controls free-controls">
-      <div class="chip-group" id="chipFreeRegion" role="group" aria-label="免费入口地区">
-        <button type="button" class="chip active" data-free-region="all" aria-pressed="true">全部地区</button>
-        <button type="button" class="chip" data-free-region="cn" aria-pressed="false">国内</button>
-        <button type="button" class="chip" data-free-region="intl" aria-pressed="false">国际</button>
-      </div>
-      <div class="chip-group" id="chipFreeKind" role="group" aria-label="免费类型">
-        <button type="button" class="chip active" data-free-kind="all" aria-pressed="true">全部类型</button>
-        <button type="button" class="chip" data-free-kind="included" aria-pressed="false">含免费推理</button>
-        <button type="button" class="chip" data-free-kind="byok" aria-pressed="false">平台免费，推理另计</button>
-      </div>
-      <span class="table-count" id="freeCount" role="status" aria-live="polite"></span>
-    </div>
-    <div class="free-grid" id="freeGrid"></div>
-  </section>
-
-  <!-- ======== 09 数据表 ======== -->
-  <section class="section" id="table">
-    <div class="section-head">
-      <h2><span class="sec-no">09</span>公开标价记录</h2>
-      <p>列出有公开标价的记录（含一次性预付、仅老用户续费及待核实历史价）。来源栏逐条标注价格核查状态、日期及依据。免费档在「免费 Coding 入口」；已下架、聊天免费档和不能当编程工具的免费档不放进这张表。支持搜索、筛选与按价格排序。计划名下点「＋对比」，选满 2 档后底部会出现并排对比，最多 4 档。</p>
-    </div>
-    <div class="controls controls-table">
-      <input type="search" id="searchInput" class="search-input" maxlength="200" placeholder="搜索厂商 / 计划 / 模型…" aria-label="搜索数据表">
-      <select id="selectCat" class="select" aria-label="按类别筛选数据表">
-        <option value="all">全部类别</option>
-        <option value="official">模型官方订阅</option>
-        <option value="tool">第三方工具订阅</option>
-        <option value="cloud">云厂商/API 套餐</option>
-        <option value="team">团队 / 企业档</option>
-      </select>
-      <select id="selectRegion" class="select" aria-label="按地区筛选数据表">
-        <option value="all">全部地区</option>
-        <option value="cn">国内</option>
-        <option value="intl">国际</option>
-      </select>
-      <select id="selectVendor" class="select" aria-label="按厂商筛选数据表"><option value="all">全部厂商</option></select>
-      <span class="table-count" id="tableCount" role="status" aria-live="polite"></span>
-      <button type="button" class="chip" id="tableResetBtn">清除筛选</button>
-      <button type="button" class="chip" id="tableColsToggle">全部列</button>
-      <button type="button" class="chip" id="copyMdBtn" title="复制当前筛选结果为 Markdown 表格">复制 Markdown</button>
-      <button type="button" class="chip" id="exportCsvBtn" title="下载当前筛选结果为 CSV（UTF-8）">导出 CSV</button>
-      <button type="button" class="chip" data-apply-picker="table">应用当前选购条件</button>
-      <select id="tablePriceSort" class="select" aria-label="价格表排序口径与方向">
-        <option value="priceM:1">目录价格 / 周期：从低到高</option>
-        <option value="priceM:-1">目录价格 / 周期：从高到低</option>
-        <option value="priceY:1">目录年付折月：从低到高</option>
-        <option value="priceY:-1">目录年付折月：从高到低</option>
-        <option value="selectedMonthly:1" disabled>所选支付月均：从低到高</option>
-        <option value="selectedMonthly:-1" disabled>所选支付月均：从高到低</option>
-      </select>
-    </div>
-    <p id="tableScope" class="maintenance-meta"></p>
-    <p class="table-feedback" id="tableFeedback" role="status" aria-live="polite"></p>
-    <div class="table-wrap" tabindex="0" role="region" aria-label="计划数据表，可横向滚动">
-      <table id="planTable" role="table">
-        <caption class="sr-only">公开标价记录、额度、模型与核价来源</caption>
-        <thead>
-          <tr>
-            <th>厂商</th><th>计划</th><th>类别</th><th>地区</th>
-            <th class="sortable" data-sort="priceM"><span>价格 / 周期</span></th>
-            <th class="sortable" data-sort="priceY"><span>年付折月</span></th>
-            <th>额度（官方口径）</th><th class="col-opt">模型</th><th class="col-opt">支持工具</th><th class="col-opt">备注</th><th>来源</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-      </table>
-    </div>
-    <div class="table-more-actions"><button type="button" class="chip" id="tableMoreBtn" hidden>显示更多记录</button><button type="button" class="chip" id="tableAllBtn" hidden>显示全部</button></div>
   </section>
 
   <!-- ======== 10 重要动态 ======== -->
@@ -536,19 +537,16 @@
   </section>
 
   <section class="section" id="updates">
-    <div class="section-head"><h2><span class="sec-no">12</span>我的关注与套餐变更</h2><p>查看关注套餐的已确认变更，核对价格来源与复查安排。<a href="changes.xml">订阅变更 RSS ↗</a></p></div>
+    <div class="section-head"><h2><span class="sec-no">12</span>我的关注与套餐变更</h2><p>查看关注套餐的已确认变更，核对价格来源与复查安排。<a href="changes.xml">订阅全部变更 RSS ↗</a>；关注套餐后可单独订阅对应厂商。</p></div>
     <p id="maintenanceDataStatus" class="table-feedback optional-data-status" role="status" aria-live="polite"></p>
     <div class="maintenance-grid">
       <div class="maintenance-panel">
         <h3>我关注的套餐</h3>
         <p id="followStorageNote"></p>
-        <div class="maintenance-toolbar"><strong id="followUnreadCount"></strong><button type="button" class="chip" id="markFollowReadBtn" disabled>将当前变更标为已读</button></div>
+        <div id="followImport" class="follow-import" hidden></div>
+        <div class="maintenance-toolbar"><strong id="followUnreadCount"></strong><button type="button" class="chip" id="markFollowReadBtn" disabled>将当前变更标为已读</button><button type="button" class="chip" id="copyFollowLinkBtn" disabled>复制关注同步链接</button></div>
         <p id="followFeedback" class="table-feedback" role="status" aria-live="polite"></p>
         <div id="followedPlans"></div><div id="followedChanges"></div>
-        <details class="method-box" id="vendorFeeds"><summary>按厂商订阅变更 RSS</summary>
-          <div class="maintenance-toolbar"><label class="maintenance-select" for="vendorFeedSelect">厂商<select id="vendorFeedSelect"></select></label><a class="chip" id="vendorFeedLink" href="changes.xml">订阅该厂商 RSS ↗</a></div>
-          <p class="maintenance-meta">RSS 阅读器独立订阅，不依赖本机关注记录，也能跨设备使用；还没有变更的厂商订阅源暂时为空，收录后会出现新条目。</p>
-        </details>
       </div>
       <div class="maintenance-panel">
         <h3>查看套餐历史</h3>
@@ -641,26 +639,25 @@
     <a class="view-tab" href="#contribute" data-site-view="contribute">提交纠错</a>
   </nav>
   <p>Coding Plan 全球比价中心 · 数据调研与核实日期 <span id="footDate">2026-10-09</span> · 仅供参考，以各厂商官方页面为准 · 纯静态页面：无统计、无跟踪，主题、常用条件与关注记录仅存于本机</p>
+  <p class="footer-mirror">访问地址：<a href="https://coding-plan-comparison-tau.vercel.app/" rel="noopener">主站（Vercel）</a> · <a href="https://yufeng97.github.io/coding-plan-comparison/" rel="noopener">备用（GitHub Pages）</a>，两处内容相同，一处打不开或较慢时可换另一处；分享链接的筛选条件在两处都有效。</p>
 </footer>
 
 <template id="chartLibraryTemplate"><script src="libs/echarts.min.js?v=14c5497"></script></template>
-<script src="js/app-loader.js?v=0127d10"></script>
-<script src="js/data.js?v=a1550a1"></script>
-<script id="maintenanceDataSource" type="application/json" src="js/maintenance-data.js?v=2f8e5c8"></script>
-<script id="benchmarkDataSource" type="application/json" src="js/benchmark-data.js?v=f0456c2"></script>
-<script src="js/maintenance-summary.js?v=d51b2ef"></script>
-<script src="js/benchmark-summary.js?v=23e7cab"></script>
-<script src="js/project-data.js?v=b9931ec"></script>
-<script src="js/metrics.js?v=54c36b6"></script>
-<script src="js/app-core.js?v=64b1b31"></script>
-<script src="js/app-state.js?v=c0c3c84"></script>
-<script src="js/app-charts.js?v=76a2012"></script>
-<script src="js/app-picker.js?v=3ab5c48"></script>
-<script src="js/app-tables.js?v=68c8049"></script>
-<script src="js/usage-import.js?v=49044ff"></script>
-<script src="js/app-service.js?v=9fc0f61"></script>
-<script src="js/app-maintenance.js?v=30eeb63"></script>
-<script src="js/app-events.js?v=ab57fb0"></script>
-<script src="js/app-init.js?v=268100a"></script>
+<script defer src="js/app-loader.js?v=0127d10"></script>
+<script defer src="js/data.js?v=13f0ae3"></script>
+<script id="maintenanceDataSource" type="application/json" src="js/maintenance-data.js?v=516862e"></script>
+<script id="benchmarkDataSource" type="application/json" src="js/benchmark-data.js?v=72a0f38"></script>
+<script defer src="js/benchmark-summary.js?v=23e7cab"></script>
+<script defer src="js/project-data.js?v=b9931ec"></script>
+<script defer src="js/metrics.js?v=54c36b6"></script>
+<script defer src="js/app-core.js?v=bc3f192"></script>
+<script defer src="js/app-state.js?v=185b0a4"></script>
+<script defer src="js/app-charts.js?v=050071b"></script>
+<script defer src="js/app-picker.js?v=db0d070"></script>
+<script defer src="js/app-tables.js?v=c943aeb"></script>
+<script defer src="js/app-service.js?v=e50225b"></script>
+<script defer src="js/app-maintenance.js?v=8ee34c6"></script>
+<script defer src="js/app-events.js?v=f5bd159"></script>
+<script defer src="js/app-init.js?v=0008bbf"></script>
 </body>
 </html>

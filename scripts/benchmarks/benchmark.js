@@ -134,7 +134,7 @@ function build(workspace = root, options = {check:false}) {
   const output = {schemaVersion:1,tasks:tasks(workspace),runs:data.runs,methodology:"固定任务与版本；同一解答在独立暂存目录重复验收至少 3 次，不代表独立模型尝试。断言由独立于解答的 checker 执行，导入须提供原解答并复验其哈希与通过状态。生成耗时由贡献者记录，展示的验收耗时为导入时本机重跑结果；费用为生成该解答的真实 API 账单金额，订阅内/未知不记零。解答仅运行维护者选择的可信本机代码，独立进程不构成恶意代码安全沙箱。不同工具、任务、版本和费用口径分别比较。",generatedAt:data.runs.reduce((date,run)=>run.reviewedAt.slice(0,10)>date?run.reviewedAt.slice(0,10):date,"2026-10-08")};
   const snapshot = { ...output, public: readPublic(workspace) };
   const outputs = [
-    ["js/benchmark-data.js", "/* 自动生成：npm run benchmark:build。按需数据用 var：超时后重试时迟到的旧请求也可能执行，重复执行只覆盖同一份数据。 */\nvar BENCHMARKS = "+JSON.stringify(snapshot,null,2)+";\n"],
+    ["js/benchmark-data.js", "/* 自动生成：npm run benchmark:build */\nconst BENCHMARKS = "+JSON.stringify(snapshot,null,2)+";\n"],
     ["js/benchmark-summary.js", "/* 自动生成：npm run benchmark:build。帮我选卡片的编程评测摘要；完整榜单见 benchmark-data.js（按需加载）。 */\n/** @type {BenchmarkSummary} */\nconst BENCHMARK_SUMMARY = "+JSON.stringify(benchmarkSummary(snapshot.public))+";\n"],
   ];
   const stale = outputs.filter(([name, content]) => { const file = path.join(workspace,name); return !fs.existsSync(file) || fs.readFileSync(file,"utf8")!==content; });

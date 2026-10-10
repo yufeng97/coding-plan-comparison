@@ -111,38 +111,49 @@ function ensureOptionalData(kind) {
   optionalDataLoads[kind] = pending;
   return pending;
 }
-/* 计划分类（isRelay、offerable 等）、resolvedField、hasOwnClient 在 js/data.js，页面与校验器共用。 */
+/* 计划分类（含中转站名单 isRelay）、offerable、resolvedField、hasOwnClient 在 js/data.js，页面与校验器共用。 */
 /* isFlagshipModelName 等额度/模型分类的纯计算函数在 js/metrics.js（校验器与测试共用） */
+/* 风险标签只读结构化字段：备注里的「支持 BYOK」「季付 $403.2」等文字不能推断为必须自备 Key 或访问异常。 */
 function planBadges(p) {
   const badges = [];
   const check = priceCheckOf(p);
   if (check && check.status === "unverified") badges.push({ t: "价格待核", k: "risk" });
   const tools = resolvedField(p, "tools");
   if (isRelay(p)) badges.push({ t: "中转", k: "risk" });
-  /* 按结构化字段标注推理来源：备注里「支持 BYOK」只是可选项，不代表必须自备 Key。 */
   if (p.modelAccess === "byok") badges.push({ t: "要自备 Key", k: "risk" });
   else if (p.modelAccess === "metered" || p.includedModelQuota === false) badges.push({ t: "推理另计", k: "risk" });
   if (isRenewalOnly(p)) badges.push({ t: "仅老用户", k: "risk" });
   if (isOneTimePlan(p)) badges.push({ t: "一次性", k: "risk" });
   if (isSoldOut(p)) badges.push({ t: "售罄 · 仅候补", k: "risk" });
+  const mainland = mainlandAccessOf(p);
+  if (mainland) badges.push({ t: mainland.status === "unsupported" ? "不服务中国大陆" : "部分模型限地区", k: "risk" });
   if (p.purchaseCountries && p.purchaseCountries.length) {
     const countries = { IN: "印度", CN: "中国", US: "美国" };
     badges.push({ t: "仅限" + p.purchaseCountries.map((c) => countries[c] || c).join("/"), k: "risk" });
   }
-  if (p.siteAccess === "unstable") badges.push({ t: "访问不稳", k: "risk" });
+  if (p.accessUnstable) badges.push({ t: "访问不稳", k: "risk" });
   if (/Claude Code/i.test(tools)) badges.push({ t: "Claude Code", k: "agent" });
   if (/Codex/i.test(tools)) badges.push({ t: "Codex", k: "agent" });
   if (p.vendor === "Cursor" || /\bCursor\b/i.test(tools)) badges.push({ t: "Cursor", k: "agent" });
   if (!badges.some((b) => b.k === "agent") && !isRelay(p) && hasOwnClient(p)) badges.push({ t: "自家客户端", k: "agent" });
   return badges;
 }
+/* 中国大陆可用性的展示文案：国内档为国内服务；国际档只在登记了官方说明时给结论，其余标未核实。 */
+function mainlandAccessText(p) {
+  const access = mainlandAccessOf(p);
+  if (access) return `${access.status === "unsupported" ? "官方支持地区不含中国大陆" : "服务可用，部分模型受供应商地区限制"}（${access.checkedAt} 核查）：${access.evidence}`;
+  return p && p.region === "cn" ? "国内服务" : "未核实官方支持地区";
+}
 function badgeHtml(p) {
   return planBadges(p).map((b) => `<span class="badge badge-${b.k}">${esc(b.t)}</span>`).join("");
 }
-/* 额度行经 ref 读取主表的结构化状态；未设 ref 的行无从判断购买资格，校验器会单列提示。 */
 function metricOfferOk(m) {
-  const p = m.ref != null ? findPlanReference(m.ref) : null;
-  return !p || !(isRetiredPlan(p) || !isPriceConfirmed(p) || isOneTimePlan(p) || isRenewalOnly(p) || !offerable(p));
+  if (/已停售|已下架|老用户|一次性|预付/.test(m.plan || "")) return false;
+  if (m.ref != null) {
+    const p = findPlanReference(m.ref);
+    if (p && (isRetiredPlan(p) || !isPriceConfirmed(p) || isOneTimePlan(p) || isRenewalOnly(p) || !offerable(p))) return false;
+  }
+  return true;
 }
 function adoptMetric(m, isEst) {
   const resolved = resolvePlan(m);
@@ -219,36 +230,12 @@ function priceCheckSources(p, kind = "plan") {
   const check = priceCheckOf(p, kind);
   return check ? check.sourceIds.map((id) => PRICE_CHECKS.sources[id] && PRICE_CHECKS.sources[id].url).filter(Boolean) : [];
 }
-/* 核查日期与「今天」都按北京时间的日历日比较。 */
-function chinaCalendarDay(now = new Date()) {
-  const parts = new Intl.DateTimeFormat("en", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(now);
-  const value = (type) => parts.find((part) => part.type === type).value;
-  return `${value("year")}-${value("month")}-${value("day")}`;
-}
-/** 距核查日的天数；日期无效或晚于今天（时区差）时返回 null。 */
-function daysSince(date, today = chinaCalendarDay()) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date || ""))) return null;
-  const diff = Math.round((Date.parse(today + "T00:00:00Z") - Date.parse(date + "T00:00:00Z")) / 86400000);
-  return Number.isFinite(diff) && diff >= 0 ? diff : null;
-}
-/* 复查间隔与维护摘要一致（首屏摘要提供，缺省 14 天）。 */
-function staleAfterDays() {
-  return typeof MAINTENANCE_SUMMARY !== "undefined" && MAINTENANCE_SUMMARY.staleAfterDays > 0 ? MAINTENANCE_SUMMARY.staleAfterDays : 14;
-}
-/** 「（6 天前）」「（今天）」；超过复查间隔时注明。 */
-function checkAgeText(date) {
-  const age = daysSince(date);
-  if (age == null) return "";
-  return `（${age === 0 ? "今天" : age + " 天前"}${age >= staleAfterDays() ? "，超过复查间隔" : ""}）`;
-}
 function priceCheckHtml(p, kind = "plan") {
   const check = priceCheckOf(p, kind);
   const urls = priceCheckSources(p, kind);
   const links = urls.map((url, i) => `<a href="${safeHref(url)}" target="_blank" rel="noopener">核价来源${urls.length > 1 ? i + 1 : ""}</a>`).join(" · ");
   const explanation = check && check.status === "unverified" ? `<details class="price-check-details"><summary>核查说明</summary><p>${esc(displayPriceReason(check.reason))}</p></details>` : "";
-  const age = check ? daysSince(check.checkedAt) : null;
-  const stale = age != null && age >= staleAfterDays();
-  return `${links || "—"}<span class="sub${stale ? " check-stale" : ""}">${esc(priceCheckLabel(p, kind))}${check ? " · " + esc(check.checkedAt) + esc(checkAgeText(check.checkedAt)) : ""}</span>${explanation}`;
+  return `${links || "—"}<span class="sub">${esc(priceCheckLabel(p, kind))}${check ? " · " + esc(check.checkedAt) : ""}</span>${explanation}`;
 }
 
 /* 所有表格/对比/导出共用计价单位，不能把充值或席位费用当作个人月费。 */
@@ -264,12 +251,35 @@ function planPriceLabel(p, billing = "M") {
   return priceText(p, key) + "/" + priceUnit(p) + (billing === "Y" ? "（年付折月）" : "");
 }
 
-/* 严格限制轴标签占宽，窄屏仍保留价格柱；完整名称在 tooltip 和数据表中查看。 */
+/* 宽屏严格限制轴标签占宽，完整名称在 tooltip 和数据表中查看。
+   窄屏改为把类别名放在柱子上方整行显示：截成「阶跃 Step Plan Flash…」后几行无法区分。
+   公开评测图另有两行标签方案，保持原样。 */
+const NARROW_CHART_WIDTH = 480;
+const chartNarrowMode = new Map();
+function chartHostWidth(hostEl, measuredWidth = 0) {
+  return measuredWidth || hostEl.getBoundingClientRect().width || window.innerWidth - 72;
+}
+function isNarrowChart(hostEl, measuredWidth = 0) {
+  return hostEl.id !== "chartPublicBenchmark" && chartHostWidth(hostEl, measuredWidth) < NARROW_CHART_WIDTH;
+}
+/* 名称放到柱子上方后，每行多留一行文字的高度。 */
+function chartRowHeight(hostEl, per) { return isNarrowChart(hostEl) ? per + 16 : per; }
 function chartAxisLabel(hostEl, fontSize = 12.5, measuredWidth = 0) {
-  const width = measuredWidth || hostEl.getBoundingClientRect().width || window.innerWidth - 72;
-  return { color: PAL.catLabel, fontSize: hostEl.id === "chartPublicBenchmark" ? fontSize : width < 480 ? 10.5 : fontSize,
-    width: Math.max(60, Math.min(width < 480 ? 110 : 260, width * 0.34)),
+  const width = chartHostWidth(hostEl, measuredWidth);
+  const narrow = isNarrowChart(hostEl, width);
+  chartNarrowMode.set(hostEl.id, narrow);
+  if (narrow) {
+    return { color: PAL.catLabel, fontSize: 11, inside: true, align: "left", verticalAlign: "bottom",
+      padding: [0, 0, 11, 2], width: Math.max(120, width - 40), overflow: "truncate", margin: 0 };
+  }
+  return { color: PAL.catLabel, fontSize,
+    width: Math.max(60, Math.min(width < NARROW_CHART_WIDTH ? 110 : 260, width * 0.34)),
     overflow: "truncate", margin: 8 };
+}
+/* 宽窄布局切换（如手机横竖屏）需要整图重绘：行高与标签位置都要变。 */
+function chartRenderer(id) {
+  return { chartPersonal: renderPersonalChart, chartTeam: renderTeamChart, chartTokens: renderTokensChart,
+    chartApi: renderApiChart, chartPower: renderApiChart, chartRank: renderRankChart }[id] || null;
 }
 
 const chartCache = {};
@@ -350,6 +360,12 @@ function resizeVisibleCharts() {
     pendingChartResizes.delete(id);
     if (Math.abs(chart.getWidth() - rect.width) < 1 && Math.abs(chart.getHeight() - rect.height) < 1) return;
     try {
+      const render = chartRenderer(id);
+      if (render && chartNarrowMode.has(id) && chartNarrowMode.get(id) !== isNarrowChart(el, rect.width)) {
+        render();
+        chart.resize();
+        return;
+      }
       chart.setOption({ yAxis: { axisLabel: chartAxisLabel(el, CHART_AXIS_FONT_SIZE[id], rect.width) } }, { lazyUpdate: true });
       chart.resize();
     } catch (err) {

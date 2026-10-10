@@ -215,6 +215,12 @@ html[data-theme="light"] .brand-mark { color: #315f59; background: var(--brand);
 .section-menu > summary { cursor: pointer; color: var(--muted); font-size: 13px; }
 .section-menu .topnav { margin-top: 10px; flex-wrap: wrap; overflow: visible; }
 .workload-check { align-self: flex-start; margin-bottom: 12px; }
+/* 推荐卡下方：用量核对与一行状态并排，规则说明收进折叠区。 */
+.picker-after { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-bottom: 10px; }
+.picker-after .workload-check { margin-bottom: 0; }
+.picker-after .chart-note { margin: 0; }
+.picker-rules { margin-top: 6px; }
+.picker-rules p + p { margin-top: 6px; }
 .qc-payment-summary { margin-top: 8px; color: var(--muted); font-size: 12px; line-height: 1.6; }
 #pickerBillingNote { grid-column: 1 / -1; margin: 0; line-height: 1.6; }
 .footer .view-tabs { justify-content: center; padding: 0 0 14px; border: 0; }
@@ -282,6 +288,28 @@ html[data-theme="light"] .brand-mark { color: #315f59; background: var(--brand);
 .sec-no::after { content: ""; display: inline-block; width: 18px; height: 1px; background: var(--line-strong); vertical-align: 3px; margin-left: 10px; }
 .section-head h2 { font-size: 21px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
 .section-head h2 .sec-no { color: var(--faint); }
+/* 构建期预渲染的默认内容：带筛选参数的链接在脚本按链接条件重绘前不显示，避免先闪出默认推荐。 */
+html.has-query [data-prerendered] { visibility: hidden; }
+/* 计算器：ccusage 导入与「能覆盖这个用量的套餐」。文件选择框藏在按钮式标签里，键盘聚焦时显示外框。 */
+.usage-import { margin: 12px 0 4px; }
+.usage-import > summary { cursor: pointer; color: var(--muted); font-weight: 600; }
+.usage-import-field { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; color: var(--text); font-size: 12.5px; }
+.usage-import-field textarea { width: 100%; min-height: 96px; padding: 8px 10px; border: 1px solid var(--line-strong); border-radius: var(--radius-s); background: var(--panel); color: var(--ink); font: 12px/1.5 var(--mono); resize: vertical; }
+.usage-import-file { position: relative; cursor: pointer; }
+.usage-import-file input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.usage-import-file:focus-within { outline: 2px solid var(--accent-2); outline-offset: 3px; }
+.usage-coverage { margin-top: 14px; }
+.usage-coverage h4 { margin: 0 0 6px; font-size: 14px; color: var(--ink); }
+.usage-coverage-table th, .usage-coverage-table td { padding: 6px 8px; text-align: left; vertical-align: top; }
+.usage-coverage-table thead th { color: var(--faint); font-size: 12px; font-weight: 600; border-bottom: 1px solid var(--line); }
+.usage-coverage-table th[scope="row"] { color: var(--ink); font-weight: 600; border-bottom: 1px dashed var(--line); }
+.usage-coverage-table td:last-child { text-align: left; font-family: inherit; }
+/* 关注同步链接带来的待合并提示与按厂商订阅链接。 */
+.follow-import { margin: 10px 0; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--panel-2, var(--panel)); }
+.follow-import p { margin: 0 0 8px; }
+.follow-feeds { margin-top: 10px; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+/* 进阶分析章节的小标记：提示这些口径需要先读计算假设。 */
+.sec-tag { display: inline-block; margin-left: 10px; padding: 1px 7px; border: 1px solid var(--line-strong); border-radius: 5px; color: var(--muted); font: 600 11px var(--sans); letter-spacing: 0; vertical-align: 4px; }
 .section-head p { margin-top: 7px; color: var(--muted); font-size: 14px; max-width: 1000px; }
 .section-head p strong { color: var(--ink); font-weight: 700; }
 
@@ -646,6 +674,8 @@ table.is-empty thead { display: none; }
 
 /* ---------- 页脚 ---------- */
 .footer { border-top: 1px solid var(--line); margin-top: 60px; padding: 26px 24px 40px; text-align: center; color: var(--faint); font-size: 12.5px; }
+.footer-mirror { margin-top: 8px; }
+.footer-mirror a { color: var(--muted); }
 
 /* 决策入口与完整权益：动作和详细依据按需展开，手机优先露出主方案。 */
 .hero-details { margin-top: 14px; }
@@ -676,31 +706,6 @@ table.is-empty thead { display: none; }
 .qc-action:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
 .qc-action-icon { display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
 .picker-alternatives { grid-column: 1 / -1; }
-.picker-compare { grid-column: 1 / -1; }
-.picker-compare .table-wrap { margin: 0; }
-.picker-compare-table caption { text-align: left; padding: 8px 8px 6px; color: var(--muted); font-size: 12px; }
-.picker-compare-table th, .picker-compare-table td, .picker-compare-table td:last-child { padding: 8px; text-align: left; vertical-align: top; border-bottom: 1px dashed var(--line); color: inherit; font-family: inherit; font-weight: 400; }
-.picker-compare-table thead th { color: var(--muted); font-size: 11.5px; font-weight: 600; }
-.picker-compare-table th[scope="row"] { min-width: 9em; }
-.picker-compare-table tr.is-current th, .picker-compare-table tr.is-current td { background: color-mix(in srgb, var(--accent-2, #34d399) 10%, transparent); }
-.picker-compare-tag { display: inline-block; margin-left: 6px; padding: 1px 6px; border: 1px solid var(--accent); border-radius: 4px; color: var(--accent); font-size: 10.5px; }
-.qc-cheaper { margin: 6px 0 0; font-size: 12px; color: var(--ink); }
-.nav-badge { display: inline-block; min-width: 16px; margin-left: 4px; padding: 0 5px; border-radius: 8px; background: var(--red); color: #fff; font-size: 10.5px; font-weight: 700; line-height: 16px; text-align: center; vertical-align: 1px; }
-.nav-badge[hidden] { display: none; }
-.followed-feed { margin-left: 8px; font-size: 12px; }
-.table-more-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.sub.check-stale { color: var(--gold); }
-.table-more-actions:has(> :not([hidden])) { margin-top: 12px; }
-.usage-import { margin: 12px 0 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-s); background: var(--panel); }
-.usage-import summary { cursor: pointer; font-size: 13px; font-weight: 600; }
-.usage-import-text { display: block; margin: 10px 0; font-size: 12px; color: var(--muted); }
-.usage-import-text textarea { box-sizing: border-box; display: block; width: 100%; margin-top: 6px; padding: 10px; border: 1px solid var(--line-strong); border-radius: var(--radius-s); background: var(--paper); color: var(--ink); font: 12px/1.6 var(--mono); resize: vertical; }
-.usage-fit { margin-top: 14px; }
-.usage-fit summary { cursor: pointer; font-weight: 600; }
-.usage-fit-table th, .usage-fit-table td { text-align: left; vertical-align: top; padding: 8px; }
-.usage-fit-table td.usage-fit-0 { color: var(--green); }
-.usage-fit-table td.usage-fit-1 { color: var(--gold); }
-.usage-fit-table td.usage-fit-2 { color: var(--red); }
 .picker-alternatives-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); gap: 14px; margin-top: 12px; }
 .qc-payment-note, .qc-verification { margin-top: 10px; font-size: 12px; }
 .qc-payment-note summary, .qc-verification summary { cursor: pointer; color: var(--accent); }
@@ -736,11 +741,11 @@ table.is-empty thead { display: none; }
   .hero .prompt-mark { display: none; }
   #quick > .section-head { order: 0; }
   #picker { order: 1; }
-  #pickerPolicy { order: 2; }
   #quickGrid { order: 2; }
-  #quick > .workload-check { order: 3; }
+  #quick > .picker-after { order: 3; }
   #quick > .service-actions { order: 4; }
-  #serviceFeedback, #pickerNote { order: 5; }
+  #serviceFeedback { order: 5; }
+  #pickerRules { order: 5; }
   #quick > .section-menu { order: 6; }
   .cost-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cost-model { grid-column: 1 / -1; }
@@ -789,6 +794,8 @@ table.is-empty thead { display: none; }
   .controls { gap: 8px; }
   .controls .search-input { width: 100%; }
   .controls .select { flex: 1 1 140px; }
+  /* iOS Safari 聚焦字号小于 16px 的输入框会自动放大页面；窄屏统一用 16px。 */
+  :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) { font-size: 16px; }
   .table-count { flex: 1 1 100%; margin-left: 0; }
   .chip { min-height: 40px; }
   .picker { padding: 12px; gap: 10px; }
@@ -836,11 +843,8 @@ table.is-empty thead { display: none; }
 .watch-plan.on{color:var(--accent);border-color:var(--accent)}
 .watch-plan:hover{border-color:var(--accent);color:var(--text)}
 .watch-plan:focus-visible,.maintenance-select select:focus-visible,.contribution-preview textarea:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
-.qc-title-label{min-width:0;flex:1;overflow-wrap:anywhere}
-.qc-title .qc-watch{margin-left:auto;min-height:30px;font-size:11px;padding:3px 7px;font-weight:500;letter-spacing:0}
-.qc-usage-guide{margin:14px 0 0}
-.qc-usage-guide summary{cursor:pointer;font-size:12px;color:var(--muted);line-height:1.6}
-.qc-usage-guide .qc-line{margin-top:10px}
+.qc-title-label{min-width:0;flex:1;overflow-wrap:anywhere}.qc-title .qc-watch{margin-left:auto;min-height:30px;font-size:11px;padding:3px 7px;font-weight:500;letter-spacing:0}
+.qc-usage-guide{margin:14px 0 0}.qc-usage-guide summary{cursor:pointer;font-size:12px;color:var(--muted);line-height:1.6}.qc-usage-guide .qc-line{margin-top:10px}
 .change-list,.benchmark-runs,.maintenance-records,.review-list{list-style:none;padding:0;margin:12px 0}
 .change-card,.benchmark-run{border-top:1px solid var(--line);padding:14px 0;overflow-wrap:anywhere}
 .change-fields{padding-left:18px;font-size:12px;line-height:1.8}.change-card p{margin:7px 0}
@@ -848,36 +852,17 @@ table.is-empty thead { display: none; }
 .maintenance-records li{display:flex;flex-direction:column;gap:7px;font-size:12px;line-height:1.6;padding:12px 0;border-top:1px solid var(--line)}
 .maintenance-records span{color:var(--muted)}
 .benchmark-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-.benchmark-values{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.benchmark-values dt{font-size:12px;color:var(--muted)}
-.benchmark-values dd{font-size:13px;margin:5px 0 0;overflow-wrap:anywhere}
+.benchmark-values{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.benchmark-values dt{font-size:12px;color:var(--muted)}.benchmark-values dd{font-size:13px;margin:5px 0 0;overflow-wrap:anywhere}
 .contribution-preview{display:block;margin-top:16px;font-size:12px;color:var(--muted)}
 .contribution-preview textarea{box-sizing:border-box;width:100%;margin-top:8px;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--text);font:12px/1.7 var(--mono);resize:vertical;min-height:180px}
-@media (max-width:700px) {
-  .maintenance-grid{grid-template-columns:1fr}
-  .maintenance-panel{padding:16px}
-  .trust-counts{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .benchmark-filters{grid-template-columns:1fr;gap:2px}
-  .watch-plan{min-height:40px}
-  .qc-title .qc-watch{min-height:36px}
-  .maintenance-toolbar .chip{min-height:40px}
-  .benchmark-values{grid-template-columns:1fr}
-  .followed-plan .chip{max-width:100%;white-space:normal;text-align:left}
-  .qc-title{align-items:center}
-}
+@media(max-width:700px){.maintenance-grid{grid-template-columns:1fr}.maintenance-panel{padding:16px}.trust-counts{grid-template-columns:repeat(2,minmax(0,1fr))}.benchmark-filters{grid-template-columns:1fr;gap:2px}.watch-plan{min-height:40px}.qc-title .qc-watch{min-height:36px}.maintenance-toolbar .chip{min-height:40px}.benchmark-values{grid-template-columns:1fr}.followed-plan .chip{max-width:100%;white-space:normal;text-align:left}.qc-title{align-items:center}}
 
 /* 公开评测按协议独立比较，贡献者任务工具保留在可选折叠区。 */
 .public-benchmark-controls{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.5fr) minmax(0,.8fr) minmax(0,1.1fr) auto;gap:14px;align-items:end;margin-bottom:18px}
 /* WebKit 原生 select 更新长协议名称后，内部内容会越过既定宽度；只约束本区控件，并让焦点轮廓留在边界内。 */
-.public-benchmark-controls .maintenance-select{margin:0}
-.public-benchmark-controls label[for="publicBenchmarkSelect"]{overflow:hidden}
-.public-benchmark-controls #publicBenchmarkSelect:focus-visible{outline-offset:-2px}
-.public-benchmark-controls .search-input{width:100%}
-.public-benchmark-controls .chip{min-height:38px}
+.public-benchmark-controls .maintenance-select{margin:0}.public-benchmark-controls label[for="publicBenchmarkSelect"]{overflow:hidden}.public-benchmark-controls #publicBenchmarkSelect:focus-visible{outline-offset:-2px}.public-benchmark-controls .search-input{width:100%}.public-benchmark-controls .chip{min-height:38px}
 .public-benchmark-meta{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0;font-size:12px;line-height:1.75}
-.public-benchmark-meta div{min-width:0}
-.public-benchmark-meta dt{color:var(--muted);font-weight:600}
-.public-benchmark-meta dd{margin:3px 0 0;overflow-wrap:anywhere}
+.public-benchmark-meta div{min-width:0}.public-benchmark-meta dt{color:var(--muted);font-weight:600}.public-benchmark-meta dd{margin:3px 0 0;overflow-wrap:anywhere}
 .public-benchmark-wrap{margin:14px 0;max-height:640px}.public-benchmark-wrap[hidden]{display:none}
 .public-benchmark-chart{margin:18px 0 24px;padding:16px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .public-chart-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
@@ -897,21 +882,11 @@ table.is-empty thead { display: none; }
 #publicBenchmarkTable td{vertical-align:top;min-width:110px}#publicBenchmarkTable td:nth-child(4){min-width:175px;max-width:250px}
 .public-score-rank{font-family:var(--mono);color:var(--muted)}.public-score-value{font:600 17px var(--mono);color:var(--accent);white-space:nowrap}
 .public-score-config{display:block;color:var(--muted);font:400 11.5px/1.7 var(--sans);margin-top:6px;overflow-wrap:anywhere;white-space:normal}
-.public-score-more{font:400 11.5px/1.7 var(--sans);color:var(--muted);margin-top:7px}
-.public-score-more summary{cursor:pointer;color:var(--accent)}
-.public-score-more p{font-size:11.5px;margin:8px 0;line-height:1.7}
+.public-score-more{font:400 11.5px/1.7 var(--sans);color:var(--muted);margin-top:7px}.public-score-more summary{cursor:pointer;color:var(--accent)}.public-score-more p{font-size:11.5px;margin:8px 0;line-height:1.7}
 #contributorBenchmarkTools>.maintenance-panel{margin:14px 0}
 /* 原生 select 的长协议名称在 WebKit 中会溢出自动最小轨道；各响应式列允许缩到容器宽度。 */
 @media(max-width:1000px){.public-benchmark-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.public-benchmark-controls .chip{justify-self:start}}
-@media (max-width:700px) {
-  .public-benchmark-controls{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-  .public-benchmark-controls label[for="publicBenchmarkSelect"],.public-benchmark-controls label[for="publicModelSearch"]{grid-column:1/-1}
-  .public-benchmark-controls label[for="publicBenchmarkSelect"]{grid-row:2}
-  .public-benchmark-meta{grid-template-columns:1fr;gap:12px}
-  .public-benchmark-panel .maintenance-toolbar{align-items:flex-start}
-  .public-benchmark-panel .maintenance-toolbar strong{width:100%;margin-bottom:4px}
-  .cmp-add{min-height:40px;padding:7px 10px}
-}
+@media(max-width:700px){.public-benchmark-controls{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.public-benchmark-controls label[for="publicBenchmarkSelect"],.public-benchmark-controls label[for="publicModelSearch"]{grid-column:1/-1}.public-benchmark-controls label[for="publicBenchmarkSelect"]{grid-row:2}.public-benchmark-meta{grid-template-columns:1fr;gap:12px}.public-benchmark-panel .maintenance-toolbar{align-items:flex-start}.public-benchmark-panel .maintenance-toolbar strong{width:100%;margin-bottom:4px}.cmp-add{min-height:40px;padding:7px 10px}}
 @media(max-width:700px){
   #publicBenchmarkTable{table-layout:fixed;width:613px;min-width:613px}
   #publicBenchmarkTable th[scope="row"],#publicBenchmarkTable td,#publicBenchmarkTable td:nth-child(4){min-width:0;max-width:none}
@@ -986,6 +961,16 @@ table.is-empty thead { display: none; }
 .qc-tiers thead th { color: var(--faint); font-weight: 600; border-top: 0; }
 .qc-tiers tr.is-current th, .qc-tiers tr.is-current td { color: var(--ink); font-weight: 700; background: color-mix(in srgb, var(--accent-2, #34d399) 12%, transparent); }
 .qc-tier-price { white-space: nowrap; }
+/* 推荐区的前三档对比：桌面为表格，手机改为与数据表一致的卡片，不需要横向滚动。 */
+.picker-compare { grid-column: 1 / -1; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.qc-compare { width: 100%; border-collapse: collapse; font-size: 13px; }
+.qc-compare caption { text-align: left; font-weight: 700; color: var(--muted); padding: 10px 12px 2px; }
+.qc-compare th, .qc-compare td { padding: 8px 12px; border-top: 1px solid var(--line); text-align: left; vertical-align: top; }
+.qc-compare thead th { color: var(--faint); font-weight: 600; font-size: 12px; border-top: 0; }
+.qc-compare tbody th { color: var(--ink); font-weight: 700; }
+.qc-compare tr.is-current th, .qc-compare tr.is-current td { background: color-mix(in srgb, var(--accent-2, #34d399) 10%, transparent); }
+.qc-compare-tag { display: inline-block; margin-left: 6px; padding: 0 6px; border: 1px solid var(--line-strong); border-radius: 5px; color: var(--muted); font-size: 11px; font-weight: 600; vertical-align: 1px; }
+.qc-compare .cmp-add { white-space: nowrap; }
 .qc-bench { margin: -6px 0 12px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 12px; line-height: 1.55; color: var(--muted); }
 .qc-bench-title { margin: 0 0 4px; font-weight: 700; color: var(--ink); }
 .qc-bench-title span { margin-left: 6px; font-weight: 400; color: var(--faint); }
@@ -1000,5 +985,24 @@ table.is-empty thead { display: none; }
 .free-controls { margin-bottom: 14px; }
 @media (max-width: 700px) {
   .qc-tiers { font-size: 11.5px; }
+  .picker-compare { overflow: visible; border: 0; background: transparent; }
+  .qc-compare, .qc-compare tbody { display: block; }
+  .qc-compare caption { display: block; padding: 0 0 8px; }
+  .qc-compare thead { display: none; }
+  .qc-compare tbody { display: grid; gap: 10px; }
+  .qc-compare tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+  .qc-compare tbody th, .qc-compare tbody td { display: block; padding: 0; border: 0; background: transparent; overflow-wrap: anywhere; }
+  .qc-compare tbody th { grid-column: 1 / -1; font-size: 14px; }
+  .qc-compare tbody td::before { content: attr(data-label); display: block; color: var(--faint); font-size: 10px; margin-bottom: 3px; }
+  .qc-compare tr.is-current th, .qc-compare tr.is-current td { background: transparent; }
+  .qc-compare tr.is-current { border-color: var(--line-strong); }
+  .usage-coverage .table-wrap { overflow: visible; border: 0; background: transparent; }
+  .usage-coverage-table, .usage-coverage-table tbody { display: block; }
+  .usage-coverage-table thead { display: none; }
+  .usage-coverage-table tbody { display: grid; gap: 10px; }
+  .usage-coverage-table tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+  .usage-coverage-table tbody th, .usage-coverage-table tbody td { display: block; padding: 0; border: 0; overflow-wrap: anywhere; }
+  .usage-coverage-table tbody th { grid-column: 1 / -1; }
+  .usage-coverage-table tbody td::before { content: attr(data-label); display: block; color: var(--faint); font-size: 10px; margin-bottom: 3px; }
   .free-controls .chip-group { flex-wrap: wrap; }
 }

@@ -21,7 +21,8 @@ for (const width of [375, 1280]) {
 
     const details = page.locator("#sourceList > details.audit-sources");
     const summary = details.locator("summary");
-    const count = await page.evaluate("Object.keys(PRICE_CHECKS.sources).length");
+    /* 只展示仍被当前记录引用的来源；被替换的旧证据留在台账。 */
+    const count = await page.evaluate("new Set(Object.values(PRICE_CHECKS.rows).flatMap((row) => row.sourceIds)).size");
     await expect(summary).toContainText(count + " 页");
     await summary.focus();
     await page.keyboard.press("Enter");

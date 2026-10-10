@@ -14,7 +14,6 @@
     "news:collect": "node scripts/news/collect-news.js",
     "news:review": "node scripts/news/review-news.js",
     "pricing:sync": "node scripts/build/sync-pricing-audit.js",
-    "rates:update": "node scripts/build/update-rates.js",
     "maintenance:build": "node scripts/maintenance/build-maintenance.js",
     "benchmark:run": "node scripts/benchmarks/benchmark.js run",
     "benchmark:collect": "node scripts/benchmarks/public-scores.js collect",
@@ -29,18 +28,17 @@
     "cache:check": "node scripts/build/bump-versions.js --check",
     "vendor:fonts": "node scripts/build/vendor-fonts.js",
     "vendor:echarts": "node scripts/build/rebuild-echarts.js",
-    "render:og": "node scripts/build/render-og-image.js",
     "build:site": "node scripts/build/stage-site.js",
     "deploy": "node scripts/build/deploy-site.js"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",
-    "@types/node": "20.19.43",
+    "@types/node": "22.20.4",
     "echarts": "6.1.0",
     "esbuild": "0.28.2",
     "typescript": "5.9.3"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   }
 }

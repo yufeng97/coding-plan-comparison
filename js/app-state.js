@@ -9,12 +9,17 @@ const CMP_MAX = 4;
 const personalState = { cat:"all", region:"all", billing:"M", q:"", limit:PERSONAL_DEFAULT_LIMIT, fromPicker:false };
 const rankState = { tier:"flagship", scope:"all", vendor:"all", fromPicker:false };
 const pickerState = { budget:"200", region:"cn", tool:"any", task:"both", billing:"M", priority:"quota" };
-const tableState = { search:"", cat:"all", region:"all", vendor:"all", sortKey:"priceM", sortDir:1, fromPicker:false };
+const tableState = { search:"", cat:"all", region:"all", sortKey:"priceM", sortDir:1, fromPicker:false, extra:false };
 /** @type {{items: typeof PLANS}} */
 const cmpState = { items:[] };
 const metricsState = { model:"all", ver:"all", tier:"flagship", offer:"current", sortKey:"cpm", sortDir:1, fromPicker:false };
 const CALC_MODELS = new Set(API_PRICES.filter((a) => isPriceConfirmed(a, "api")).map((a) => a.vendor + "|" + a.model));
-const calcState = { model:[...CALC_MODELS][0] || "", requests:"100", tokens:"20000", days:"22", input:"80", cache:"95", cachePrice:"", budget:"200", scenario:"typical" };
+/* 默认模型按 data.js 的固定身份取；万一被移出已确认价格，才退回第一项（校验器会先报错）。 */
+const CALC_DEFAULT_MODEL = (() => {
+  const pinned = typeof CALC_DEFAULT_API === "object" && CALC_DEFAULT_API ? CALC_DEFAULT_API.vendor + "|" + CALC_DEFAULT_API.model : "";
+  return CALC_MODELS.has(pinned) ? pinned : [...CALC_MODELS][0] || "";
+})();
+const calcState = { model:CALC_DEFAULT_MODEL, requests:"100", tokens:"20000", days:"22", input:"80", cache:"95", cachePrice:"", budget:"200", scenario:"typical" };
 const CALC_LIMITS = { requests:[0,100000,true], tokens:[1,10000000,true], days:[1,31,true], input:[0,100,false], cache:[0,100,false], cachePrice:[0,1000000,false], budget:[0,1000000000,false] };
 function validCalcValue(key, value) {
   if (key === "model") return CALC_MODELS.has(value);
@@ -74,8 +79,8 @@ const URL_KEYS = {
   q: () => tableState.search,
   tcat: () => tableState.cat,
   tregion: () => tableState.region,
-  tvendor: () => tableState.vendor,
   tsort: () => tableState.sortKey + ":" + tableState.sortDir,
+  tall: () => tableState.extra ? "1" : "0",
   /* 额度深度对比表 */
   mmodel: () => metricsState.model,
   mver: () => metricsState.ver,
@@ -159,8 +164,7 @@ function applyUrlState(search = location.search) {
   if (p.get("q") != null) tableState.search = boundedSearch(p.get("q"));
   pick("tcat", URL_VALID.tcat, tableState, "cat");
   pick("tregion", URL_VALID.tregion, tableState, "region");
-  /* 只接受价格表里确有记录的厂商。 */
-  pick("tvendor", new Set(["all", ...PLANS.filter(isOnSalePlan).map((plan) => plan.vendor)]), tableState, "vendor");
+  tableState.extra = p.get("tall") === "1";
   const ts = p.get("tsort");
   if (ts) {
     const [key, dir] = ts.split(":");
@@ -221,8 +225,6 @@ function syncControlsFromState() {
   setVal("searchInput", tableState.search);
   setVal("selectCat", tableState.cat);
   setVal("selectRegion", tableState.region);
-  if (typeof populateTableVendors === "function") populateTableVendors();
-  setVal("selectVendor", tableState.vendor);
   setVal("metricsModel", metricsState.model);
   setVal("metricsVer", metricsState.ver); /* 模型下拉在 populateModelFilter 填充后再设值 */
   setVal("metricsTier", metricsState.tier);

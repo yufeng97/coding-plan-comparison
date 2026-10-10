@@ -39,9 +39,11 @@
 
 可选 `singleMonthPrice` 是无需连续续费的单月购买价，须不低于目录月价；`availability: "sold-out"` 表示售罄候补，保留公开标价但退出可购买推荐；恢复销售可将该字段设为 null。`sameAs` 用永久计划 ID 指向同一订阅的主条目，保留原记录与核价历史，默认价格表、推荐、价格图和免费入口只展示主条目；主条目不能再指向另一条记录，目录月价与币种须一致。这些字段可通过增量 patch 或完整 new 一并核入，实际变更会保留历史。
 
-购买资格与计价单位也用结构化字段表达，页面不再按计划名或备注文字猜测：`availability: "retired"`（已停售／已下架）、`availability: "limited"`（限量抢购）、`billingUnit: "one-time"`／`"four-weeks"`（一次性预付／每 4 周收费）、`renewalOnly: true`（仅老用户续费）、`relay: true`（号池或 API 中转，同一厂商各档一致）、`siteAccess: "unstable"`（官网访问异常）、`freeCodingEntry: false`（不能当编程工具的免费档）。计划名中的「已下架」「一次性」「老用户」「限量抢购」「4 周」等标记仍可保留给读者，校验器会核对它们与字段一致，漏填或多填都会报错。
-
 可选 `autoRenewMonthly` 表示有官方证据的连续包月／自动续费原币月价，须为正数，并在 `note` 或该套餐关联的官方核价证据中写明续费方式与资格；未知时省略，不用月付价自动填补。它与 `priceM` 的目录月价、`priceY` 的年付折月价分别维护。首购限时优惠不得当作长期续费金额。已有注释中的价格结构化不代表重新核价，不能据此推进核查日期。
+
+可选 `accessUnstable: true` 表示官网或文档实测访问异常（如返回 403、连接失败），页面据此显示「访问不稳」；风险标签只读结构化字段，备注里的数字或「支持 BYOK」不会被当作访问异常或必须自备 Key。必须自备推理用 `modelAccess: "byok"`，推理按量另计用 `modelAccess: "metered"` 或 `includedModelQuota: false`。号池或 API 转售厂商必须登记在 `data.js` 的 `RELAY_VENDORS`，备注写明中转站或号池却未登记时校验器报错。
+
+API 条目的 `apiCache` 是同币种的缓存命中（读取）单价，只在官方写明本档价格时填写；费用计算器在用户未填缓存价时按它计价，范围价、未公布或不支持缓存时留空。`CALC_DEFAULT_API` 固定计算器默认模型，删改该条目前先改这里。国际档的中国大陆可用性登记在 `MAINLAND_ACCESS`，要求官方支持地区页面作来源，见 [数据维护手册](docs/maintenance.md#中国大陆可用性登记)。
 
 ```bash
 npm run pricing:sync -- --incremental --input audit/incremental.json
@@ -74,7 +76,7 @@ npm run build:site
 
 费用采用官方评测每任务/rollout 口径，注明实际记录或官网价格折算；不等同 API 每百万 token 价或订阅月费。总费用缺乏重复次数/样本分母时不换算为每任务；缺值为 null，合法零分/零成本只有官方明确时才是 0。真实采集时间与官方更新日分开，原始来源哈希留在正式快照，下载缓存不进入公共部署。
 
-贡献者固定任务和验收见 `benchmarks/`，命令见 README。记录真实提示词、环境、解答与账单公开证据。区分模型生成与验收时间；至少 3 次同一解答验收不是独立模型成功率。发布前人工核对证据，使用 `benchmark:import --input ... --solution ... --reviewer ...`，导入时核对实际解答哈希并重新验收，再运行 validate/build；当前本机贡献者记录为空，不应补随机或模拟成绩。它与官方模型公开榜单分开，页面中的贡献者工具默认折叠。
+贡献者固定任务和验收见 `benchmarks/`，命令见 [数据维护手册](docs/maintenance.md#贡献者如何跑本机任务验收)。记录真实提示词、环境、解答与账单公开证据。区分模型生成与验收时间；至少 3 次同一解答验收不是独立模型成功率。发布前人工核对证据，使用 `benchmark:import --input ... --solution ... --reviewer ...`，导入时核对实际解答哈希并重新验收，再运行 validate/build；当前本机贡献者记录为空，不应补随机或模拟成绩。它与官方模型公开榜单分开，页面中的贡献者工具默认折叠。
 
 ## 发布与巡检
 

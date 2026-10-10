@@ -21,7 +21,9 @@ test("比较和导出保留一次性/席位/4周单位、数据日期/汇率和�
   assert.equal(app.run("isPersonalMonthly(testFourWeek)"), false, "4周费用不能当作自然月月费");
   app.run('Object.assign(personalState, { cat: "all", region: "all", q: "", limit: null }); renderPersonalChart(); resetTableFilters();');
   assert.equal(app.run("chartCache.chartPersonal.option.series[0].data.some(d => isFourWeekPlan(d._p))"), false, "个人月费图不应混入4周档");
-  assert.equal(app.run("computeTableRows().includes(testFourWeek)"), true, "4周档仍应保留在完整数据表");
+  assert.equal(app.run("isRelay(testFourWeek) && computeTableRows().includes(testFourWeek)"), false, "4周档来自中转站，默认收起");
+  assert.equal(app.run("tableState.extra = true; computeTableRows().includes(testFourWeek)"), true, "4周档仍应保留在完整数据表");
+  app.run("tableState.extra = false;");
   app.run('cmpState.items = PLANS.filter(p => p.vendor === "Anthropic" && ["Claude Pro", "Claude Max 5x"].includes(p.plan)); renderCmpModal();');
   assert.match(app.elements.get("cmpTable").innerHTML, /cmp-best-price/);
   const csv = app.run("tableRowsCsv([testOnce, testSeat, testFourWeek, testMirror])");
@@ -33,7 +35,7 @@ test("比较和导出保留一次性/席位/4周单位、数据日期/汇率和�
   assert.match(csv, /数据更新日期|数据截至/);
   assert.match(markdown, /数据更新日期|数据截至/);
   assert.doesNotMatch(csv, /同 PRO 档/);
-  app.run('tableState.search = "AICodeMirror MAX"; renderTable();');
+  app.run('tableState.search = "AICodeMirror MAX"; tableState.extra = true; renderTable();');
   app.fire(app.elements.get("exportCsvBtn"), "click");
   assert.equal(app.downloads.length, 1);
   assert.match(app.downloads[0].filename, /^coding-plans-.*\.csv$/);
@@ -68,7 +70,7 @@ test("数据表空态保留对比选择、禁用空导出，清除筛选取消�
   app.fire(search, "input");
   app.fire(app.elements.get("tableEmptyResetBtn"), "click");
   app.flushTimeouts();
-  assert.equal(app.run("computeTableRows().length"), app.run("PLANS.filter(isOnSalePlan).length"));
+  assert.equal(app.run("computeTableRows().length"), app.run("PLANS.filter(isOnSalePlan).filter((p) => !tableExtraHidden(p)).length"), "清除后回到默认范围：中转站与待核价格默认不显示");
   assert.equal(search.value, "");
   assert.equal(app.run("document.activeElement.id"), "searchInput");
   assert.equal(app.elements.get("exportCsvBtn").disabled, false);
@@ -515,7 +517,7 @@ test("多关键词与厂商别名搜索保留型号、空白及标点归一化",
   assert.ok(app.run('computeTableRows().some(p => /Kimi/.test(p.vendor))'));
   for (const query of ["", "   ", " _-./· "]) {
     app.run(`tableState.search = ${JSON.stringify(query)};`);
-    assert.equal(app.run("computeTableRows().length"), app.run("PLANS.filter(isOnSalePlan).length"));
+    assert.equal(app.run("computeTableRows().length"), app.run("PLANS.filter(isOnSalePlan).filter((p) => !tableExtraHidden(p)).length"));
   }
   assert.equal(app.run('queryHit("gpt6sol", "GPT-6 Sol")'), true);
   assert.equal(app.run('queryHit("gpt6sol", "GPT-6 Luna")'), false);
@@ -540,88 +542,6 @@ test("降级对比窗口包含核查说明且跳过收起详情内的链接", ()
   last.focus();
   assert.equal(app.fire(last,"keydown",{key:"Tab"}).defaultPrevented, true);
   assert.equal(app.run("document.activeElement"), first);
-  healthy(app);
-});
-
-
-test("风险徽章按结构化推理来源标注，金额中的 403 不算访问异常", () => {
-  const app = createApp();
-  const badges = (vendor, plan) => JSON.parse(app.run(`JSON.stringify(planBadges(PLANS.find((p) => p.vendor === ${JSON.stringify(vendor)} && p.plan === ${JSON.stringify(plan)})).map((b) => b.t))`));
-  assert.ok(!badges("Z.ai", "GLM Coding V3 Max").includes("访问不稳"), "季付 $403.2 不是 HTTP 403");
-  assert.ok(badges("88code", "PLUS 包月").includes("访问不稳"), "站点访问 403 仍需提示");
-  assert.ok(!badges("Cursor", "Teams（Standard 席位）").includes("要自备 Key"), "可选 BYOK 不等于必须自备 Key");
-  assert.ok(!badges("JetBrains AI", "AI Pro（个人）").includes("要自备 Key"), "含云端模型用量的档位不应要求自备 Key");
-  assert.ok(badges("Kilo Code", "Teams").includes("要自备 Key"));
-  assert.ok(badges("Roo Code（Roomote）", "自托管（≤10 用户）").includes("要自备 Key"), "结构化 byok 档即使备注未写 BYOK 也要提示");
-  assert.ok(badges("Zed", "Business").includes("推理另计"), "按量推理档提示推理另计");
-  assert.equal(app.run('PLANS.filter((p) => p.modelAccess === "byok").every((p) => planBadges(p).some((b) => b.t === "要自备 Key"))'), true);
-  healthy(app);
-});
-
-test("额度表空态的模型档提示与下拉选项文字一致", () => {
-  const app = createApp();
-  app.run('metricsState.model = "__none__"; renderMetricsTable();');
-  const html = app.elements.get("metricsBody").innerHTML;
-  assert.match(html, /含轻量模型/);
-  assert.doesNotMatch(html, /全部模型档/);
-  healthy(app);
-});
-
-test("完整权益窗口只在有选购口径时列出相应行，来源与核价来源可直接点击", () => {
-  const app = createApp();
-  app.run('showPlanDetails("plan-0002")');
-  let html = app.elements.get("planDetailsBody").innerHTML;
-  assert.doesNotMatch(html, /选购支付口径|选购首次付款/, "未应用选购条件时不列空行");
-  assert.match(html, /<dt>来源<\/dt><dd><a href="https:\/\/[^"]+" target="_blank" rel="noopener">官网页面 ↗<\/a>/);
-  assert.match(html, /<dt>价格核查来源<\/dt><dd><a href="https:\/\//);
-  app.run('closePlanDetails(); tableState.fromPicker = true; showPlanDetails("plan-0002")');
-  html = app.elements.get("planDetailsBody").innerHTML;
-  assert.match(html, /<dt>选购支付口径<\/dt><dd>[^<—]/);
-  assert.equal(app.run('linkListHtml(["javascript:alert(1)"], "x")'), "—", "非 http(s) 地址不生成链接");
-  healthy(app);
-});
-
-test("价格表可按厂商筛选并写入链接，非法厂商被忽略；手机可一次展开全部并保持焦点", () => {
-  const app = createApp({ url: "http://127.0.0.1:8123/index.html?tvendor=Cursor#table", width: 390 });
-  assert.equal(app.run("tableState.vendor"), "Cursor");
-  assert.equal(app.elements.get("selectVendor").value, "Cursor");
-  assert.ok(app.elements.get("selectVendor").options.length > 20);
-  assert.equal(app.run('computeTableRows().every((p) => p.vendor === "Cursor")'), true);
-  assert.match(app.location.search, /tvendor=Cursor/);
-  assert.match(app.elements.get("tableCount").textContent, /匹配记录/);
-  app.elements.get("tableResetBtn").click();
-  assert.equal(app.run("tableState.vendor"), "all");
-  assert.doesNotMatch(app.location.search, /tvendor/);
-  const all = app.elements.get("tableAllBtn");
-  const total = app.run("computeTableRows().length");
-  assert.equal(all.hidden, false);
-  assert.equal(all.textContent, `显示全部 ${total} 条`);
-  all.click();
-  assert.equal(app.elements.get("tableBody").querySelectorAll("tr").length, total);
-  assert.equal(all.hidden, true);
-  assert.equal(app.elements.get("tableMoreBtn").hidden, true);
-  assert.equal(app.run("document.activeElement.dataset.planId"), app.run("computeTableRows()[5].id"), "焦点落在新展开的第一条");
-  const metricsAll = app.elements.get("metricsAllBtn");
-  const metricsTotal = app.run("metricsTableRows().shownRows.length");
-  assert.equal(metricsAll.hidden, false);
-  metricsAll.click();
-  assert.equal(app.elements.get("metricsBody").querySelectorAll("tr").length, metricsTotal);
-  const invalid = createApp({ url: "http://127.0.0.1:8123/index.html?tvendor=NoSuchVendor" });
-  assert.equal(invalid.run("tableState.vendor"), "all");
-  healthy(app); healthy(invalid);
-});
-
-test("核价来源显示距今天数，超过复查间隔时标出", () => {
-  const app = createApp();
-  assert.equal(app.run('daysSince("2026-10-04", "2026-10-10")'), 6);
-  assert.equal(app.run('daysSince("2026-10-11", "2026-10-10")'), null, "时区差导致的未来日期不显示");
-  assert.equal(app.run('daysSince("bad", "2026-10-10")'), null);
-  const html = app.run('priceCheckHtml(PLANS.find((p) => p.id === "plan-0002"))');
-  assert.match(html, /· \d{4}-\d{2}-\d{2}（(?:今天|\d+ 天前)(?:，超过复查间隔)?）/);
-  app.run('PRICE_CHECKS.rows["plan:plan-0002"] = { ...priceCheckOf(PLANS.find((p) => p.id === "plan-0002")), checkedAt: "2020-01-01" };');
-  const stale = app.run('priceCheckHtml(PLANS.find((p) => p.id === "plan-0002"))');
-  assert.match(stale, /<span class="sub check-stale">/);
-  assert.match(stale, /天前，超过复查间隔）/);
   healthy(app);
 });
 

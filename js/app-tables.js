@@ -50,21 +50,20 @@ const PLAN_COLUMNS = [
   { id: "priceY", label: "年付折月", cls: "td-price", value: (p) => p.priceY == null ? "" : planPriceLabel(p, "Y"),
     markdownValue: (p) => p.priceY == null ? "—" : planPriceLabel(p, "Y"), cell: planAnnualPriceCell },
   { id: "annualTotal", label: "年付全年金额", table: false, value: annualPaymentText },
-  /* pickerOnly：仅在应用选购条件后有值；完整权益窗口跳过空值行，导出保留固定列。 */
-  { id: "selectedPayment", label: "选购支付口径", table:false, pickerOnly:true, value:(p) => tableState.fromPicker ? priceLine(p) : "" },
-  { id: "selectedFirstPayment", label: "选购首次付款", table:false, pickerOnly:true, value:(p) => tableState.fromPicker ? pickerFirstPaymentText(p) : "" },
+  { id: "selectedPayment", label: "选购支付口径", table:false, value:(p) => tableState.fromPicker ? priceLine(p) : "" },
+  { id: "selectedFirstPayment", label: "选购首次付款", table:false, value:(p) => tableState.fromPicker ? pickerFirstPaymentText(p) : "" },
   { id: "quota", label: "额度（官方口径）", cls: "td-quota", value: (p) => resolvedField(p, "quota") },
   { id: "models", label: "模型", cls: "td-models col-opt", value: (p) => resolvedField(p, "models") },
   { id: "tools", label: "支持工具", cls: "col-opt", value: (p) => resolvedField(p, "tools") },
   { id: "note", label: "备注", cls: "td-note col-opt", value: (p) => resolvedField(p, "note"),
     markdownValue: (p) => resolvedField(p, "note") || "—", cell: (p) => esc(resolvedField(p, "note") || "—") },
   { id: "url", label: "来源", cls: "td-trust", value: (p) => p.url || "",
-    cell: (p) => priceCheckHtml(p), detailCell: (p) => linkListHtml([p.url], "官网页面") },
+    cell: (p) => priceCheckHtml(p) },
   { id: "priceStatus", label: "价格核实状态", table: false, value: (p) => priceCheckLabel(p) },
   { id: "priceCheckedAt", label: "价格核查日期", table: false, value: (p) => (priceCheckOf(p) || {}).checkedAt || "" },
-  { id: "priceSources", label: "价格核查来源", table: false, value: (p) => priceCheckSources(p).join(" ; "),
-    detailCell: (p) => linkListHtml(priceCheckSources(p), "核价来源") },
+  { id: "priceSources", label: "价格核查来源", table: false, value: (p) => priceCheckSources(p).join(" ; ") },
   { id: "priceCheckReason", label: "价格核查说明", table: false, value: (p) => displayPriceReason((priceCheckOf(p) || {}).reason || "") },
+  { id: "mainland", label: "中国大陆可用性", table: false, value: mainlandAccessText },
   { id: "updated", label: "数据更新日期", table: false, markdown: false, value: () => META.updated },
   { id: "rate", label: "参考汇率（USD/CNY）", table: false, markdown: false, value: () => RATE },
   { id: "rateInr", label: "参考汇率（INR/CNY）", table: false, markdown: false, value: () => RATE_INR_CNY },
@@ -72,27 +71,24 @@ const PLAN_COLUMNS = [
   { id: "rateSource", label: "汇率来源", table: false, markdown: false, value: () => META.rateSource || "" },
 ];
 const PLAN_TABLE_COLUMNS = PLAN_COLUMNS.filter((c) => c.table !== false);
-/* 完整权益窗口里的网址列显示为可点击链接；非 http(s) 地址不生成链接。 */
-function linkListHtml(urls, label) {
-  const links = urls.filter((url) => safeHref(url));
-  return links.length ? links.map((url, i) => `<a href="${safeHref(url)}" target="_blank" rel="noopener">${esc(label)}${links.length > 1 ? i + 1 : ""} ↗</a>`).join(" · ") : "—";
-}
-
 function responsivePageSize() { return window.innerWidth < 768 ? 5 : 20; }
 let tableVisibleLimit = responsivePageSize();
 let tableViewFingerprint = "";
 
-/* 筛选 + 排序集中在这里：渲染与 CSV/Markdown 导出共用同一份结果 */
-function computeTableRows() {
+/* 中转站和价格待核实的历史价默认不显示，打开「含中转站与待核价格」后与其他筛选叠加；导出与当前显示一致。 */
+function tableExtraHidden(p) { return isRelay(p) || !isPriceConfirmed(p); }
+function tableFilteredPlans() {
   const q = tableState.search.trim().toLowerCase();
-  const onSale = PLANS.filter(isOnSalePlan);
-  const rows = onSale.filter((p) =>
+  return PLANS.filter(isOnSalePlan).filter((p) =>
     (tableState.cat === "all" || p.cat === tableState.cat) &&
     (tableState.region === "all" || p.region === tableState.region) &&
-    (tableState.vendor === "all" || p.vendor === tableState.vendor) &&
     (!tableState.fromPicker || matchesPickerPurchase(p)) &&
     (!q || queryHit(planSearchBlob(p), q))
   );
+}
+/* 筛选 + 排序集中在这里：渲染与 CSV/Markdown 导出共用同一份结果 */
+function computeTableRows() {
+  const rows = tableFilteredPlans().filter((p) => tableState.extra || !tableExtraHidden(p));
   const k = tableState.sortKey;
   const sortVal = (p) => k === "selectedMonthly" && tableState.fromPicker ? pickerMonthlyCNY(p) : (p[k] == null ? NaN : toCNY(p[k], p.cur));
   return rows.slice().sort((a, b) => {
@@ -134,19 +130,15 @@ function renderTable() {
   byId("planTable").classList.toggle("is-empty", rows.length === 0);
   const onSale = PLANS.filter(isOnSalePlan);
   const k = tableState.sortKey;
-  byId("tableCount").textContent = `已显示 ${visibleRows.length} / ${rows.length} 条匹配记录 · 共 ${onSale.length} 档`;
+  const hiddenExtra = tableState.extra ? 0 : tableFilteredPlans().filter(tableExtraHidden).length;
+  byId("tableCount").textContent = `已显示 ${visibleRows.length} / ${rows.length} 条匹配记录 · 共 ${onSale.length} 档` +
+    (hiddenExtra ? ` · 另有 ${hiddenExtra} 档中转站或待核价格未显示` : "");
+  syncTableExtraToggle(hiddenExtra);
   const more = byId("tableMoreBtn");
   if (more) {
     more.hidden = visibleRows.length >= rows.length;
     more.textContent = `显示更多记录（还有 ${rows.length - visibleRows.length} 条）`;
     more.setAttribute("aria-controls", "tableBody");
-  }
-  /* 剩余记录多于一批时提供一次展开全部，手机每批 5 条也不必反复点按。 */
-  const all = byId("tableAllBtn");
-  if (all) {
-    all.hidden = rows.length - visibleRows.length <= pageSize;
-    all.textContent = `显示全部 ${rows.length} 条`;
-    all.setAttribute("aria-controls", "tableBody");
   }
   qsa("#planTable thead th.sortable").forEach((th) => {
     const col = PLAN_COLUMNS.find((c) => c.id === th.dataset.sort);
@@ -154,7 +146,6 @@ function renderTable() {
   });
   const filters = [tableState.search.trim() ? `关键词「${tableState.search.trim()}」` : "",
     tableState.cat === "all" ? "" : CAT_LABEL[tableState.cat], tableState.region === "all" ? "" : REGION_LABEL[tableState.region],
-    tableState.vendor === "all" ? "" : tableState.vendor,
     tableState.fromPicker ? "选购条件" : ""].filter(Boolean).join(" · ");
   /* 价格表只收有公开标价的付费档；选购条件为「免费」时说明去处，而不是让用户改关键词。 */
   const freeScope = tableState.fromPicker && pickerState.budget === "0";
@@ -163,9 +154,7 @@ function renderTable() {
     return `<td data-column="${esc(col.id)}" data-label="${esc(col.label)}"${cls ? ` class="${cls}"` : ""}>${col.cell ? col.cell(p) : esc(col.value(p))}</td>`;
   }).join("")}</tr>`).join("") : freeScope
     ? `<tr><td colspan="${PLAN_TABLE_COLUMNS.length}" class="table-empty"><b>选购预算为「免费」，公开标价表不含免费档</b><p>免费档在<a href="#free">免费 Coding 入口</a>；取消选购条件可查看全部标价记录。</p><button type="button" class="chip" data-apply-picker="table">取消选购条件</button></td></tr>`
-    : `<tr><td colspan="${PLAN_TABLE_COLUMNS.length}" class="table-empty"><b>没有匹配的公开标价记录</b>` +
-      `<p>${esc(filters || "当前筛选")}没有结果。可以${tableState.fromPicker ? "调整「帮我选」条件、" : ""}调整关键词或清除筛选。${cmpState.items.length ? "已选的对比方案仍保留。" : ""}</p>` +
-      `<button type="button" class="chip" id="tableEmptyResetBtn" data-reset-table>清除筛选</button></td></tr>`;
+    : `<tr><td colspan="${PLAN_TABLE_COLUMNS.length}" class="table-empty"><b>没有匹配的公开标价记录</b><p>${esc(filters || "当前筛选")}没有结果${hiddenExtra ? `，另有 ${hiddenExtra} 档中转站或待核价格未显示` : ""}。可以${tableState.fromPicker ? "调整「帮我选」条件、" : ""}调整关键词或清除筛选。${cmpState.items.length ? "已选的对比方案仍保留。" : ""}</p>${hiddenExtra ? '<button type="button" class="chip" data-table-extra>显示中转站与待核价格</button> ' : ""}<button type="button" class="chip" id="tableEmptyResetBtn" data-reset-table>清除筛选</button></td></tr>`;
   ["exportCsvBtn", "copyMdBtn"].forEach((id) => {
     const btn = byId(id);
     if (!btn) return;
@@ -173,7 +162,7 @@ function renderTable() {
     btn.title = rows.length ? (id === "exportCsvBtn" ? "下载当前筛选结果为 CSV（UTF-8）" : "复制当前筛选结果为 Markdown 表格") : "没有可导出的结果，请先调整筛选";
   });
   const reset = byId("tableResetBtn");
-  if (reset) reset.disabled = !tableState.fromPicker && !tableState.search && tableState.cat === "all" && tableState.region === "all" && tableState.vendor === "all" && tableState.sortKey === "priceM" && tableState.sortDir === 1;
+  if (reset) reset.disabled = !tableState.fromPicker && !tableState.extra && !tableState.search && tableState.cat === "all" && tableState.region === "all" && tableState.sortKey === "priceM" && tableState.sortDir === 1;
   if (typeof syncPickerScopeControls === "function") syncPickerScopeControls();
   tableFeedback("");
   syncTableCmpButtons();
@@ -184,18 +173,16 @@ function renderTable() {
   }
 }
 
-/* 厂商下拉只列价格表里确有记录的厂商，按中文名排序；选项已就绪时不重建。 */
-function populateTableVendors() {
-  const select = byId("selectVendor");
-  if (!select || select.options.length > 1) return;
-  const vendors = [...new Set(PLANS.filter(isOnSalePlan).map((p) => p.vendor))].sort((a, b) => a.localeCompare(b, "zh-CN"));
-  select.innerHTML = '<option value="all">全部厂商</option>' + vendors.map((v) => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
-  select.value = tableState.vendor;
+function syncTableExtraToggle(hiddenExtra) {
+  const toggle = byId("tableExtraToggle");
+  if (!toggle) return;
+  toggle.classList.toggle("active", tableState.extra);
+  toggle.setAttribute("aria-pressed", tableState.extra ? "true" : "false");
+  toggle.title = tableState.extra ? "隐藏中转站和价格待核实的历史记录" : `显示中转站和价格待核实的历史记录${hiddenExtra ? `（当前筛选下 ${hiddenExtra} 档）` : ""}`;
 }
-function showMoreTableRows(all = false) {
-  const total = computeTableRows().length;
-  const previousCount = Math.min(tableVisibleLimit, total);
-  tableVisibleLimit = all ? Math.max(total, tableVisibleLimit) : tableVisibleLimit + responsivePageSize();
+function showMoreTableRows() {
+  const previousCount = Math.min(tableVisibleLimit, computeTableRows().length);
+  tableVisibleLimit += responsivePageSize();
   renderTable();
   /* 新增记录的第一项是继续浏览的位置；对比已满时按钮禁用、最后一页「显示更多」也已隐藏，
      依次回退到新增行本身和搜索框，焦点不丢到页面顶部。 */
@@ -219,11 +206,10 @@ function revealTablePlan(planId) {
 }
 
 function resetTableFilters() {
-  Object.assign(tableState, { search: "", cat: "all", region: "all", vendor: "all", sortKey: "priceM", sortDir: 1, fromPicker:false });
+  Object.assign(tableState, { search: "", cat: "all", region: "all", sortKey: "priceM", sortDir: 1, fromPicker:false, extra:false });
   byId("searchInput").value = "";
   byId("selectCat").value = "all";
   byId("selectRegion").value = "all";
-  if (byId("selectVendor")) byId("selectVendor").value = "all";
   renderTable();
   focusTableControl(byId("searchInput"));
 }
@@ -236,15 +222,15 @@ function tableExportName(ext, description = null) {
   const day = d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0");
   return `coding-plans-${safe}-${day}.${ext}`;
 }
+/* 引号 doubling 之外，还要防 CSV 公式注入：以 = + - @ 开头的单元格加 ' 前缀，Excel 不会当公式执行。所有 CSV 导出共用。 */
+function csvCell(v) {
+  let s = String(v ?? "");
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+  return '"' + s.replace(/"/g, '""') + '"';
+}
 function tableRowsCsv(rows) {
-  /* 引号 doubling 之外，还要防 CSV 公式注入：以 = + - @ 开头的单元格加 ' 前缀，Excel 不会当公式执行 */
-  const cell = (v) => {
-    let s = String(v ?? "");
-    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
-    return '"' + s.replace(/"/g, '""') + '"';
-  };
-  const lines = [PLAN_COLUMNS.map((c) => cell(c.label)).join(",")]
-    .concat(rows.map((p) => PLAN_COLUMNS.map((c) => cell(c.value(p))).join(",")));
+  const lines = [PLAN_COLUMNS.map((c) => csvCell(c.label)).join(",")]
+    .concat(rows.map((p) => PLAN_COLUMNS.map((c) => csvCell(c.value(p))).join(",")));
   return lines.join("\r\n");
 }
 function downloadCsvText(csv, filename) {
@@ -551,6 +537,16 @@ function closeCmpModal() {
 }
 
 /* ---------- 动态 / 来源 / 说明 ---------- */
+/* 来源证据只增不改：记录改用新来源后，旧证据留在台账里，但不再作为当前依据展示。 */
+function currentPriceSources() {
+  const used = new Set(Object.values(PRICE_CHECKS.rows).flatMap((row) => row.sourceIds || []));
+  return Object.entries(PRICE_CHECKS.sources).filter(([id]) => used.has(id)).map(([, source]) => source);
+}
+function chinaCalendarDay(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(now);
+  const value = (type) => parts.find((part) => part.type === type).value;
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
 function dynamicEndDate(d) {
   if (/^\d{4}-\d{2}-\d{2}$/.test(d.endDate || "")) return d.endDate;
   /* 旧记录只有文字范围；仅识别活动期限，核对日志保持其当日原文。 */
@@ -582,6 +578,7 @@ function renderMisc() {
   byId("dynamicsList").innerHTML = sorted.filter((d) => !d.checked).map((d) => dynItem(d, today)).join("");
   const checkList = byId("checkList");
   if (checkList) checkList.innerHTML = sorted.filter((d) => d.checked).map((d) => dynItem(d, today)).join("");
+  const priceSources = currentPriceSources();
   byId("sourceList").innerHTML =
     `<h3>📖 全部来源（官方定价页 / 权威报道）</h3>` +
     SOURCES.map(
@@ -589,8 +586,8 @@ function renderMisc() {
         const href = safeHref(u);
         return href ? `<li><a href="${href}" tabindex="0" target="_blank" rel="noopener">${esc(u)}</a></li>` : "";
       }).join("")}</ul></details>`
-    ).join("") + `<details class="method-box audit-sources"><summary>本次逐条核价来源（${Object.keys(PRICE_CHECKS.sources).length} 页）</summary><ul>` +
-    Object.values(PRICE_CHECKS.sources).map((s) => {
+    ).join("") + `<details class="method-box audit-sources"><summary>本次逐条核价来源（${priceSources.length} 页）</summary><ul>` +
+    priceSources.map((s) => {
       const href = safeHref(s.url);
       return href ? `<li><a href="${href}" tabindex="0" target="_blank" rel="noopener">${esc(s.url)}</a> — ${esc(displayPriceReason(s.evidence))}</li>` : "";
     }).join("") + `</ul></details>`;
@@ -809,12 +806,6 @@ function renderMetricsTable() {
     more.textContent = `显示更多额度记录（还有 ${shownRows.length - visibleRows.length} 行）`;
     more.setAttribute("aria-controls", "metricsBody");
   }
-  const all = byId("metricsAllBtn");
-  if (all) {
-    all.hidden = shownRows.length - visibleRows.length <= pageSize;
-    all.textContent = `显示全部 ${shownRows.length} 行`;
-    all.setAttribute("aria-controls", "metricsBody");
-  }
   byId("metricsBody").innerHTML = shownRows.length ? visibleRows.map((r) => {
     const m = r.m, c = r.c, isPayg = !!r.payg;
     const prov = isPayg ? (isPriceConfirmed(m, "payg") ? { text: "官方按量", conf: "高" } : { text: "历史牌价 · 待核实", conf: "低" }) : provenance(m);
@@ -827,9 +818,7 @@ function renderMetricsTable() {
     return `<tr class="${m.isEst ? "est-row" : ""}${isPayg ? " payg-row" : ""}">${tds}</tr>`;
   }).join("") : metricsState.fromPicker && pickerState.budget === "0"
     ? `<tr><td colspan="${METRICS_COLUMNS.length}" class="table-empty"><b>选购预算为「免费」，额度表只列付费套餐</b><p>免费档的额度见<a href="#free">免费 Coding 入口</a>；取消选购条件可查看全部额度。</p><button type="button" class="chip" data-apply-picker="metrics">取消选购条件</button></td></tr>`
-    : `<tr><td colspan="${METRICS_COLUMNS.length}" class="table-empty"><b>当前模型与版本没有可展示的额度</b>` +
-      `<p>可以${metricsState.fromPicker ? "调整「帮我选」条件、" : ""}调整模型、版本或购买范围；查看轻量模型时把模型档改为「含轻量模型」。</p>` +
-      `<button type="button" class="chip" id="metricsEmptyResetBtn" data-reset-metrics>清除筛选</button></td></tr>`;
+    : `<tr><td colspan="${METRICS_COLUMNS.length}" class="table-empty"><b>当前模型与版本没有可展示的额度</b><p>可以${metricsState.fromPicker ? "调整「帮我选」条件、" : ""}调整模型、版本或购买范围；查看轻量模型时选择「全部模型档」。</p><button type="button" class="chip" id="metricsEmptyResetBtn" data-reset-metrics>清除筛选</button></td></tr>`;
 
   qsa("#metricsTable th.sortable").forEach((th) => {
     const col = METRICS_COLUMNS.find((c) => c.sortKey === th.dataset.sort);
@@ -849,10 +838,9 @@ function renderMetricsTable() {
     `<details class="metrics-legend"><summary>各列口径、计算假设与置信度说明</summary>${METRICS_NOTE_LEGEND}</details>`;
 }
 
-function showMoreMetricsRows(all = false) {
-  const total = metricsTableRows().shownRows.length;
-  const previousCount = Math.min(metricsVisibleLimit, total);
-  metricsVisibleLimit = all ? Math.max(total, metricsVisibleLimit) : metricsVisibleLimit + responsivePageSize();
+function showMoreMetricsRows() {
+  const previousCount = Math.min(metricsVisibleLimit, metricsTableRows().shownRows.length);
+  metricsVisibleLimit += responsivePageSize();
   renderMetricsTable();
   const firstNew = [...qsa("#metricsBody tr")][previousCount];
   if (firstNew) {

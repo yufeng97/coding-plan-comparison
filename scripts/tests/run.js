@@ -13,7 +13,6 @@ const suite = [
   "test-app-charts.js",
   "test-app-tables.js",
   "test-app-service.js",
-  "test-usage-import.js",
   "test-app-maintenance.js",
   "test-server.js",
   "test-file-lock.js",
@@ -29,6 +28,7 @@ const suite = [
   "test-benchmark-deepswe-cursor.js",
   "test-benchmark-osworld-hle.js",
   "test-runners.js",
+  "test-review-fixes.js",
 ];
 
 for (const file of suite) {

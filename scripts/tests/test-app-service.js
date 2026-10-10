@@ -26,16 +26,28 @@ test("80%输入的缓存折扣只作用于输入，人民币预算按换算单�
   healthy(app);
 });
 
-test("未填写缓存价时不采用虚构折扣或自动挪用API缓存价", () => {
+test("未填写缓存价时只采用已录入的官方缓存价，未录入时不虚构折扣", () => {
   const app = createApp();
+  /* usdApi 只有非结构化的 cacheUSD 字样，等同未录入官方缓存价。 */
   const ordinary = workload(app, { cache: "0", cachePrice: "" });
   const cached = workload(app, { cache: "100", cachePrice: "" });
   near(ordinary.costNative, 158.4);
   near(cached.costNative, 158.4);
   near(cached.costCNY, cached.noCacheCNY);
+  assert.equal(cached.cacheBasis, "none");
   assert.ok(workload(app, { cache: "100", cachePrice: "0.2" }).costNative < cached.costNative);
-  app.run('Object.assign(calcState, { cache: "100", cachePrice: "" }); renderCostCalculator();');
-  assert.match(app.elements.get("costResult").innerHTML, /未填写缓存单价，按普通输入价估算/);
+  /* 官方 apiCache 0.2：80% 输入全部命中缓存 → 0.8×0.2 + 0.2×10 = 2.16 美元/M。 */
+  const official = workload(app, { cache: "100", cachePrice: "" }, { ...usdApi, apiCache: 0.2 });
+  near(official.blended, 2.16);
+  assert.equal(official.cacheBasis, "official");
+  assert.equal(workload(app, { cache: "100", cachePrice: "1" }, { ...usdApi, apiCache: 0.2 }).cacheBasis, "custom", "手填缓存价优先于官方价");
+  app.run('Object.assign(calcState, { model: "Anthropic|Claude Sonnet 5.5", cache: "100", cachePrice: "" }); renderCostCalculator();');
+  assert.match(app.elements.get("costResult").innerHTML, /缓存命中按官方单价 \$0\.2\/1M 计费/);
+  assert.equal(app.elements.get("costCacheUnit").textContent, "美元");
+  assert.match(app.elements.get("costCachePrice").placeholder, /留空采用官方 \$0\.2/);
+  app.run('Object.assign(calcState, { model: "阿里云百炼|qwen3-coder-next", cache: "100", cachePrice: "" }); renderCostCalculator();');
+  assert.match(app.elements.get("costResult").innerHTML, /未录入官方缓存单价，缓存命中率暂不生效/);
+  assert.equal(app.elements.get("costCacheUnit").textContent, "人民币");
   healthy(app);
 });
 
@@ -291,80 +303,6 @@ test("应用个人图条件停用本区支付切换，金额使用选购方式�
   app.fire(app.elements.get("personalResetBtn"),"click");
   assert.ok(chips.every((chip) => !chip.disabled));
   assert.equal(app.run("personalState.billing"),"M");
-  healthy(app);
-});
-
-test("导入 Claude Code 日志后填好计算器、匹配 API 牌价并展开套餐用量对照，原文不进入链接", () => {
-  const app = createApp({ url: "http://127.0.0.1:8123/index.html?budget=any&region=all" });
-  const line = (id, day) => JSON.stringify({ type: "assistant", timestamp: `2026-10-0${day}T10:00:00.000Z`, requestId: "req_" + id,
-    message: { id: "msg_" + id, model: "claude-opus-5-5-20260901", usage: { input_tokens: 2000, output_tokens: 6000, cache_creation_input_tokens: 4000, cache_read_input_tokens: 188000 } } });
-  const text = Array.from({ length: 14 }, (_, i) => [line(i * 2, (i % 7) + 1), line(i * 2 + 1, (i % 7) + 1)]).flat().join("\n");
-  app.elements.get("usageImportText").value = text;
-  app.fire(app.elements.get("usageImportBtn"), "click");
-  const out = app.elements.get("usageImportResult").textContent;
-  assert.match(out, /已从粘贴内容导入 2026-10-01 至 2026-10-07（7 天，活跃 7 天）/);
-  assert.match(out, /主要模型 claude-opus-5-5-20260901 已对应 Anthropic · Claude Opus 5\.5 的 API 牌价/);
-  assert.match(out, /缓存写入按普通输入价计算/);
-  assert.match(out, /原始内容没有上传或保存/);
-  assert.equal(app.run("calcState.model"), "Anthropic|Claude Opus 5.5");
-  assert.equal(app.run("calcState.requests"), "4");
-  assert.equal(app.run("calcState.days"), "30");
-  assert.equal(app.run("calcState.input"), "97");
-  assert.equal(app.run("calcState.cache"), "96.9");
-  assert.equal(app.elements.get("costRequests").value, "4");
-  const result = app.elements.get("costResult").innerHTML;
-  assert.match(result, /<details class="usage-fit" id="usageFit" open>/);
-  assert.match(result, /当前输入 97% \/ 输出 3%/);
-  app.run('calcState.input = "97.9"; renderCostCalculator();');
-  assert.match(app.elements.get("costResult").innerHTML, /当前输入 97\.9% \/ 输出 2\.1%/, "小数输入占比不产生浮点误差");
-  assert.match(result, /按这个用量对照套餐参考额度（\d+ 档保守够用，\d+ 档有参考月量）/);
-  assert.match(result, /保守够用|落在参考区间|超出参考额度/);
-  assert.doesNotMatch(app.location.href, /msg_|req_|claude-opus-5-5-2026/, "链接只保存折算后的计算条件");
-  /* 恢复默认清掉导入说明；解析失败不改动已有条件。 */
-  app.fire(app.elements.get("costResetBtn"), "click");
-  assert.equal(app.elements.get("usageImportResult").textContent, "");
-  app.elements.get("usageImportText").value = "not usage";
-  app.fire(app.elements.get("usageImportBtn"), "click");
-  assert.match(app.elements.get("usageImportResult").textContent, /不是 JSON 或 JSONL/);
-  assert.equal(app.run("calcState.requests"), "100");
-  healthy(app);
-});
-
-test("日志模型只匹配完全一致或带日期后缀的牌价，不把新版本对到旧版本", () => {
-  const app = createApp();
-  assert.equal(app.run('(apiForUsageModel("claude-opus-5-5") || {}).model'), "Claude Opus 5.5");
-  assert.equal(app.run('(apiForUsageModel("claude-opus-5-5-latest") || {}).model'), "Claude Opus 5.5");
-  assert.equal(app.run('apiForUsageModel("claude-opus-5-7")'), null);
-  assert.equal(app.run('(apiForUsageModel("claude-sonnet-5") || {}).model'), "Claude Sonnet 5");
-  assert.equal(app.run('apiForUsageModel("claude-sonnet-5-9")'), null);
-  assert.equal(app.run('(apiForUsageModel("kimi-k3") || {}).vendor'), "月之暗面 Kimi");
-  assert.equal(app.run('apiForUsageModel("")'), null);
-  healthy(app);
-});
-
-test("触屏设备用系统分享面板发送方案链接，取消不复制，失败时退回复制", async () => {
-  const app = createApp({ url: "http://127.0.0.1:8123/index.html?budget=500&region=intl" });
-  const btn = app.elements.get("shareResultsBtn");
-  assert.equal(btn.textContent, "复制当前方案链接", "桌面保持复制");
-  await app.run("shareCurrentResults()");
-  assert.match(app.run("copiedText"), /budget=500&region=intl/);
-  app.run(`window.matchMedia = (q) => ({ matches: q === "(pointer: coarse)" }); globalThis.shared = [];
-    navigator.share = async (data) => { shared.push(data); };`);
-  app.run("copiedText = ''");
-  await app.run("shareCurrentResults()");
-  const shared = JSON.parse(app.run("JSON.stringify(shared)"));
-  assert.equal(shared.length, 1);
-  assert.match(shared[0].url, /budget=500&region=intl/);
-  assert.match(shared[0].text, /≤¥500 · 国际/);
-  assert.equal(app.run("copiedText"), "", "系统分享成功时不再复制");
-  assert.match(app.elements.get("serviceFeedback").textContent, /已打开系统分享/);
-  app.run(`navigator.share = async () => { const e = new Error("cancel"); e.name = "AbortError"; throw e; };`);
-  await app.run("shareCurrentResults()");
-  assert.equal(app.elements.get("serviceFeedback").textContent, "已取消分享。");
-  assert.equal(app.run("copiedText"), "");
-  app.run(`navigator.share = async () => { throw new Error("denied"); };`);
-  await app.run("shareCurrentResults()");
-  assert.match(app.run("copiedText"), /budget=500/, "其他失败退回复制链接");
   healthy(app);
 });
 

@@ -218,7 +218,7 @@ test("手机额度表分批卡片被容器完整包住，后续章节不会盖�
   await expect(page.locator("#metricsCount")).toHaveText(`已显示 5 / ${total} 行`);
   await page.locator("#metricsMoreBtn").click();
   await expect(page.locator("#metricsBody tr")).toHaveCount(10);
-  const geometry = await page.locator("#metricsBody tr").last().evaluate(el => ({ card: el.getBoundingClientRect().bottom, wrap: el.closest(".table-wrap").getBoundingClientRect().bottom, next: document.getElementById("s1").getBoundingClientRect().top }));
+  const geometry = await page.locator("#metricsBody tr").last().evaluate(el => ({ card: el.getBoundingClientRect().bottom, wrap: el.closest(".table-wrap").getBoundingClientRect().bottom, next: document.getElementById("s3b").nextElementSibling.getBoundingClientRect().top }));
   expect(geometry.card).toBeLessThanOrEqual(geometry.wrap + 1);
   expect(geometry.card).toBeLessThanOrEqual(geometry.next + 1);
   await page.locator('#metricsTable thead [data-sort="price"]').click();

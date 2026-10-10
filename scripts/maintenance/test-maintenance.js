@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const vm = require("node:vm");
-const { buildMaintenance, parseArgs, rssOf, vendorFeedSlug } = require("./build-maintenance");
+const { buildMaintenance, parseArgs, rssOf } = require("./build-maintenance");
 const { seededHistory, canonical, changeOf, validateHistory } = require("./history");
 const { rewindToFullAudit } = require("../tests/full-audit-baseline");
 const workspace = path.resolve(__dirname, "../..");
@@ -205,39 +205,6 @@ test("--check检测data事实/history/calendar变化与丢失产物，不改任�
   before = snapshot();
   assert.throws(() => buildMaintenance(root, { check: true }), /changes\.xml/);
   assert.deepEqual(snapshot(), before);
-});
-
-test("首屏摘要只含套餐变更ID，每个厂商一份订阅源且只含本厂商变更；过期订阅源检查报错、生成时清理", ({ root }) => {
-  const { maintenance } = buildMaintenance(root, { asOf: "2026-10-08" });
-  const box = {}; vm.createContext(box);
-  vm.runInContext(fs.readFileSync(path.join(root, "js/maintenance-summary.js"), "utf8") + ";globalThis.s=MAINTENANCE_SUMMARY", box);
-  const summary = JSON.parse(JSON.stringify(box.s));
-  assert.equal(summary.generatedAt, "2026-10-08");
-  assert.equal(summary.staleAfterDays, maintenance.staleAfterDays);
-  assert.deepEqual(summary.changes, maintenance.changes.filter((c) => c.kind === "plan").map((c) => ({ changeId: c.changeId, id: c.id })));
-  const vendors = new Set(summary.feeds.map((feed) => feed.vendor));
-  assert.equal(vendors.size, summary.feeds.length);
-  const changed = maintenance.changes[0];
-  const feed = summary.feeds.find((f) => f.vendor === changed.vendor);
-  assert.equal(feed.href, "feeds/" + vendorFeedSlug(changed.vendor) + ".xml");
-  const xmlText = fs.readFileSync(path.join(root, feed.href), "utf8");
-  assert.match(xmlText, new RegExp("<guid isPermaLink=\"false\">" + changed.changeId + "</guid>"));
-  const own = maintenance.changes.filter((c) => c.vendor === changed.vendor).length;
-  assert.equal((xmlText.match(/<item>/g) || []).length, own, "厂商订阅源只含本厂商变更");
-  assert.match(xmlText, /\?q=/, "条目链接到按厂商搜索的价格表");
-  assert.equal(vendorFeedSlug("阿里云百炼"), vendorFeedSlug("阿里云百炼"));
-  assert.match(vendorFeedSlug("阿里云百炼"), /^vendor-[a-f0-9]{8}$/);
-  assert.match(vendorFeedSlug("Cursor"), /^cursor-[a-f0-9]{8}$/);
-  const stale = path.join(root, "feeds/removed-vendor-0123abcd.xml");
-  const unrelated = path.join(root, "feeds/README.txt");
-  fs.writeFileSync(stale, "<rss/>");
-  fs.writeFileSync(unrelated, "keep");
-  assert.throws(() => buildMaintenance(root, { check: true }), /feeds\/removed-vendor-0123abcd\.xml/);
-  assert.ok(fs.existsSync(stale), "检查模式不删除文件");
-  buildMaintenance(root, { asOf: "2026-10-08" });
-  assert.equal(fs.existsSync(stale), false);
-  assert.ok(fs.existsSync(unrelated), "只清理生成格式的订阅源");
-  buildMaintenance(root, { check: true });
 });
 
 console.log("维护摘要回归：" + passed + " 通过");
