@@ -75,7 +75,10 @@ function pickerPaymentSummaryHtml(p, { compact = false } = {}) {
     return `<p class="qc-payment-summary">首次 ${approx}${esc(pickerMoney(quote.firstNative, quote.cur))}${annual}；按当前价续期 ${approx}${esc(pickerMoney(quote.renewalNative, quote.cur))}/${period}${basis}。</p>`;
   }
   const basis = quote.inferred ? "未单列连续包月价，按月付标价计（已核价的连续包月价都不高于标价）；" : "";
-  return `<p class="qc-payment-summary">${esc(quote.label)} · ${basis}首次 ${approx}${esc(pickerMoney(quote.firstNative, quote.cur))}；按当前价续期 ${approx}${esc(pickerMoney(quote.renewalNative, quote.cur))}/${period}。<br>按当前价连续使用 12 个月 ${approx}${esc(pickerMoney(quote.annualNative, quote.cur))}${quote.mode === "Y" ? "，一次支付全年" + (quote.annualApprox ? "（折月价×12估算）" : "") : "（费用情景）"}；续费与优惠资格以结算页为准。</p>`;
+  const yearly = quote.mode === "Y" ? "，一次支付全年" + (quote.annualApprox ? "（折月价×12估算）" : "") : "（费用情景）";
+  return `<p class="qc-payment-summary">${esc(quote.label)} · ${basis}首次 ${approx}${esc(pickerMoney(quote.firstNative, quote.cur))}；` +
+    `按当前价续期 ${approx}${esc(pickerMoney(quote.renewalNative, quote.cur))}/${period}。<br>` +
+    `按当前价连续使用 12 个月 ${approx}${esc(pickerMoney(quote.annualNative, quote.cur))}${yearly}；续费与优惠资格以结算页为准。</p>`;
 }
 
 /* ---------- 帮我选 ---------- */
@@ -622,7 +625,10 @@ function pickerUsageGuide(p) {
     ? `仅限 ${p.purchaseCountries.join("、")}，购买前核对账号与支付资格。`
     : p.region === "intl" ? "国际档需自行核对所在地、账号和支付资格；地区筛选不保证每个国家可购买。" : "国内档仍需核对购买账号、活动资格与续费条件。";
   const window = p.windowPeriod === "unknown" || !p.windowPeriod ? "重置窗口尚未确认，不能按固定时间估计恢复。" : `公开窗口：${resolvedField(p, "quota")}；实际恢复以账户页面和官方规则为准。`;
-  return `<details class="qc-usage-guide"><summary>模型、工具与额度用完后的做法</summary>${lineHtml("支持模型", resolvedField(p, "models"))}${lineHtml("支持工具", resolvedField(p, "tools"))}${lineHtml("购买资格", qualification)}${lineHtml("打满后", `${window} 先暂停可延后任务并查看剩余额度；使用其他已确认套餐时先核对共享池与费用。自备 Key、工具订阅或按量加购可能另收费，未知推理费用不计作免费。`)}</details>`;
+  const exhausted = `${window} 先暂停可延后任务并查看剩余额度；使用其他已确认套餐时先核对共享池与费用。自备 Key、工具订阅或按量加购可能另收费，未知推理费用不计作免费。`;
+  return `<details class="qc-usage-guide"><summary>模型、工具与额度用完后的做法</summary>` +
+    lineHtml("支持模型", resolvedField(p, "models")) + lineHtml("支持工具", resolvedField(p, "tools")) +
+    lineHtml("购买资格", qualification) + lineHtml("打满后", exhausted) + `</details>`;
 }
 function mainCard(main, pool) {
   const p = main.p;
@@ -678,7 +684,8 @@ function pickerBenchmarkHtml(p, role) {
   const hits = typeof planCodingBenchmarks === "function" ? planCodingBenchmarks(p, role) : [];
   if (!hits.length) return "";
   const items = hits.map(({ protocol, row }) => `<li><b>${esc(protocol.name)}</b> 第 ${row.rank}/${protocol.total} 名 · ${esc(publicModelDisplayName(row.model))} ${esc(publicScoreText(row.score, protocol.unit))}</li>`).join("");
-  return `<div class="qc-bench"><p class="qc-bench-title">公开编程评测<span>${role ? "本档当前任务系列内的已测型号" : "本档所含模型"}的最佳名次，不参与推荐排序</span></p><ul>${items}</ul><p class="qc-bench-note">只对应成绩行标明的具体型号、推理与 Agent 配置，不套用于同系列其他版本；套餐内未必能用同样配置。<a href="#benchmarks">查看评测</a></p></div>`;
+  return `<div class="qc-bench"><p class="qc-bench-title">公开编程评测<span>${role ? "本档当前任务系列内的已测型号" : "本档所含模型"}的最佳名次，不参与推荐排序</span></p>` +
+    `<ul>${items}</ul><p class="qc-bench-note">只对应成绩行标明的具体型号、推理与 Agent 配置，不套用于同系列其他版本；套餐内未必能用同样配置。<a href="#benchmarks">查看评测</a></p></div>`;
 }
 /* 同厂商、同一主力模型的各档位并排列出，预算不限时也能看到更便宜的档位与额度差。 */
 function tierComparisonHtml(main, role, { reference = false, ignoreRegion = false } = {}) {

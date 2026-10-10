@@ -811,8 +811,11 @@ table.is-empty thead { display: none; }
 .watch-plan.on{color:var(--accent);border-color:var(--accent)}
 .watch-plan:hover{border-color:var(--accent);color:var(--text)}
 .watch-plan:focus-visible,.maintenance-select select:focus-visible,.contribution-preview textarea:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
-.qc-title-label{min-width:0;flex:1;overflow-wrap:anywhere}.qc-title .qc-watch{margin-left:auto;min-height:30px;font-size:11px;padding:3px 7px;font-weight:500;letter-spacing:0}
-.qc-usage-guide{margin:14px 0 0}.qc-usage-guide summary{cursor:pointer;font-size:12px;color:var(--muted);line-height:1.6}.qc-usage-guide .qc-line{margin-top:10px}
+.qc-title-label{min-width:0;flex:1;overflow-wrap:anywhere}
+.qc-title .qc-watch{margin-left:auto;min-height:30px;font-size:11px;padding:3px 7px;font-weight:500;letter-spacing:0}
+.qc-usage-guide{margin:14px 0 0}
+.qc-usage-guide summary{cursor:pointer;font-size:12px;color:var(--muted);line-height:1.6}
+.qc-usage-guide .qc-line{margin-top:10px}
 .change-list,.benchmark-runs,.maintenance-records,.review-list{list-style:none;padding:0;margin:12px 0}
 .change-card,.benchmark-run{border-top:1px solid var(--line);padding:14px 0;overflow-wrap:anywhere}
 .change-fields{padding-left:18px;font-size:12px;line-height:1.8}.change-card p{margin:7px 0}
@@ -820,17 +823,36 @@ table.is-empty thead { display: none; }
 .maintenance-records li{display:flex;flex-direction:column;gap:7px;font-size:12px;line-height:1.6;padding:12px 0;border-top:1px solid var(--line)}
 .maintenance-records span{color:var(--muted)}
 .benchmark-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-.benchmark-values{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.benchmark-values dt{font-size:12px;color:var(--muted)}.benchmark-values dd{font-size:13px;margin:5px 0 0;overflow-wrap:anywhere}
+.benchmark-values{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.benchmark-values dt{font-size:12px;color:var(--muted)}
+.benchmark-values dd{font-size:13px;margin:5px 0 0;overflow-wrap:anywhere}
 .contribution-preview{display:block;margin-top:16px;font-size:12px;color:var(--muted)}
 .contribution-preview textarea{box-sizing:border-box;width:100%;margin-top:8px;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--text);font:12px/1.7 var(--mono);resize:vertical;min-height:180px}
-@media(max-width:700px){.maintenance-grid{grid-template-columns:1fr}.maintenance-panel{padding:16px}.trust-counts{grid-template-columns:repeat(2,minmax(0,1fr))}.benchmark-filters{grid-template-columns:1fr;gap:2px}.watch-plan{min-height:40px}.qc-title .qc-watch{min-height:36px}.maintenance-toolbar .chip{min-height:40px}.benchmark-values{grid-template-columns:1fr}.followed-plan .chip{max-width:100%;white-space:normal;text-align:left}.qc-title{align-items:center}}
+@media (max-width:700px) {
+  .maintenance-grid{grid-template-columns:1fr}
+  .maintenance-panel{padding:16px}
+  .trust-counts{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .benchmark-filters{grid-template-columns:1fr;gap:2px}
+  .watch-plan{min-height:40px}
+  .qc-title .qc-watch{min-height:36px}
+  .maintenance-toolbar .chip{min-height:40px}
+  .benchmark-values{grid-template-columns:1fr}
+  .followed-plan .chip{max-width:100%;white-space:normal;text-align:left}
+  .qc-title{align-items:center}
+}
 
 /* 公开评测按协议独立比较，贡献者任务工具保留在可选折叠区。 */
 .public-benchmark-controls{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.5fr) minmax(0,.8fr) minmax(0,1.1fr) auto;gap:14px;align-items:end;margin-bottom:18px}
 /* WebKit 原生 select 更新长协议名称后，内部内容会越过既定宽度；只约束本区控件，并让焦点轮廓留在边界内。 */
-.public-benchmark-controls .maintenance-select{margin:0}.public-benchmark-controls label[for="publicBenchmarkSelect"]{overflow:hidden}.public-benchmark-controls #publicBenchmarkSelect:focus-visible{outline-offset:-2px}.public-benchmark-controls .search-input{width:100%}.public-benchmark-controls .chip{min-height:38px}
+.public-benchmark-controls .maintenance-select{margin:0}
+.public-benchmark-controls label[for="publicBenchmarkSelect"]{overflow:hidden}
+.public-benchmark-controls #publicBenchmarkSelect:focus-visible{outline-offset:-2px}
+.public-benchmark-controls .search-input{width:100%}
+.public-benchmark-controls .chip{min-height:38px}
 .public-benchmark-meta{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0;font-size:12px;line-height:1.75}
-.public-benchmark-meta div{min-width:0}.public-benchmark-meta dt{color:var(--muted);font-weight:600}.public-benchmark-meta dd{margin:3px 0 0;overflow-wrap:anywhere}
+.public-benchmark-meta div{min-width:0}
+.public-benchmark-meta dt{color:var(--muted);font-weight:600}
+.public-benchmark-meta dd{margin:3px 0 0;overflow-wrap:anywhere}
 .public-benchmark-wrap{margin:14px 0;max-height:640px}.public-benchmark-wrap[hidden]{display:none}
 .public-benchmark-chart{margin:18px 0 24px;padding:16px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .public-chart-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
@@ -850,11 +872,21 @@ table.is-empty thead { display: none; }
 #publicBenchmarkTable td{vertical-align:top;min-width:110px}#publicBenchmarkTable td:nth-child(4){min-width:175px;max-width:250px}
 .public-score-rank{font-family:var(--mono);color:var(--muted)}.public-score-value{font:600 17px var(--mono);color:var(--accent);white-space:nowrap}
 .public-score-config{display:block;color:var(--muted);font:400 11.5px/1.7 var(--sans);margin-top:6px;overflow-wrap:anywhere;white-space:normal}
-.public-score-more{font:400 11.5px/1.7 var(--sans);color:var(--muted);margin-top:7px}.public-score-more summary{cursor:pointer;color:var(--accent)}.public-score-more p{font-size:11.5px;margin:8px 0;line-height:1.7}
+.public-score-more{font:400 11.5px/1.7 var(--sans);color:var(--muted);margin-top:7px}
+.public-score-more summary{cursor:pointer;color:var(--accent)}
+.public-score-more p{font-size:11.5px;margin:8px 0;line-height:1.7}
 #contributorBenchmarkTools>.maintenance-panel{margin:14px 0}
 /* 原生 select 的长协议名称在 WebKit 中会溢出自动最小轨道；各响应式列允许缩到容器宽度。 */
 @media(max-width:1000px){.public-benchmark-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.public-benchmark-controls .chip{justify-self:start}}
-@media(max-width:700px){.public-benchmark-controls{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.public-benchmark-controls label[for="publicBenchmarkSelect"],.public-benchmark-controls label[for="publicModelSearch"]{grid-column:1/-1}.public-benchmark-controls label[for="publicBenchmarkSelect"]{grid-row:2}.public-benchmark-meta{grid-template-columns:1fr;gap:12px}.public-benchmark-panel .maintenance-toolbar{align-items:flex-start}.public-benchmark-panel .maintenance-toolbar strong{width:100%;margin-bottom:4px}.cmp-add{min-height:40px;padding:7px 10px}}
+@media (max-width:700px) {
+  .public-benchmark-controls{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .public-benchmark-controls label[for="publicBenchmarkSelect"],.public-benchmark-controls label[for="publicModelSearch"]{grid-column:1/-1}
+  .public-benchmark-controls label[for="publicBenchmarkSelect"]{grid-row:2}
+  .public-benchmark-meta{grid-template-columns:1fr;gap:12px}
+  .public-benchmark-panel .maintenance-toolbar{align-items:flex-start}
+  .public-benchmark-panel .maintenance-toolbar strong{width:100%;margin-bottom:4px}
+  .cmp-add{min-height:40px;padding:7px 10px}
+}
 @media(max-width:700px){
   #publicBenchmarkTable{table-layout:fixed;width:613px;min-width:613px}
   #publicBenchmarkTable th[scope="row"],#publicBenchmarkTable td,#publicBenchmarkTable td:nth-child(4){min-width:0;max-width:none}

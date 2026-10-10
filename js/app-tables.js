@@ -154,7 +154,9 @@ function renderTable() {
     return `<td data-column="${esc(col.id)}" data-label="${esc(col.label)}"${cls ? ` class="${cls}"` : ""}>${col.cell ? col.cell(p) : esc(col.value(p))}</td>`;
   }).join("")}</tr>`).join("") : freeScope
     ? `<tr><td colspan="${PLAN_TABLE_COLUMNS.length}" class="table-empty"><b>选购预算为「免费」，公开标价表不含免费档</b><p>免费档在<a href="#free">免费 Coding 入口</a>；取消选购条件可查看全部标价记录。</p><button type="button" class="chip" data-apply-picker="table">取消选购条件</button></td></tr>`
-    : `<tr><td colspan="${PLAN_TABLE_COLUMNS.length}" class="table-empty"><b>没有匹配的公开标价记录</b><p>${esc(filters || "当前筛选")}没有结果。可以${tableState.fromPicker ? "调整「帮我选」条件、" : ""}调整关键词或清除筛选。${cmpState.items.length ? "已选的对比方案仍保留。" : ""}</p><button type="button" class="chip" id="tableEmptyResetBtn" data-reset-table>清除筛选</button></td></tr>`;
+    : `<tr><td colspan="${PLAN_TABLE_COLUMNS.length}" class="table-empty"><b>没有匹配的公开标价记录</b>` +
+      `<p>${esc(filters || "当前筛选")}没有结果。可以${tableState.fromPicker ? "调整「帮我选」条件、" : ""}调整关键词或清除筛选。${cmpState.items.length ? "已选的对比方案仍保留。" : ""}</p>` +
+      `<button type="button" class="chip" id="tableEmptyResetBtn" data-reset-table>清除筛选</button></td></tr>`;
   ["exportCsvBtn", "copyMdBtn"].forEach((id) => {
     const btn = byId(id);
     if (!btn) return;
@@ -805,7 +807,9 @@ function renderMetricsTable() {
     return `<tr class="${m.isEst ? "est-row" : ""}${isPayg ? " payg-row" : ""}">${tds}</tr>`;
   }).join("") : metricsState.fromPicker && pickerState.budget === "0"
     ? `<tr><td colspan="${METRICS_COLUMNS.length}" class="table-empty"><b>选购预算为「免费」，额度表只列付费套餐</b><p>免费档的额度见<a href="#free">免费 Coding 入口</a>；取消选购条件可查看全部额度。</p><button type="button" class="chip" data-apply-picker="metrics">取消选购条件</button></td></tr>`
-    : `<tr><td colspan="${METRICS_COLUMNS.length}" class="table-empty"><b>当前模型与版本没有可展示的额度</b><p>可以${metricsState.fromPicker ? "调整「帮我选」条件、" : ""}调整模型、版本或购买范围；查看轻量模型时把模型档改为「含轻量模型」。</p><button type="button" class="chip" id="metricsEmptyResetBtn" data-reset-metrics>清除筛选</button></td></tr>`;
+    : `<tr><td colspan="${METRICS_COLUMNS.length}" class="table-empty"><b>当前模型与版本没有可展示的额度</b>` +
+      `<p>可以${metricsState.fromPicker ? "调整「帮我选」条件、" : ""}调整模型、版本或购买范围；查看轻量模型时把模型档改为「含轻量模型」。</p>` +
+      `<button type="button" class="chip" id="metricsEmptyResetBtn" data-reset-metrics>清除筛选</button></td></tr>`;
 
   qsa("#metricsTable th.sortable").forEach((th) => {
     const col = METRICS_COLUMNS.find((c) => c.sortKey === th.dataset.sort);

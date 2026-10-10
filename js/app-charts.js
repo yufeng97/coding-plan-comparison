@@ -189,7 +189,10 @@ function renderPersonalChart() {
       (quoteOnly.length ? `；无公开价、需按量或询价：${listOf(quoteOnly)}` : "") + "。"
     : "";
   byId("notePersonal").innerHTML =
-    `当前筛选：${rows.length} 个档位（显示 ${shown.length}） ｜ 汇率 1 USD ≈ ${RATE} CNY，1 INR ≈ ${Number(RATE_INR_CNY.toFixed(6))} CNY（${META.rateAsOf}，<a href="${safeHref(META.rateSource)}" target="_blank" rel="noopener">汇率来源</a>） ｜ 红色是中转站，不和官方订阅、工具订阅放在同一类颜色里 ｜ 搜索按空格分词，各词均须匹配；词内忽略大小写与连字符，支持产品别名并展开「同某档」` +
+    `当前筛选：${rows.length} 个档位（显示 ${shown.length}） ｜ ` +
+    `汇率 1 USD ≈ ${RATE} CNY，1 INR ≈ ${Number(RATE_INR_CNY.toFixed(6))} CNY（${META.rateAsOf}，<a href="${safeHref(META.rateSource)}" target="_blank" rel="noopener">汇率来源</a>） ｜ ` +
+    "红色是中转站，不和官方订阅、工具订阅放在同一类颜色里 ｜ " +
+    "搜索按空格分词，各词均须匹配；词内忽略大小写与连字符，支持产品别名并展开「同某档」" +
     (hidden > 0 ? ` ｜ <button type="button" id="showAllPersonal" class="linkish">显示全部 ${rows.length} 档</button>` :
       noFilter && rows.length > PERSONAL_DEFAULT_LIMIT ? ` ｜ <button type="button" id="showAllPersonal" class="linkish">收起为 ${PERSONAL_DEFAULT_LIMIT} 档</button>` : "") +
     (annualMode ? " ｜ 未列公开年付价的档位已排除" : "") + excludedHtml;
@@ -616,7 +619,10 @@ function renderRankDetails() {
     const divider = rankIsEstimate(r.m) && i > 0 && !rankIsEstimate(rows[i - 1].m)
       ? `<tr class="rank-divider"><th scope="rowgroup" colspan="5">${esc(RANK_ESTIMATE_DIVIDER)}</th></tr>` : "";
     return divider + `<tr><th scope="row">${esc(planLabel(r.m))}<br>${esc(displayModelName(r.m.model))}</th>` +
-      `<td class="td-price">${esc(fmtCNY(c.priceCNY))}/月<br><span class="sub">${esc(rankRowPaymentLabel(r.m))}</span></td><td><span class="cost-value" style="color:${cpmColor(c.costPerM)}">¥${c.costPerM.toFixed(3)}</span>${fullUseCostRangeText(c) ? `<br><span class="sub">${esc(fullUseCostRangeText(c))}</span>` : ""}</td><td class="tok-cell">${esc(tokSpan(c,"moLow","moHigh"))}</td><td class="prov-cell"><span class="conf ${prov.conf === "高" ? "conf-hi" : prov.conf === "中" ? "conf-mid" : "conf-lo"}">${esc(prov.conf)}</span>${esc(prov.text)}</td></tr>`;
+      `<td class="td-price">${esc(fmtCNY(c.priceCNY))}/月<br><span class="sub">${esc(rankRowPaymentLabel(r.m))}</span></td>` +
+      `<td><span class="cost-value" style="color:${cpmColor(c.costPerM)}">¥${c.costPerM.toFixed(3)}</span>${fullUseCostRangeText(c) ? `<br><span class="sub">${esc(fullUseCostRangeText(c))}</span>` : ""}</td>` +
+      `<td class="tok-cell">${esc(tokSpan(c,"moLow","moHigh"))}</td>` +
+      `<td class="prov-cell"><span class="conf ${prov.conf === "高" ? "conf-hi" : prov.conf === "中" ? "conf-mid" : "conf-lo"}">${esc(prov.conf)}</span>${esc(prov.text)}</td></tr>`;
   }).join("") : '<tr><td colspan="5" class="table-empty">当前口径没有可比较的套餐，请调整模型档或排行口径。</td></tr>';
 }
 function renderRankChart() {

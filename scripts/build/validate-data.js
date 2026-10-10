@@ -16,6 +16,18 @@ function isISODate(value) {
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
+/* 计划名与备注里的状态标记。页面只读结构化字段；校验器用这些标记确认字段没有漏填或填错。 */
+const PLAN_MARKERS = [
+  { field: 'availability: "retired"', name: /已停售|已下架/, has: (p) => p.availability === "retired" },
+  { field: 'availability: "limited"', name: /抢购|(?:^|[^不无])限量/, has: (p) => p.availability === "limited" },
+  { field: 'billingUnit: "one-time"', name: /一次性|预付/, has: (p) => p.billingUnit === "one-time" },
+  { field: 'billingUnit: "four-weeks"', name: /4\s*周|四周|4\s*weeks?/i, has: (p) => p.billingUnit === "four-weeks" },
+  { field: "renewalOnly: true", name: /老用户/, has: (p) => p.renewalOnly === true },
+];
+const RELAY_MARKER = /仅提供中转|号池|中转站/;
+/* 403 须是独立的状态码，「季付 $403.2」这类金额不算。 */
+const SITE_ACCESS_MARKER = /不稳定|连接失败|无法访问|(?:^|[^\d.$¥₹])403(?![\d.])/;
+
 /** 校验内存中的候选源码；调用者可在所有输出落盘前使用同一套规则。
  * @param {{workspace?:string, source?:string, now?:string|number|Date}} options  now 仅供测试注入「今天」 */
 function validateData(options = {}) {
@@ -117,7 +129,17 @@ function validateData(options = {}) {
       check(p[field] == null || (Array.isArray(p[field]) && p[field].every((value) => typeof value === "string" && !!value.trim())), `PLANS ${field} 必须为字符串数组: ${key}`);
     }
     check(p.purchaseCountries == null || (Array.isArray(p.purchaseCountries) && p.purchaseCountries.length > 0 && p.purchaseCountries.every((c) => /^[A-Z]{2}$/.test(c))), `PLANS purchaseCountries 必须为非空 ISO 国别数组: ${key}`);
-    check(p.availability == null || p.availability === "sold-out", `PLANS availability 只能是 sold-out: ${key}`);
+    check(p.availability == null || ["sold-out", "retired", "limited"].includes(p.availability), `PLANS availability 只能是 sold-out / retired / limited: ${key}`);
+    check(p.billingUnit == null || ["one-time", "four-weeks"].includes(p.billingUnit), `PLANS billingUnit 只能是 one-time / four-weeks（月付省略）: ${key}`);
+    for (const field of ["renewalOnly", "relay"]) check(p[field] == null || p[field] === true, `PLANS ${field} 只能是 true（否则省略）: ${key}`);
+    check(p.freeCodingEntry == null || p.freeCodingEntry === false, `PLANS freeCodingEntry 只能是 false（排除不能当编程工具的免费档）: ${key}`);
+    check(p.siteAccess == null || p.siteAccess === "unstable", `PLANS siteAccess 只能是 unstable: ${key}`);
+    for (const marker of PLAN_MARKERS) {
+      check(marker.name.test(p.plan || "") === marker.has(p), `计划名标记与结构化字段不一致（${marker.field}）: ${key}`);
+    }
+    check(!RELAY_MARKER.test((p.note || "") + (p.plan || "")) || p.relay === true, `备注或计划名写明中转/号池，须标 relay: true: ${key}`);
+    check(PLANS.every((x) => x.vendor !== p.vendor || !!x.relay === !!p.relay), `同一厂商的 relay 标注必须一致: ${key}`);
+    warn(!SITE_ACCESS_MARKER.test([p.tools, p.note, p.plan, p.quota].filter(Boolean).join(" ")) || p.siteAccess === "unstable", `备注写明站点访问异常，请确认是否标 siteAccess: "unstable": ${key}`);
     /* 单月价是不连续续费的购买价，不应低于作为主标价的连续包月价。 */
     check(p.singleMonthPrice == null || (finitePositive(p.singleMonthPrice) && p.priceM > 0 && p.singleMonthPrice >= p.priceM), `PLANS singleMonthPrice 必须为不低于月付标价的有限正数: ${key}`);
     if (p.sameAs != null) {
@@ -470,4 +492,4 @@ if (require.main === module) {
   try { if (!printReport(validateData())) process.exitCode = 1; }
   catch (error) { console.error(error.message); process.exitCode = 1; }
 }
-module.exports = { validateData, isISODate };
+module.exports = { validateData, isISODate, PLAN_MARKERS, SITE_ACCESS_MARKER };

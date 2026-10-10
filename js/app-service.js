@@ -229,17 +229,26 @@ function renderCostCalculator() {
         ? "按相同基准，你的总量" + (result.monthlyM <= c.moLow ? "低于参考区间下限" : result.monthlyM > c.moHigh ? "高于参考区间上限" : "落在参考区间内") + "；这不能保证实际额度够用。"
         : "";
       const context = !specific ? "所选 API 模型未匹配到该套餐的逐模型额度，无法判断是否够用。" : !baseline ? "你修改了折算假设，参考月量不能直接用于判断是否够用。" : "";
-      quota = `<p>当前推荐 ${esc(planTitle(main.p))} · ${esc(displayModelName(metric.m.model))}：参考月量 ${esc(tokSpan(c,"moLow","moHigh"))}（置信${esc(metric.conf)}；表内基准：80% 输入、95% 输入缓存${quotaUsesRequestTokenAssumption(metric.m) ? "、请求折算 20K tokens/次" : ""}）。${condition}${context}跨模型 token 不代表等效产出；仍需核对窗口、共享池与工具费用。</p>`;
+      const basis = "80% 输入、95% 输入缓存" + (quotaUsesRequestTokenAssumption(metric.m) ? "、请求折算 20K tokens/次" : "");
+      quota = `<p>当前推荐 ${esc(planTitle(main.p))} · ${esc(displayModelName(metric.m.model))}：参考月量 ${esc(tokSpan(c,"moLow","moHigh"))}（置信${esc(metric.conf)}；表内基准：${basis}）。` +
+        `${condition}${context}跨模型 token 不代表等效产出；仍需核对窗口、共享池与工具费用。</p>`;
     } else quota = `<p>当前推荐 ${esc(planTitle(main.p))} 未公开可对照的月 tokens，无法据此保证额度够用。</p>`;
     const quote = typeof pickerPaymentQuote === "function" ? pickerPaymentQuote(main.p) : null;
     if (quote && quote.available && Number.isFinite(quote.monthlyCNY)) quota += `<p>订阅价格参照：${esc(quote.label || "当前支付方式")}月均 ${esc(fmtCalcCNY(quote.monthlyCNY))}。API 账单与订阅分别计费，年付还需核对全年一次支付金额。</p>`;
   }
   const scenarios = calculateCostScenarios(calcState,api);
-  const scenarioTable = `<div class="cost-scenario-results"><table class="mini-table"><caption>三种示例计费情景（总工作量上下浮动 20%）</caption><thead><tr><th scope="col">情景与假设</th><th scope="col">基准月费</th><th scope="col">月费范围</th></tr></thead><tbody>` +
-    scenarios.map((scenario) => `<tr data-cost-scenario-result="${esc(scenario.id)}"><th scope="row">${esc(scenario.label)}：输入 ${esc(scenario.input)}% / 输出 ${esc(100 - Number(scenario.input))}%，输入缓存 ${esc(scenario.cache)}%</th><td>${esc(fmtCalcCNY(scenario.costCNY))}</td><td>${esc(fmtCalcCNY(scenario.lowCNY))}–${esc(fmtCalcCNY(scenario.highCNY))}</td></tr>`).join("") + `</tbody></table></div>`;
+  const scenarioRow = (scenario) => `<tr data-cost-scenario-result="${esc(scenario.id)}">` +
+    `<th scope="row">${esc(scenario.label)}：输入 ${esc(scenario.input)}% / 输出 ${esc(100 - Number(scenario.input))}%，输入缓存 ${esc(scenario.cache)}%</th>` +
+    `<td>${esc(fmtCalcCNY(scenario.costCNY))}</td><td>${esc(fmtCalcCNY(scenario.lowCNY))}–${esc(fmtCalcCNY(scenario.highCNY))}</td></tr>`;
+  const scenarioTable = `<div class="cost-scenario-results"><table class="mini-table"><caption>三种示例计费情景（总工作量上下浮动 20%）</caption>` +
+    `<thead><tr><th scope="col">情景与假设</th><th scope="col">基准月费</th><th scope="col">月费范围</th></tr></thead><tbody>` +
+    scenarios.map(scenarioRow).join("") + `</tbody></table></div>`;
+  const perRequest = Number(calcState.requests) > 0 ? `，每次约 ${esc(fmtCalcCNY(result.costCNY / Number(calcState.days) / Number(calcState.requests)))}` : "";
+  const budgetLeft = result.costCNY <= Number(calcState.budget) ? `月预算剩余约 ${esc(fmtCalcCNY(Number(calcState.budget) - result.costCNY))}`
+    : `月预算需补约 ${esc(fmtCalcCNY(result.costCNY - Number(calcState.budget)))}`;
   el.innerHTML = `<p><strong>预计月费 ${esc(currency + fmtCalcNative(result.costNative))} ≈ ${esc(fmtCalcCNY(result.costCNY))}</strong> · ${esc(fmtTok(result.monthlyM))} 总 tokens/月</p>` +
     `<p>${esc(cap)}。${result.costCNY > Number(calcState.budget) ? "当前工作量超出月预算。" : "当前工作量在月预算内。"}</p><p>${esc(cache)}</p>` +
-    `<p>按 ${esc(calcState.days)} 个工作日、每天 ${esc(calcState.requests)} 次请求，每个工作日约 ${esc(fmtCalcCNY(result.costCNY / Number(calcState.days)))}${Number(calcState.requests) > 0 ? `，每次约 ${esc(fmtCalcCNY(result.costCNY / Number(calcState.days) / Number(calcState.requests)))}` : ""}。${result.costCNY <= Number(calcState.budget) ? `月预算剩余约 ${esc(fmtCalcCNY(Number(calcState.budget) - result.costCNY))}` : `月预算需补约 ${esc(fmtCalcCNY(result.costCNY - Number(calcState.budget)))}`}。</p>` +
+    `<p>按 ${esc(calcState.days)} 个工作日、每天 ${esc(calcState.requests)} 次请求，每个工作日约 ${esc(fmtCalcCNY(result.costCNY / Number(calcState.days)))}${perRequest}。${budgetLeft}。</p>` +
     `<p>工具与地区沿用「帮我选」：${esc(SERVICE_TOOL_LABELS[pickerState.tool] || "不限工具")} · ${esc(REGION_LABEL[pickerState.region] || "不限地区")}。这里估算所选模型的 API 推理账单，工具订阅、税费和支付手续费需另行核对；套餐内额度不能直接抵扣 API 账单。</p>` +
     `<p>上方费用按当前输入 ${esc(calcState.input)}% / 输出 ${esc(100 - Number(calcState.input))}%、输入缓存命中 ${esc(calcState.cache)}% 计算。工作量上下浮动 20% 时约 ${esc(fmtCalcCNY(result.costCNY * 0.8))}–${esc(fmtCalcCNY(result.costCNY * 1.2))}/月。</p>` + scenarioTable +
     `<p>轻度、日常、重度及三种情景都是可编辑的示例假设，不代表真实用户用量，也不是费用预测或套餐额度承诺。典型沿用页面的 80% 输入 / 95% 缓存基准；缓存单价未填写时，三个情景均按普通输入价计费。范围只模拟总工作量 ±20%，不包含价格变动、动态限流、工具费和税费。牌价核查 ${esc(check ? check.checkedAt : "未核实")} · <a href="${safeHref(api.url)}" target="_blank" rel="noopener">官网计费规则</a></p>` + quota;

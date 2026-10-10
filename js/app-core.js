@@ -111,33 +111,12 @@ function ensureOptionalData(kind) {
   optionalDataLoads[kind] = pending;
   return pending;
 }
-/* 计划分类、offerable、resolvedField、hasOwnClient 在 js/data.js，页面与校验器共用。 */
-/* 号池 / API 转售。和官方订阅、Cursor 这类工具订阅分开上色，不进「帮我选」。 */
-const RELAY_VENDORS = new Set([
-  "R4 Coder（r4.codes）",
-  "PackyCode/PackyAPI",
-  "PackyCode (Codex 站)",
-  "AICodeMirror",
-  "88code",
-  "DuckCoding",
-  "AIGoCode",
-  "DevPass",
-  "Chutes (chutes.ai)",
-]);
-function isRelay(p) {
-  if (!p) return false;
-  if (RELAY_VENDORS.has(p.vendor)) return true;
-  return /仅提供中转|号池|中转站/.test((p.note || "") + (p.plan || ""));
-}
+/* 计划分类（isRelay、offerable 等）、resolvedField、hasOwnClient 在 js/data.js，页面与校验器共用。 */
 /* isFlagshipModelName 等额度/模型分类的纯计算函数在 js/metrics.js（校验器与测试共用） */
-function planBlob(p) {
-  return [p.tools, p.note, p.plan, p.quota].filter(Boolean).join(" ");
-}
 function planBadges(p) {
   const badges = [];
   const check = priceCheckOf(p);
   if (check && check.status === "unverified") badges.push({ t: "价格待核", k: "risk" });
-  const blob = planBlob(p);
   const tools = resolvedField(p, "tools");
   if (isRelay(p)) badges.push({ t: "中转", k: "risk" });
   /* 按结构化字段标注推理来源：备注里「支持 BYOK」只是可选项，不代表必须自备 Key。 */
@@ -150,8 +129,7 @@ function planBadges(p) {
     const countries = { IN: "印度", CN: "中国", US: "美国" };
     badges.push({ t: "仅限" + p.purchaseCountries.map((c) => countries[c] || c).join("/"), k: "risk" });
   }
-  /* 403 须是独立的状态码，「季付 $403.2」这类金额不算；不用后行断言，兼容旧版 Safari。 */
-  if (/不稳定|连接失败|无法访问|(?:^|[^\d.$¥₹])403(?![\d.])/.test(blob)) badges.push({ t: "访问不稳", k: "risk" });
+  if (p.siteAccess === "unstable") badges.push({ t: "访问不稳", k: "risk" });
   if (/Claude Code/i.test(tools)) badges.push({ t: "Claude Code", k: "agent" });
   if (/Codex/i.test(tools)) badges.push({ t: "Codex", k: "agent" });
   if (p.vendor === "Cursor" || /\bCursor\b/i.test(tools)) badges.push({ t: "Cursor", k: "agent" });
@@ -161,13 +139,10 @@ function planBadges(p) {
 function badgeHtml(p) {
   return planBadges(p).map((b) => `<span class="badge badge-${b.k}">${esc(b.t)}</span>`).join("");
 }
+/* 额度行经 ref 读取主表的结构化状态；未设 ref 的行无从判断购买资格，校验器会单列提示。 */
 function metricOfferOk(m) {
-  if (/已停售|已下架|老用户|一次性|预付/.test(m.plan || "")) return false;
-  if (m.ref != null) {
-    const p = findPlanReference(m.ref);
-    if (p && (isRetiredPlan(p) || !isPriceConfirmed(p) || isOneTimePlan(p) || isRenewalOnly(p) || !offerable(p))) return false;
-  }
-  return true;
+  const p = m.ref != null ? findPlanReference(m.ref) : null;
+  return !p || !(isRetiredPlan(p) || !isPriceConfirmed(p) || isOneTimePlan(p) || isRenewalOnly(p) || !offerable(p));
 }
 function adoptMetric(m, isEst) {
   const resolved = resolvePlan(m);
