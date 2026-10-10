@@ -4,7 +4,6 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { replaceFiles } = require("../lib/atomic-swap");
 const { updateFonts, get: fontGet } = require("../build/vendor-fonts");
 const { stageSite } = require("../build/stage-site");
 const { deployment, deploySite, resolveDeploymentToken } = require("../build/deploy-site");
@@ -86,16 +85,6 @@ async function main() {
     assert.deepEqual(tree(previous.directory), before);
     assert.equal(fs.readdirSync(root).some((name) => /^\.site-(stage|backup)-/.test(name)), false);
   }));
-  await test("文件替换中途失败回滚已替换的文件并清理暂存目录", () => fixture(async (root, write) => {
-    write("libs/a.js", "old a"); write("libs/b.js", "old b");
-    const files = ["libs/a.js", "libs/b.js"].map((rel) => path.join(root, rel));
-    let calls = 0;
-    assert.throws(() => replaceFiles(files.map((file) => [file, Buffer.from("new")]), (from, to) => { if (++calls === 2) throw new Error("模拟替换失败"); fs.renameSync(from, to); }), /模拟替换失败/);
-    assert.deepEqual(files.map((file) => fs.readFileSync(file, "utf8")), ["old a", "old b"]);
-    assert.equal(fs.readdirSync(path.join(root, "libs")).some((name) => name.startsWith(".asset-update-")), false);
-    replaceFiles(files.map((file) => [file, Buffer.from("new")]));
-    assert.deepEqual(files.map((file) => fs.readFileSync(file, "utf8")), ["new", "new"]);
-  }));
   await test("旧脚本合并插件：只取顶层声明（含解构），重复声明报错，source map 逐行指回原文件", async () => {
     const { topLevelNames, concatWithMap, legacyApp } = await import("../build/vite-legacy.mjs");
     const code = ['"use strict";', "const A = 1, { b, c: [d, ...e] } = {};", "let f;", "function g() { const inner = 1; }", "class H {}", "(function () { var hidden = 1; })();"].join("\n");
@@ -128,6 +117,29 @@ async function main() {
       delete bundle.font;
       assert.doesNotThrow(() => guard.generateBundle({}, bundle));
     } finally { fs.unlinkSync(link); }
+  }));
+  await test("ECharts 精简包由 npm 包构建：经典脚本执行后登记全局 echarts，版本与依赖一致", async () => {
+    const { bundleEcharts } = await import("../build/vite-legacy.mjs");
+    const root = path.resolve(__dirname, "..", "..");
+    const code = (await bundleEcharts(root, "src/charts/echarts.js")).toString("utf8");
+    assert.doesNotMatch(code, /^\s*(?:import|export)\s/m, "必须是经典脚本，页面按 <script> 插入");
+    const sandbox = { console, setTimeout, clearTimeout, navigator: { userAgent: "node" } };
+    sandbox.globalThis = sandbox; sandbox.window = sandbox; sandbox.self = sandbox;
+    require("node:vm").runInNewContext(code, sandbox);
+    assert.equal(sandbox.echarts.version, require("echarts/package.json").version);
+    assert.equal(typeof sandbox.echarts.init, "function");
+  });
+  await test("旧脚本类型声明：每个顶层名称挂到对应模块，let 保持可变，--check 能发现过期", () => fixture(async (root, write) => {
+    const { legacyTypes } = await import("../build/legacy-types.mjs");
+    write("js/a.js", "const SHARED = 1;\nlet counter = 0;\nfunction helper() {}");
+    write("js/init.js", "function start() {}");
+    write("js/legacy-scripts.json", JSON.stringify({ lib: ["js/a.js"], init: "js/init.js" }));
+    const types = legacyTypes(root);
+    assert.match(types, /type LegacyType\$SHARED = typeof SHARED;/);
+    assert.match(types, /declare module "virtual:legacy-lib" \{\n  export const SHARED: LegacyType\$SHARED;\n  export let counter: LegacyType\$counter;\n  export const helper: LegacyType\$helper;\n\}/);
+    assert.match(types, /declare module "virtual:legacy-init" \{\n  export const start: LegacyType\$start;\n\}/);
+    const real = path.resolve(__dirname, "..", "..");
+    assert.equal(fs.readFileSync(path.join(real, "src/legacy.d.ts"), "utf8"), legacyTypes(real), "仓库里的 src/legacy.d.ts 须与旧脚本一致（npm run types:legacy）");
   }));
   await test("字体第二个下载失败保留整组旧字体与 CSS", () => fixture(async (root) => {
     const dir = path.join(root, "libs/fonts"), before = snapshot(dir);

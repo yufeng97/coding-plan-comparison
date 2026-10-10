@@ -52,33 +52,4 @@ function swapDirectory({ stage, backup, destination, rename = fs.renameSync, rem
   }
 }
 
-/** 逐个替换文件：全部新内容先写进同目录暂存区，再逐个改名；中途失败把已替换的文件恢复原样。
- * @param {[string, Buffer][]} changes 目标文件与新内容 @param {(from:string,to:string)=>void} [rename] */
-function replaceFiles(changes, rename = fs.renameSync) {
-  const staged = [], applied = [], recovery = new Set();
-  try {
-    for (const [file, bytes] of changes) {
-      const dir = fs.mkdtempSync(path.join(path.dirname(file), ".asset-update-"));
-      const next = path.join(dir, "next"), original = path.join(dir, "original");
-      staged.push({ file, dir, next, original });
-      fs.writeFileSync(next, bytes);
-      if (fs.existsSync(file)) fs.copyFileSync(file, original);
-    }
-    for (const item of staged) { rename(item.next, item.file); applied.push(item); }
-  } catch (error) {
-    const failures = [];
-    for (const item of applied.reverse()) {
-      try { if (fs.existsSync(item.original)) rename(item.original, item.file); else fs.rmSync(item.file, { force: true }); }
-      catch (restoreError) { recovery.add(item.dir); failures.push(restoreError); }
-    }
-    if (failures.length) throw new AggregateError([error, ...failures], "回滚受文件系统限制，原文件备份保留在：" + [...recovery].join("、"));
-    throw error;
-  } finally {
-    for (const item of staged) {
-      if (path.dirname(item.dir) !== path.dirname(item.file) || !path.basename(item.dir).startsWith(".asset-update-")) throw new Error("拒绝清理未知暂存路径");
-      if (!recovery.has(item.dir)) fs.rmSync(item.dir, { recursive: true, force: true });
-    }
-  }
-}
-
-module.exports = { swapDirectory, replaceFiles };
+module.exports = { swapDirectory };

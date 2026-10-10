@@ -3,6 +3,7 @@
  * 模板随「我的关注」里选中的套餐和贡献者工具里选中的任务更新。 */
 import { computed, ref } from "vue";
 import * as legacy from "virtual:legacy-lib";
+import { targetValue } from "./dom.js";
 
 const TYPES = [["correction", "套餐纠错与更新"], ["vendor", "收录新厂商 / 套餐"], ["benchmark", "真实任务测评"]];
 const type = ref("correction");
@@ -32,7 +33,7 @@ function downloadTemplate() {
 </script>
 
 <template>
-  <label class="maintenance-select" for="contributionType">贡献类型<select id="contributionType" :value="type" @change="chooseType($event.target.value)">
+  <label class="maintenance-select" for="contributionType">贡献类型<select id="contributionType" :value="type" @change="chooseType(targetValue($event))">
     <option v-for="[value, label] in TYPES" :key="value" :value="value">{{ label }}</option>
   </select></label>
   <!-- 加载状态与重试按钮由按需数据加载器（loadViewData）写入 -->

@@ -346,9 +346,13 @@ function markFollowedChangesRead() {
   persistFollowState();
   followFeedback("已将当前关注套餐的已确认变更标为已读；之后新收录的变更仍会提示。");
 }
-/** 只保留 https 证据链接。 */
+/**
+ * 只保留 https 证据链接。
+ * @param {unknown[] | null | undefined} urls
+ * @returns {string[]}
+ */
 function maintenanceSourceUrls(urls) {
-  return (urls || []).filter((url) => typeof url === "string" && /^https:\/\//i.test(url.trim())).map((url) => url.trim());
+  return (urls || []).flatMap((url) => typeof url === "string" && /^https:\/\//i.test(url.trim()) ? [url.trim()] : []);
 }
 function maintenanceSources(urls) {
   return maintenanceSourceUrls(urls).map((url, i) => `<a href="${esc(url)}" target="_blank" rel="noopener" tabindex="0">官方证据${i + 1} ↗</a>`).join(" · ");

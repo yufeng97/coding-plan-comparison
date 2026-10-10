@@ -2,6 +2,7 @@
 /* 贡献者工具：本地任务框架的验收记录、任务说明与测评方法。公开模型榜单另见 PublicBenchmarks.vue。 */
 import { computed } from "vue";
 import * as legacy from "virtual:legacy-lib";
+import { targetValue } from "./dom.js";
 
 const filter = legacy.benchmarkFilter;
 const fromData = (read) => computed(() => {
@@ -25,15 +26,15 @@ function choose(key, value) {
 <template>
   <div class="maintenance-panel">
     <div class="benchmark-filters">
-      <label class="maintenance-select" for="benchmarkTask">任务<select id="benchmarkTask" :value="filter.task" @change="choose('task', $event.target.value)">
+      <label class="maintenance-select" for="benchmarkTask">任务<select id="benchmarkTask" :value="filter.task" @change="choose('task', targetValue($event))">
         <option value="all">全部任务</option>
         <option v-for="task in data.tasks" :key="task.id" :value="task.id">{{ task.title }}</option>
       </select></label>
-      <label class="maintenance-select" for="benchmarkTool">工具<select id="benchmarkTool" :value="filter.tool" @change="choose('tool', $event.target.value)">
+      <label class="maintenance-select" for="benchmarkTool">工具<select id="benchmarkTool" :value="filter.tool" @change="choose('tool', targetValue($event))">
         <option value="all">全部工具</option>
         <option v-for="tool in choices.tool" :key="tool" :value="tool">{{ tool }}</option>
       </select></label>
-      <label class="maintenance-select" for="benchmarkModel">模型<select id="benchmarkModel" :value="filter.model" @change="choose('model', $event.target.value)">
+      <label class="maintenance-select" for="benchmarkModel">模型<select id="benchmarkModel" :value="filter.model" @change="choose('model', targetValue($event))">
         <option value="all">全部模型</option>
         <option v-for="model in choices.model" :key="model" :value="model">{{ model }}</option>
       </select></label>

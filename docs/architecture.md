@@ -27,8 +27,7 @@
 | `src/main.js` / `bootstrap.js` / `legacy-globals.js` | 入口按顺序执行：注入响应式状态工厂 → 旧脚本与已迁移的 Vue 区块 → 页面启动 → 迁移期兼容层（把旧脚本的顶层名称以 getter 挂到 window，供浏览器测试与调试读取） |
 | `src/sections/` | 已迁移的 Vue 区块与组件测试：模型公开评测（`PublicBenchmarks.vue`）、我的关注（`FollowUpdates.vue`）、贡献者工具（`ContributorBenchmarks.vue`）、帮助补全与纠错（`Contribution.vue`）及共用的子组件；`*.test.js` 用 Vitest + happy-dom，`src/test/setup.js` 提供真实按需数据 |
 | `js/legacy-scripts.json` | 旧脚本清单：Vite 合并顺序与页面虚拟 DOM 的执行顺序都以它为准 |
-| `vite.config.mjs` / `scripts/build/vite-legacy.mjs` | Vite 配置；旧脚本合并为 `virtual:legacy-lib` / `virtual:legacy-init`，经典脚本按内容哈希另存，构建只读入公共源目录 |
-| `css/style.css` | 样式（亮色默认；支持暗色与跟随系统；`--cat-*` 类别色变量是图表/图例/标签的单一色源） |
+(m) => m + "| `src/legacy.d.ts` / `scripts/build/legacy-types.mjs` | 旧脚本顶层名称在 `virtual:legacy-lib` / `virtual:legacy-init` 下的类型声明（生成后提交）；旧脚本的顶层声明变化后运行 `npm run types:legacy`，`npm run typecheck` 发现过期会失败 |\n"| `css/style.css` | 样式（亮色默认；支持暗色与跟随系统；`--cat-*` 类别色变量是图表/图例/标签的单一色源） |
 | `js/data.js` | 全部数据与共享资格函数（订阅计划使用永久 ID；额度数据经 `ref` 引用 `PLANS` 的名称、币种和价格，改价只改一处） |
 | `js/metrics.js` | 额度换算纯计算（`computeMetrics`、`blendPrice`、旗舰判定等；无 DOM，测试与校验器共用）。排行「旗舰」复用 `data.js` 的 `MODEL_ROLES` 正则，只另登记 Sonnet、Kimi K2.x、GPT-5.x 为非轻量主力 |
 | `js/app-loader.js` | 主数据与功能脚本加载失败提示、重新加载入口 |
@@ -40,10 +39,10 @@
 | `js/app-init.js` | 启动、图表懒加载（IntersectionObserver）、`?debug=1` 自检 |
 | `js/app-state.js` | 各区块默认状态与 URL 编解码，状态更新后统一同步网址 |
 | `js/app-events.js` | 页面控件事件绑定，初始化时显式注册 |
-| `libs/echarts.min.js` | ECharts 6.1.0 按需精简构建（仅柱状图 + Grid/Tooltip/Legend/Title/AxisPointer，约 519KiB） |
+| `src/charts/echarts.js` | ECharts 按需精简包入口（仅柱状图 + Grid/Tooltip/Legend/Title/AxisPointer）；构建时由 npm 包生成 `libs/echarts-<hash>.js`，版本跟随 package.json |
 | `libs/fonts/` | Manrope、IBM Plex Mono 本地子集；39 个字体声明共用 21 份内容去重资产 |
 | `scripts/lib/paths.js` / `atomic-swap.js` | 共享的「路径是否在根内 / 封锁段」判断、目录级原子交换（暂存→备份→切换→回滚）与逐文件替换回滚 |
-| `scripts/build/` | 构建与校验工具：vite-legacy、vendor-fonts、rebuild-echarts、stage-site、prerender、deploy-site、check-syntax、validate-data、sync-pricing-audit |
+| `scripts/build/` | 构建与校验工具：vite-legacy（含 ECharts 精简包生成）、vendor-fonts、stage-site、prerender、deploy-site、check-syntax、validate-data、sync-pricing-audit |
 | `scripts/lib/page-vm.js` | 页面虚拟 DOM：按 index.html 中的经典脚本与 `js/legacy-scripts.json` 的顺序运行旧脚本源文件，回归测试与构建期预渲染共用（不运行 Vue 组件） |
 | `img/` | 分享卡片图（og:image），由 build:site 随站发布 |
 | `feeds/` | `npm run maintenance:build` 生成的分厂商变更 RSS |
@@ -80,13 +79,8 @@
 - **单一数据源**：类别色走 CSS 变量 `--cat-*`（JS 的 `refreshCategoryColors()` 在主题切换时重读）；数据表正文、CSV 与 Markdown 共享 `PLAN_COLUMNS`，各渠道按配置选列；额度表的列定义只在 `METRICS_COLUMNS` 一处。已有继承权益均通过 `fieldRefs` 的永久 ID 明确目标，新增继承也填写目标 ID，追加权益保留且循环引用安全中止。解析器保留旧文本名称及「同上」相邻位置的兼容能力，不用它们建立新数据引用。
 - **推荐元数据**：`windowPeriod` 与 `quotaSharing` 分别描述重置周期与模型额度是否共享，缺省表示未知；`codingSurface`、`includedModelQuota`、`modelAccess` 与 `purchaseCountries` 分别描述编程入口、是否包含推理、自备模型和国家限定资格。`modelBaseRef` 通过计划引用继承模型，`modelIncludes`/`modelExcludes` 显式补充和排除模型，`ownClient` 明确自家编程入口；校验器检查字段类型、引用及混合继承环。填有依据的事实，未知情况不靠条数或文案猜测。月 credits 及无 5h 上限的套餐不生成虚假的 5h 额度，官方与估算的重复周额度按稳定引用去重。
 - **资源版本与发布范围**：Vite 按内容哈希命名入口、样式与字体；仍按经典脚本加载的主题引导、加载提示、按需数据和 ECharts 由 `classic-scripts` 插件同样按内容哈希另存，不再需要 `?v=` 版本号。构建只读入 `index.html`、`src/`、`js/`、`css/`、`libs/`、`img/` 与 `node_modules/` 内的文件，词法路径和真实路径（展开 junction、符号链接后）都要满足，私有或隐藏目录不会经链接进入产物。`.gitattributes` 固定文本检出为 LF。
-- **开发环境与校验**：Node.js 22.12+（Vite 8 的要求），首次运行 `npm ci`。开发依赖固定版本并提交 lockfile。`npm run typecheck` 分别使用浏览器 `jsconfig.json` 与工具/测试 `jsconfig.node.json`；新增页面脚本自动纳入，不需手改命令。`npm run validate` 检查数据结构、引用、有限数字、日期和价格区间；同一套规则可校验内存候选源码。`npm run test` 执行 25 个 Node 套件和 Vue 组件测试（Vitest），包含额度公式、真实数据、VM 用户流程、HTTP 服务、审计无效输入/幂等/失败回滚、资讯采集解析/新厂商/缓存/失败处理、字体去重/失败回滚、缓存与公共产物回归。`npm run test:browser` 先生成发布产物，再对 Chromium、Firefox、WebKit 运行同一批真实浏览器用例，覆盖图表、历史导航、服务功能及桌面/手机布局。CI 在 Linux 与 Windows 安装三种浏览器并执行各项检查，浏览器缓存键包含 lockfile 哈希；失败保留截图；CI 首次重试才录制 trace，避免正常回归的全页快照开销（[Playwright 官方建议](https://playwright.dev/docs/trace-viewer#tracing-on-ci)）。本地需要追踪时显式加 --trace on。
-- **重建精简版 ECharts**（一般不需要）：
-
-  ```bash
-  npm ci
-  npm run vendor:echarts
-  ```
+- **开发环境与校验**：Node.js 22.12+（Vite 8 的要求），首次运行 `npm ci`。开发依赖固定版本并提交 lockfile。`npm run typecheck` 先确认 `src/legacy.d.ts` 与旧脚本一致，再分别检查浏览器旧脚本（`jsconfig.json`）、工具与测试（`jsconfig.node.json`）、Vue 组件及其模板（`vue-tsc -p jsconfig.vue.json`，不含 Node 类型）和组件测试（`jsconfig.vitest.json`）；新增页面脚本自动纳入，不需手改命令。`npm run validate` 检查数据结构、引用、有限数字、日期和价格区间；同一套规则可校验内存候选源码。`npm run test` 执行 25 个 Node 套件和 Vue 组件测试（Vitest），包含额度公式、真实数据、VM 用户流程、HTTP 服务、审计无效输入/幂等/失败回滚、资讯采集解析/新厂商/缓存/失败处理、字体去重/失败回滚、缓存与公共产物回归。`npm run test:browser` 先生成发布产物，再对 Chromium、Firefox、WebKit 运行同一批真实浏览器用例，覆盖图表、历史导航、服务功能及桌面/手机布局。CI 在 Linux 与 Windows 安装三种浏览器并执行各项检查，浏览器缓存键包含 lockfile 哈希；失败保留截图；CI 首次重试才录制 trace，避免正常回归的全页快照开销（[Playwright 官方建议](https://playwright.dev/docs/trace-viewer#tracing-on-ci)）。本地需要追踪时显式加 --trace on。
+- **ECharts 精简包**：入口 `src/charts/echarts.js` 只注册页面用到的图表与组件，构建时用 esbuild 打成经典脚本；新增图表类型或组件时在入口里注册。仍按经典脚本加载是为了失败可重试：Chromium 会缓存失败的动态 `import()`，同一地址重试不会再请求。
 - **第三方产物出处**：`libs/README.md` 记录版本与来源。`npm run vendor:fonts` 将所有字体下载到暂存目录，检查 WOFF2 后按 SHA-256 内容去重并整组替换；失败保留或恢复旧目录。相同字节只存一份，CSS 保留各字重和 unicode-range 映射；成功替换时清理旧子集；构建时 Vite 按内容哈希重新命名。当前字体离线去重由 39 个文件降为 21 个，452,796 → 227,880 字节，减少约 49.7%。
 - **目录交换失败**：对临时占用错误 `EPERM/EBUSY/EACCES`，每次目录改名最多尝试 5 次，等待合计不超过 375ms；其他错误直接失败。切换与恢复都失败时保留旧目录备份并报告路径，不在调用方清理中删除恢复依据。
 - **调试**：给 URL 加 `?debug=1` 会在控制台跑「帮我选」的 headline 断言（`auditProfiles`），正常访问不执行。

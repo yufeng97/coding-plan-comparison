@@ -2,13 +2,11 @@
 
 本目录只放「别人的东西」，自研代码不要放这里。内容自证如下：
 
-## echarts.min.js（约 519KiB）
+## ECharts（构建时生成，不在本目录）
 
-- **版本**：ECharts 6.1.0，**按需精简构建**（不是官方完整版）——只含 BarChart + Grid / Tooltip / Legend / Title / AxisPointer 组件与 CanvasRenderer；升级包含上游安全修复。
-- **重建**：在项目根目录运行 `npm ci`、`npm run vendor:echarts`。ECharts 6.1.0 与 esbuild 0.28.2 精确锁定，入口在 `scripts/build/echarts-entry.mjs`，产物带上游许可证注释。
-- **要完整版时**：从 `echarts@6.1.0` 包的 `dist/echarts.min.js` 取回（页面用不到全量组件）。
-- 修改页面图表时若用到新组件/图表类型，先在入口 `scripts/build/echarts-entry.mjs` 里补注册再重建。
-- **页面加载**：地址保留在 `index.html` 的 `chartLibraryTemplate` 中，首屏不执行。接近图表或导航到相关章节时由 `app-core.js` 加载一次；失败可局部重试，文字明细先行显示。构建时按内容哈希另存（`echarts.min-<hash>.js`）并改写 template 中的地址。
+- 发布产物里的 `libs/echarts-<hash>.js` 由构建从 npm 包 `echarts`（版本见 package.json）生成，**按需精简**：只含 BarChart + Grid / Tooltip / Legend / Title / AxisPointer 组件与 CanvasRenderer，产物带上游许可证注释。仓库不再保存打包后的文件，依赖更新随下次构建生效。
+- 入口在 `src/charts/echarts.js`；页面用到新的图表类型或组件时，先在入口里注册。
+- **页面加载**：地址保留在 `index.html` 的 `chartLibraryTemplate` 中，首屏不执行。接近图表或导航到相关章节时由 `app-core.js` 插入脚本加载一次；失败可局部重试，文字明细先行显示。
 
 ## fonts/（Manrope + IBM Plex Mono 子集）
 

@@ -6,6 +6,8 @@ import * as legacy from "virtual:legacy-lib";
 import PublicBenchmarks from "./PublicBenchmarks.vue";
 
 const SEARCH_SETTLE_MS = 200;
+/** 页面里经典脚本声明的全局（按需数据、ECharts）；测试直接放到全局对象上 */
+const pageGlobals = /** @type {any} */ (globalThis);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function fixtureData() {
@@ -21,7 +23,7 @@ function fixtureData() {
 }
 /* 按需数据是经典脚本定义的全局常量；这里直接放到全局，再像页面加载器一样通知组件。 */
 function loadData(data) {
-  globalThis.BENCHMARKS = { schemaVersion: 1, generatedAt: "", tasks: [], runs: [], methodology: "", public: data };
+  pageGlobals.BENCHMARKS = { schemaVersion: 1, generatedAt: "", tasks: [], runs: [], methodology: "", public: data };
   legacy.renderPublicBenchmarks();
 }
 
@@ -30,7 +32,7 @@ const downloads = [];
 let wrapper = null;
 
 beforeEach(() => {
-  globalThis.echarts = { init(el) {
+  pageGlobals.echarts = { init(el) {
     const chart = { option: null, setOption(option) { this.option = option; }, getOption() { return this.option; },
       resize() {}, getWidth: () => 0, getHeight: () => 0, dispatchAction() {}, on() {}, off() {} };
     charts.set(el.id, chart);
@@ -185,7 +187,7 @@ test("排名图保留协议原名次；成本图跳过缺值、保留零成本�
 });
 
 test("图例随搜索更新、按模型族取色，成本图隐藏图例", async () => {
-  vi.spyOn(window, "getComputedStyle").mockImplementation(() => ({ getPropertyValue: (key) => key }));
+  vi.spyOn(window, "getComputedStyle").mockImplementation(() => /** @type {any} */ ({ getPropertyValue: (key) => key }));
   const data = fixtureData();
   data.scores.push({ ...data.scores[0], id: "fixture-glm", model: "GLM-5.3", score: 70, costUSD: 0.2 },
     { ...data.scores[0], id: "fixture-claude", model: "Claude-Opus-5.5", score: 75 });
@@ -201,7 +203,7 @@ test("图例随搜索更新、按模型族取色，成本图隐藏图例", async
 });
 
 test("数据未到达时只提示待加载，不下「没有记录」类结论", async () => {
-  delete globalThis.BENCHMARKS;
+  delete pageGlobals.BENCHMARKS;
   legacy.renderPublicBenchmarks();
   await render();
   expect(wrapper.get("#publicBenchmarkMeta").text()).toContain("将在数据加载后显示");

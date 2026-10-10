@@ -17,17 +17,19 @@ export const MAINTENANCE_DATA = readClassicData("js/maintenance-data.js", "MAINT
 export const BENCHMARK_DATA = readClassicData("js/benchmark-data.js", "BENCHMARKS");
 
 /* 与页面加载器一致：数据是全局常量，到达后调用 refreshOptionalViews 通知组件。 */
+/** 按需数据在页面里是经典脚本声明的全局常量；测试里直接放到全局对象上 */
+const pageGlobals = /** @type {any} */ (globalThis);
 export function loadMaintenance(data = MAINTENANCE_DATA) {
-  globalThis.MAINTENANCE = structuredClone(data);
+  pageGlobals.MAINTENANCE = structuredClone(data);
   legacy.refreshOptionalViews("maintenance");
 }
 export function loadBenchmarks(data = BENCHMARK_DATA) {
-  globalThis.BENCHMARKS = structuredClone(data);
+  pageGlobals.BENCHMARKS = structuredClone(data);
   legacy.refreshOptionalViews("benchmark");
 }
 export function unloadOptionalData() {
-  delete globalThis.MAINTENANCE;
-  delete globalThis.BENCHMARKS;
+  delete pageGlobals.MAINTENANCE;
+  delete pageGlobals.BENCHMARKS;
   legacy.dataRevision.maintenance++;
   legacy.dataRevision.benchmark++;
 }

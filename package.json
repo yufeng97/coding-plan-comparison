@@ -9,7 +9,8 @@
     "validate": "node scripts/build/validate-data.js",
     "test": "node scripts/tests/run.js",
     "check": "node scripts/build/check-syntax.js",
-    "typecheck": "tsc -p jsconfig.json && tsc -p jsconfig.node.json",
+    "typecheck": "node scripts/build/legacy-types.mjs --check && tsc -p jsconfig.json && tsc -p jsconfig.node.json && vue-tsc -p jsconfig.vue.json && vue-tsc -p jsconfig.vitest.json",
+    "types:legacy": "node scripts/build/legacy-types.mjs",
     "test:tools": "node scripts/tests/test-tools.js",
     "news:collect": "node scripts/news/collect-news.js",
     "news:review": "node scripts/news/review-news.js",
@@ -26,7 +27,6 @@
     "test:news": "node scripts/tests/test-news.js && node scripts/tests/test-news-blog.js && node scripts/tests/test-news-blog-collection.js",
     "test:browser": "playwright test",
     "vendor:fonts": "node scripts/build/vendor-fonts.js",
-    "vendor:echarts": "node scripts/build/rebuild-echarts.js",
     "build:site": "node scripts/build/stage-site.js",
     "deploy": "node scripts/build/deploy-site.js",
     "test:unit": "vitest run"
@@ -41,7 +41,8 @@
     "happy-dom": "20.14.5",
     "typescript": "5.9.3",
     "vite": "8.3.4",
-    "vitest": "5.0.3"
+    "vitest": "5.0.3",
+    "vue-tsc": "3.3.11"
   },
   "engines": {
     "node": ">=22.12"

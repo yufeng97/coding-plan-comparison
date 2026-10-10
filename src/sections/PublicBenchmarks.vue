@@ -4,6 +4,7 @@
  * 「帮我选」等旧代码也在用；本组件只负责渲染与交互。 */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import * as legacy from "virtual:legacy-lib";
+import { targetValue } from "./dom.js";
 import PlanLinks from "./PlanLinks.vue";
 import SourceLink from "./SourceLink.vue";
 
@@ -172,19 +173,19 @@ function downloadJson() {
 
 <template>
   <div class="public-benchmark-controls">
-    <label class="maintenance-select" for="publicBenchmarkFamily">评测用途<select id="publicBenchmarkFamily" :value="state.family" @change="chooseFamily($event.target.value)">
+    <label class="maintenance-select" for="publicBenchmarkFamily">评测用途<select id="publicBenchmarkFamily" :value="state.family" @change="chooseFamily(targetValue($event))">
       <option v-for="family in families" :key="family" :value="family">{{ legacy.publicBenchmarkFamilyLabel(family) }}</option>
     </select></label>
-    <label class="maintenance-select" for="publicBenchmarkSelect">版本与评测协议<select id="publicBenchmarkSelect" :value="selected?.id" @change="chooseProtocol($event.target.value)">
+    <label class="maintenance-select" for="publicBenchmarkSelect">版本与评测协议<select id="publicBenchmarkSelect" :value="selected?.id" @change="chooseProtocol(targetValue($event))">
       <optgroup :label="legacy.publicBenchmarkFamilyLabel(state.family || '评测协议')">
         <option v-for="[protocol, label] in familyProtocols" :key="protocol.id" :value="protocol.id">{{ label }}</option>
       </optgroup>
     </select></label>
-    <label class="maintenance-select" for="publicBenchmarkMode">配置展示<select id="publicBenchmarkMode" :value="state.mode" @change="state.mode = $event.target.value === 'all' ? 'all' : 'best'">
+    <label class="maintenance-select" for="publicBenchmarkMode">配置展示<select id="publicBenchmarkMode" :value="state.mode" @change="state.mode = targetValue($event) === 'all' ? 'all' : 'best'">
       <option value="best">每模型最佳配置</option>
       <option value="all">全部配置</option>
     </select></label>
-    <label class="maintenance-select" for="publicModelSearch">模型或配置关键词<input id="publicModelSearch" ref="searchInput" type="search" class="search-input" maxlength="200" placeholder="例如模型名、推理档位或 Agent" :value="searchText" @input="onSearchInput($event.target.value)"></label>
+    <label class="maintenance-select" for="publicModelSearch">模型或配置关键词<input id="publicModelSearch" ref="searchInput" type="search" class="search-input" maxlength="200" placeholder="例如模型名、推理档位或 Agent" :value="searchText" @input="onSearchInput(targetValue($event))"></label>
     <button id="publicModelClearBtn" type="button" class="chip" :disabled="!state.search" @click="clearSearch">清除搜索</button>
   </div>
 
@@ -212,10 +213,10 @@ function downloadJson() {
     <div class="public-chart-toolbar">
       <div class="chip-group" role="group" aria-label="评测图表指标">
         <button v-for="metric in CHART_METRICS" :key="metric.id" type="button" class="chip" :class="{ active: chartState.metric === metric.id }"
-          :data-public-chart="metric.id" :aria-pressed="String(chartState.metric === metric.id)" :disabled="metric.id === 'cost' && !hasCost"
+          :data-public-chart="metric.id" :aria-pressed="chartState.metric === metric.id" :disabled="metric.id === 'cost' && !hasCost"
           @click="chartState.metric = metric.id">{{ metric.label }}</button>
       </div>
-      <label class="public-chart-limit" for="publicBenchmarkChartLimit">图表条数<select id="publicBenchmarkChartLimit" class="select" :value="chartState.limit" @change="chooseChartLimit($event.target.value)">
+      <label class="public-chart-limit" for="publicBenchmarkChartLimit">图表条数<select id="publicBenchmarkChartLimit" class="select" :value="chartState.limit" @change="chooseChartLimit(targetValue($event))">
         <option value="10">前 10 条</option>
         <option value="20">前 20 条</option>
         <option value="all">全部匹配</option>

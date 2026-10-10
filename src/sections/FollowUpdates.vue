@@ -7,6 +7,7 @@ import ChangeCard from "./ChangeCard.vue";
 import PlanHistory from "./PlanHistory.vue";
 import SourceLinks from "./SourceLinks.vue";
 import WatchButton from "./WatchButton.vue";
+import { targetValue } from "./dom.js";
 
 const follow = legacy.followState;
 const view = legacy.followView;
@@ -94,7 +95,7 @@ watch(() => follow.planIds.length, async () => {
     </div>
     <div class="maintenance-panel">
       <h3>查看套餐历史</h3>
-      <label class="maintenance-select" for="maintenancePlan">选择套餐<select id="maintenancePlan" ref="planSelect" :value="maintenance.planId" @change="maintenance.planId = $event.target.value">
+      <label class="maintenance-select" for="maintenancePlan">选择套餐<select id="maintenancePlan" ref="planSelect" :value="maintenance.planId" @change="maintenance.planId = targetValue($event)">
         <option value="">选择套餐</option>
         <option v-for="plan in legacy.PLANS" :key="plan.id" :value="plan.id">{{ legacy.planTitle(plan) }}</option>
       </select></label>
@@ -143,7 +144,7 @@ watch(() => follow.planIds.length, async () => {
     <p id="publicDataFeedback" class="table-feedback" role="status" aria-live="polite">{{ maintenance.publicDataFeedback }}</p>
   </details>
   <details class="method-box"><summary>逐条维护状态与来源</summary>
-    <label class="maintenance-select" for="maintenanceRecordFilter">记录范围<select id="maintenanceRecordFilter" :value="maintenance.recordFilter" @change="maintenance.recordFilter = $event.target.value">
+    <label class="maintenance-select" for="maintenanceRecordFilter">记录范围<select id="maintenanceRecordFilter" :value="maintenance.recordFilter" @change="maintenance.recordFilter = targetValue($event)">
       <option v-for="[value, label] in RECORD_FILTERS" :key="value" :value="value">{{ label }}</option>
     </select></label>
     <div id="maintenanceRecords">

@@ -3,7 +3,7 @@
 import * as legacy from "virtual:legacy-lib";
 
 defineProps({
-  plans: { type: Array, required: true },
+  plans: { type: /** @type {import("vue").PropType<Plan[]>} */ (Array), required: true },
   /* 留空时免费入口跳到免费区、其余跳到数据表 */
   section: { type: String, default: undefined },
 });

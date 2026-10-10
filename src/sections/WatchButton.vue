@@ -8,6 +8,6 @@ const on = computed(() => legacy.followState.planIds.includes(props.plan.id));
 </script>
 
 <template>
-  <button type="button" class="watch-plan" :class="{ on }" :data-watch-plan="plan.id" :aria-pressed="String(on)"
+  <button type="button" class="watch-plan" :class="{ on }" :data-watch-plan="plan.id" :aria-pressed="on"
     :aria-label="`${on ? '取消关注' : '关注'} ${legacy.planTitle(plan)}`">{{ on ? "已关注" : "关注" }}</button>
 </template>

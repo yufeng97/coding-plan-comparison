@@ -580,7 +580,8 @@
   <p class="footer-mirror">访问地址：<a href="https://coding-plan-comparison-tau.vercel.app/" rel="noopener">主站（Vercel）</a> · <a href="https://yufeng97.github.io/coding-plan-comparison/" rel="noopener">备用（GitHub Pages）</a>，两处内容相同，一处打不开或较慢时可换另一处；分享链接的筛选条件在两处都有效。</p>
 </footer>
 
-<template id="chartLibraryTemplate"><script vite-ignore src="libs/echarts.min.js"></script></template>
+<!-- ECharts 精简包由构建从 npm 生成（src/charts/echarts.js），首屏不执行，接近图表时才加载 -->
+<template id="chartLibraryTemplate"><script vite-ignore src="libs/echarts.js"></script></template>
 <script vite-ignore id="maintenanceDataSource" type="application/json" src="js/maintenance-data.js"></script>
 <script vite-ignore id="benchmarkDataSource" type="application/json" src="js/benchmark-data.js"></script>
 <!-- 旧脚本经 Vite 合并为模块（顺序见 js/legacy-scripts.json），已迁移的区块是 src/ 下的 Vue 组件。 -->

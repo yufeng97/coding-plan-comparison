@@ -4,7 +4,7 @@ const { test, expect } = require("@playwright/test");
 test("手机首屏展示主推荐，首屏和帮我选无需下载图表库", async ({ page }) => {
   await page.setViewportSize({ width:375, height:812 });
   const charts = [];
-  page.on("request", (request) => { if (/echarts\.min[-\w]*\.js/.test(request.url())) charts.push(request.url()); });
+  page.on("request", (request) => { if (/\/libs\/echarts[-\w]*\.js/.test(request.url())) charts.push(request.url()); });
   await page.goto("/", { waitUntil:"networkidle" });
   await expect(page.locator("#quickGrid > .quick-card").first()).toBeVisible();
   const top = await page.locator("#quickGrid").evaluate((e) => e.getBoundingClientRect().top);
@@ -36,7 +36,7 @@ test("页面脚本（含主数据）加载失败可见提示，重试可恢复�
 
 test("图表加载失败保留文字数据，重试只重新加载图表", async ({ page }) => {
   let fail = true;
-  await page.route("**/echarts.min*.js", async (route) => { if (fail) await route.abort(); else await route.continue(); });
+  await page.route("**/libs/echarts*.js", async (route) => { if (fail) await route.abort(); else await route.continue(); });
   await page.goto("/#s4");
   await expect(page.locator("#chartApi [data-retry-chart]")).toBeVisible();
   await expect(page.locator("#apiDetailBody tr")).toHaveCount(await page.evaluate("API_PRICES.length"));
@@ -86,7 +86,7 @@ test("图表仍在下载时回到顶部，加载完成不重新跳回分享章�
   let release = () => {};
   const gate = new Promise((resolve) => { release = () => resolve(null); });
   let requested = false;
-  await page.route("**/echarts.min*.js", async (route) => { requested = true; await gate; await route.continue(); });
+  await page.route("**/libs/echarts*.js", async (route) => { requested = true; await gate; await route.continue(); });
   try {
     await page.goto("/#s4", { waitUntil:"domcontentloaded" });
     await expect.poll(() => requested).toBe(true);
@@ -103,7 +103,7 @@ for (const failed of [false,true]) test(`显式导航下载期间主动转到其
   let release = () => {};
   const gate = new Promise((resolve) => { release = () => resolve(null); });
   let requested = false;
-  await page.route("**/echarts.min*.js", async (route) => { requested = true; await gate; if (failed) await route.abort(); else await route.continue(); });
+  await page.route("**/libs/echarts*.js", async (route) => { requested = true; await gate; if (failed) await route.abort(); else await route.continue(); });
   try {
     await page.goto("/", { waitUntil:"domcontentloaded" });
     await page.locator("#sectionMenu").evaluate((menu) => { /** @type {HTMLDetailsElement} */ (menu).open = true; });
@@ -126,7 +126,7 @@ for (const action of ["滚轮","PageUp"]) test(`显式导航下载期间通过${
   let release = () => {};
   const gate = new Promise((resolve) => { release = () => resolve(null); });
   let requested = false;
-  await page.route("**/echarts.min*.js", async (route) => { requested = true; await gate; await route.continue(); });
+  await page.route("**/libs/echarts*.js", async (route) => { requested = true; await gate; await route.continue(); });
   try {
     await page.goto("/", { waitUntil:"domcontentloaded" });
     await page.locator("#sectionMenu").evaluate((menu) => { /** @type {HTMLDetailsElement} */ (menu).open = true; });

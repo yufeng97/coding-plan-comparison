@@ -5,6 +5,7 @@ import ContributorBenchmarks from "./ContributorBenchmarks.vue";
 import FollowUpdates from "./FollowUpdates.vue";
 import PublicBenchmarks from "./PublicBenchmarks.vue";
 
+/** @type {[string, import("vue").Component][]} */
 const SECTIONS = [
   ["publicBenchmarkApp", PublicBenchmarks],
   ["contributorBenchmarksApp", ContributorBenchmarks],

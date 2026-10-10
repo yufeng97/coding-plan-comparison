@@ -3,7 +3,7 @@
  *   virtual:legacy-lib  除启动脚本外的全部旧脚本。它们共用一个模块作用域，与原来共用全局作用域等价，并导出全部顶层名称；
  *   virtual:legacy-init app-init.js（页面启动），从 lib 导入其余名称。
  *   新代码（src/）按名从 virtual:legacy-lib 导入；只导入 lib 不会启动页面，组件测试据此单独载入旧逻辑。
- * classicScripts：HTML 中保留的经典脚本（主题引导、加载失败提示、按需数据、ECharts）按内容哈希另存并改写引用。 */
+ * classicScripts：HTML 中保留的经典脚本（主题引导、加载失败提示、按需数据、ECharts）按内容哈希另存并改写引用；ECharts 由 npm 包在构建时生成。 */
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
@@ -17,24 +17,29 @@ export function readLegacyManifest(root) {
   return JSON.parse(fs.readFileSync(path.join(root, "js", "legacy-scripts.json"), "utf8"));
 }
 
-/** 经典脚本的顶层声明名（含解构）；函数体与 IIFE 内的声明不计入。 */
-export function topLevelNames(code, filename) {
+/** 经典脚本的顶层声明（含解构）及其种类；函数体与 IIFE 内的声明不计入。
+ * @returns {{ name: string, kind: string }[]} kind 为 const、let、var、function 或 class */
+export function topLevelDeclarations(code, filename) {
   const { program, errors } = parseSync(filename, code, { sourceType: "script", lang: "js" });
   if (errors.length) throw new Error(`${filename} 解析失败：${errors[0].message}`);
-  const names = [];
-  const collect = (node) => {
+  const declarations = [];
+  const collect = (node, kind) => {
     if (!node) return;
-    if (node.type === "Identifier") names.push(node.name);
-    else if (node.type === "ObjectPattern") node.properties.forEach((p) => collect(p.type === "RestElement" ? p.argument : p.value));
-    else if (node.type === "ArrayPattern") node.elements.forEach(collect);
-    else if (node.type === "RestElement") collect(node.argument);
-    else if (node.type === "AssignmentPattern") collect(node.left);
+    if (node.type === "Identifier") declarations.push({ name: node.name, kind });
+    else if (node.type === "ObjectPattern") node.properties.forEach((p) => collect(p.type === "RestElement" ? p.argument : p.value, kind));
+    else if (node.type === "ArrayPattern") node.elements.forEach((element) => collect(element, kind));
+    else if (node.type === "RestElement") collect(node.argument, kind);
+    else if (node.type === "AssignmentPattern") collect(node.left, kind);
   };
   for (const node of program.body) {
-    if (node.type === "VariableDeclaration") node.declarations.forEach((d) => collect(d.id));
-    else if ((node.type === "FunctionDeclaration" || node.type === "ClassDeclaration") && node.id) names.push(node.id.name);
+    if (node.type === "VariableDeclaration") node.declarations.forEach((d) => collect(d.id, node.kind));
+    else if (node.type === "FunctionDeclaration" && node.id) declarations.push({ name: node.id.name, kind: "function" });
+    else if (node.type === "ClassDeclaration" && node.id) declarations.push({ name: node.id.name, kind: "class" });
   }
-  return names;
+  return declarations;
+}
+export function topLevelNames(code, filename) {
+  return topLevelDeclarations(code, filename).map((d) => d.name);
 }
 
 const BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -167,20 +172,47 @@ export function publicSourcesOnly({ root }) {
 
 const CLASSIC_SCRIPT_RE = /(<script\b[^>]*?\bsrc=")((?:js|libs)\/[\w./-]+\.js)(")/g;
 
-/** 构建时把 HTML 中仍按经典脚本加载的本地文件（含 template 内的 ECharts）按内容哈希另存，并改写引用；开发服务器直接读源文件。 */
-export function classicScripts({ root }) {
+/** 用 npm 里的 ECharts 构建按需精简包（经典脚本，IIFE）。页面接近图表时才插入 <script> 加载：
+ *  经典脚本下载失败后可以重新插入重试；Chromium 会缓存失败的动态 import，不能重试，所以不走模块按需加载。 */
+export async function bundleEcharts(root, entry) {
+  const { build } = await import("esbuild");
+  const result = await build({ entryPoints: [path.join(root, entry)], bundle: true, minify: true, format: "iife", legalComments: "eof", write: false, logLevel: "silent" });
+  return Buffer.from(result.outputFiles[0].contents);
+}
+
+/** HTML 中仍按经典脚本加载的文件（主题引导、加载提示、按需数据、template 内的 ECharts）：构建时按内容哈希另存并改写引用。
+ *  generated 登记构建时生成、仓库里没有源文件的脚本（路径 → 生成函数）；开发服务器按需生成并缓存，其余直接读源文件。 */
+export function classicScripts({ root, generated = {} }) {
   /** @type {Map<string, string>} 源路径 → 产物路径 */
   const outputs = new Map();
+  let command = "build";
+  const read = async (src) => {
+    if (generated[src]) return generated[src]();
+    assertPublicSource(root, path.join(root, src));
+    return fs.readFileSync(path.join(root, src));
+  };
   return {
     name: "coding-plan:classic-scripts",
-    apply: "build",
-    buildStart() {
+    configResolved(config) { command = config.command; },
+    configureServer(server) {
+      const cache = new Map();
+      server.middlewares.use((req, res, next) => {
+        const src = decodeURIComponent(String(req.url || "").split("?")[0]).replace(/^\/+/, "");
+        if (!generated[src]) { next(); return; }
+        if (!cache.has(src)) cache.set(src, generated[src]());
+        cache.get(src).then((bytes) => {
+          res.setHeader("Content-Type", "text/javascript; charset=utf-8");
+          res.end(bytes);
+        }, next);
+      });
+    },
+    async buildStart() {
+      if (command !== "build") return;
       outputs.clear();
       const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
       for (const [, , src] of html.matchAll(CLASSIC_SCRIPT_RE)) {
         if (outputs.has(src)) continue;
-        assertPublicSource(root, path.join(root, src));
-        const bytes = fs.readFileSync(path.join(root, src));
+        const bytes = await read(src);
         const hash = crypto.createHash("sha256").update(bytes).digest("hex").slice(0, 8);
         const fileName = src.replace(/\.js$/, `-${hash}.js`);
         outputs.set(src, fileName);
@@ -190,6 +222,7 @@ export function classicScripts({ root }) {
     transformIndexHtml: {
       order: "post",
       handler(html) {
+        if (command !== "build") return html;
         return html.replace(CLASSIC_SCRIPT_RE, (_match, before, src, after) => {
           if (!outputs.has(src)) throw new Error(`经典脚本 ${src} 未在构建开始时登记`);
           return before + outputs.get(src) + after;

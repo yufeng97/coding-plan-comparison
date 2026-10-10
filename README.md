@@ -51,7 +51,8 @@
 npm run dev          # Vite 开发服务器（只监听 127.0.0.1，改动即时生效）
 npm run serve        # 生成发布产物后用自带静态服务器预览（只监听 127.0.0.1，只提供 .site-build/ 内的文件）
 npm run check        # 页面脚本语法
-npm run typecheck    # checkJs 类型检查
+npm run typecheck    # 旧脚本 checkJs 与 Vue 组件（vue-tsc）类型检查
+npm run types:legacy # 旧脚本顶层声明变化后，更新组件使用的类型声明
 npm run validate     # 数据结构、引用、来源与日期
 npm test             # 25 个 Node 回归套件 + Vue 组件测试
 npm run test:unit    # 只跑 Vue 组件测试（Vitest）

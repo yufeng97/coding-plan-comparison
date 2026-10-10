@@ -2,7 +2,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
-import { legacyApp, classicScripts, publicSourcesOnly } from "./scripts/build/vite-legacy.mjs";
+import { legacyApp, classicScripts, publicSourcesOnly, bundleEcharts } from "./scripts/build/vite-legacy.mjs";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 
@@ -20,7 +20,13 @@ export default defineConfig({
   base: "./",
   /* img/、feeds/、changes.xml 与 vercel.json 由 build:site 复制，不经 Vite 的 public 目录。 */
   publicDir: false,
-  plugins: [publicSourcesOnly({ root }), vue(), legacyApp({ root }), classicScripts({ root })],
+  plugins: [
+    publicSourcesOnly({ root }),
+    vue(),
+    legacyApp({ root }),
+    /* ECharts 精简包在构建时由 npm 包生成，仓库里不再保存打包后的文件 */
+    classicScripts({ root, generated: { "libs/echarts.js": () => bundleEcharts(root, "src/charts/echarts.js") } }),
+  ],
   server: {
     host: "127.0.0.1",
     /* Windows 上监听句柄会让 build:site 无法整目录替换 .site-build；产物、测试报告与审计资料都不需要热更新。 */

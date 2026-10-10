@@ -474,7 +474,9 @@ function validateData(options = {}) {
     check(bundled.includes(f), `js/legacy-scripts.json 未登记: ${f}`);
     check(fs.existsSync(path.join(root, f)), `文件不存在: ${f}`);
   }
-  for (const f of ["css/style.css", "libs/echarts.min.js", "libs/fonts/fonts.css"]) {
+  /* ECharts 精简包在构建时生成（入口 src/charts/echarts.js，由构建与工具回归检查），这里只确认页面保留加载入口。 */
+  check(html.includes('src="libs/echarts.js"'), "index.html 缺少 ECharts 精简包的加载入口（chartLibraryTemplate）");
+  for (const f of ["css/style.css", "libs/fonts/fonts.css"]) {
     check(html.includes(f), `index.html 未引用: ${f}`);
     check(fs.existsSync(path.join(root, f)), `文件不存在: ${f}`);
   }
