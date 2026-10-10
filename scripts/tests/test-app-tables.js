@@ -569,4 +569,51 @@ test("完整权益窗口只在有选购口径时列出相应行，来源与核�
   healthy(app);
 });
 
+test("价格表可按厂商筛选并写入链接，非法厂商被忽略；手机可一次展开全部并保持焦点", () => {
+  const app = createApp({ url: "http://127.0.0.1:8123/index.html?tvendor=Cursor#table", width: 390 });
+  assert.equal(app.run("tableState.vendor"), "Cursor");
+  assert.equal(app.elements.get("selectVendor").value, "Cursor");
+  assert.ok(app.elements.get("selectVendor").options.length > 20);
+  assert.equal(app.run('computeTableRows().length > 0 && computeTableRows().every((p) => p.vendor === "Cursor")'), true);
+  assert.match(app.location.search, /tvendor=Cursor/);
+  app.elements.get("tableResetBtn").click();
+  assert.equal(app.run("tableState.vendor"), "all");
+  assert.equal(app.elements.get("selectVendor").value, "all");
+  assert.doesNotMatch(app.location.search, /tvendor/);
+  const all = app.elements.get("tableAllBtn");
+  const total = app.run("computeTableRows().length");
+  assert.equal(all.hidden, false);
+  assert.equal(all.textContent, `显示全部 ${total} 条`);
+  const firstHidden = app.run("computeTableRows()[tableVisibleLimit].id");
+  all.click();
+  assert.equal(app.elements.get("tableBody").querySelectorAll("tr").length, total);
+  assert.equal(all.hidden, true);
+  assert.equal(app.elements.get("tableMoreBtn").hidden, true);
+  assert.equal(app.run("document.activeElement.dataset.planId"), firstHidden, "焦点落在新展开的第一条");
+  const metricsAll = app.elements.get("metricsAllBtn");
+  const metricsTotal = app.run("metricsTableRows().shownRows.length");
+  assert.equal(metricsAll.hidden, false);
+  metricsAll.click();
+  assert.equal(app.elements.get("metricsBody").querySelectorAll("tr").length, metricsTotal);
+  assert.equal(metricsAll.hidden, true);
+  const invalid = createApp({ url: "http://127.0.0.1:8123/index.html?tvendor=NoSuchVendor" });
+  assert.equal(invalid.run("tableState.vendor"), "all");
+  healthy(app); healthy(invalid);
+});
+
+test("核价来源显示距今天数，超过复查间隔时标出", () => {
+  const app = createApp();
+  assert.equal(app.run('daysSince("2026-10-04", "2026-10-10")'), 6);
+  assert.equal(app.run('daysSince("2026-10-11", "2026-10-10")'), null, "时区差导致的未来日期不显示");
+  assert.equal(app.run('daysSince("bad", "2026-10-10")'), null);
+  assert.equal(app.run("staleAfterDays()"), app.run("MAINTENANCE_SUMMARY.staleAfterDays"));
+  const html = app.run('priceCheckHtml(PLANS.find((p) => p.id === "plan-0002"))');
+  assert.match(html, /· \d{4}-\d{2}-\d{2}（(?:今天|\d+ 天前)(?:，超过复查间隔)?）/);
+  app.run('PRICE_CHECKS.rows["plan:plan-0002"] = { ...priceCheckOf(PLANS.find((p) => p.id === "plan-0002")), checkedAt: "2020-01-01" };');
+  const stale = app.run('priceCheckHtml(PLANS.find((p) => p.id === "plan-0002"))');
+  assert.match(stale, /<span class="sub check-stale">/);
+  assert.match(stale, /天前，超过复查间隔）/);
+  healthy(app);
+});
+
 if (require.main === module) main();

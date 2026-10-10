@@ -144,9 +144,24 @@ async function copyPickerSummary() {
   const ok = await copyTextToClipboard(pickerSummaryText(url));
   serviceFeedback(ok ? "已复制推荐摘要，可直接粘贴到聊天或文档；价格以官网为准。" : "复制失败，请改用「复制当前方案链接」。");
 }
+/* 触屏设备优先调起系统分享面板；桌面和不支持的浏览器复制链接。 */
+function canNativeShare() {
+  return typeof navigator !== "undefined" && typeof navigator.share === "function" &&
+    typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
+}
 async function shareCurrentResults() {
   const query = appQueryString();
   const url = location.href.split(/[?#]/)[0] + (query ? "?" + query : "") + (location.hash || "");
+  if (canNativeShare()) {
+    try {
+      await navigator.share({ title: document.title, text: "Coding Plan 选购条件：" + pickerScopeText(), url });
+      serviceFeedback("已打开系统分享；链接包含筛选、对比与费用计算条件。");
+      return;
+    } catch (err) {
+      if (err && err.name === "AbortError") { serviceFeedback("已取消分享。"); return; }
+      /* 其他失败（如权限受限）退回复制链接。 */
+    }
+  }
   const ok = await copyTextToClipboard(url);
   serviceFeedback(ok ? "已复制当前方案链接，包含筛选、对比与费用计算条件。" : "复制失败，请从地址栏复制当前链接。");
 }
@@ -525,6 +540,8 @@ function bindUsageImport() {
 function bindServiceEvents() {
   const payment = byId("pickerPayment");
   if (payment) payment.open = pickerState.billing !== "M";
+  const shareBtn = byId("shareResultsBtn");
+  if (shareBtn && canNativeShare()) shareBtn.textContent = "分享当前方案";
   [["shareResultsBtn",shareCurrentResults],["copySummaryBtn",copyPickerSummary],["savePresetBtn",savePreset],["loadPresetBtn",restorePreset],["clearPresetBtn",clearPreset],["checkWorkloadBtn",openWorkloadCalculator]].forEach(([id,fn]) => { const b = byId(id); if (b) b.addEventListener("click", fn); });
   const select = byId("costModel");
   if (select) select.innerHTML = API_PRICES.filter((a) => isPriceConfirmed(a,"api")).map((a) => `<option value="${esc(a.vendor + "|" + a.model)}">${esc(a.vendor + " · " + displayModelName(a.label || a.model))}</option>`).join("");

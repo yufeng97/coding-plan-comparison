@@ -15,6 +15,7 @@
     "news:review": "node scripts/news/review-news.js",
     "pricing:sync": "node scripts/build/sync-pricing-audit.js",
     "maintenance:build": "node scripts/maintenance/build-maintenance.js",
+    "rates:update": "node scripts/build/update-rates.js",
     "benchmark:run": "node scripts/benchmarks/benchmark.js run",
     "benchmark:collect": "node scripts/benchmarks/public-scores.js collect",
     "benchmark:publish": "node scripts/benchmarks/public-scores.js publish",

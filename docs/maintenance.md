@@ -12,6 +12,7 @@
 - 待核实历史价退出推荐、免费入口和价格/性价比图；公开标价表默认收起待核价格与中转站，打开「含中转站与待核价格」后仍可查看和导出。未列年付价的套餐不进入年付价格图。
 - 完整旧值、新值、官网观察、修正与原因见 [JSON 台账](../audit/pricing-verification-2026-10-04.json) 和 [CSV 台账](../audit/pricing-verification-2026-10-04.csv)。`pricing-inventory.json` 保留本轮核查前库存；四份厂商分组 JSON 是同步输入。
 - 完成整批价格复核并修改核查输入后，运行 `node scripts/build/sync-pricing-audit.js`，再运行 `npm run validate`、`npm test` 和 `npm run bump`；日常增量维护见下文。同步器不联网；候选源码在内存中通过完整数据校验后，才暂存并提交 `data.js` 与 JSON/CSV 台账。任一文件写入或替换失败会回滚整组输出，回滚受限时保留原文件备份并报告路径。核查日期只推进整份数据的版本日期，不会覆盖较新的巡检版本；重复同步没有变化时不写入。校验器拒绝遗漏、重复、无来源、无效日期、非法价格和模型继承环。
+- 参考汇率用 `npm run rates:update`（可加 `--date YYYY-MM-DD`、`--dry-run`）从 Frankfurter 取欧洲央行参考汇率，只改 `js/data.js` 的汇率常量、`META.rateAsOf`/`rateSource` 与 `index.html` 的静态汇率；候选数据先通过校验再原子写入，与核价同步共用 `audit/.pricing.lock`，拒绝早于当前日期的汇率和明显异常的值。更新后依次运行 `npm run maintenance:build`、`npm run validate`、`npm test` 与 `npm run bump`；汇率变化会改变所有人民币折算结果，需要随数据巡检一起复核。
 
 ## 最新资讯如何更新
 
@@ -181,5 +182,7 @@ npm run benchmark:build
 ## 变更订阅与关注同步
 
 `npm run maintenance:build` 除 `changes.xml` 外，还为每个在库厂商生成 `feeds/<slug>.xml`：slug 由厂商名的 ASCII 片段加 SHA-256 前 8 位组成，映射写入维护摘要的 `feeds` 字段，页面「我的关注」只为已关注套餐的厂商列出订阅链接。条目描述使用中文字段名，链接打开数据表并搜索该档（含中转站与待核价格）。厂商改名或移除后，检查模式报告多余文件，生成模式在写入成功后清理。
+
+同一命令还生成首屏摘要 `js/maintenance-summary.js`（复查间隔与套餐变更 ID，约 1.5 KB），导航「我的关注」据此显示已关注套餐的未读变更数，价格表核查日期据此标出超过复查间隔的记录，都不必下载完整维护数据。
 
 关注与已读记录仍只存在浏览器本机。「复制关注同步链接」生成 `?follow=plan-…#updates`，只包含永久套餐 ID；在另一台设备打开后由用户确认合并，启动时地址栏会去掉该参数。

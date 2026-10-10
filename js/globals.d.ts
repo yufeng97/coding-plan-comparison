@@ -92,5 +92,5 @@ interface BenchmarkSnapshot { schemaVersion: number; generatedAt: string; tasks:
 interface BenchmarkSummaryRow { model: string; reasoning: string | null; score: number; rank: number; }
 interface BenchmarkSummaryProtocol { id: string; family: string; name: string; version: string; metric: string; unit: string; checkedAt: string; total: number; rows: BenchmarkSummaryRow[]; }
 interface BenchmarkSummary { schemaVersion: number; checkedAt: string; protocols: BenchmarkSummaryProtocol[]; }
-/** 导航未读提醒用的套餐变更 ID（js/maintenance-summary.js，由 npm run maintenance:build 生成，随首屏加载）。 */
-interface MaintenanceSummary { schemaVersion: number; changes: { id: string; changeId: string }[]; }
+/** 导航未读提醒用的套餐变更 ID 与复查间隔（js/maintenance-summary.js，由 npm run maintenance:build 生成，随首屏加载）。 */
+interface MaintenanceSummary { schemaVersion: number; staleAfterDays: number; changes: { id: string; changeId: string }[]; }

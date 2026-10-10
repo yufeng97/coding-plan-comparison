@@ -25,7 +25,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <script src="js/theme-init.js?v=31c1bf8"></script>
   <link rel="stylesheet" href="libs/fonts/fonts.css?v=17da4b4">
-  <link rel="stylesheet" href="css/style.css?v=bd66a8b">
+  <link rel="stylesheet" href="css/style.css?v=7547bdc">
 </head>
 <body>
 <div id="loadFailure" class="load-failure" role="alert" hidden>
@@ -243,6 +243,7 @@
         <option value="cn">国内</option>
         <option value="intl">国际</option>
       </select>
+      <select id="selectVendor" class="select" aria-label="按厂商筛选数据表"><option value="all">全部厂商</option></select>
       <button type="button" class="chip" id="tableExtraToggle" aria-pressed="false">含中转站与待核价格</button>
       <span class="table-count" id="tableCount" role="status" aria-live="polite"></span>
       <button type="button" class="chip" id="tableResetBtn">清除筛选</button>
@@ -275,7 +276,7 @@
         <tbody id="tableBody"></tbody>
       </table>
     </div>
-    <button type="button" class="chip" id="tableMoreBtn" hidden>显示更多记录</button>
+    <div class="table-more-actions"><button type="button" class="chip" id="tableMoreBtn" hidden>显示更多记录</button><button type="button" class="chip" id="tableAllBtn" hidden>显示全部</button></div>
   </section>
 
   <!-- ======== 05 每百万 tokens 成本排行（进阶） ======== -->
@@ -356,7 +357,7 @@
         <tbody id="metricsBody"></tbody>
       </table>
     </div>
-    <button type="button" class="chip" id="metricsMoreBtn" hidden>显示更多额度记录</button>
+    <div class="table-more-actions"><button type="button" class="chip" id="metricsMoreBtn" hidden>显示更多额度记录</button><button type="button" class="chip" id="metricsAllBtn" hidden>显示全部</button></div>
     <p class="chart-note" id="metricsNote"></p>
     <details class="method-box">
       <summary>📐 方法论：官方没公布用量时，这些「≈估」行是怎么推算出来的？（6 种方法 + 3 个坑）</summary>
@@ -647,18 +648,18 @@
 <script defer src="js/data.js?v=d3d0251"></script>
 <script id="maintenanceDataSource" type="application/json" src="js/maintenance-data.js?v=0025cde"></script>
 <script id="benchmarkDataSource" type="application/json" src="js/benchmark-data.js?v=f0456c2"></script>
-<script defer src="js/maintenance-summary.js?v=5026650"></script>
+<script defer src="js/maintenance-summary.js?v=7497b24"></script>
 <script defer src="js/benchmark-summary.js?v=23e7cab"></script>
 <script defer src="js/project-data.js?v=b9931ec"></script>
 <script defer src="js/metrics.js?v=54c36b6"></script>
-<script defer src="js/app-core.js?v=74e5293"></script>
-<script defer src="js/app-state.js?v=185b0a4"></script>
+<script defer src="js/app-core.js?v=9974e4e"></script>
+<script defer src="js/app-state.js?v=945440b"></script>
 <script defer src="js/app-charts.js?v=050071b"></script>
-<script defer src="js/app-picker.js?v=d5ce4e7"></script>
-<script defer src="js/app-tables.js?v=ea95e62"></script>
-<script defer src="js/app-service.js?v=b2805ee"></script>
+<script defer src="js/app-picker.js?v=59add8a"></script>
+<script defer src="js/app-tables.js?v=cf05f0c"></script>
+<script defer src="js/app-service.js?v=82e8d77"></script>
 <script defer src="js/app-maintenance.js?v=233c929"></script>
-<script defer src="js/app-events.js?v=f5bd159"></script>
+<script defer src="js/app-events.js?v=05f35f1"></script>
 <script defer src="js/app-init.js?v=0008bbf"></script>
 </body>
 </html>

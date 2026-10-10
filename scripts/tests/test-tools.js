@@ -9,6 +9,7 @@ const { updateFonts, get: fontGet } = require("../build/vendor-fonts");
 const { stageSite } = require("../build/stage-site");
 const { deployment, deploySite, resolveDeploymentToken } = require("../build/deploy-site");
 const { main: bump } = require("../build/bump-versions");
+const { fetchRates, applyRates, updateRates, parseArgs: parseRateArgs } = require("../build/update-rates");
 
 async function fixture(fn) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "coding-plan-tools-test-"));
@@ -384,6 +385,47 @@ async function main() {
     (/** @type {Error} */ error) => /Vercel 502：响应不是 JSON/.test(error.message) && error.message.includes("502 Bad Gateway") && !error.message.includes("mock-token"));
     assert.equal(waits, 0);
   }));
+  await test("汇率更新只改汇率字段与静态汇率，校验后原子写入，同值不写、旧日期与异常值拒绝", async () => {
+    const repo = path.resolve(__dirname, "../..");
+    const rates = { date: "2026-10-09", cny: 7.0312, inr: 88.41, source: "https://api.frankfurter.dev/v1/2026-10-09?base=USD&symbols=CNY,INR" };
+    const source = fs.readFileSync(path.join(repo, "js/data.js"), "utf8"), html = fs.readFileSync(path.join(repo, "index.html"), "utf8");
+    const next = applyRates(source, html, rates);
+    assert.match(next.source, /const RATE_USD_CNY = 7\.03;/);
+    assert.match(next.source, /const RATE_INR_CNY = 7\.0312 \/ 88\.41;/);
+    assert.match(next.source, /rateAsOf: "2026-10-09",/);
+    assert.match(next.source, /rateSource: "https:\/\/api\.frankfurter\.dev\/v1\/2026-10-09\?base=USD&symbols=CNY,INR",/);
+    assert.match(next.html, /<span id="rateText">7\.03<\/span>/);
+    assert.match(next.html, /<span id="rateText2">7\.03<\/span>/);
+    const diffLines = (a, b) => a.split("\n").filter((line, i) => line !== b.split("\n")[i]).length;
+    assert.equal(diffLines(source, next.source), 6, "只改 6 行汇率相关内容（含两处注释）");
+    assert.throws(() => applyRates(source.replace("const RATE_USD_CNY", "const RATE_USD"), html, rates), /RATE_USD_CNY/);
+    const response = (body, status = 200) => async () => new Response(JSON.stringify(body), { status });
+    const ok = { amount: 1, base: "USD", date: "2026-10-09", rates: { CNY: 7.0312, INR: 88.41 } };
+    assert.deepEqual(await fetchRates({ fetcher: response(ok) }), rates);
+    await assert.rejects(fetchRates({ fetcher: response({ ...ok, rates: { CNY: 70, INR: 88 } }) }), /超出合理范围/);
+    await assert.rejects(fetchRates({ fetcher: response(ok, 503) }), /HTTP 503/);
+    await assert.rejects(fetchRates({ fetcher: response({ ...ok, base: "EUR" }) }), /格式不符/);
+    await assert.rejects(fetchRates({ date: "2026/10/09", fetcher: response(ok) }), /YYYY-MM-DD/);
+    assert.deepEqual(parseRateArgs(["--date", "2026-10-09", "--dry-run"]), { dryRun: true, date: "2026-10-09" });
+    assert.throws(() => parseRateArgs(["--bogus"]), /用法/);
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "coding-plan-tools-test-"));
+    try {
+      for (const name of ["index.html", "js", "css", "libs"]) fs.cpSync(path.join(repo, name), path.join(root, name), { recursive: true });
+      const dataFile = path.join(root, "js/data.js");
+      const preview = await updateRates(root, { fetcher: response(ok), dryRun: true });
+      assert.equal(preview.changed, true); assert.equal(preview.written, 0);
+      assert.equal(fs.readFileSync(dataFile, "utf8"), source, "预览不写文件");
+      const written = await updateRates(root, { fetcher: response(ok) });
+      assert.equal(written.written, 2);
+      assert.equal(fs.readFileSync(dataFile, "utf8"), next.source);
+      assert.equal((await updateRates(root, { fetcher: response(ok) })).written, 0, "同值不重复写入");
+      await assert.rejects(updateRates(root, { fetcher: response({ ...ok, date: "2026-09-01" }) }), /拒绝回退/);
+      assert.equal(fs.existsSync(path.join(root, "audit/.pricing.lock")), false, "完成后释放锁");
+    } finally {
+      if (path.dirname(root) !== fs.realpathSync(os.tmpdir())) throw new Error("拒绝清理未知测试目录");
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
   await test("部署网络超时拒绝会向调用方失败，且不会启动轮询", () => fixture(async (root) => {
     writeAssetPlan(createAssetPlan(root));
     let requests = 0, waits = 0;
