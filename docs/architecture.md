@@ -26,7 +26,7 @@
 | `index.html` | HTML 外壳、`#app` 挂载点与 Vite 入口（`src/main.ts`）；主题引导、加载提示、按需数据与 ECharts 保留逻辑入口地址 |
 | `src/main.ts` / `src/App.vue` | 恢复 URL 与本机状态 → 挂载整页 Vue 组件 → 启动导航、按需加载及共享服务；App 模板供浏览器与 Vue SSR 共用 |
 | `src/sections/` | 全部原生 Vue 区块：推荐与控件、价格及额度图、免费入口、数据表、并排对比、完整权益、费用计算、评测、关注、贡献和来源；共用按钮及单元格组件保留原 ID、class、ARIA。`*.test.ts` 用 Vitest + happy-dom，`src/test/setup.ts` 提供真实按需数据 |
-| `src/domain/runtime.ts` / `startup.ts` | TypeScript 共享状态、推荐、费用计算、URL 编解码、导出、关注、按需数据、ECharts 加载与页面启动；通过显式 ES 模块导出，组件从 `@domain/runtime` 导入 |
+| `src/domain/core.ts` … `maintenance.ts` / `startup.ts` | 业务模块，按职责拆分并互相显式导入：`core`（格式化、套餐标签、按需数据、ECharts 加载与主题）、`state`（共享状态与 URL 编解码）、`charts`（图表配置）、`picker`（推荐与付款口径）、`tables`（数据表、额度表、导出与并排对比）、`service`（费用计算、预设与用量导入）、`maintenance`（关注、维护与评测数据），`startup` 负责导航与页面启动。`runtime.ts` 汇总导出，组件与测试从 `@domain/runtime` 导入 |
 | `src/domain/metrics.ts` / `model-types.ts` | 额度换算纯计算与业务类型（`computeMetrics`、`blendPrice`、旗舰判定等）；无 DOM，测试与校验器共用。排行「旗舰」复用目录中的 `MODEL_ROLES` |
 | `src/domain/catalog.ts` / `scripts/build/catalog-types.mjs` | 从审计数据、首屏评测摘要与公开项目配置确定性生成的类型化目录；生成文件提交，`catalog:check` 发现输入漂移时失败 |
 | `src/types.d.ts` / `tsconfig.domain.json` | 数据与外部浏览器 API 类型，以及保留原空值推断语义的业务模块检查；生成 `.domain-types/`，严格 UI 检查经 `@domain/*` 读取声明，Vite 同名别名解析到实际 TS 源文件 |
