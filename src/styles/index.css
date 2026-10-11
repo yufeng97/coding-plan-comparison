@@ -1,17 +1,15 @@
-/* Keep this import order: the feature and responsive refinements retain the original cascade. */
+/* 按层叠顺序引入：主题变量 → 元素基础 → 页面骨架 → 跨区块组件 → 各功能区块 → 跨功能的窄屏调整。
+   功能样式只覆盖本功能的元素；需要压过功能样式的窄屏规则放在 responsive.css。 */
 @import "./theme.css";
 @import "./base.css";
 @import "./layout.css";
-@import "./features/usage.css";
-@import "./controls.css";
+@import "./components.css";
 @import "./features/charts.css";
 @import "./features/picker.css";
 @import "./features/pricing.css";
-@import "./features/site.css";
+@import "./features/calculator.css";
 @import "./features/comparison.css";
-@import "./features/picker-layout.css";
-@import "./responsive.css";
+@import "./features/site.css";
 @import "./features/follow.css";
 @import "./features/benchmarks.css";
-@import "./views.css";
-@import "./features/pricing-refinements.css";
+@import "./responsive.css";

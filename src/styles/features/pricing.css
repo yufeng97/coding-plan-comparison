@@ -19,45 +19,19 @@
 .fc-footer .checked-date { margin-left: 0; }
 
 /* ---------- 数据表 ---------- */
-.table-wrap {
-  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-l);
-  overflow: auto; max-height: 780px; margin-bottom: 10px;
-}
 /* 长表保留真实 DOM 和读屏内容；远离视口时暂缓单元格布局。
    两张默认长表均达到 780px 上限，浏览器进入阅读区后缓存实际高度。 */
 #table .table-wrap, .metrics-wrap { content-visibility: auto; contain-intrinsic-size: auto 780px; }
-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 /* 默认 8 列可在小桌面容器内放下；展开模型/工具/备注后保留横向滚动。 */
 #planTable { min-width: 900px; }
 #planTable.show-all-cols { min-width: 1080px; }
 .card-text .mini-table, .mini-table { min-width: 0; }
-thead th {
-  position: sticky; top: 0; z-index: 5;
-  background: var(--panel-2); color: var(--muted); text-align: left;
-  padding: 9px 12px; font-weight: 700; font-size: 11.5px; white-space: nowrap;
-  border-bottom: 1px solid var(--line-strong);
-}
-thead th.sortable { cursor: pointer; user-select: none; }
-thead th.sortable:hover { color: var(--ink); }
-thead th.sortable:focus-visible { outline: 2px solid var(--accent-2); outline-offset: -2px; border-radius: 4px; }
-thead th.sort-active { color: var(--brand-button); }
-html[data-theme="dark"] thead th.sort-active { color: var(--brand); }
-tbody td {
-  padding: 9px 12px; border-bottom: 1px solid var(--row-border);
-  vertical-align: top; color: var(--text);
-}
-tbody tr:hover td { background: var(--row-hover); }
 td.td-vendor { color: var(--ink); font-weight: 700; white-space: nowrap; }
 td.td-plan { color: var(--ink); white-space: normal; }
 td.td-price { color: var(--gold); font-weight: 700; white-space: nowrap; font-family: var(--mono); font-size: 12.5px; }
 td.td-price .sub { color: var(--faint); font-weight: 400; }
 .td-quota { min-width: 260px; max-width: 380px; }
 .td-models, .td-note { min-width: 160px; max-width: 260px; }
-.tag { display: inline-block; padding: 2px 8px; border-radius: 5px; font-size: 11px; font-weight: 600; white-space: nowrap; }
-.tag-official { background: var(--cat-official-soft); color: var(--cat-official-text); }
-.tag-tool { background: var(--cat-tool-soft); color: var(--cat-tool-text); }
-.tag-cloud { background: var(--cat-cloud-soft); color: var(--cat-cloud-text); }
-.tag-team { background: var(--cat-team-soft); color: var(--cat-team-text); }
 .region-cn { color: var(--muted); white-space: nowrap; }
 .region-intl { color: var(--faint); white-space: nowrap; }
 
@@ -118,3 +92,92 @@ td.td-price .sub { color: var(--faint); font-weight: 400; }
 .conf-mid { background: var(--cat-cloud-soft); color: var(--gold); }
 .conf-lo { background: rgba(217,59,54,.09); color: var(--red); }
 
+/* ---------- 表格空状态 ---------- */
+.table-empty { padding: 32px 16px; text-align: center; color: var(--muted); white-space: normal !important; }
+.table-empty .chip { margin: 10px 0 0; }
+table.is-empty { min-width: 0 !important; }
+table.is-empty thead { display: none; }
+#metricsTable.is-empty tbody td.table-empty { position: static; width: auto; max-width: none; white-space: normal; overflow: visible; }
+
+/* ---------- API 价格明细 ---------- */
+#apiDetailTable tbody th { padding: 9px 12px; text-align: left; font-weight: 600; border-bottom: 1px solid var(--row-border); }
+.api-detail-wrap { margin-top: 14px; }
+#apiDetailTable { min-width: 640px; }
+#apiDetailTable td:not(:first-child) { white-space: nowrap; }
+
+/* ---------- 完整权益 ---------- */
+.plan-detail-fields { display: grid; gap: 12px; margin: 14px 0; }
+.plan-detail-fields > div { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; }
+.plan-detail-fields dt { font-weight: 700; color: var(--muted); }
+.plan-detail-fields dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.has-plan-details { overflow: hidden; }
+
+/* 排行明细表 */
+#rankDetailTable { min-width: 640px; }
+
+@media (max-width: 700px) {
+  .plan-detail-fields > div { grid-template-columns: 1fr; gap: 4px; }
+}
+
+/* ---------- 数据表精简列（各宽度通用） ----------
+   默认收起「模型/支持工具/备注」三列，让额度与来源留在桌面可视宽度内；长文本单元格可换行，
+   不再被单行的年付说明、厂商名或核查日期撑出横向滚动。 */
+#planTable .col-opt { display: none; }
+#planTable.show-all-cols .col-opt { display: table-cell; }
+#planTable td.td-vendor { white-space: normal; min-width: 6em; }
+#planTable td[data-column="priceY"], #planTable td[data-column="priceY"] .sub { white-space: normal; }
+#planTable td[data-column="priceY"] { min-width: 8.5em; }
+#planTable td.td-trust { white-space: normal; min-width: 7.5em; }
+#planTable .plan-name, #planTable .tag { white-space: normal; }
+
+/* 小桌面（768–1180px）收窄额度列下限，默认 8 列在容器内放下，不出现横向滚动。 */
+@media (max-width: 1180px) { #planTable .td-quota { min-width: 160px; } }
+
+@media (max-width: 700px) {
+  /* 数据表精简列 */
+  #planTable { min-width: 0; }
+  #planTable .td-quota { min-width: 140px; }
+}
+
+/* ---------- 每周 Token 用量 ---------- */
+#tokenInsight { display: flex; flex-direction: column; gap: 16px; }
+.token-insight-list { max-height: 600px; overflow: auto; min-height: 0; flex: none; }
+.token-insight-note { margin: 0; flex: none; }
+
+/* ---------- 窄屏（≤767px）：数据表与额度表改为卡片 ---------- */
+@media (max-width: 767px) {
+  #tableColsToggle { display: inline-block; }
+  /* 保留排序表头操作，记录改为手机卡片，关键价格无需横向滚动。 */
+  .table-wrap:has(#planTable), .metrics-wrap { overflow: visible; max-height: none; border: 0; background: transparent; content-visibility: visible; contain-intrinsic-size: none; }
+  #planTable, #metricsTable, #metricsTable.is-compact { display: block; min-width: 0; width: 100%; font-size: 12px; }
+  #planTable thead, #metricsTable thead { display: block; margin-bottom: 12px; }
+  #planTable thead tr, #metricsTable thead tr { display: flex; flex-wrap: wrap; gap: 8px; }
+  #planTable thead th, #metricsTable thead th { display: none; }
+  #planTable thead th.sortable, #metricsTable thead th.sortable { display: block; position: static; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); white-space: normal; }
+  #metricsTable.is-compact thead th.col-more { display: none; }
+  #planTable tbody, #metricsTable tbody { display: grid; gap: 12px; }
+  #planTable tbody tr, #metricsTable tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; padding: 12px; background: var(--panel); gap: 10px 12px; }
+  #planTable tbody td, #metricsTable tbody td, #metricsTable tbody td:first-child,
+  #planTable tbody .td-vendor, #planTable tbody .td-plan, #metricsTable td.model-cell { display: block; position: static; width: auto; max-width: none; min-width: 0; border: 0; padding: 0; white-space: normal; overflow-wrap: anywhere; background: transparent; box-shadow: none; text-align: left; }
+  #planTable tbody td::before, #metricsTable tbody td::before { content: attr(data-label); display: block; color: var(--faint); font-weight: 400; font-family: var(--sans); font-size: 10px; margin-bottom: 4px; }
+  #planTable td[data-column="plan"], #planTable td[data-column="quota"], #planTable td[data-column="url"],
+  #metricsTable td[data-column="plan"], #metricsTable td[data-column="model"], #metricsTable td[data-column="prov"] { grid-column: 1 / -1; }
+  #planTable td[data-column="vendor"], #planTable td[data-column="plan"] { font-size: 14px; }
+  #planTable td[data-column="priceM"], #metricsTable td[data-column="price"], #metricsTable td[data-column="cpm"] { font-size: 15px; color: var(--ink); }
+  #planTable .td-quota { max-width: none; }
+  #planTable tbody td.col-opt { display: none; }
+  #planTable.show-all-cols tbody td.col-opt { display: block; grid-column: 1 / -1; }
+  #metricsTable.is-compact tbody td.col-more { display: none; }
+  #metricsTable .model-price, #metricsTable td.model-cell { max-width: none; }
+}
+
+/* ---------- 排行分组、额度表说明与免费入口筛选 ---------- */
+#rankDetailTable tr.rank-divider th { padding: 10px 12px 6px; color: var(--muted); font-weight: 700; background: var(--panel); border-top: 2px solid var(--line-strong); }
+.metrics-legend { margin-top: 8px; }
+.metrics-legend > summary { cursor: pointer; color: var(--muted); font-weight: 600; }
+.token-insight-count { margin: -4px 0 8px; color: var(--faint); font-size: 12px; }
+.free-controls { margin-bottom: 14px; }
+
+@media (max-width: 700px) {
+  .free-controls .chip-group { flex-wrap: wrap; }
+}

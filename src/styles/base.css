@@ -22,4 +22,3 @@ a:hover { text-decoration: underline; }
 /* ---------- 内联 SVG 图标（替代图标字体） ---------- */
 .ric { display: inline-flex; align-items: center; justify-content: center; font-style: normal; line-height: 1; }
 .ric svg { width: 1em; height: 1em; display: block; }
-

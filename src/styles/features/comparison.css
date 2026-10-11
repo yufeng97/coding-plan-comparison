@@ -35,14 +35,6 @@
 }
 #cmpTable td { min-width: 210px; max-width: 330px; color: var(--text); }
 #cmpTable td b { color: var(--ink); }
-.cmp-add {
-  display: inline-block; margin-top: 6px; padding: 2px 8px;
-  background: var(--panel); border: 1px solid var(--line-strong); border-radius: 999px;
-  color: var(--accent-2); font: 600 11.5px var(--sans); cursor: pointer;
-}
-.cmp-add:hover { border-color: var(--accent-2); color: var(--ink); }
-.cmp-add.on { color: var(--green); border-color: var(--green); font-weight: 700; }
-.cmp-add:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
 .cmp-diff-row td { background: var(--surface); }
 .cmp-best-price { box-shadow: inset 3px 0 0 var(--green); }
 .cmp-diff-label, .cmp-price-label { display: block; margin-top: 4px; font-size: 10px; font-weight: 600; }
@@ -53,27 +45,14 @@
 .checked-date { margin-left: 10px; }
 .render-error { padding: 16px; color: var(--red); }
 .assumptions-box { margin-bottom: 20px; }
-.table-empty { padding: 32px 16px; text-align: center; color: var(--muted); white-space: normal !important; }
-.table-empty .chip { margin: 10px 0 0; }
 .price-check-details { margin-top: 5px; white-space: normal; max-width: 260px; }
 .price-check-details summary { cursor: pointer; color: var(--accent-2); font-size: 11px; }
 .price-check-details summary:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
 .price-check-details p { margin: 5px 0 0; font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; }
-table.is-empty { min-width: 0 !important; }
-table.is-empty thead { display: none; }
-#metricsTable.is-empty tbody td.table-empty { position: static; width: auto; max-width: none; white-space: normal; overflow: visible; }
-.table-feedback { min-height: 0; color: var(--muted); font-size: 12px; margin-bottom: 10px; }
-.table-feedback:empty { display: none; }
 .cmp-remove { display: block; margin-top: 8px; }
 #cmpTable thead th:first-child { left: 0; z-index: 6; }
 #cmpTable thead th b { color: var(--ink); }
-#apiDetailTable tbody th { padding: 9px 12px; text-align: left; font-weight: 600; border-bottom: 1px solid var(--row-border); }
-.api-detail-wrap { margin-top: 14px; }
-#apiDetailTable { min-width: 640px; }
-#apiDetailTable td:not(:first-child) { white-space: nowrap; }
 
-/* ---------- 页脚 ---------- */
-.footer { border-top: 1px solid var(--line); margin-top: 60px; padding: 26px 24px 40px; text-align: center; color: var(--faint); font-size: 12.5px; }
-.footer-mirror { margin-top: 8px; }
-.footer-mirror a { color: var(--muted); }
-
+@media (max-width: 700px) {
+  .cmp-head-actions { flex-wrap: wrap; }
+}

@@ -56,15 +56,6 @@ html[data-theme="light"] .brand-mark { color: #315f59; background: var(--brand);
 .section-menu { margin-top: 18px; }
 .section-menu > summary { cursor: pointer; color: var(--muted); font-size: 13px; }
 .section-menu .topnav { margin-top: 10px; flex-wrap: wrap; overflow: visible; }
-.workload-check { align-self: flex-start; margin-bottom: 12px; }
-/* 推荐卡下方：用量核对与一行状态并排，规则说明收进折叠区。 */
-.picker-after { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-bottom: 10px; }
-.picker-after .workload-check { margin-bottom: 0; }
-.picker-after .chart-note { margin: 0; }
-.picker-rules { margin-top: 6px; }
-.picker-rules p + p { margin-top: 6px; }
-.qc-payment-summary { margin-top: 8px; color: var(--muted); font-size: 12px; line-height: 1.6; }
-#pickerBillingNote { grid-column: 1 / -1; margin: 0; line-height: 1.6; }
 .footer .view-tabs { justify-content: center; padding: 0 0 14px; border: 0; }
 .theme-btn {
   display: inline-grid; place-items: center; width: 34px; height: 34px;
@@ -132,3 +123,28 @@ html[data-theme="light"] .brand-mark { color: #315f59; background: var(--brand);
 .section-head h2 .sec-no { color: var(--faint); }
 /* 构建期预渲染的默认内容：带筛选参数的链接在脚本按链接条件重绘前不显示，避免先闪出默认推荐。 */
 html.has-query [data-prerendered] { visibility: hidden; }
+
+/* 进阶分析章节的小标记：提示这些口径需要先读计算假设。 */
+.sec-tag { display: inline-block; margin-left: 10px; padding: 1px 7px; border: 1px solid var(--line-strong); border-radius: 5px; color: var(--muted); font: 600 11px var(--sans); letter-spacing: 0; vertical-align: 4px; }
+.section-head p { margin-top: 7px; color: var(--muted); font-size: 14px; max-width: 1000px; }
+.section-head p strong { color: var(--ink); font-weight: 700; }
+
+/* ---------- 页脚 ---------- */
+.footer { border-top: 1px solid var(--line); margin-top: 60px; padding: 26px 24px 40px; text-align: center; color: var(--faint); font-size: 12.5px; }
+.footer-mirror { margin-top: 8px; }
+.footer-mirror a { color: var(--muted); }
+
+/* ---------- 主入口加载失败提示 ---------- */
+.load-failure { position: sticky; top: 0; z-index: 400; margin: 0; padding: 16px 24px; border-bottom: 1px solid var(--red); background: var(--panel); color: var(--red); }
+.load-failure .chip { margin-top: 8px; }
+
+/* ---------- 视图切换 ---------- */
+.view-tabs { display: flex; gap: 8px; flex-wrap: wrap; padding: 18px 0 8px; border-bottom: 1px solid var(--line); }
+.view-tab { padding: 9px 15px; border-radius: 8px; color: var(--muted); font-size: 13px; font-weight: 600; }
+.view-tab.active { background: var(--ink); color: var(--paper); }
+.view-tab:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 3px; }
+
+@media (max-width: 767px) {
+  .view-tabs { gap: 4px; padding-top: 12px; }
+  .view-tab { padding: 8px 10px; font-size: 12px; }
+}

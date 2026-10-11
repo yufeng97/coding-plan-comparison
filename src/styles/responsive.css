@@ -1,16 +1,3 @@
-/* ---------- 数据表精简列（各宽度通用） ----------
-   默认收起「模型/支持工具/备注」三列，让额度与来源留在桌面可视宽度内；长文本单元格可换行，
-   不再被单行的年付说明、厂商名或核查日期撑出横向滚动。 */
-#planTable .col-opt { display: none; }
-#planTable.show-all-cols .col-opt { display: table-cell; }
-#planTable td.td-vendor { white-space: normal; min-width: 6em; }
-#planTable td[data-column="priceY"], #planTable td[data-column="priceY"] .sub { white-space: normal; }
-#planTable td[data-column="priceY"] { min-width: 8.5em; }
-#planTable td.td-trust { white-space: normal; min-width: 7.5em; }
-#planTable .plan-name, #planTable .tag { white-space: normal; }
-/* 小桌面（768–1180px）收窄额度列下限，默认 8 列在容器内放下，不出现横向滚动。 */
-@media (max-width: 1180px) { #planTable .td-quota { min-width: 160px; } }
-
 /* ---------- 移动端适配（≤700px） ---------- */
 /* 中等屏幕也将品牌/主题和导航分为两行，避免主题按钮单独落在第三行。 */
 @media (max-width: 960px) {
@@ -62,12 +49,14 @@
   .cmp-bar { bottom: 12px; border-radius: 12px; flex-wrap: wrap; padding: 8px 10px; width: calc(100% - 28px); }
   #cmpBarText { flex: 1 1 100%; }
   .cmp-bar .chip { flex: 1 1 auto; }
-  /* 数据表精简列 */
-  #planTable { min-width: 0; }
-  #planTable .td-quota { min-width: 140px; }
   /* 对比浮动条居中占宽，回到顶部按钮上移避让 */
   .to-top { bottom: 24px; right: 18px; }
   .has-compare .to-top { bottom: 110px; }
   .dynamics-list li { flex-direction: column; gap: 6px; min-width: 0; }
   .dyn-src { white-space: normal; overflow-wrap: anywhere; }
+}
+
+/* 窄屏加大对比、关注按钮的点击区域；推荐卡按钮复用它们，所以放在功能样式之后。 */
+@media (max-width: 767px) {
+  .cmp-add, .watch-plan { min-height: 40px; padding: 7px 10px; }
 }
