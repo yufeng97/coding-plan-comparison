@@ -21,7 +21,8 @@ const META = {
    band: 只用来在预算内选主计划（A 高于 B），页面不展示字母或分数
    ceiling: 同套餐里更吃额度的上限模型，不拿来当默认复杂任务模型
    re 同时供 metrics.js 的 isFlagshipModelName（排行「旗舰」筛选）复用，须兼容连字符与空格写法。 */
-const MODEL_ROLES = [
+/** @type {ModelRole[]} */
+const MODEL_ROLES: ModelRole[] = [
     { id: "claude-fable", name: "Claude Fable", re: /fable/i, task: "hard", burn: "fast", band: "A", ceiling: true,
         reason: "能做更难的任务，但会占掉每周限额的一大块", asOf: "2026-09-30" },
     { id: "claude-opus", name: "Claude Opus", re: /opus/i, task: "hard", burn: "fast", band: "A",
@@ -63,16 +64,17 @@ const MODEL_ROLES = [
     { id: "flash", name: "Flash", re: /flash/i, task: "daily", burn: "slow", band: "C",
         reason: "同一套餐里的慢烧档，复杂重构不要靠它", asOf: "2026-09-30" },
 ];
-function matchModelRoles(text: any) {
+/** @param {string | null | undefined} text @returns {ModelRole[]} */
+function matchModelRoles(text: string | null | undefined): ModelRole[] {
     const raw = String(text || "");
     const blockedA = /不含旗舰/.test(raw);
-    const denied = [...raw.matchAll(/不(?:含|支持|包含|提供)\s*([^。；;，,（）]+)/g)].map((m: any) => m[1]);
-    return MODEL_ROLES.filter((role: any) => {
+    const denied = [...raw.matchAll(/不(?:含|支持|包含|提供)\s*([^。；;，,（）]+)/g)].map((m) => m[1]);
+    return MODEL_ROLES.filter((role) => {
         if (!role.re.test(raw))
             return false;
         if (blockedA && role.band === "A")
             return false;
-        if (denied.some((part: any) => role.re.test(part)))
+        if (denied.some((part) => role.re.test(part)))
             return false;
         if (role.id === "claude-opus" && /不含[^。；;]{0,16}opus/i.test(raw))
             return false;
@@ -86,22 +88,30 @@ function matchModelRoles(text: any) {
  * 有意用全局函数而非模块：浏览器端 data.js 先于 app.js 加载，零构建直接引用；
  * 校验器在 VM 沙箱中运行同一份 data.js，天然复用，避免两边逻辑漂移。
  * ============================================================ */
-function isRetiredPlan(p: any) { return /已停售|已下架/.test((p && p.plan) || "") || (priceCheckOf(p) || {}).status === "retired"; }
-function isOneTimePlan(p: any) { return /一次性|预付/.test((p && p.plan) || ""); }
-function isRenewalOnly(p: any) { return /老用户/.test((p && p.plan) || ""); }
-function isFourWeekPlan(p: any) { return /4\s*周|四周|4\s*weeks?/i.test((p && p.plan) || ""); }
+/** @param {Plan | null | undefined} p */
+function isRetiredPlan(p: Plan | null | undefined) { return /已停售|已下架/.test((p && p.plan) || "") || (priceCheckOf(p) || {}).status === "retired"; }
+/** @param {Plan | null | undefined} p */
+function isOneTimePlan(p: Plan | null | undefined) { return /一次性|预付/.test((p && p.plan) || ""); }
+/** @param {Plan | null | undefined} p */
+function isRenewalOnly(p: Plan | null | undefined) { return /老用户/.test((p && p.plan) || ""); }
+/** @param {Plan | null | undefined} p */
+function isFourWeekPlan(p: Plan | null | undefined) { return /4\s*周|四周|4\s*weeks?/i.test((p && p.plan) || ""); }
 /* 同一订阅按不同入口记了两条时（如 Devin Desktop 与云 agent），重复条目用 sameAs 指向主条目：
    保留核价记录与历史，不再单独计入免费入口、价格图、价格表和推荐。 */
-function isDuplicateListing(p: any) { return !!(p && p.sameAs); }
+/** @param {Plan | null | undefined} p */
+function isDuplicateListing(p: Plan | null | undefined) { return !!(p && p.sameAs); }
 /* 官网标明售罄、仅候补的档位：价格仍属公开标价，但当前无法下单。 */
-function isSoldOut(p: any) { return !!(p && p.availability === "sold-out"); }
+/** @param {Plan | null | undefined} p */
+function isSoldOut(p: Plan | null | undefined) { return !!(p && p.availability === "sold-out"); }
 /* 在售个人月付：不含团队整包、已停售/已下架、一次性预付、仅老用户可续、4周计费档和重复条目 */
-function isPersonalMonthly(p: any) {
-    return !!(p && p.priceM > 0 && !p.seat && p.cat !== "team" && !isRetiredPlan(p) && !isOneTimePlan(p) && !isRenewalOnly(p) && !isFourWeekPlan(p) && !isDuplicateListing(p));
+/** @param {Plan | null | undefined} p */
+function isPersonalMonthly(p: Plan | null | undefined) {
+    return !!(p && (p.priceM ?? 0) > 0 && !p.seat && p.cat !== "team" && !isRetiredPlan(p) && !isOneTimePlan(p) && !isRenewalOnly(p) && !isFourWeekPlan(p) && !isDuplicateListing(p));
 }
 /* 免费 Coding 入口：在售，且能当编程 Agent 或编程工具用。
    已下架不算。聊天免费档、无 API 的网页档、自家应用构建器不算。 */
-function isFreeCodingEntry(p: any) {
+/** @param {Plan | null | undefined} p */
+function isFreeCodingEntry(p: Plan | null | undefined) {
     if (!p || p.priceM !== 0 || isRetiredPlan(p) || !isPriceConfirmed(p) || isDuplicateListing(p))
         return false;
     if (p.vendor === "Lovable" || p.vendor === "Bolt.new")
@@ -113,11 +123,13 @@ function isFreeCodingEntry(p: any) {
     return true;
 }
 /* 在售且明码标价（用于完整数据表与「在售订阅计划」统计卡；免费档、按量/定制、已停售不计） */
-function isOnSalePlan(p: any) {
-    return !!(p && p.priceM > 0 && !isRetiredPlan(p) && !isDuplicateListing(p));
+/** @param {Plan | null | undefined} p */
+function isOnSalePlan(p: Plan | null | undefined) {
+    return !!(p && (p.priceM ?? 0) > 0 && !isRetiredPlan(p) && !isDuplicateListing(p));
 }
 /* 能否直接下单。看计划名与结构化的售罄标记：备注里的补货限制或「限量模型」不把整档移出推荐。 */
-function offerable(p: any) {
+/** @param {Plan | null | undefined} p */
+function offerable(p: Plan | null | undefined) {
     const name = String((p && p.plan) || "");
     if (isSoldOut(p) || isDuplicateListing(p))
         return false;
@@ -126,14 +138,16 @@ function offerable(p: any) {
     return !/(?:^|[^不无])限量/.test(name);
 }
 /* 编程工具本身免费不等于推理免费；国别专属档须明确满足购买资格。 */
-function hasIncludedModelQuota(p: any) {
+/** @param {Plan | null | undefined} p */
+function hasIncludedModelQuota(p: Plan | null | undefined) {
     return !!p && p.includedModelQuota !== false && p.modelAccess !== "byok";
 }
-function isPurchaseCountryAllowed(p: any, country: any) {
+/** @param {Plan | null | undefined} p @param {string | null} [country] */
+function isPurchaseCountryAllowed(p: Plan | null | undefined, country?: string | null) {
     if (!p || !Array.isArray(p.purchaseCountries) || !p.purchaseCountries.length)
         return !!p;
     const code = String(country || "").toUpperCase();
-    return !!code && p.purchaseCountries.some((c: any) => String(c).toUpperCase() === code);
+    return !!code && p.purchaseCountries.some((c) => String(c).toUpperCase() === code);
 }
 /* 号池 / API 转售：单独上色，不进「帮我选」。名单是唯一依据，不从备注文字推断；
    新增中转站须登记在这里，校验器会对备注写明「中转站 / 号池」却未登记的厂商报错。 */
@@ -148,20 +162,23 @@ const RELAY_VENDORS = new Set([
     "DevPass",
     "Chutes (chutes.ai)",
 ]);
-function isRelay(p: any) { return !!p && RELAY_VENDORS.has(p.vendor); }
+/** @param {Plan | null | undefined} p */
+function isRelay(p: Plan | null | undefined) { return !!p && RELAY_VENDORS.has(p.vendor); }
 /* 自带编程入口。英文 Desktop / CLI 与「桌面 / 客户端」同样算；兼容端点、协议、框架不算。 */
 const OWN_CLIENT_RE = /IDE|客户端|桌面|\bDesktop\b|网页|VS Code|插件|编辑器|\bCLI\b|终端/i;
 const OWN_CLIENT_EXCLUDE_RE = /协议|框架|端点|兼容/;
 /* 只有「同上」按位置继承；点名的档位先按名称/fieldRefs 找，追加权益原样保留。
    循环引用返回空串，让校验器报错，而非把未解析的「同」文案当成可用字段。 */
-function findPlanReference(ref: any) {
+/** @param {PlanRef | null | undefined} ref @returns {Plan | null} */
+function findPlanReference(ref: PlanRef | null | undefined): Plan | null {
     if (typeof ref === "string")
-        return PLANS.find((p: any) => p.id === ref) || null;
+        return PLANS.find((p) => p.id === ref) || null;
     if (Array.isArray(ref) && ref.length === 2)
-        return PLANS.find((p: any) => p.vendor === ref[0] && p.plan === ref[1]) || null;
+        return PLANS.find((p) => p.vendor === ref[0] && p.plan === ref[1]) || null;
     return null;
 }
-function resolvedField(p: any, key: any, seen?: any) {
+/** @param {Plan | null | undefined} p @param {PlanTextField} key @param {Set<Plan>} [seen] @returns {string} */
+function resolvedField(p: Plan | null | undefined, key: PlanTextField, seen?: Set<Plan>): string {
     const raw = String((p && p[key]) || "");
     if (p && key === "models" && (p.modelBaseRef != null || p.modelIncludes || p.modelExcludes)) {
         if (seen && seen.has(p))
@@ -193,7 +210,8 @@ function resolvedField(p: any, key: any, seen?: any) {
     const head = (cut < 0 ? rest : rest.slice(0, cut)).trim();
     const tail = cut < 0 ? "" : rest.slice(cut).replace(/^[档版](?=且|全模型)/, "");
     const hint = head.replace(/(?:档|版)$/, "").trim();
-    let best = null;
+    /** @type {Plan | null} */
+    let best: Plan | null = null;
     let bestScore = -1;
     const explicit = p.fieldRefs && p.fieldRefs[key];
     if (explicit != null) {
@@ -210,7 +228,8 @@ function resolvedField(p: any, key: any, seen?: any) {
         }
     }
     else {
-        const fold = (s: any) => String(s || "").toLowerCase().replace(/[^a-z0-9\u3400-\u9fff]+/g, "");
+        /** @param {string} s */
+        const fold = (s: string) => String(s || "").toLowerCase().replace(/[^a-z0-9\u3400-\u9fff]+/g, "");
         const h = fold(hint);
         const words = hint.match(/[a-z][a-z0-9.-]*|\d+(?:\.\d+)?|[\u3400-\u9fff]+/gi) || [];
         for (const other of PLANS) {
@@ -218,7 +237,7 @@ function resolvedField(p: any, key: any, seen?: any) {
                 continue;
             const name = fold(other.plan);
             const genericPersonal = hint === "个人" && !other.seat && other.cat !== "team";
-            const named = !!h && (name.includes(h) || words.every((w: any) => name.includes(fold(w))));
+            const named = !!h && (name.includes(h) || words.every((w) => name.includes(fold(w))));
             if (!genericPersonal && !named)
                 continue;
             const score = (name === h ? 100 : name.endsWith(h) ? 90 : name.includes(h) ? 80 : genericPersonal ? 40 : 60) - name.length / 100;
@@ -233,7 +252,8 @@ function resolvedField(p: any, key: any, seen?: any) {
     const base = resolvedField(best, key, stack);
     return base ? base + (tail ? " " + tail : "") : "";
 }
-function hasOwnClient(p: any) {
+/** @param {Plan | null | undefined} p */
+function hasOwnClient(p: Plan | null | undefined) {
     if (p && typeof p.ownClient === "boolean")
         return p.ownClient;
     const tools = resolvedField(p, "tools");
@@ -1668,7 +1688,8 @@ const PLANS: Plan[] = [
  * status: unsupported = 官方支持地区不含中国大陆；restricted = 服务可用，但部分模型受模型供应商的地区限制。
  * planIds 省略时适用该厂商全部档位。这里记录官方资格说明，不提供绕过地区限制的方法。
  * ============================================================ */
-const MAINLAND_ACCESS = [
+/** @type {MainlandAccess[]} */
+const MAINLAND_ACCESS: MainlandAccess[] = [
     { vendor: "Anthropic", status: "unsupported", checkedAt: "2026-10-10", url: "https://www.anthropic.com/supported-countries",
         evidence: "官方支持国家与地区列表不含中国大陆、香港和澳门；Claude 应用与 API 只在列出的地区提供，未列出即不支持。" },
     { vendor: "OpenAI", status: "unsupported", checkedAt: "2026-10-10", url: "https://developers.openai.com/api/docs/supported-countries",
@@ -1678,17 +1699,19 @@ const MAINLAND_ACCESS = [
     { vendor: "Cursor", status: "restricted", checkedAt: "2026-10-10", url: "https://cursor.com/docs/account/regions",
         evidence: "官方说明部分模型供应商有地区限制，受限地区不能使用其模型，自备 API Key 也可能失败；Anthropic、OpenAI、Google 的支持地区都不含中国大陆。" },
 ];
-function mainlandAccessOf(p: any) {
+/** @param {Plan | null | undefined} p */
+function mainlandAccessOf(p: Plan | null | undefined) {
     if (!p)
         return null;
-    return MAINLAND_ACCESS.find((entry: any) => entry.vendor === p.vendor && (!entry.planIds || entry.planIds.includes(p.id))) || null;
+    return MAINLAND_ACCESS.find((entry) => entry.vendor === p.vendor && (!entry.planIds || entry.planIds.includes(p.id))) || null;
 }
 /* API 按量计费（每百万 tokens）
  * USD 条目用 inUSD/outUSD；CNY 条目用 inCNY/outCNY（图表按汇率折算美元对比）
  * apiCache 为同币种的缓存命中（读取）单价：只在官方写明本档价格时填写；范围价、未公布或不支持缓存的留空，
  * 费用计算器据此计价，不从备注文字猜测。结构化已有备注里的价格不推进核查日期。
  * label 为图表短名；带 [硅基] 后缀为硅基流动聚合平台价格 */
-const API_PRICES = [
+/** @type {ApiPrice[]} */
+const API_PRICES: ApiPrice[] = [
     /* ---- 国际（USD per 1M tokens） ---- */
     { vendor: "Anthropic", model: "Claude Sonnet 5.5", label: "Claude Sonnet 5.5", region: "intl", cur: "USD", inUSD: 2, outUSD: 10, apiCache: 0.2,
         note: "2026-09-28 上线，价格与 Sonnet 5 持平；缓存写 5min $2.50 / 1h $4、读 $0.20；Batch $1/$5；订阅页模型列表仍统称 Sonnet",
@@ -1805,7 +1828,8 @@ const API_PRICES = [
 const CALC_DEFAULT_API = { vendor: "Anthropic", model: "Claude Sonnet 5.5" };
 /* 额度表里的官方 API 按量对照。apiIn/apiOut/apiCache 为每百万 tokens 的低峰牌价（无峰谷则用刊例价）。
  * 与 API_PRICES 是同一批官方价：改价时两处一起改。Flash 等未单列进行情图的型号只写在这里。 */
-const PAYG_REFERENCES = [
+/** @type {PaygReference[]} */
+const PAYG_REFERENCES: PaygReference[] = [
     { vendor: "DeepSeek", model: "deepseek-flash", cur: "USD", apiIn: 0.15, apiOut: 0.6, apiCache: 0.003,
         note: "官方低峰价，模型请求名 deepseek-flash；工作日高峰输入 $0.30 / 输出 $1.20 / 缓存 $0.006；中国法定节假日全天低峰。",
         source: "api-docs.deepseek.com", url: "https://api-docs.deepseek.com/quick_start/pricing" },
@@ -1856,7 +1880,8 @@ const PAYG_REFERENCES = [
  * 价格与币种（priceM/cur）经 ref 字段引用 PLANS 中对应计划（单一数据源）：
  * 改价只改 PLANS；ref 无法解析时页面告警并跳过该行，不中断其余区块。
  * ============================================================ */
-const METRICS_RAW = [
+/** @type {QuotaRow[]} */
+const METRICS_RAW: QuotaRow[] = [
     /* ---- 智谱 BigModel V3（2026-07-30 新版积分制） ----
        weeklyChart: false —— 国内 BigModel 与 Z.ai 同代 GLM 套餐公布的是同一组每周 tokens，
        每周 tokens 图只画 Z.ai 一遍；额度深度对比表不受此标记影响。 */
@@ -2303,16 +2328,17 @@ const METRICS_RAW = [
  * 本表在 METRICS_RAW 之后定义：lowM/highM 取自同 ref+model 指标行按统一假设折算的 wkLowM/wkHighM，
  * 与排行、额度表和推荐同一口径；vendorLowM/vendorHighM 是厂商按自身用量假设的估算，仅在提示中对照。
  * plan 为图上显示名，url 为官方来源；找不到对应指标行时启动即报错，避免静默缺柱。 */
-const PLAN_TOKENS = [
+/** @type {PlanTokens[]} */
+const PLAN_TOKENS: PlanTokens[] = [
     { plan: "Z.ai Lite", model: "GLM-5.3", ref: "plan-0031", url: "https://docs.z.ai/devpack/overview.md" },
     { plan: "Z.ai Pro", model: "GLM-5.3", ref: "plan-0032", url: "https://docs.z.ai/devpack/overview.md" },
     { plan: "Z.ai Pro", model: "GLM-5.3-Flash", ref: "plan-0032", url: "https://docs.z.ai/devpack/overview.md" },
     { plan: "Z.ai Max", model: "GLM-5.3", ref: "plan-0033", url: "https://docs.z.ai/devpack/transition.md" },
     { plan: "Z.ai Max", model: "GLM-5.3-Flash", ref: "plan-0033", url: "https://docs.z.ai/devpack/transition.md" },
-].map((t: any) => {
-    const m = METRICS_RAW.find((x: any) => x.ref === t.ref && x.model === t.model && x.vendorWkLowM != null);
-    if (!m)
-        throw new Error("PLAN_TOKENS 在 METRICS_RAW 中找不到同 ref+model 的官方估算行: " + t.ref + " · " + t.model);
+].map((t) => {
+    const m = METRICS_RAW.find((x) => x.ref === t.ref && x.model === t.model && x.vendorWkLowM != null);
+    if (!m || m.wkLowM == null || m.wkHighM == null || m.vendorWkLowM == null || m.vendorWkHighM == null)
+        throw new Error("PLAN_TOKENS 在 METRICS_RAW 中找不到同 ref+model、带官方与厂商每周 tokens 的估算行: " + t.ref + " · " + t.model);
     return { ...t, lowM: m.wkLowM, highM: m.wkHighM, vendorLowM: m.vendorWkLowM, vendorHighM: m.vendorWkHighM, note: m.note };
 });
 /* ============================================================
@@ -2321,7 +2347,8 @@ const PLAN_TOKENS = [
  * wkLowM/wkHighM = 每周可用 tokens 估算区间（百万）；页面中以「≈估」标记
  * priceM/cur 经 ref 字段引用 PLANS 中对应计划（单一数据源）
  * ============================================================ */
-const ESTIMATES = [
+/** @type {QuotaRow[]} */
+const ESTIMATES: QuotaRow[] = [
     { vendor: "讯飞星辰 MaaS", plan: "Astron Coding Plan 高效版", ver: "—", model: "deepseek-v4-flash",
         region: "cn", ref: "plan-0082", isEst: true,
         reqPer5h: 3000, reqPerWk: 22500, reqPerMo: 45000,
@@ -2452,7 +2479,8 @@ const ESTIMATES = [
         source: "factory.com/pricing" },
 ];
 /* date 是来源写明的发生日。checked 表示这只是本站核对到该状态的日子，不是公告日。 */
-const DYNAMICS = [
+/** @type {DynamicItem[]} */
+const DYNAMICS: DynamicItem[] = [
     { date: "2026-10-07", text: "Anthropic 发布 Claude Haiku 5.5，面向高频、低成本任务，也可作为编程子 Agent；同日宣布 Sonnet 5.5 缓存读取价格减半，以及 Max / Team 订阅按月 API 赠额（逐步开放）。具体计费门槛与赠额资格以官方文档为准。", source: "Anthropic 官方发布博客", url: "https://www.anthropic.com/claude-haiku-5-5" },
     { date: "2026-10-06", text: "Mistral 发布 Large 4 公开预览，可通过 Mistral Studio 的预览 API 使用，支持编程、Agent 与多模态任务。官方计划于 10 月底发布权重；当前仍为预览阶段。", source: "Mistral 官方发布博客", url: "https://mistral.ai/news/mistral-large-4/" },
     { date: "2026-06-01", text: "GitHub Copilot 以「AI Credits」（1 credit = $0.01）全面取代 premium requests，并新增 $100/月的个人 Max 档。", source: "GitHub Docs", url: "https://docs.github.com/en/copilot/get-started/plans" },
@@ -2508,7 +2536,8 @@ const DYNAMICS = [
     { date: "2026-10-06", checked: true, text: "Google 核对：Gemini API 定价页（10-01 更新）与库一致——Gemini 3.8 Flash 介绍价 $0.75/$3.75 至 2026-12-31、2027-01-01 起 $1.50/$7.50，3.1 Pro Preview $2/$12；官方 API 定价页仍无 Gemini 4 系列，「Gemini 4 Argon 介绍价 $2/$10」传闻（社交平台二次传播）继续无官方佐证，未入库。新增弃用公告：Gemini 2.5 Flash Image（Nano Banana）已于 10-02 停用，属图像模型，不影响编程额度。订阅档位消费页价格为 JS 动态渲染，本日未复核（10-05 真实浏览器核对仍有效）。", source: "Gemini API 定价", url: "https://ai.google.dev/gemini-api/docs/pricing" },
 ];
 /* 数据来源（按厂商分组） */
-const SOURCES = [
+/** @type {SourceGroup[]} */
+const SOURCES: SourceGroup[] = [
     { group: "Anthropic（Claude）", urls: [
             "https://claude.com/pricing",
             "https://www.anthropic.com/claude-haiku-5-5",
@@ -2673,7 +2702,8 @@ const SOURCES = [
         ] },
 ];
 /* 未能完全核实 / 存在不确定性的项（页脚展示） */
-const UNCERTAIN = [
+/** @type {string[]} */
+const UNCERTAIN: string[] = [
     "价格逐条核查状态、核查日期与官网链接见来源栏；待核实历史价不参与推荐和排行，未列年付价不等于厂商不存在年付方案。",
     "图中黄色估算柱与额度表的≈估行采用已说明的假设，不能作为厂商承诺的 token 数；官方周 tokens 与请求数、积分和月池分开标注。",
     "汇率日期与官网原价核查日期分别记录；USD 按6.71折算，INR按同日USD/CNY与USD/INR交叉汇率换算，仅作人民币对比。",
@@ -2705,16 +2735,8 @@ const UNCERTAIN = [
     "Claude 订阅页模型列表只写「Sonnet」不分版本；Sonnet 5.5（2026-09-28 上线）按 API 定价页与 Cursor/Copilot 模型列表推定为当前订阅档所含版本。"
 ];
 /* 逐条官方核价记录；由 audit/pricing-verification-2026-10-04.json 维护。 */
-/** @type {{checkedAt:string, sources:Record<string,{url:string,evidence:string,checkedAt?:string}>,rows:Record<string,PriceVerification>}} */
-const PRICE_CHECKS: {
-    checkedAt: string;
-    sources: Record<string, {
-        url: string;
-        evidence: string;
-        checkedAt?: string;
-    }>;
-    rows: Record<string, PriceVerification>;
-} = {
+/** @type {PriceChecks} */
+const PRICE_CHECKS: PriceChecks = {
     "checkedAt": "2026-10-09",
     "sources": {
         "claude-plans": {
@@ -5271,18 +5293,29 @@ const PRICE_CHECKS: {
         }
     }
 };
-function priceCheckOf(p: any, kind = "plan") {
+/** @param {{ id?: string, vendor?: string, model?: string } | null | undefined} p @param {"plan" | "api" | "payg"} [kind] @returns {PriceVerification | null} */
+function priceCheckOf(p: {
+    id?: string;
+    vendor?: string;
+    model?: string;
+} | null | undefined, kind: "plan" | "api" | "payg" = "plan"): PriceVerification | null {
     if (!p)
         return null;
     return PRICE_CHECKS.rows[kind + ":" + (kind === "plan" ? p.id : p.vendor + "|" + p.model)] || null;
 }
-function isPriceConfirmed(p: any, kind = "plan") {
+/** @param {{ id?: string, vendor?: string, model?: string } | null | undefined} p @param {"plan" | "api" | "payg"} [kind] */
+function isPriceConfirmed(p: {
+    id?: string;
+    vendor?: string;
+    model?: string;
+} | null | undefined, kind: "plan" | "api" | "payg" = "plan") {
     const check = priceCheckOf(p, kind);
     return !check || (check.status !== "unverified" && check.status !== "retired");
 }
 /* 核价台账保留维护时的字段名与内部口径；页面、导出和校验器统一经这里改写成读者能懂的说法。
    台账里的「库存」多指本站原记录（与商品库存同字），只改写这种用法，「实际库存」「库存售罄」等保持原意。 */
-function displayPriceReason(reason: any) {
+/** @param {string | null | undefined} reason */
+function displayPriceReason(reason: string | null | undefined) {
     return String(reason || "")
         .replace(/现有priceM为展示目录价/g, "当前展示的是公开目录月费")
         .replace(/在本项目\s*seat\s*会使其退出\s*isPersonalMonthly\s*与\s*eligibleProfiles/g, "标为按席位会让它退出个人月付与推荐范围")

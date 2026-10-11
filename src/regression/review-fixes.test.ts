@@ -13,7 +13,7 @@ const dataSource = fs.readFileSync(path.join(root, "js/data.js"), "utf8");
 const requireTool = createRequire(import.meta.url);
 const { validateData } = requireTool("../../scripts/build/validate-data.js") as { validateData(options: { workspace: string; source: string }): { errors: string[]; warns: string[] } };
 const validate = (source: string) => validateData({ workspace: root, source });
-const badges = (page: Page, id: string) => page.runtime.planBadges(page.runtime.findPlanReference(id)).map((b: { t: string }) => b.t);
+const badges = (page: Page, id: string) => page.runtime.planBadges(page.runtime.findPlanReference(id)!).map((b: { t: string }) => b.t);
 const query = <T extends HTMLElement = HTMLElement>(selector: string) => {
   const element = document.querySelector<T>(selector);
   assert.ok(element, selector);
@@ -106,7 +106,7 @@ test("推荐偏好只改变排序，价格优先最低月费、能力按 DeepSWE
   await page.settle();
   const abilityPool = app.eligibleProfiles(), abilityMain = app.chooseMain(abilityPool)!;
   const score = app.abilityValue(abilityMain.p, abilityMain.headline);
-  assert.ok(score > 0 && app.hardRepresentatives(abilityPool).every((x: { p: Plan; headline: unknown }) => app.abilityValue(x.p, x.headline) <= score));
+  assert.ok(score > 0 && app.hardRepresentatives(abilityPool).every((x) => app.abilityValue(x.p, x.headline) <= score));
   assert.match(page.byId("pickerPolicy").textContent!, /模型能力优先.*DeepSWE v1\.1.*不同评测不合成总分/);
   assert.match(page.byId("quickGrid").textContent!, /本次按 DeepSWE v1\.1 参与排序/);
   const chip = query('#picker .picker-row[data-pick="priority"] [data-value="price"]');
@@ -329,7 +329,7 @@ test("按用量反查可覆盖套餐，提供同模型按量费用与订阅回�
   assert.ok(rows.length >= 3);
   for (const row of rows) {
     assert.ok(row.c.moLow >= 30 && ["高", "中"].includes(row.conf));
-    if (row.apiMonthlyCNY != null) assert.ok(Math.abs(row.breakEvenM * row.apiMonthlyCNY / 30 - row.quote.monthlyCNY) < 1e-6);
+    if (row.apiMonthlyCNY != null) assert.ok(Math.abs(row.breakEvenM! * row.apiMonthlyCNY / 30 - row.quote.monthlyCNY) < 1e-6);
   }
   const prices = rows.map((r) => r.quote.monthlyCNY);
   assert.deepEqual(prices, prices.slice().sort((a, b) => a - b));
@@ -351,7 +351,7 @@ test("大陆可用性只按官方登记展示，不从厂商名推测，校验�
   assert.match(app.mainlandAccessText(app.findPlanReference("plan-0010")), /官方支持地区不含中国大陆（\d{4}-\d{2}-\d{2} 核查）/);
   assert.equal(app.mainlandAccessText(app.findPlanReference("plan-0157")), "国内服务");
   assert.equal(app.mainlandAccessText(app.findPlanReference("plan-0021")), "未核实官方支持地区");
-  const csv = app.tableRowsCsv([app.findPlanReference("plan-0002")]);
+  const csv = app.tableRowsCsv([app.findPlanReference("plan-0002")!]);
   assert.match(csv, /"中国大陆可用性"/);
   assert.match(csv, /官方支持地区不含中国大陆/);
   assert.match(page.byId("quickGrid").textContent!, /官方支持地区不含中国大陆；需要外币或国际账号支付/);

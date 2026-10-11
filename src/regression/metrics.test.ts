@@ -24,20 +24,20 @@ describe("blendPrice（80/20 + 95% 缓存）", () => {
 
 describe("windowTokens（周 tokens → 5h/月展开）", () => {
   test("48–104M/周 → 5h 9.6–20.8M、月 207.84–450.32M", () => {
-    const w = windowTokens({ wkLowM: 48, wkHighM: 104 });
+    const w = windowTokens({ wkLowM: 48, wkHighM: 104 })!;
     assert.ok(near(w.fLow, 9.6) && near(w.fHigh, 20.8));
     assert.ok(near(w.moLow, 207.84) && near(w.moHigh, 450.32));
   });
   test("wkHighM 缺省时视为单值区间", () => {
-    const w = windowTokens({ wkLowM: 10 });
+    const w = windowTokens({ wkLowM: 10 })!;
     assert.ok(near(w.wkHighM, 10) && near(w.fHigh, 2));
   });
   test("请求数制：reqPerWk=2 → 0.04M/周（20K/请求）", () => {
-    const w = windowTokens({ reqPerWk: 2 });
+    const w = windowTokens({ reqPerWk: 2 })!;
     assert.ok(near(w.wkLowM, 0.04) && near(w.moLow, 0.1732, 1e-9));
   });
   test("请求数制：只有 reqPer5h=100 → 2M/5h、10M/周", () => {
-    const w = windowTokens({ reqPer5h: 100 });
+    const w = windowTokens({ reqPer5h: 100 })!;
     assert.ok(near(w.wkLowM, 10) && near(w.fLow, 2) && near(w.moLow, 43.3, 1e-9));
   });
   test("无任何口径 → null", () => {
@@ -47,7 +47,7 @@ describe("windowTokens（周 tokens → 5h/月展开）", () => {
 
 describe("periodRates（分母为时段分摊月费）", () => {
   test("月费 21.65、各时段价值 1 → r5h=1、rwk=0.2、rmo≈0.0462", () => {
-    const r = periodRates(1, 1, 1, 21.65);
+    const r = periodRates(1, 1, 1, 21.65)!;
     assert.ok(near(r.r5h, 1));
     assert.ok(near(r.rwk, 4.33 / 21.65));
     assert.ok(near(r.rmo, 1 / 21.65));
@@ -193,7 +193,7 @@ describe("auditProfiles（帮我选）", () => {
     const weekly = { priceM:p.priceM, cur:p.cur, wkLowM:48, wkHighM:104, apiIn:1, apiOut:2, apiCache:0.1 };
     const c = computeMetrics(weekly);
     assert.ok(c && Number.isFinite(c.priceCNY) && c.costPerM != null && c.costPerM > 0);
-    const usd = computeMetrics({ ...weekly, cur:"USD", priceM:649 });
+    const usd = computeMetrics({ ...weekly, cur:"USD", priceM:649 })!;
     assert.ok(near(c.moMidM, usd.moMidM));
     const credits = computeMetrics({ priceM:649, cur:"INR", creditUSD:20, apiCur:"USD", apiIn:1, apiOut:2, apiCache:0.1 });
     const equivalent = computeMetrics({ priceM:20, cur:"USD", creditUSD:20, apiIn:1, apiOut:2, apiCache:0.1 });

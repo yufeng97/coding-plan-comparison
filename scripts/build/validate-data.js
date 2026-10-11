@@ -277,9 +277,9 @@ function validateData(options = {}) {
     if (m.isEst) check(!!m.method && ["高", "中", "低"].includes(m.confidence), `估算条目缺 method 或有效 confidence: ${key}`);
     warn(!/多模型|混合|全系|全模型/.test(m.model || ""), `模型名仍含糊（多模型/混合/全系/全模型）: ${key}`);
   }
-  /* ref 覆盖率（提醒：指标条目应尽量通过 ref 指向 PLANS 单一价格源） */
+  /* 指标条目的名称、币种与价格只经 ref 取自 PLANS（单一价格源），页面不展示未引用套餐的行。 */
   const noRef = allMetrics.filter((m) => m.ref == null).length;
-  if (noRef > 0) note(`${noRef} 个指标条目未设 ref（价格未与 PLANS 单一数据源对齐）`);
+  check(noRef === 0, `${noRef} 个指标条目未设 ref：名称、币种与价格须经 ref 引用 PLANS`);
 
   /* 币种锚点交叉校验：同厂商、同型号的牌价在 API_PRICES 里有正式条目时，指标行的牌价必须同币种
      （metrics.js 的 blendPrice 假定 apiIn/apiOut 与 ref 计划同币种，填错币种会静默算出错误成本）。

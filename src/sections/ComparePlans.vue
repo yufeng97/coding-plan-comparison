@@ -25,19 +25,21 @@ const compareRows = [
   { id: "position", label: "定位" }, { id: "price", label: "价格" }, { id: "annualTotal", label: "年付全年金额" },
   { id: "quota", label: "额度（官方口径）" }, { id: "models", label: "模型" }, { id: "tools", label: "支持工具" },
   { id: "note", label: "备注" }, { id: "check", label: "价格核查" },
-];
-function rowValue(id: string, plan: Plan) {
+] as const;
+type CompareRowId = (typeof compareRows)[number]["id"];
+/* 定位与价格核查行由模板渲染组件，不参与文字比较。 */
+function rowValue(id: CompareRowId, plan: Plan) {
   if (id === "price") return runtime.planPriceLabel(plan) + "|" + (plan.priceY == null ? "" : runtime.planPriceLabel(plan, "Y"));
   if (id === "annualTotal") return runtime.annualPaymentText(plan);
+  if (id === "position" || id === "check") return "";
   return runtime.resolvedField(plan, id) || (id === "note" ? "—" : "");
 }
-function differs(id: string) { return ["price", "annualTotal", "quota", "models", "tools"].includes(id) && count.value > 1 && new Set(items.value.map((plan) => rowValue(id, plan))).size > 1; }
+function differs(id: CompareRowId) { return ["price", "annualTotal", "quota", "models", "tools"].includes(id) && count.value > 1 && new Set(items.value.map((plan) => rowValue(id, plan))).size > 1; }
 function flash(id: string, text: string) {
   labels.value[id] = text;
   clearTimeout(timers.get(id));
   timers.set(id, setTimeout(() => { delete labels.value[id]; timers.delete(id); }, 1800));
 }
-function syncButtons() { runtime.syncTableCmpButtons(); }
 function add(reference: string, plan?: string) {
   const selected = runtime.findPlanReference(plan == null ? reference : [reference, plan]);
   if (!selected || items.value.some((item) => item.id === selected.id)) return;
@@ -46,7 +48,7 @@ function add(reference: string, plan?: string) {
     runtime.tableFeedback(`最多对比 ${runtime.CMP_MAX} 档，请先移出一档再添加。`); return;
   }
   runtime.cmpState.items = [...items.value, selected];
-  syncButtons(); runtime.syncUrl(); feedback.value = "";
+  runtime.syncUrl(); feedback.value = "";
   runtime.tableFeedback(`已加入 ${runtime.shortVendor(selected.vendor)} ${selected.plan}。当前选择 ${count.value}/${runtime.CMP_MAX} 档${count.value === 1 ? '，再选一档即可比较' : ''}。`);
 }
 async function remove(reference: string, plan?: string) {
@@ -55,7 +57,7 @@ async function remove(reference: string, plan?: string) {
   const removed = items.value[index]!;
   const modalOpen = runtime.isCmpModalOpen();
   runtime.cmpState.items = items.value.filter((item) => item.id !== removed.id);
-  syncButtons(); runtime.syncUrl(); feedback.value = "";
+  runtime.syncUrl(); feedback.value = "";
   runtime.tableFeedback(`已移出 ${runtime.shortVendor(removed.vendor)} ${removed.plan}。当前选择 ${count.value}/${runtime.CMP_MAX} 档。`);
   if (!modalOpen) return;
   if (count.value < 2) close();
@@ -69,7 +71,7 @@ function clear() {
   if (!count.value) return;
   const focusInBar = document.activeElement?.closest("#cmpBar");
   runtime.cmpState.items = [];
-  syncButtons(); runtime.syncUrl(); feedback.value = "";
+  runtime.syncUrl(); feedback.value = "";
   close();
   if (focusInBar) runtime.focusTableControl(document.getElementById("searchInput"));
   runtime.tableFeedback("已清空对比选择。");

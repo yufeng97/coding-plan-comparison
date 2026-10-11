@@ -13,8 +13,8 @@ const stats: Stat[] = [
   { icon: 'gift', num: PLANS.filter(isFreeCodingEntry).length, lbl: '免费可用入口', sub: '见「免费 Coding 入口」' },
   { icon: 'tag', num: API_PRICES.length, lbl: 'API 模型单价', sub: '输入 / 输出对比' },
 ];
-if (minimumPlan) stats.push({ icon: 'down', num: fmtCNY(minimum), lbl: '最低月费', sub: '/月 · ' + planLabel(minimumPlan) });
-if (maximumPlan) stats.push({ icon: 'up', num: fmtCNY(maximum), lbl: '最高月费', sub: '/月 · ' + planLabel(maximumPlan) });
+if (minimumPlan && minimum != null) stats.push({ icon: 'down', num: fmtCNY(minimum), lbl: '最低月费', sub: '/月 · ' + planLabel(minimumPlan) });
+if (maximumPlan && maximum != null) stats.push({ icon: 'up', num: fmtCNY(maximum), lbl: '最高月费', sub: '/月 · ' + planLabel(maximumPlan) });
 </script>
 
 <template>

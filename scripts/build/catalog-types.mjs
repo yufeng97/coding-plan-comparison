@@ -8,15 +8,19 @@ import { assertPublicSource } from "./vite-assets.mjs";
 
 export const CATALOG_FILE = "src/domain/catalog.ts";
 export const CATALOG_INPUTS = ["js/data.js", "js/benchmark-summary.js", "js/project-data.js"];
-const TYPES = {
-  PLANS: "Plan[]",
-  PRICE_CHECKS: "{ checkedAt: string; sources: Record<string, { url: string; evidence: string; checkedAt?: string }>; rows: Record<string, PriceVerification> }",
-  BENCHMARK_SUMMARY: "BenchmarkSummary",
-};
 const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
 function typeNode(text) {
   const source = ts.createSourceFile("catalog-type.ts", `type CatalogType = ${text};`, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
-  return /** @type {import("typescript").TypeAliasDeclaration} */ (source.statements[0]).type;
+  /* 解析出的节点带着这段临时文本的位置；标为合成节点，打印时才不会按目标文件的同一位置取字面量。 */
+  const synthesize = (node) => { ts.setTextRange(node, { pos: -1, end: -1 }); ts.forEachChild(node, synthesize); };
+  const type = /** @type {import("typescript").TypeAliasDeclaration} */ (source.statements[0]).type;
+  synthesize(type);
+  return type;
+}
+/** 数据文件里的 JSDoc 类型（结构类型见 js/globals.d.ts）原样转成 TypeScript 注解。 */
+function jsDocType(node, source) {
+  const type = ts.getJSDocType(node);
+  return type ? typeNode(type.getText(source)) : undefined;
 }
 function collectBindingNames(name, out) {
   if (ts.isIdentifier(name)) out.push(name.text);
@@ -44,13 +48,29 @@ export function catalogSource(root) {
     }
     const result = ts.transform(source, [(context) => {
       const visit = (node) => {
-        if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && TYPES[node.name.text]) {
-          return ts.factory.updateVariableDeclaration(node, node.name, node.exclamationToken, typeNode(TYPES[node.name.text]), /** @type {import("typescript").Expression} */ (ts.visitNode(node.initializer, visit)));
+        if (ts.isVariableDeclaration(node) && !node.type) {
+          const type = jsDocType(node, source);
+          if (type) return ts.factory.updateVariableDeclaration(node, node.name, node.exclamationToken, type, /** @type {import("typescript").Expression | undefined} */ (ts.visitNode(node.initializer, visit)));
         }
-        if (ts.isParameter(node) && !node.type && !node.initializer) {
-          const optional = ts.isFunctionDeclaration(node.parent) && node.parent.name?.text === "resolvedField" && ts.isIdentifier(node.name) && node.name.text === "seen";
-          const type = node.dotDotDotToken ? ts.factory.createArrayTypeNode(ts.factory.createKeywordTypeNode(ts.SyntaxKind.AnyKeyword)) : ts.factory.createKeywordTypeNode(ts.SyntaxKind.AnyKeyword);
-          return ts.factory.updateParameterDeclaration(node, node.modifiers, node.dotDotDotToken, node.name, node.questionToken || (optional ? ts.factory.createToken(ts.SyntaxKind.QuestionToken) : undefined), type, node.initializer);
+        if (ts.isParameter(node) && !node.type) {
+          const type = jsDocType(node, source);
+          if (type) {
+            /* JSDoc 的 [name] 表示可省略；带默认值的参数本身就可省略。 */
+            const optional = !node.initializer && !node.questionToken && ts.getJSDocParameterTags(node).some((tag) => tag.isBracketed);
+            return ts.factory.updateParameterDeclaration(node, node.modifiers, node.dotDotDotToken, node.name, optional ? ts.factory.createToken(ts.SyntaxKind.QuestionToken) : node.questionToken, type, node.initializer);
+          }
+          /* 回调参数由调用处推断类型；顶层函数的参数必须在数据文件里写明。 */
+          if (ts.isFunctionDeclaration(node.parent)) {
+            const { line } = source.getLineAndCharacterOfPosition(node.getStart(source));
+            throw new Error(`${file}:${line + 1} 函数 ${node.parent.name?.text} 的参数 ${node.name.getText(source)} 缺少 JSDoc 类型`);
+          }
+        }
+        if (ts.isFunctionDeclaration(node) && !node.type) {
+          const returns = ts.getJSDocReturnType(node);
+          if (returns) {
+            const visited = /** @type {import("typescript").FunctionDeclaration} */ (ts.visitEachChild(node, visit, context));
+            return ts.factory.updateFunctionDeclaration(visited, visited.modifiers, visited.asteriskToken, visited.name, visited.typeParameters, visited.parameters, typeNode(returns.getText(source)), visited.body);
+          }
         }
         return ts.visitEachChild(node, visit, context);
       };

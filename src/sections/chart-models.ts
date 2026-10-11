@@ -71,7 +71,7 @@ export function weeklyRows() {
     const plan = app.findPlanReference(t.ref);
     return plan && app.isPriceConfirmed(plan) && !app.isRetiredPlan(plan)
       ? [{ label: app.planLabel(plan) + " · " + app.displayModelName(t.model), lowM: t.lowM, highM: t.highM,
-        priceCNY: app.toCNY(plan.priceM, plan.cur), isOfficial: true, conf: "中" }] : [];
+        priceCNY: app.toCNY(plan.priceM ?? 0, plan.cur), isOfficial: true, conf: "中" }] : [];
   });
   const covered = new Set(app.PLAN_TOKENS.map((t) => app.findPlanReference(t.ref)?.id).filter(Boolean));
   const extra = app.METRICS_ALL.filter((metric) => {
@@ -84,7 +84,7 @@ export function weeklyRows() {
     if (!result || result.wkLowM == null || result.wkHighM == null) return [];
     const provenance = app.provenance(metric);
     return [{ label: app.metricChartLabel(metric), lowM: result.wkLowM, highM: result.wkHighM,
-      priceCNY: app.toCNY(current.priceM, current.cur), isOfficial: !metric.isEst && provenance.conf === "高", conf: metric.confidence || provenance.conf }];
+      priceCNY: app.toCNY(current.priceM ?? 0, current.cur), isOfficial: !metric.isEst && provenance.conf === "高", conf: metric.confidence || provenance.conf }];
   });
   return [...official, ...extra].map((row) => ({ ...row, midM: (row.lowM + row.highM) / 2 }))
     .sort((a, b) => (b.priceCNY > 0 ? b.midM / b.priceCNY : -1) - (a.priceCNY > 0 ? a.midM / a.priceCNY : -1));

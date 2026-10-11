@@ -2,7 +2,7 @@
 import { SOURCES, UNCERTAIN, RATE_USD_CNY, currentPriceSources, displayPriceReason, PLANS, API_PRICES, PAYG_REFERENCES, priceCheckOf } from '@domain/runtime';
 import PriceCheck from './PriceCheck.vue';
 const priceSources = currentPriceSources();
-const pendingPrices = [...PLANS.map(p => ({ p, kind: 'plan' })), ...API_PRICES.map(p => ({ p, kind: 'api' })), ...PAYG_REFERENCES.map(p => ({ p, kind: 'payg' }))].filter(({ p, kind }) => priceCheckOf(p, kind)?.status === 'unverified');
+const pendingPrices = [...PLANS.map(p => ({ p, kind: 'plan' as const })), ...API_PRICES.map(p => ({ p, kind: 'api' as const })), ...PAYG_REFERENCES.map(p => ({ p, kind: 'payg' as const }))].filter(({ p, kind }) => priceCheckOf(p, kind)?.status === 'unverified');
 </script>
 <template>
   <div class="grid-2">

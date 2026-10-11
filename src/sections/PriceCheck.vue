@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import * as runtime from "@domain/runtime";
+import type { PriceCheckKind } from "@domain/runtime";
 type PriceItem = Plan | (typeof runtime.API_PRICES)[number] | (typeof runtime.PAYG_REFERENCES)[number];
-const props = withDefaults(defineProps<{ plan: PriceItem; kind?: string }>(), { kind: "plan" });
+const props = withDefaults(defineProps<{ plan: PriceItem; kind?: PriceCheckKind }>(), { kind: "plan" });
 const check = computed(() => runtime.priceCheckOf(props.plan, props.kind));
 const urls = computed(() => runtime.priceCheckSources(props.plan, props.kind));
 </script>

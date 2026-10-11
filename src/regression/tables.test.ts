@@ -456,7 +456,7 @@ test("额度默认范围与排行同样排除轻量和续费档，可明确切�
   const app = page.runtime;
   app.resetMetricsFilters();
   await page.settle();
-  const current = app.metricsTableRows().rows as { m: { model: string; plan: string } }[];
+  const current = app.metricsTableRows().rows;
   assert.equal(current.every((r) => app.metricOfferOk(r.m) && app.isFlagshipModelName(r.m.model)), true);
   assert.equal(current.some((r) => /老用户|续费/.test(r.m.plan)), false);
   Object.assign(app.metricsState, { tier: "all", offer: "all" });

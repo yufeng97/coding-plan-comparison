@@ -2,11 +2,11 @@
  * 全年金额冲突的数据校验见 data.test.ts。 */
 import assert from "node:assert/strict";
 import { test } from "vitest";
+import type { RankRow } from "@domain/runtime";
 import { openPage, type Page } from "../test/page";
 
-const near = (actual: number | null | undefined, expected: number) => assert.ok(Math.abs((actual ?? NaN) - expected) < 1e-8, `${actual} != ${expected}`);
+const near = (actual: number | null | undefined, expected: number | null | undefined) => assert.ok(Math.abs((actual ?? NaN) - (expected ?? NaN)) < 1e-8, `${actual} != ${expected}`);
 const plan = (page: Page, id: string) => page.runtime.findPlanReference(id) as Plan;
-type RankRow = { m: { ref: string }; c: { priceCNY: number; moLow: number; moHigh: number; costPerM: number } };
 const rankRow = (page: Page, rows: RankRow[] = page.runtime.rankRows()) => rows.find((r) => r.m.ref === "plan-0157");
 
 test("排行局部选购按年付及续费重算，折扣不改变额度并随预算过滤", async () => {
@@ -92,9 +92,13 @@ test("年付图只显示公开年价，缺失年价不能挪用月价", async ()
 test("全年结构金额不受备注折月措辞影响，缺结构字段才估算", async () => {
   const page = await openPage();
   const app = page.runtime;
-  near(app.pickerAnnualNative({ ...plan(page, "plan-0002"), note: "年付 $16.67（折月）" }), 200);
-  near(app.pickerAnnualNative({ priceM: 118, priceY: 82.6, cur: "CNY", note: "年付 ¥82.6（折月）" }), 82.6 * 12);
-  assert.equal(app.pickerAnnualExact({ priceY: 82.6, note: "年付 ¥82.6（折月）" }), null);
+  /* 备注里的折月措辞不参与计算。 */
+  const noted: Plan = { ...plan(page, "plan-0002"), note: "年付 $16.67（折月）" };
+  near(app.pickerAnnualNative(noted), 200);
+  const listed = { priceM: 118, priceY: 82.6, cur: "CNY", note: "年付 ¥82.6（折月）" };
+  near(app.pickerAnnualNative(listed), 82.6 * 12);
+  const annualOnly: Partial<Plan> = { priceY: 82.6, note: "年付 ¥82.6（折月）" };
+  assert.equal(app.pickerAnnualExact(annualOnly), null);
   page.healthy();
 });
 

@@ -1,25 +1,36 @@
 import { reactive } from 'vue';
+import type { EChartsType } from 'echarts/core';
 import { ESTIMATES, findPlanReference, hasOwnClient, isFourWeekPlan, isOneTimePlan, isPriceConfirmed, isRelay, isRenewalOnly, isRetiredPlan, isSoldOut, mainlandAccessOf, META, METRICS_RAW, MODEL_ROLES, offerable, PRICE_CHECKS, priceCheckOf, RATE_USD_CNY, resolvedField } from './catalog';
 import { toCNY } from './metrics';
 import type { ChartPalette } from './model-types';
 import { renderApiChart, renderPersonalChart, renderRankChart, renderTeamChart, renderTokensChart } from './charts';
 import { renderPublicBenchmarkChart } from './maintenance';
 
-export const navigationHooks: { navigate?: (...args: any[]) => void; restore?: (...args: any[]) => void } = {};
-export function navigateToSection(...args: any[]) { navigationHooks.navigate?.(...args); }
-export function restoreHistoryState(...args: any[]) { navigationHooks.restore?.(...args); }
+/* 章节导航与历史恢复在 startup 里实现；业务模块经这两个钩子调用，避免反向依赖页面启动代码。 */
+export const navigationHooks: {
+    navigate?: (hash: string, updateHistory?: boolean, moveFocus?: boolean, allowInitialLayout?: boolean) => void;
+    restore?: (search: string | Event, restoreAnchor?: boolean) => void;
+} = {};
+export function navigateToSection(hash: string, updateHistory?: boolean, moveFocus?: boolean, allowInitialLayout?: boolean) { navigationHooks.navigate?.(hash, updateHistory, moveFocus, allowInitialLayout); }
+export function restoreHistoryState(search: string | Event, restoreAnchor?: boolean) { navigationHooks.restore?.(search, restoreAnchor); }
 
-/* ============ Coding Plan 比价中心 渲染逻辑 ============ */
+export type Billing = "M" | "Y";
+export type PlanCategory = Plan["cat"];
+export type PlanRegion = Plan["region"];
+/** 价格核查记录的种类：套餐、API 按量单价、额度表按量参照。 */
+export type PriceCheckKind = "plan" | "api" | "payg";
+/** 可查核价记录的对象：套餐按永久 ID，API 与按量参照按「厂商|型号」。 */
+export type PriceSubject = { id?: string; vendor?: string; model?: string };
 
-export const CAT_LABEL = { official: "模型官方订阅", tool: "第三方工具订阅", cloud: "云厂商/API 套餐", team: "团队 / 企业档" };
-export const REGION_LABEL = { cn: "国内", intl: "国际" };
+export const CAT_LABEL: Record<PlanCategory, string> = { official: "模型官方订阅", tool: "第三方工具订阅", cloud: "云厂商/API 套餐", team: "团队 / 企业档" };
+export const REGION_LABEL: Record<PlanRegion, string> = { cn: "国内", intl: "国际" };
 /* 类别色值以 css/style.css 的 --cat-* 变量为单一数据源：图表、HTML 图例、类别标签共用。
    主题切换时 refreshPalette() 会重读变量（暗色取更亮的一组），图例与图表同步。 */
-export let CAT_COLOR = { official: "#5575f6", tool: "#16b8a6", cloud: "#ff973d", team: "#8d6bea" };
+export let CAT_COLOR: Record<PlanCategory, string> = { official: "#5575f6", tool: "#16b8a6", cloud: "#ff973d", team: "#8d6bea" };
 export let RELAY_COLOR = "#d4534a";
 export function refreshCategoryColors() {
     const cs = getComputedStyle(document.documentElement);
-    const v = (n: any) => (cs.getPropertyValue(n) || "").trim();
+    const v = (name: string) => (cs.getPropertyValue(name) || "").trim();
     CAT_COLOR = {
         official: v("--cat-official") || CAT_COLOR.official,
         tool: v("--cat-tool") || CAT_COLOR.tool,
@@ -28,7 +39,7 @@ export function refreshCategoryColors() {
     };
     RELAY_COLOR = v("--cat-relay") || RELAY_COLOR;
 }
-export const VENDOR_SHORT = {
+const VENDOR_SHORT: Record<string, string> = {
     "Cognition Devin Desktop（原 Windsurf）": "Devin Desktop",
     "Cognition Devin Desktop": "Devin Desktop",
     "Cognition Devin（云 agent）": "Devin 云",
@@ -55,39 +66,38 @@ export const VENDOR_SHORT = {
     "硅基流动 SiliconFlow": "硅基流动",
     "阶跃星辰 StepFun": "阶跃",
 };
-/* 经典脚本各自独立求值：data.js 缺失或中途出错时给出单一明确报错，
-   而不是让后续每个顶层常量各自抛 ReferenceError。 */
 
 export const RATE = RATE_USD_CNY;
 /* 「帮我选」模型角色表的归类日期，取自 data.js 的 MODEL_ROLES.asOf */
-export const MODEL_ROLES_ASOF = (MODEL_ROLES.find((r: { id: string; name: string; re: RegExp; task: string; burn: string; band: string; ceiling: boolean; reason: string; asOf: string; } | { id: string; name: string; re: RegExp; task: string; burn: string; band: string; reason: string; asOf: string; ceiling?: undefined; }) => r.asOf) || {}).asOf || META.updated;
+export const MODEL_ROLES_ASOF = MODEL_ROLES.find((r) => r.asOf)?.asOf || META.updated;
 /* ---------- 计划主索引：METRICS_RAW / ESTIMATES / PLAN_TOKENS 经 ref 引用 PLANS 的价格（单一数据源） ---------- */
-export function resolvePlan(m: any) {
-    /* ref 可解析时，身份、名称和价格统一取 PLANS；model 等额度口径仍由该行保留。 */
-    if (m.ref != null) {
-        const p = findPlanReference(m.ref);
-        if (p)
-            return { ...m, vendor: p.vendor, plan: p.plan, priceM: p.priceM, cur: p.cur, windowPeriod: m.windowPeriod || p.windowPeriod || "unknown" };
-        console.warn("[data] ref 未解析，已跳过:", m.ref);
-        return null;
-    }
-    return m;
+/** 额度行解析后的完整口径：身份、名称与价格来自引用的套餐，模型与额度口径保留在行内。 */
+export interface MetricRow extends QuotaRow {
+    priceM: number | null;
+    cur: Plan["cur"];
+    windowPeriod: NonNullable<Plan["windowPeriod"]>;
+    isEst?: boolean;
+}
+/** 名称、价格与周期取自引用套餐；引用无法解析时返回 null（校验器同样报错）。 */
+export function resolvePlan(m: QuotaRow): MetricRow | null {
+    const p = findPlanReference(m.ref);
+    if (p)
+        return { ...m, vendor: p.vendor, plan: p.plan, priceM: p.priceM, cur: p.cur, windowPeriod: m.windowPeriod || p.windowPeriod || "unknown" };
+    console.warn("[data] ref 未解析，已跳过:", m.ref);
+    return null;
 }
 /* Vue components and domain actions share the same reactive state. */
-/**
- * @template {Record<string, any>} T
- * @param {T} value
- * @returns {T}
- */
-export function appState<T extends Record<string, any>>(value: T): T {
+export function appState<T extends object>(value: T): T {
     return reactive(value) as T;
 }
-export function esc(s: any) {
-    return String(s ?? "").replace(/[&<>"']/g, (ch: string) => ({
+/** HTML 转义：ECharts 提示框等字符串模板使用。 */
+export function esc(s: unknown) {
+    return String(s ?? "").replace(/[&<>"']/g, (ch) => ({
         "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
-    }[ch]));
+    })[ch as "&" | "<" | ">" | '"' | "'"]);
 }
-export function safeHref(u: any) {
+/** 只接受 http(s) 链接并转义，供字符串模板使用；其他协议返回空串。 */
+export function safeHref(u: unknown) {
     const s = String(u ?? "").trim();
     return /^https?:\/\//i.test(s) ? esc(s) : "";
 }
@@ -96,25 +106,27 @@ export function safeLink(value: unknown): string {
     const href = String(value ?? '').trim();
     return /^https?:\/\//i.test(href) ? href : '';
 }
-/* 辅助视图的数据脚本在访问时下载。它们是生成的经典脚本（构建时按内容哈希另存），页面虚拟 DOM 与维护脚本直接读取同一文件。 */
-export const optionalDataLoads = {};
-export function optionalDataLoaded(kind: any) {
+/* 辅助视图的数据脚本在访问时下载。它们是生成的经典脚本（构建时按内容哈希另存），维护脚本直接读取同一文件。 */
+export type OptionalDataKind = "maintenance" | "benchmark";
+export const optionalDataLoads: Partial<Record<OptionalDataKind, Promise<void>>> = {};
+export function optionalDataLoaded(kind: OptionalDataKind) {
     return kind === "maintenance" ? typeof MAINTENANCE !== "undefined" && MAINTENANCE.schemaVersion === 1
         : kind === "benchmark" && typeof BENCHMARKS !== "undefined" && BENCHMARKS.schemaVersion === 1;
 }
-export function ensureOptionalData(kind: any) {
+export function ensureOptionalData(kind: OptionalDataKind): Promise<void> {
     if (optionalDataLoaded(kind))
         return Promise.resolve();
-    if (optionalDataLoads[kind])
-        return optionalDataLoads[kind];
+    const loading = optionalDataLoads[kind];
+    if (loading)
+        return loading;
     const descriptor = byId(kind + "DataSource");
     if (!descriptor)
         return Promise.reject(new Error("缺少数据入口"));
     const pending = new Promise<void>((resolve, reject) => {
         const script = document.createElement("script");
         script.dataset.optionalData = kind;
-        let timer;
-        const finish = (error: any) => {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const finish = (error: Error | null) => {
             clearTimeout(timer);
             script.onload = script.onerror = null;
             if (error) {
@@ -127,7 +139,7 @@ export function ensureOptionalData(kind: any) {
         };
         script.onload = () => finish(optionalDataLoaded(kind) ? null : new Error("数据文件内容不完整"));
         script.onerror = () => finish(new Error("数据文件下载失败"));
-        script.src = descriptor.getAttribute("src");
+        script.src = descriptor.getAttribute("src") ?? "";
         timer = setTimeout(() => finish(new Error("数据下载超时，请重试")), 15000);
         document.head.appendChild(script);
     });
@@ -135,10 +147,11 @@ export function ensureOptionalData(kind: any) {
     return pending;
 }
 /* 计划分类（含中转站名单 isRelay）、offerable、resolvedField、hasOwnClient 在 js/data.js，页面与校验器共用。 */
-/* Quota and model classification calculations are imported from ./metrics. */
+export interface PlanBadge { t: string; k: "risk" | "agent"; }
+const PURCHASE_COUNTRY_NAMES: Record<string, string> = { IN: "印度", CN: "中国", US: "美国" };
 /* 风险标签只读结构化字段：备注里的「支持 BYOK」「季付 $403.2」等文字不能推断为必须自备 Key 或访问异常。 */
-export function planBadges(p: any) {
-    const badges = [];
+export function planBadges(p: Plan): PlanBadge[] {
+    const badges: PlanBadge[] = [];
     const check = priceCheckOf(p);
     if (check && check.status === "unverified")
         badges.push({ t: "价格待核", k: "risk" });
@@ -158,10 +171,8 @@ export function planBadges(p: any) {
     const mainland = mainlandAccessOf(p);
     if (mainland)
         badges.push({ t: mainland.status === "unsupported" ? "不服务中国大陆" : "部分模型限地区", k: "risk" });
-    if (p.purchaseCountries && p.purchaseCountries.length) {
-        const countries = { IN: "印度", CN: "中国", US: "美国" };
-        badges.push({ t: "仅限" + p.purchaseCountries.map((c: any) => countries[c] || c).join("/"), k: "risk" });
-    }
+    if (p.purchaseCountries && p.purchaseCountries.length)
+        badges.push({ t: "仅限" + p.purchaseCountries.map((c) => PURCHASE_COUNTRY_NAMES[c] || c).join("/"), k: "risk" });
     if (p.accessUnstable)
         badges.push({ t: "访问不稳", k: "risk" });
     if (/Claude Code/i.test(tools))
@@ -170,41 +181,40 @@ export function planBadges(p: any) {
         badges.push({ t: "Codex", k: "agent" });
     if (p.vendor === "Cursor" || /\bCursor\b/i.test(tools))
         badges.push({ t: "Cursor", k: "agent" });
-    if (!badges.some((b: { t: string; k: string; }) => b.k === "agent") && !isRelay(p) && hasOwnClient(p))
+    if (!badges.some((b) => b.k === "agent") && !isRelay(p) && hasOwnClient(p))
         badges.push({ t: "自家客户端", k: "agent" });
     return badges;
 }
 /* 中国大陆可用性的展示文案：国内档为国内服务；国际档只在登记了官方说明时给结论，其余标未核实。 */
-export function mainlandAccessText(p: any) {
+export function mainlandAccessText(p: Plan | null | undefined) {
     const access = mainlandAccessOf(p);
     if (access)
         return `${access.status === "unsupported" ? "官方支持地区不含中国大陆" : "服务可用，部分模型受供应商地区限制"}（${access.checkedAt} 核查）：${access.evidence}`;
     return p && p.region === "cn" ? "国内服务" : "未核实官方支持地区";
 }
-export function metricOfferOk(m: any) {
+/** 额度行对应的档位是否仍可正常购买（排除停售、待核价、一次性、仅老用户与限量）；只传 ref 时只看档位本身。 */
+export function metricOfferOk(m: Pick<QuotaRow, "ref"> & { plan?: string }) {
     if (/已停售|已下架|老用户|一次性|预付/.test(m.plan || ""))
         return false;
-    if (m.ref != null) {
-        const p = findPlanReference(m.ref);
-        if (p && (isRetiredPlan(p) || !isPriceConfirmed(p) || isOneTimePlan(p) || isRenewalOnly(p) || !offerable(p)))
-            return false;
-    }
+    const p = findPlanReference(m.ref);
+    if (p && (isRetiredPlan(p) || !isPriceConfirmed(p) || isOneTimePlan(p) || isRenewalOnly(p) || !offerable(p)))
+        return false;
     return true;
 }
-export function adoptMetric(m: any, isEst: any) {
+function adoptMetric(m: QuotaRow, isEst: boolean): MetricRow | null {
     const resolved = resolvePlan(m);
     return resolved ? { ...resolved, isEst } : null;
 }
-export const METRICS_ALL = [
-    ...METRICS_RAW.map((m: { vendor: string; plan: string; ver: string; model: string; region: string; ref: string; weeklyChart: boolean; wkLowM: number; wkHighM: number; vendorWkLowM: number; vendorWkHighM: number; apiIn: number; apiOut: number; apiCache: number; tps: string; source: string; note: string; reqPer5h?: undefined; reqPerWk?: undefined; reqPerMo?: undefined; creditUSD?: undefined; creditCNY?: undefined; } | { vendor: string; plan: string; ver: string; model: string; region: string; ref: string; weeklyChart: boolean; reqPer5h: number; reqPerWk: number; apiIn: number; apiOut: number; apiCache: number; tps: string; source: string; note: string; wkLowM?: undefined; wkHighM?: undefined; vendorWkLowM?: undefined; vendorWkHighM?: undefined; reqPerMo?: undefined; creditUSD?: undefined; creditCNY?: undefined; } | { vendor: string; plan: string; ver: string; model: string; region: string; ref: string; wkLowM: number; wkHighM: number; vendorWkLowM: number; vendorWkHighM: number; apiIn: number; apiOut: number; apiCache: number; tps: string; source: string; note: string; weeklyChart?: undefined; reqPer5h?: undefined; reqPerWk?: undefined; reqPerMo?: undefined; creditUSD?: undefined; creditCNY?: undefined; } | { vendor: string; plan: string; ver: string; model: string; region: string; ref: string; wkLowM: number; wkHighM: number; apiIn: number; apiOut: number; apiCache: number; tps: string; source: string; note: string; weeklyChart?: undefined; vendorWkLowM?: undefined; vendorWkHighM?: undefined; reqPer5h?: undefined; reqPerWk?: undefined; reqPerMo?: undefined; creditUSD?: undefined; creditCNY?: undefined; } | { vendor: string; plan: string; ver: string; model: string; region: string; ref: string; reqPer5h: number; reqPerWk: number; reqPerMo: number; apiIn: number; apiOut: number; apiCache: number; tps: string; source: string; note: string; weeklyChart?: undefined; wkLowM?: undefined; wkHighM?: undefined; vendorWkLowM?: undefined; vendorWkHighM?: undefined; creditUSD?: undefined; creditCNY?: undefined; } | { vendor: string; plan: string; ver: string; model: string; region: string; ref: string; creditUSD: number; apiIn: number; apiOut: number; apiCache: number; tps: string; source: string; note: string; weeklyChart?: undefined; wkLowM?: undefined; wkHighM?: undefined; vendorWkLowM?: undefined; vendorWkHighM?: undefined; reqPer5h?: undefined; reqPerWk?: undefined; reqPerMo?: undefined; creditCNY?: undefined; } | { vendor: string; plan: string; ver: string; model: string; region: string; ref: string; reqPerWk: number; reqPerMo: number; apiIn: number; apiOut: number; apiCache: number; tps: string; source: string; note: string; weeklyChart?: undefined; wkLowM?: undefined; wkHighM?: undefined; vendorWkLowM?: undefined; vendorWkHighM?: undefined; reqPer5h?: undefined; creditUSD?: undefined; creditCNY?: undefined; } | { vendor: string; plan: string; ver: string; model: string; region: string; ref: string; creditCNY: number; apiIn: number; apiOut: number; apiCache: number; tps: string; source: string; note: string; weeklyChart?: undefined; wkLowM?: undefined; wkHighM?: undefined; vendorWkLowM?: undefined; vendorWkHighM?: undefined; reqPer5h?: undefined; reqPerWk?: undefined; reqPerMo?: undefined; creditUSD?: undefined; }) => adoptMetric(m, false)),
-    ...ESTIMATES.map((m: { vendor: string; plan: string; ver: string; model: string; region: string; ref: string; isEst: boolean; reqPer5h: number; reqPerWk: number; reqPerMo: number; apiIn: number; apiOut: number; apiCache: number; tps: string; method: string; confidence: string; confidenceReason: string; source: string; note: string; wkLowM?: undefined; wkHighM?: undefined; reqLowPer5h?: undefined; reqHighPer5h?: undefined; tokensLowPerReq?: undefined; tokensHighPerReq?: undefined; } | { vendor: string; plan: string; ver: string; model: string; region: string; ref: string; wkLowM: number; wkHighM: number; apiIn: number; apiOut: number; apiCache: number; tps: string; method: string; confidence: string; note: string; source: string; isEst?: undefined; reqPer5h?: undefined; reqPerWk?: undefined; reqPerMo?: undefined; confidenceReason?: undefined; reqLowPer5h?: undefined; reqHighPer5h?: undefined; tokensLowPerReq?: undefined; tokensHighPerReq?: undefined; } | { vendor: string; plan: string; ver: string; model: string; region: string; ref: string; reqLowPer5h: number; reqHighPer5h: number; tokensLowPerReq: number; tokensHighPerReq: number; apiIn: number; apiOut: number; apiCache: number; tps: string; method: string; confidence: string; note: string; source: string; isEst?: undefined; reqPer5h?: undefined; reqPerWk?: undefined; reqPerMo?: undefined; confidenceReason?: undefined; wkLowM?: undefined; wkHighM?: undefined; }) => adoptMetric(m, true)),
-].filter(Boolean);
+export const METRICS_ALL: MetricRow[] = [
+    ...METRICS_RAW.map((m) => adoptMetric(m, false)),
+    ...ESTIMATES.map((m) => adoptMetric(m, true)),
+].filter((m): m is MetricRow => m !== null);
 /* ---------- 工具函数 ---------- */
-export const shortVendor = (v: any) => VENDOR_SHORT[v] || v;
-export const fmtCNY = (n: any) => "¥" + (Math.round(n * 10) / 10).toLocaleString("zh-CN");
-export const trunc = (s: any, n: any) => (!s ? "—" : (s.length > n ? s.slice(0, n) + "…" : s));
+export const shortVendor = (v: string) => VENDOR_SHORT[v] || v;
+export const fmtCNY = (n: number) => "¥" + (Math.round(n * 10) / 10).toLocaleString("zh-CN");
+export const trunc = (s: string | null | undefined, n: number) => (!s ? "—" : (s.length > n ? s.slice(0, n) + "…" : s));
 /* ---------- 内联 SVG 图标（替代 173KB 的 Remix Icon 字体；stroke 继承 currentColor） ---------- */
-export const ICON_SVG = {
+const ICON_SVG = {
     globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
     stack: '<path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="m3 12.5 9 5 9-5"/><path d="m3 17 9 5 9-5"/>',
     gift: '<rect x="3.5" y="7.5" width="17" height="4.5" rx="1"/><path d="M5.5 12v7a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-7M12 7.5V21"/><path d="M12 7.5C9 7.5 7.2 6.6 7.2 5.2 7.2 4 8.2 3 9.4 3c1.7 0 2.6 2 2.6 4.5C12 5 12.9 3 14.6 3c1.2 0 2.2 1 2.2 2.2 0 1.4-1.8 2.3-4.8 2.3Z"/>',
@@ -216,40 +226,35 @@ export const ICON_SVG = {
     computer: '<rect x="3" y="4" width="18" height="12.5" rx="2"/><path d="M9 20.5h6m-3-4v4"/>',
     "arrow-up": '<path d="M12 19V5m0 0-6 6m6-6 6 6"/>',
 };
-export function icon(name: any) {
+export type IconName = keyof typeof ICON_SVG;
+export function icon(name: IconName) {
     return `<i class="ric" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON_SVG[name] || ""}</svg></i>`;
 }
-/* ---------- DOM 助手：checkJs 友好的元素类型断言，id↔元素对应关系由页面结构约定保证 ---------- */
-export function byId(id: any) { return /** @type {any} */ document.getElementById(id) as any; }
-export function qsa(sel: any) { return /** @type {any} */ document.querySelectorAll(sel) as any; }
-export function qs(sel: any) { return /** @type {any} */ document.querySelector(sel) as any; }
-export function evtTarget(e: any) { return /** @type {any} */ e && e.target as any; }
-export function setChipPressed(chips: any, isOn: any) {
-    chips.forEach((chip: any) => {
-        const on = !!isOn(chip);
-        chip.classList.toggle("active", on);
-        chip.setAttribute("aria-pressed", on ? "true" : "false");
-    });
-}
+/* ---------- DOM 助手：元素类型由调用处按页面结构约定给出 ---------- */
+export function byId<T extends HTMLElement = HTMLElement>(id: string) { return document.getElementById(id) as T | null; }
+export function qsa<T extends HTMLElement = HTMLElement>(selector: string) { return document.querySelectorAll<T>(selector); }
+export function qs<T extends HTMLElement = HTMLElement>(selector: string) { return document.querySelector<T>(selector); }
+/** 事件目标元素（图标 SVG 也算）；文本节点等非元素目标返回 null。 */
+export function evtTarget(e: Event) { return e.target instanceof Element ? e.target : null; }
 /* 图表是 canvas，读屏不可见：渲染后写一句文字摘要进容器 */
-export function describeChart(id: any, text: any) {
+export function describeChart(id: string, text: string) {
     const el = byId(id);
     if (!el)
         return;
     el.setAttribute("role", "img");
     el.setAttribute("aria-label", String(text).slice(0, 240));
 }
-export function priceOf(p: any, billing: any) {
+export function priceOf(p: Plan, billing: string) {
     if (billing === "Y")
         return p.priceY ?? null;
     return p.priceM;
 }
 /* Currency conversion uses the shared ./metrics implementation. */
-export function cnyOf(p: any, billing: any) {
+export function cnyOf(p: Plan, billing: string) {
     const v = priceOf(p, billing);
     return v == null ? null : toCNY(v, p.cur);
 }
-export function priceText(p: any, key: any) {
+export function priceText(p: Plan, key: "priceM" | "priceY") {
     const v = p[key];
     if (v == null)
         return "按量/定制";
@@ -257,26 +262,25 @@ export function priceText(p: any, key: any) {
         return "免费";
     return currencySymbol(p.cur) + Number(v.toFixed(2));
 }
-export function currencySymbol(cur: any) { return cur === "USD" ? "$" : cur === "INR" ? "₹" : "¥"; }
-export function priceCheckLabel(p: any, kind: string = "plan") {
+export function currencySymbol(cur: string) { return cur === "USD" ? "$" : cur === "INR" ? "₹" : "¥"; }
+const PRICE_CHECK_LABELS: Record<PriceVerification["status"], string> = { verified: "价格已核实", changed: "核价信息已校正", unverified: "历史价 · 待核实", retired: "已停售", custom: "需询价" };
+export function priceCheckLabel(p: PriceSubject, kind: PriceCheckKind = "plan") {
     const check = priceCheckOf(p, kind);
-    if (!check)
-        return "未核实";
-    return { verified: "价格已核实", changed: "核价信息已校正", unverified: "历史价 · 待核实", retired: "已停售", custom: "需询价" }[check.status];
+    return check ? PRICE_CHECK_LABELS[check.status] : "未核实";
 }
-export function priceCheckSources(p: any, kind: string = "plan") {
+export function priceCheckSources(p: PriceSubject, kind: PriceCheckKind = "plan") {
     const check = priceCheckOf(p, kind);
-    return check ? check.sourceIds.map((id: string) => PRICE_CHECKS.sources[id] && PRICE_CHECKS.sources[id].url).filter(Boolean) : [];
+    return check ? check.sourceIds.map((id) => PRICE_CHECKS.sources[id]?.url).filter((url): url is string => !!url) : [];
 }
 /* 所有表格/对比/导出共用计价单位，不能把充值或席位费用当作个人月费。 */
-export function priceUnit(p: any) {
+export function priceUnit(p: Plan) {
     if (isOneTimePlan(p))
         return "一次性";
     if (isFourWeekPlan(p))
         return p.seat ? "席位/4周" : "4周";
     return p.seat ? "席位/月" : "月";
 }
-export function planPriceLabel(p: any, billing: string = "M") {
+export function planPriceLabel(p: Plan, billing: string = "M") {
     const key = billing === "Y" ? "priceY" : "priceM";
     if (p[key] == null)
         return billing === "Y" ? "—" : "按量/定制";
@@ -287,17 +291,17 @@ export function planPriceLabel(p: any, billing: string = "M") {
 /* 宽屏严格限制轴标签占宽，完整名称在 tooltip 和数据表中查看。
    窄屏改为把类别名放在柱子上方整行显示：截成「阶跃 Step Plan Flash…」后几行无法区分。
    公开评测图另有两行标签方案，保持原样。 */
-export const NARROW_CHART_WIDTH = 480;
-export const chartNarrowMode = new Map();
-export function chartHostWidth(hostEl: any, measuredWidth: number = 0) {
+const NARROW_CHART_WIDTH = 480;
+const chartNarrowMode = new Map<string, boolean>();
+export function chartHostWidth(hostEl: HTMLElement, measuredWidth: number = 0) {
     return measuredWidth || hostEl.getBoundingClientRect().width || window.innerWidth - 72;
 }
-export function isNarrowChart(hostEl: any, measuredWidth: number = 0) {
+export function isNarrowChart(hostEl: HTMLElement, measuredWidth: number = 0) {
     return hostEl.id !== "chartPublicBenchmark" && chartHostWidth(hostEl, measuredWidth) < NARROW_CHART_WIDTH;
 }
 /* 名称放到柱子上方后，每行多留一行文字的高度。 */
-export function chartRowHeight(hostEl: any, per: any) { return isNarrowChart(hostEl) ? per + 16 : per; }
-export function chartAxisLabel(hostEl: any, fontSize: number = 12.5, measuredWidth: number = 0) {
+export function chartRowHeight(hostEl: HTMLElement, per: number) { return isNarrowChart(hostEl) ? per + 16 : per; }
+export function chartAxisLabel(hostEl: HTMLElement, fontSize: number = 12.5, measuredWidth: number = 0) {
     const width = chartHostWidth(hostEl, measuredWidth);
     const narrow = isNarrowChart(hostEl, width);
     chartNarrowMode.set(hostEl.id, narrow);
@@ -310,14 +314,13 @@ export function chartAxisLabel(hostEl: any, fontSize: number = 12.5, measuredWid
         overflow: "truncate", margin: 8 };
 }
 /* 宽窄布局切换（如手机横竖屏）需要整图重绘：行高与标签位置都要变。 */
-export function chartRenderer(id: any) {
-    return { chartPersonal: renderPersonalChart, chartTeam: renderTeamChart, chartTokens: renderTokensChart,
-        chartApi: renderApiChart, chartPower: renderApiChart, chartRank: renderRankChart }[id] || null;
-}
-/** @type {Record<string, any>} 图表 id → ECharts 实例 */
-export const chartCache: Record<string, any> = {};
-export let chartLibraryPromise = null;
-export const queuedChartRenders = new Map();
+const CHART_RENDERERS: Record<string, () => void> = { chartPersonal: renderPersonalChart, chartTeam: renderTeamChart, chartTokens: renderTokensChart,
+    chartApi: renderApiChart, chartPower: renderApiChart, chartRank: renderRankChart };
+/** 图表 id → ECharts 实例。 */
+export const chartCache: Record<string, EChartsType> = {};
+let chartLibraryPromise: Promise<void> | null = null;
+/** 图表库下载期间，各图表最新一次的绘制请求。 */
+export const queuedChartRenders = new Map<string, () => void>();
 /* A queued render belongs to one host lifetime. A replacement component must not
  * inherit the callbacks of a host that unmounted while the library downloaded. */
 const queuedChartRequests = new Map<string, { host: HTMLElement }>();
@@ -332,22 +335,22 @@ export function releaseChart(id: string) {
     chartNarrowMode.delete(id);
 }
 export function chartLibraryReady() { return typeof echarts !== "undefined" && typeof echarts.init === "function"; }
-export function ensureChartLibrary() {
+export function ensureChartLibrary(): Promise<void> {
     if (chartLibraryReady())
         return Promise.resolve();
     if (chartLibraryPromise)
         return chartLibraryPromise;
     chartLibraryPromise = new Promise<void>((resolve, reject) => {
-        const template = byId("chartLibraryTemplate");
+        const template = byId<HTMLTemplateElement>("chartLibraryTemplate");
         const asset = template && template.content && template.content.querySelector("script[src]");
         if (!asset) {
             reject(new Error("图表资源地址缺失"));
             return;
         }
         const script = document.createElement("script");
-        script.src = asset.getAttribute("src");
+        script.src = asset.getAttribute("src") ?? "";
         let done = false;
-        const finish = (error: any) => {
+        const finish = (error: Error | null) => {
             if (done)
                 return;
             done = true;
@@ -364,12 +367,12 @@ export function ensureChartLibrary() {
         script.onload = () => finish(chartLibraryReady() ? null : new Error("图表资源未正确初始化"));
         script.onerror = () => finish(new Error("图表资源加载失败"));
         document.body.appendChild(script);
-    }).catch((err: any) => { chartLibraryPromise = null; throw err; });
+    }).catch((err: unknown) => { chartLibraryPromise = null; throw err; });
     return chartLibraryPromise;
 }
-export function showChartError(id: any, err: any) {
+export function showChartError(id: string, err: unknown) {
     const ids = id === "chartApi" ? [id, "chartPower"] : [id];
-    ids.forEach((chartId: any) => {
+    ids.forEach((chartId) => {
         if (chartCache[chartId]) {
             chartCache[chartId].dispose();
             delete chartCache[chartId];
@@ -382,8 +385,9 @@ export function showChartError(id: any, err: any) {
     });
     console.error("[chart] " + id, err);
 }
-export function deferChartRender(id: any, render: any) {
-    const el = byId(id) as HTMLElement | null;
+/** 图表库未就绪时登记绘制并开始下载，返回 true；就绪时返回 false，由调用方直接绘制。 */
+export function deferChartRender(id: string, render: () => void) {
+    const el = byId(id);
     if (!el)
         return true;
     if (chartLibraryReady())
@@ -414,7 +418,7 @@ export function deferChartRender(id: any, render: any) {
             catch (err) {
                 showChartError(id, err);
             }
-        }, (err: any) => {
+        }, (err: unknown) => {
             if (queuedChartRequests.get(id) !== request)
                 return;
             queuedChartRequests.delete(id);
@@ -425,22 +429,23 @@ export function deferChartRender(id: any, render: any) {
     }
     return true;
 }
-export function makeChart(id: any) {
+/** 取得（必要时创建）图表实例；调用前已确认图表库就绪且容器存在。 */
+export function makeChart(id: string) {
     if (!chartCache[id]) {
-        const el = byId(id);
+        const el = byId(id)!;
         el.innerHTML = "";
         el.removeAttribute("aria-busy");
-        chartCache[id] = echarts.init(el, null, { renderer: "canvas" });
+        chartCache[id] = echarts!.init(el, null, { renderer: "canvas" });
     }
     return chartCache[id];
 }
-export let resizeTimer;
-export const pendingChartResizes = new Set();
-export const CHART_AXIS_FONT_SIZE = { chartPersonal: 12.5, chartTeam: 12.5, chartTokens: 11.5, chartApi: 11, chartPower: 11, chartRank: 11.5, chartPublicBenchmark: 12 };
+let resizeTimer: ReturnType<typeof setTimeout> | undefined;
+export const pendingChartResizes = new Set<string>();
+const CHART_AXIS_FONT_SIZE: Record<string, number> = { chartPersonal: 12.5, chartTeam: 12.5, chartTokens: 11.5, chartApi: 11, chartPower: 11, chartRank: 11.5, chartPublicBenchmark: 12 };
 /* 缩放只更新实际尺寸变化的可见画布，不重新筛数据或重建图例。
    离屏画布保留待处理标记，滚入阅读区时再补齐尺寸和轴标签宽度。 */
 export function resizeVisibleCharts() {
-    pendingChartResizes.forEach((id: any) => {
+    pendingChartResizes.forEach((id) => {
         const chart = chartCache[id], el = byId(id);
         if (!chart || !el) {
             pendingChartResizes.delete(id);
@@ -455,7 +460,7 @@ export function resizeVisibleCharts() {
         if (Math.abs(chart.getWidth() - rect.width) < 1 && Math.abs(chart.getHeight() - rect.height) < 1)
             return;
         try {
-            const render = chartRenderer(id);
+            const render = CHART_RENDERERS[id];
             if (render && chartNarrowMode.has(id) && chartNarrowMode.get(id) !== isNarrowChart(el, rect.width)) {
                 render();
                 chart.resize();
@@ -473,8 +478,10 @@ export function resizeVisibleCharts() {
 /* 隐藏视图里重绘的画布会按 100px 默认宽度绘制；重绘、视图切换和缩放后统一标记待测量，
    进入可视区时再按实际尺寸补齐，不依赖窗口缩放事件。 */
 export function markChartsForResize(ids: string[] = Object.keys(chartCache)) {
-    ids.forEach((id: string) => { if (chartCache[id])
-        pendingChartResizes.add(id); });
+    ids.forEach((id) => {
+        if (chartCache[id])
+            pendingChartResizes.add(id);
+    });
 }
 export function bindChartResize() {
     window.addEventListener("resize", () => {
@@ -495,14 +502,13 @@ export function bindChartResize() {
     }, { passive: true });
 }
 /* ---------- 主题（暗/亮/跟随系统）与图表调色板 ---------- */
-/** @typedef {{ text: string, dim: string, catLabel: string, faint: string, gold: string, green: string, red: string, info: string, axisLine: string, splitLine: string, tipBg: string, tipBorder: string, tipText: string }} ChartPalette */
-/** @type {ChartPalette} 随主题由 refreshPalette 重建 */
+/** 随主题由 refreshPalette 重建。 */
 export let PAL: ChartPalette = {} as ChartPalette;
 export function refreshPalette() {
-    const L = document.documentElement.dataset.theme === "light";
+    const light = document.documentElement.dataset.theme === "light";
     const cs = getComputedStyle(document.documentElement);
-    const color = (name: any, fallback: any) => (cs.getPropertyValue(name) || "").trim() || fallback;
-    PAL = L ? {
+    const color = (name: string, fallback: string) => (cs.getPropertyValue(name) || "").trim() || fallback;
+    PAL = light ? {
         text: "#10110f", dim: "#6f726b", catLabel: "#3a3d38", faint: color("--faint", "#70746c"),
         gold: color("--gold", "#996100"), green: color("--green", "#287c3e"),
         red: color("--red", "#b52a25"), info: color("--info", "#2458ae"),
@@ -524,7 +530,7 @@ export function axisStyle() {
         splitLine: { lineStyle: { color: PAL.splitLine } },
     };
 }
-export function tipStyle(hostEl: any, viewportFixed: boolean = false) {
+export function tipStyle(hostEl: HTMLElement, viewportFixed: boolean = false) {
     return {
         backgroundColor: PAL.tipBg,
         borderColor: PAL.tipBorder,
@@ -533,20 +539,20 @@ export function tipStyle(hostEl: any, viewportFixed: boolean = false) {
         // 随图表所属标签收起，避免旧提示坐标撑高切换后的页面。
         appendToBody: false,
         extraCssText: "max-width: min(420px, calc(100vw - 24px)); white-space: normal; overflow-wrap: anywhere; z-index: 2000;",
-        position(point: any, _params: any, _el: any, _rect: any, size: any) {
+        position(point: number[], _params: unknown, _el: unknown, _rect: unknown, size: { contentSize: number[] }) {
             const box = hostEl.getBoundingClientRect();
             const bw = Math.min(size.contentSize[0] || 280, window.innerWidth - 24);
             const bh = size.contentSize[1] || 72;
-            let x = box.left + point[0] + 14;
-            let y = box.top + point[1] + 12;
+            let x = box.left + point[0]! + 14;
+            let y = box.top + point[1]! + 12;
             if (x + bw > window.innerWidth - 8)
-                x = box.left + point[0] - bw - 14;
+                x = box.left + point[0]! - bw - 14;
             if (x < 8)
                 x = 8;
             if (x + bw > window.innerWidth - 8)
                 x = Math.max(8, window.innerWidth - bw - 8);
             if (y + bh > window.innerHeight - 8)
-                y = box.top + point[1] - bh - 12;
+                y = box.top + point[1]! - bh - 12;
             if (y < 8)
                 y = 8;
             if (y + bh > window.innerHeight - 8)
@@ -555,32 +561,32 @@ export function tipStyle(hostEl: any, viewportFixed: boolean = false) {
         },
     };
 }
+const MODEL_BRANDS: [RegExp, string][] = [
+    [/^(gpt)(.*)$/i, "GPT"],
+    [/^(glm)(.*)$/i, "GLM"],
+    [/^(qwen)(.*)$/i, "Qwen"],
+    [/^(deepseek)(.*)$/i, "DeepSeek"],
+    [/^(kimi)(.*)$/i, "Kimi"],
+    [/^(claude)(.*)$/i, "Claude"],
+    [/^(gemini)(.*)$/i, "Gemini"],
+    [/^(minimax)(.*)$/i, "MiniMax"],
+    [/^(mimo)(.*)$/i, "MiMo"],
+    [/^(doubao)(.*)$/i, "Doubao"],
+    [/^(step)(.*)$/i, "Step"],
+    [/^(grok)(.*)$/i, "Grok"],
+    [/^(ernie)(.*)$/i, "ERNIE"],
+    [/^(hy)(\d.*)$/i, "Hy"],
+];
 /* 轴上和表里的模型名统一成产品写法：qwen3-coder-next → Qwen3-Coder-Next。计费 ID 仍用原文。 */
-export function displayModelName(name: any) {
+export function displayModelName(name: string | null | undefined) {
     const raw = String(name || "").trim();
     if (!raw)
         return raw;
     const tailMatch = raw.match(/\s*[\[（(].*$/);
     const head = tailMatch ? raw.slice(0, tailMatch.index) : raw;
     const tail = tailMatch ? tailMatch[0] : "";
-    const brands = [
-        [/^(gpt)(.*)$/i, "GPT"],
-        [/^(glm)(.*)$/i, "GLM"],
-        [/^(qwen)(.*)$/i, "Qwen"],
-        [/^(deepseek)(.*)$/i, "DeepSeek"],
-        [/^(kimi)(.*)$/i, "Kimi"],
-        [/^(claude)(.*)$/i, "Claude"],
-        [/^(gemini)(.*)$/i, "Gemini"],
-        [/^(minimax)(.*)$/i, "MiniMax"],
-        [/^(mimo)(.*)$/i, "MiMo"],
-        [/^(doubao)(.*)$/i, "Doubao"],
-        [/^(step)(.*)$/i, "Step"],
-        [/^(grok)(.*)$/i, "Grok"],
-        [/^(ernie)(.*)$/i, "ERNIE"],
-        [/^(hy)(\d.*)$/i, "Hy"],
-    ];
-    const cap = (tok: any) => {
-        for (const [re, brand] of brands) {
+    const cap = (tok: string) => {
+        for (const [re, brand] of MODEL_BRANDS) {
             const m = tok.match(re);
             if (m)
                 return brand + (m[2] || "");
@@ -589,15 +595,14 @@ export function displayModelName(name: any) {
     };
     return head.split("-").map(cap).join("-") + tail;
 }
-export function foldSearch(s: any) {
+export function foldSearch(s: unknown) {
     return String(s || "").toLowerCase().replace(/[\s_\-./·]+/g, "");
 }
 /* 正则转义（windowSentence 的模型名片段、测试与校验共用的小工具） */
-export function escRe(s: any) {
+export function escRe(s: string) {
     return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
-/** @type {Array<[RegExp, string]>} */
-export const SEARCH_VENDOR_ALIASES: [RegExp, string][] = [
+const SEARCH_VENDOR_ALIASES: [RegExp, string][] = [
     [/OpenAI|ChatGPT/i, "OpenAI ChatGPT Codex GPT 聊天GPT"],
     [/Anthropic|Claude/i, "Anthropic Claude 克劳德"],
     [/智谱|BigModel|Z\.ai/i, "智谱 BigModel GLM Z.ai"],
@@ -612,30 +617,32 @@ export const SEARCH_VENDOR_ALIASES: [RegExp, string][] = [
     [/MiniMax|稀宇/i, "MiniMax 稀宇"],
     [/小米|MiMo/i, "小米 Xiaomi MiMo"],
 ];
-export function planSearchBlob(p: any) {
+export function planSearchBlob(p: Plan) {
     const identity = [p.vendor, p.plan].join(" ");
-    const aliases = SEARCH_VENDOR_ALIASES.filter(([pattern]: [RegExp, string]) => pattern.test(identity)).map(([, words]: [RegExp, string]) => words);
+    const aliases = SEARCH_VENDOR_ALIASES.filter(([pattern]) => pattern.test(identity)).map(([, words]) => words);
     return foldSearch([p.vendor, p.plan, resolvedField(p, "models"), resolvedField(p, "tools"), resolvedField(p, "quota"), resolvedField(p, "note"), ...aliases].join(" "));
 }
-export function queryHit(blob: any, q: any) {
+export function queryHit(blob: string, q: string | null | undefined) {
     const terms = String(q || "").trim().split(/\s+/).map(foldSearch).filter(Boolean);
-    return terms.every((term: string) => blob.includes(term));
+    return terms.every((term) => blob.includes(term));
 }
 /* ---------- 明暗主题切换（暗 → 亮 → 跟随系统 循环） ---------- */
-export const THEME_KEY = "cp-theme";
-export let themeMode = "system";
-export const themeView = reactive<{ mode: 'dark' | 'light' | 'system'; effective: 'dark' | 'light' }>({ mode: 'system', effective: 'light' });
-export function readThemeMode() {
+export type ThemeMode = "dark" | "light" | "system";
+const THEME_KEY = "cp-theme";
+const isThemeMode = (value: unknown): value is ThemeMode => value === "dark" || value === "light" || value === "system";
+export let themeMode: ThemeMode = "system";
+export const themeView = reactive<{ mode: ThemeMode; effective: 'dark' | 'light' }>({ mode: 'system', effective: 'light' });
+export function readThemeMode(): ThemeMode {
     try {
         const saved = localStorage.getItem(THEME_KEY);
-        return ["dark", "light", "system"].includes(saved) ? saved : "system";
+        return isThemeMode(saved) ? saved : "system";
     }
     catch (e) {
         return "system";
     }
 }
-export function applyTheme(mode: any) {
-    mode = ["dark", "light", "system"].includes(mode) ? mode : "system";
+export function applyTheme(requested: string) {
+    const mode = isThemeMode(requested) ? requested : "system";
     themeMode = mode;
     const sysDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     const eff = mode === "system" ? (sysDark ? "dark" : "light") : mode;
@@ -651,12 +658,12 @@ export function applyTheme(mode: any) {
     const browserColor = (getComputedStyle(document.documentElement).getPropertyValue("--paper") || "").trim()
         || (eff === "dark" ? "#131511" : "#fbfbf8");
     /* 两个带系统 media 的标签都写实际主题色，手动选择主题也能更新浏览器外观。 */
-    qsa('meta[name="theme-color"]').forEach((meta: any) => meta.setAttribute("content", browserColor));
+    qsa('meta[name="theme-color"]').forEach((meta) => meta.setAttribute("content", browserColor));
 }
 export function rerenderCharts() {
-    const renderers = { chartPersonal: renderPersonalChart, chartTeam: renderTeamChart,
+    const renderers: Record<string, () => void> = { chartPersonal: renderPersonalChart, chartTeam: renderTeamChart,
         chartTokens: renderTokensChart, chartApi: renderApiChart, chartRank: renderRankChart, chartPublicBenchmark: renderPublicBenchmarkChart };
-    Object.entries(renderers).forEach(([id, render]: [string, (() => void) | (() => void) | (() => void) | (() => void) | (() => void) | (() => void)]) => {
+    Object.entries(renderers).forEach(([id, render]) => {
         if (!chartCache[id])
             return;
         /* 单图失败不中断其余图的重绘（主题切换/历史恢复会一次重画全部） */
@@ -671,8 +678,8 @@ export function rerenderCharts() {
     resizeVisibleCharts();
 }
 /* 测量固定页头，供锚点间距和当前章节判断共用；不读取或渲染图表内容。 */
-export let headerHeight = 0;
-export let navigationInitialized = false;
+let headerHeight = 0;
+let navigationInitialized = false;
 export function syncHeaderHeight() {
     const header = qs(".topbar");
     if (!header || typeof header.getBoundingClientRect !== "function")
@@ -686,12 +693,12 @@ export function syncHeaderHeight() {
         style.setProperty("--header-height", height + "px");
 }
 export function updateActiveNav() {
-    const links = Array.from(qsa('.topnav a[href^="#"]'));
-    const previous = links.find((link: any) => link.getAttribute("aria-current") === "location");
+    const links = Array.from(qsa<HTMLAnchorElement>('.topnav a[href^="#"]'));
+    const previous = links.find((link) => link.getAttribute("aria-current") === "location");
     const scrollPadding = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("scroll-padding-top"));
     const readingTop = Number.isFinite(scrollPadding) ? scrollPadding : headerHeight;
-    let active = null, closestTop = -Infinity;
-    links.forEach((link: any) => {
+    let active: HTMLAnchorElement | null = null, closestTop = -Infinity;
+    links.forEach((link) => {
         const target = byId((link.getAttribute("href") || "").slice(1));
         if (!target || target.hidden || typeof target.getBoundingClientRect !== "function")
             return;
@@ -703,7 +710,7 @@ export function updateActiveNav() {
             active = link;
         }
     });
-    links.forEach((link: any) => {
+    links.forEach((link) => {
         const on = link === active;
         link.classList.toggle("active", on);
         if (on)
@@ -713,19 +720,20 @@ export function updateActiveNav() {
     });
     /* 窄屏导航横向滚动时让当前章节露出来，只在章节变化时调整。 */
     const nav = qs(".topnav");
-    if (active && active !== previous && nav && nav.scrollWidth > nav.clientWidth) {
-        const box = /** @type {HTMLElement} */ (active as HTMLElement).getBoundingClientRect(), bounds = nav.getBoundingClientRect();
+    const current = active as HTMLAnchorElement | null;
+    if (current && current !== previous && nav && nav.scrollWidth > nav.clientWidth) {
+        const box = current.getBoundingClientRect(), bounds = nav.getBoundingClientRect();
         if (box.left < bounds.left + 8)
             nav.scrollLeft += box.left - bounds.left - 8;
         else if (box.right > bounds.right - 8)
             nav.scrollLeft += box.right - bounds.right + 8;
     }
 }
-export function initPageNavigation() {
+function initPageNavigation() {
     if (navigationInitialized)
         return;
     navigationInitialized = true;
-    let readingPosition = null;
+    let readingPosition: { target: HTMLElement; offset: number } | null = null;
     const rememberReadingPosition = () => {
         const active = qs('.topnav a[aria-current="location"]');
         const target = active && byId((active.getAttribute("href") || "").slice(1));
@@ -784,7 +792,7 @@ export function initTheme() {
         mq.addListener(onSchemeChange);
 }
 /* ---------- 统计卡 ---------- */
-export function planLabel(p: any) {
+export function planLabel(p: Pick<Plan, "vendor" | "plan">) {
     const sv = shortVendor(p.vendor);
     const words = sv.split(/[\s（(]/).filter(Boolean);
     const first = words[0];
@@ -798,7 +806,6 @@ export function planLabel(p: any) {
     return sv + " " + plan;
 }
 /* 每百万 tokens 成本的档位阈值：排行图配色、排行说明与额度表共用（≤0.3 低 / ≤1 中 / >1 高） */
-export function cpmTier(v: any) {
+export function cpmTier(v: number | null | undefined) {
     return v == null ? "na" : v <= 0.3 ? "lo" : v <= 1 ? "mid" : "hi";
 }
-export function renderStats(){}

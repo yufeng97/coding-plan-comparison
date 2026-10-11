@@ -180,7 +180,7 @@ test("选购用量 CTA 带入预算与精确模型，模型改变清除缓存价
   assert.equal(page.byId<HTMLInputElement>("costCachePrice").value, "");
   assert.equal(location.hash, "#s4");
   assert.match(page.byId("serviceFeedback").textContent!, /同名的 API 模型/);
-  assert.equal(app.recommendedApi(app.planProfile(app.findPlanReference("plan-0002")))!.model, "Claude Opus 5.5");
+  assert.equal(app.recommendedApi(app.planProfile(app.findPlanReference("plan-0002")!))!.model, "Claude Opus 5.5");
   Object.assign(app.pickerState, { budget: "any", region: "intl", tool: "cursor", task: "hard" });
   await input(page, "costBudget", "123.4");
   page.fire(page.byId("checkWorkloadBtn"), "click");
@@ -238,7 +238,7 @@ test("应用个人图条件停用支付切换，取消、重置与历史恢复�
   await page.settle();
   assert.ok(chips.every((chip) => chip.disabled && chip.getAttribute("aria-describedby") === "personalScope"));
   assert.equal(app.personalState.billing, "Y");
-  const tooltip = app.personalTooltip(app.findPlanReference("plan-0002"));
+  const tooltip = app.personalTooltip(app.findPlanReference("plan-0002")!);
   assert.match(tooltip, /选购口径：\$20\/月/);
   assert.doesNotMatch(tooltip, /折算价：/);
   assert.match(page.byId("personalScope").textContent!, /暂不可切换/);
@@ -247,7 +247,7 @@ test("应用个人图条件停用支付切换，取消、重置与历史恢复�
   await page.settle();
   assert.ok(chips.every((chip) => !chip.disabled && chip.getAttribute("aria-describedby") == null));
   assert.equal(app.personalState.billing, "Y");
-  assert.match(app.personalTooltip(app.findPlanReference("plan-0002")), /折算价：\$16.67/);
+  assert.match(app.personalTooltip(app.findPlanReference("plan-0002")!), /折算价：\$16.67/);
   app.restoreHistoryState(appliedUrl, false);
   await page.settle();
   assert.ok(chips.every((chip) => chip.disabled));

@@ -7,7 +7,10 @@ const planId = ref(""), dialog = ref<HTMLDialogElement | null>(null), backdrop =
 const followFeedback = ref("");
 watch(() => app.followView.feedback, message => { if (dialog.value?.open) followFeedback.value = message; });
 const plan = computed(() => app.findPlanReference(planId.value));
-const fields = computed(() => plan.value ? app.PLAN_COLUMNS.filter((column) => column.markdown !== false).map((column) => ({ label: column.label, value: column.value(plan.value) || "—" })) : []);
+const fields = computed(() => {
+  const current = plan.value;
+  return current ? app.PLAN_COLUMNS.filter((column) => column.markdown !== false).map((column) => ({ label: column.label, value: column.value(current) || "—" })) : [];
+});
 let returnFocus: HTMLElement | null = null;
 let openRequest = 0;
 let background: { element: Element; inert: string | null; hidden: string | null }[] = [];

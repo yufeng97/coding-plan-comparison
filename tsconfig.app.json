@@ -15,7 +15,7 @@
     "baseUrl": ".",
     "paths": {
       "@domain/*": [
-        ".domain-types/*"
+        "src/domain/*"
       ]
     }
   },
@@ -26,7 +26,6 @@
   "exclude": [
     "src/**/*.test.ts",
     "src/test/**",
-    "node_modules",
-    "src/domain/**"
+    "node_modules"
   ]
 }

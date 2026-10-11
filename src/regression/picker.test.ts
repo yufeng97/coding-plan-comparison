@@ -126,7 +126,7 @@ test("付费主计划可配免费推理入口，合计预算和地区工具资�
   assert.equal(main.p.id, "plan-0164");
   assert.equal(supplement.p.id, "plan-0008");
   assert.equal(app.cnyOf(supplement.p, "M"), 0);
-  assert.equal(app.cnyOf(main.p, "M") + app.cnyOf(supplement.p, "M"), app.cnyOf(main.p, "M"));
+  assert.equal(app.cnyOf(main.p, "M")! + app.cnyOf(supplement.p, "M")!, app.cnyOf(main.p, "M"));
   const card = await renderCard(dailyCard(main, pool));
   assert.match(card.text, /ChatGPT Free|免费入口|无需额外月费/);
   assert.doesNotMatch(card.text, /当前预算放不下|另付 免费|高于当前预算/);
@@ -188,14 +188,15 @@ test("真实月度系数和日月请求行在额度表显示月池而非5h数值
 test("真实缺省周期历史估算不冒充5h额度，明确官方周窗口仍按假设展示", async () => {
   const page = await openPage();
   const app = page.runtime;
-  const rows = app.METRICS_ALL.filter((m) => ["plan-0017", "plan-0105", "plan-0080", "plan-0081"].includes(m.ref));
+  const rows = app.METRICS_ALL.filter((m) => ["plan-0017", "plan-0105", "plan-0080", "plan-0081"].includes(String(m.ref)));
   assert.equal(rows.length, 4);
   for (const m of rows) {
     const c = app.computeMetrics(m)!;
-    assert.equal(m.windowPeriod, "unknown", m.ref);
-    assert.equal(c.fLow, null, m.ref);
-    assert.equal(c.r5h, null, m.ref);
-    assert.ok(c.moLow != null && c.costPerM != null && c.moLow > 0 && c.costPerM > 0, m.ref);
+    const ref = String(m.ref);
+    assert.equal(m.windowPeriod, "unknown", ref);
+    assert.equal(c.fLow, null, ref);
+    assert.equal(c.r5h, null, ref);
+    assert.ok(c.moLow != null && c.costPerM != null && c.moLow > 0 && c.costPerM > 0, ref);
     assert.match(await fiveHourCell(m, c), /未公布/);
   }
   /* 智谱/Z.ai 每周 10,000 积分按官方抵扣系数与统一假设（636.8 积分/百万 tokens）折算，不再采用厂商自估的 48M。 */
@@ -224,7 +225,7 @@ test("继承模型保留日常与新增旗舰，明确否定K3和自家入口保
   const app = page.runtime;
   for (const id of ["plan-0092", "plan-0093"]) {
     const profile = app.planProfile(plan(app, id));
-    assert.equal(profile.headline.id, "claude-opus");
+    assert.equal(profile.headline?.id, "claude-opus");
     assert.ok(profile.loose.some((r: { id: string }) => r.id === "luna"));
     assert.ok(profile.loose.some((r: { id: string }) => r.id === "grok"));
   }
@@ -242,7 +243,7 @@ test("继承模型保留日常与新增旗舰，明确否定K3和自家入口保
   const excluded = fixture({ ...added, id: "role-excluded", modelExcludes: ["Claude Opus"] });
   app.PLANS.push(base, added, excluded);
   assert.equal(app.planProfile(base).headline, null);
-  assert.equal(app.planProfile(added).headline.id, "claude-opus");
+  assert.equal(app.planProfile(added).headline?.id, "claude-opus");
   assert.equal(app.planProfile(excluded).headline, null);
   await page.settle();
   page.healthy();

@@ -65,7 +65,7 @@ test("关注列表和历史面板的完整权益按钮直接打开套餐弹窗�
   followed.element.focus();
   await followed.trigger("click"); await flushPromises();
   expect(modal.open).toBe(true);
-  expect(rights.wrapper.get("#planDetailsTitle").text()).toBe(legacy.planTitle(legacy.findPlanReference("plan-0002")));
+  expect(rights.wrapper.get("#planDetailsTitle").text()).toBe(legacy.planTitle(legacy.findPlanReference("plan-0002")!));
   await rights.wrapper.get("#planDetailsCloseBtn").trigger("click"); await flushPromises();
   expect(document.activeElement).toBe(followed.element);
 
@@ -74,7 +74,7 @@ test("关注列表和历史面板的完整权益按钮直接打开套餐弹窗�
   history.element.focus();
   await history.trigger("click"); await flushPromises();
   expect(modal.open).toBe(true);
-  expect(rights.wrapper.get("#planDetailsTitle").text()).toBe(legacy.planTitle(legacy.findPlanReference(CHANGED_PLAN)));
+  expect(rights.wrapper.get("#planDetailsTitle").text()).toBe(legacy.planTitle(legacy.findPlanReference(CHANGED_PLAN)!));
   await rights.wrapper.get("#planDetailsCloseBtn").trigger("click"); await flushPromises();
   expect(document.activeElement).toBe(history.element);
 });

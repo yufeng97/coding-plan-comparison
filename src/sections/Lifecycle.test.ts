@@ -71,7 +71,7 @@ test.each(chartViews)("$name 卸载释放画布，重新挂载使用当前 DOM",
   const first = await renderView(component);
   render();
   await flushPromises();
-  const previous = owned.map((id) => app.chartCache[id] as Chart);
+  const previous = owned.map((id) => app.chartCache[id] as unknown as Chart);
   expect(previous.every(Boolean)).toBe(true);
   for (const id of owned) app.pendingChartResizes.add(id);
   first.unmount();
@@ -84,7 +84,7 @@ test.each(chartViews)("$name 卸载释放画布，重新挂载使用当前 DOM",
   render();
   await flushPromises();
   for (const [index, id] of owned.entries()) {
-    const current = app.chartCache[id] as Chart;
+    const current = app.chartCache[id] as unknown as Chart;
     expect(current).not.toBe(previous[index]);
     expect(current.host).toBe(document.getElementById(id));
     expect(current.host.isConnected).toBe(true);

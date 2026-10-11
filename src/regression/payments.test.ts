@@ -211,13 +211,13 @@ test("已应用范围随支付和预算变化重绘，额度量不随折扣被�
   const app = page.runtime;
   const lite = plan(page, "plan-0157");
   const baseline = app.computeMetrics(app.METRICS_ALL.find((m) => app.metricMatchesPlan(m, lite))!)!;
-  const discounted = app.metricsTableRows().rows.find((r: { m: { ref: string } }) => r.m.ref === "plan-0157")!.c;
+  const discounted = app.metricsTableRows().rows.find((r) => r.m.ref === "plan-0157")!.c;
   near(discounted.moMidM, baseline.moMidM);
   near(discounted.costPerM, baseline.costPerM! * 0.8);
   app.pickerState.billing = "M";
   await page.settle();
   assert.equal(app.computeTableRows().some((p: Plan) => p.id === "plan-0157"), false);
-  assert.equal(app.metricsTableRows().rows.some((r: { m: { ref: string } }) => r.m.ref === "plan-0157"), false);
+  assert.equal(app.metricsTableRows().rows.some((r) => r.m.ref === "plan-0157"), false);
   app.pickerState.budget = "200";
   await page.settle();
   assert.match(page.byId("tableBody").textContent!, /V3 Lite/);

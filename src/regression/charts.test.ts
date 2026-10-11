@@ -382,7 +382,7 @@ test("排行套餐名读取主表，估算柱用斜纹并保留原始精确成�
   assert.doesNotMatch(option.yAxis.data.join(" "), / · Coding (?:Lite|Pro|Max)/);
   assert.match(page.byId("rankNote").textContent!, /实色柱.*斜纹柱/);
   /* 中转站不和官方订阅比单价，排行与厂商下拉都不出现。 */
-  assert.equal(app.rankRows().filter((r: { m: { ref: string } }) => app.isRelay(app.findPlanReference(r.m.ref)!)).length, 0);
+  assert.equal(app.rankRows().filter((r) => app.isRelay(app.findPlanReference(r.m.ref)!)).length, 0);
   assert.doesNotMatch(page.byId("rankVendor").textContent!, /DevPass/);
   page.healthy();
 });

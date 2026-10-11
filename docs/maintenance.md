@@ -81,7 +81,7 @@ npm run test:news
 2. 为每个订阅档位分配未使用过的永久 `plan-*` ID，写入 `PLANS`；补全 `vendor/plan/cat/region/cur/priceM/quota/url` 等必需字段。`priceY` 是**年付折月价格**，不是年付总额；明确全年金额使用 `annualTotal`，校验要求折月误差不超过 0.02 原币。未知价格用 `null`，免费用 `0`，首购促销不能代替长期续费价。
 3. 按证据填写编程入口、是否包含模型费用、BYOK/按量、自家客户端、支持模型与工具、重置周期、额度共享和购买国家。新模型未知时先保留未知，需要参与任务推荐时再补有依据的 `MODEL_ROLES`；不要因为厂商有名就推断所有产品权益相同。
 4. 添加官网证据和对应 `PRICE_CHECKS.rows["plan:" + id]`；API 与按量记录按 `vendor|model` 身份同步维护。加入 `SOURCES`，有值得告知用户的事件时更新 `DYNAMICS`，随后把官方监测网址加入采集配置。只有额度依据足够时才补 `METRICS_RAW`/`ESTIMATES`，标清官方值、折算或估算。
-5. 更新版本日期与 `CHANGES.md`，先执行 `npm run catalog:build` 同步浏览器类型化目录，再执行 `npm run check`、`npm run typecheck`、`npm run validate`、`npm test`。修改页面交互或推荐逻辑时再执行相关浏览器回归；检查构建产物后发布。
+5. 更新版本日期与 `CHANGES.md`，先执行 `npm run catalog:build` 同步浏览器类型化目录，再执行 `npm run check`、`npm run typecheck`、`npm run validate`、`npm test`。修改页面交互或推荐逻辑时再执行相关浏览器回归；检查构建产物后发布。新增数据字段先在 `js/globals.d.ts` 的对应接口里声明；在数据文件里新增顶层常量或函数时用 JSDoc 写明类型（`catalog:build` 只按 JSDoc 生成 TypeScript 注解，函数参数缺少注解时生成失败）。
 
 **全量与增量分开运行**：默认同步仍要求四份全量审计输入日期一致、覆盖全部记录。日常使用增量模式，只更新此次有新证据的行，保留其他行的核查日期；拒绝日期倒退、旧 patch 覆盖新值、来源 ID 的证据冲突及无证据修改。新增套餐通过 record.new 提交完整 Plan，并分配从未使用过的永久 ID。同步会原子更新数据、审计台账与变更历史，失败整组回滚；不会更新动态、来源目录或额度指标。输入字段及完整步骤见 [贡献指南](../CONTRIBUTING.md)。
 

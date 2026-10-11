@@ -163,7 +163,7 @@ test("用途只列同类协议，HLE 与 OSWorld 默认当前配置", async () =
   app.benchmarkData().public!.benchmarks.push({ ...protocol, id: "hle-diamond-2026-high-closed-book-multimodal", name: "Fixture Diamond" }, { ...protocol, id: "osworld-2-25443e96866dc9ce", family: "OSWorld", name: "Fixture OS2 current" });
   Object.assign(app.publicBenchmarkState, { family: "HLE", id: "" });
   assert.equal(app.selectedPublicBenchmark().id, "hle-diamond-2026-high-closed-book-multimodal");
-  assert.deepEqual(app.publicBenchmarkLabels(app.publicBenchmarkData().benchmarks.filter((b: PublicBenchmarkProtocol) => b.family === "HLE")).map(([b]: [PublicBenchmarkProtocol]) => b.family), ["HLE", "HLE"]);
+  assert.deepEqual(app.publicBenchmarkLabels(app.publicBenchmarkData().benchmarks.filter((b: PublicBenchmarkProtocol) => b.family === "HLE")).map(([b]) => b.family), ["HLE", "HLE"]);
   Object.assign(app.publicBenchmarkState, { family: "OSWorld", id: "" });
   assert.equal(app.selectedPublicBenchmark().name, "Fixture OS2 current");
   assert.deepEqual(app.publicBenchmarkFamilies(), ["DeepSWE", "OSWorld", "HLE"]);
@@ -210,12 +210,12 @@ test("Claude 共享品牌、GPT 全系简称保留精确版本与包含资格", 
   assert.deepEqual(app.publicModelPlans("claude-fable-5.1").filter((p: Plan) => p.vendor === "Anthropic").map((p: Plan) => p.id).sort(), ["plan-0003", "plan-0004", "plan-0006"]);
   assert.equal(app.publicModelPlans("claude-fable-5.1")[0].vendor, "Anthropic");
   assert.equal(app.publicModelPlans("kimi-k3").some((p: Plan) => (p.modelExcludes || []).includes("Kimi-K3")), false);
-  const newer = app.publicNewerVersion("claude-opus-5", app.publicModelPlans("claude-opus-5"));
+  const newer = app.publicNewerVersion("claude-opus-5", app.publicModelPlans("claude-opus-5"))!;
   assert.deepEqual({ family: newer.family, version: newer.version }, { family: "Opus", version: 5.5 });
   assert.deepEqual(app.publicModelPlans("GPT-6.1 Sol").filter((p: Plan) => p.vendor === "OpenAI").map((p: Plan) => p.id), ["plan-0010", "plan-0011", "plan-0012", "plan-0013"]);
   assert.equal(app.publicModelPlans("GPT-6.2 Sol").some((p: Plan) => p.vendor === "OpenAI"), false);
   assert.equal(app.publicModelPlans("claude-fable-5").some((p: Plan) => p.vendor === "Anthropic"), false);
-  assert.equal(app.publicModelIncluded(app.findPlanReference("plan-0001"), "Claude Haiku 4.5"), true);
+  assert.equal(app.publicModelIncluded(app.findPlanReference("plan-0001")!, "Claude Haiku 4.5"), true);
   for (const model of ["GPT-6 Luna", "GPT-6 Astra"]) assert.ok(ids(model).includes("plan-0010"));
   const p = app.PLANS.find((p: Plan) => p.id === "plan-0010")!;
   for (const text of ["GPT-6 Sol / Luna / GPT-5.6 系列 / Astra", "GPT-6 Sol / 未明确的模型 / Astra", "GPT-6 Sol、Astra"]) {

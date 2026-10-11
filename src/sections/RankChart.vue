@@ -41,7 +41,7 @@ function expandDetails() {
       <caption class="sr-only">与当前模型档和排行口径一致的全部套餐</caption>
       <thead><tr><th scope="col">套餐 / 模型</th><th scope="col">月费</th><th scope="col">每百万 tokens</th><th scope="col">月 tokens 区间</th><th scope="col">依据 / 置信度</th></tr></thead>
       <tbody id="rankDetailBody">
-        <template v-for="(row, index) in rows" :key="[row.m.id || row.m.ref || row.m.vendor, row.m.model, row.m.ver, index].join('|')">
+        <template v-for="(row, index) in rows" :key="[row.m.ref || row.m.vendor, row.m.model, row.m.ver, index].join('|')">
           <tr v-if="app.rankIsEstimate(row.m) && index > 0 && !app.rankIsEstimate(rows[index - 1].m)" class="rank-divider"><th scope="rowgroup" colspan="5">{{ app.RANK_ESTIMATE_DIVIDER }}</th></tr>
           <tr><th scope="row">{{ app.planLabel(row.m) }}<br>{{ app.displayModelName(row.m.model) }}</th>
             <td class="td-price">{{ app.fmtCNY(row.c.priceCNY) }}/月<br><span class="sub">{{ app.rankRowPaymentLabel(row.m) }}</span></td>

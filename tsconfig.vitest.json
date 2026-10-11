@@ -3,20 +3,13 @@
   "compilerOptions": {
     "types": [
       "node"
-    ],
-    "baseUrl": ".",
-    "paths": {
-      "@domain/*": [
-        ".domain-types/*"
-      ]
-    }
+    ]
   },
   "include": [
     "src/**/*.ts",
     "src/**/*.vue"
   ],
   "exclude": [
-    "node_modules",
-    "src/domain/**"
+    "node_modules"
   ]
 }

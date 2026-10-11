@@ -10,4 +10,3 @@ export * from './picker';
 export * from './tables';
 export * from './service';
 export * from './maintenance';
-export * from './events';

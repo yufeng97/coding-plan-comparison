@@ -165,7 +165,7 @@ test("4周订阅保留完整表，排除按月价格图与个人月付推荐", a
 test("真实 Step 月池与 Pro 无5h标记正确", async () => {
   const d = await load();
   const step = d.METRICS_RAW.find((m) => m.vendor === "阶跃星辰 StepFun" && m.model === "step-3.7-flash");
-  const c = d.computeMetrics(withPrice(d, step));
+  const c = d.computeMetrics(withPrice(d, step))!;
   assert.equal(c.fLow, null);
   near(c.valMo, 400);
   near(c.priceCNY, 49);
@@ -181,16 +181,16 @@ test("MiMo、TokenHub与Canopy真实月额度不输出伪5h，并保留月量与
   assert.equal(rows.length, 19);
   for (const row of rows) {
     const input = withPrice(d, row);
-    assert.equal(input.windowPeriod, "month", row.ref);
+    assert.equal(input.windowPeriod, "month", String(row.ref));
     const c = d.computeMetrics(input);
-    assert.ok(c, row.ref);
-    for (const field of (["fLow", "fHigh", "val5h", "val5hHi", "r5h", "r5hHi"] as const)) assert.equal(c[field], null, row.ref + " " + field);
-    const windows = d.windowTokens(input);
+    assert.ok(c, String(row.ref));
+    for (const field of (["fLow", "fHigh", "val5h", "val5hHi", "r5h", "r5hHi"] as const)) assert.equal(c[field], null, String(row.ref) + " " + field);
+    const windows = d.windowTokens(input)!;
     near(c.moLow, windows.moLow);
     positive(c.costPerM); positive(c.valMo); positive(c.rmo);
   }
   const lite = rows.find((m) => m.ref === "plan-0167" && m.model === "mimo-v2.6-flash");
-  const c = d.computeMetrics(withPrice(d, lite));
+  const c = d.computeMetrics(withPrice(d, lite))!;
   near(c.moLow, 90.070495);
   near(c.costPerM, 39 / 90.070495);
   for (const p of d.PLANS.filter((p) => p.vendor === "小米 MiMo")) assert.equal(p.windowPeriod, "month", p.id);
@@ -199,11 +199,11 @@ test("MiMo、TokenHub与Canopy真实月额度不输出伪5h，并保留月量与
 test("credits 面值与API牌价跨币种时先换算，价值列保持标价币种", async () => {
   const d = await load();
   const common = { apiIn: 1, apiOut: 4, apiCache: 0.25 };
-  const cny = d.computeMetrics({ ...common, priceM: 10, cur: "CNY", creditUSD: 10 });
+  const cny = d.computeMetrics({ ...common, priceM: 10, cur: "CNY", creditUSD: 10 })!;
   near(cny.valMo, 10 * d.RATE_USD_CNY);
   near(cny.moMidM, 10 * d.RATE_USD_CNY / 1.03);
   near(cny.costPerM, 10 / positive(cny.moMidM));
-  const usd = d.computeMetrics({ ...common, priceM: 2, cur: "USD", creditCNY: 10 * d.RATE_USD_CNY });
+  const usd = d.computeMetrics({ ...common, priceM: 2, cur: "USD", creditCNY: 10 * d.RATE_USD_CNY })!;
   near(usd.valMo, 10);
   near(usd.moMidM, 10 / 1.03);
   near(usd.priceCNY, 2 * d.RATE_USD_CNY);
@@ -313,7 +313,7 @@ test("讯飞官方请求额度先除模型系数2，异版本牌价代理留在�
   assert.deepEqual([row.reqPer5h, row.reqPerWk, row.reqPerMo], [6000 / 2, 45000 / 2, 90000 / 2]);
   assert.equal(row.isEst, true);
   assert.equal(row.confidence, "低");
-  assert.match(row.confidenceReason, /旧版.*未核实/);
+  assert.match(row.confidenceReason!, /旧版.*未核实/);
   assert.match(row.note, /0\.8.*未折入/);
   assert.match(row.note, /不同版本.*V4\.1/);
   near(row.apiIn, 0.15 * d.RATE_USD_CNY);

@@ -3,18 +3,19 @@ import fs from "node:fs";
 import path from "node:path";
 import assert from "node:assert/strict";
 import { test } from "vitest";
+import type { PriceCheckKind } from "@domain/runtime";
 import { openPage, type Page } from "../test/page";
 
 const inventory = JSON.parse(fs.readFileSync(path.resolve("audit/pricing-inventory.json"), "utf8")) as { PLANS: Plan[] };
-const near = (actual: number, expected: number) => assert.ok(Math.abs(actual - expected) < 1e-9, `${actual} ≠ ${expected}`);
+const near = (actual: number | null | undefined, expected: number) => assert.ok(Math.abs((actual ?? NaN) - expected) < 1e-9, `${actual} ≠ ${expected}`);
 const plan = (page: Page, id: string) => page.runtime.findPlanReference(id) as Plan;
 type Runtime = Page["runtime"];
 type ApiPrice = Runtime["API_PRICES"][number];
 type PaygReference = Runtime["PAYG_REFERENCES"][number];
 /** 核价状态来自启动时的数据，挂载前注入历史状态，组件读取与真实页面相同。 */
-function pending(app: Runtime, product: Plan | typeof app.API_PRICES[number] | typeof app.PAYG_REFERENCES[number], kind = "plan", reason = "仅测试官网本次无法确认") {
+function pending(app: Runtime, product: Plan | typeof app.API_PRICES[number] | typeof app.PAYG_REFERENCES[number], kind: PriceCheckKind = "plan", reason = "仅测试官网本次无法确认") {
   const key = kind === "plan" ? "plan:" + (product as Plan).id : kind + ":" + product.vendor + "|" + (product as ApiPrice).model;
-  app.PRICE_CHECKS.rows[key] = { ...app.priceCheckOf(product, kind), status: "unverified", reason };
+  app.PRICE_CHECKS.rows[key] = { ...app.priceCheckOf(product, kind)!, status: "unverified", reason };
 }
 
 test("258 条核价记录完整对应计划、API 与 PAYG，日期与官方来源可追溯", async () => {
@@ -40,7 +41,7 @@ test("258 条核价记录完整对应计划、API 与 PAYG，日期与官方来�
       assert.ok(source.evidence.trim());
     }
   }
-  assert.equal(app.PRICE_CHECKS.checkedAt, rows.map((r) => r.check.checkedAt).sort().at(-1));
+  assert.equal(app.PRICE_CHECKS.checkedAt, rows.map((r) => r.check!.checkedAt).sort().at(-1));
   page.healthy();
 });
 
@@ -53,7 +54,8 @@ test("历史套餐保留原价，稳定 ID 不受更名影响", async () => {
     assert.ok(before, p.id);
     assert.deepEqual({ priceM: p.priceM, priceY: p.priceY, cur: p.cur }, { priceM: before.priceM, priceY: before.priceY, cur: before.cur });
   }
-  assert.equal(app.priceCheckOf({ ...app.PLANS[0], plan: "仅测试更名" }), app.priceCheckOf(app.PLANS[0]));
+  const renamed = { ...app.PLANS[0]!, plan: "仅测试更名" };
+  assert.equal(app.priceCheckOf(renamed), app.priceCheckOf(app.PLANS[0]));
   page.healthy();
 });
 
@@ -104,7 +106,7 @@ test("待核每席位价格退出团队图，历史金额通过完整表开关�
 });
 
 test("待核个人价格退出推荐与价格图，完整表、搜索入口与导出保留日期来源", async () => {
-  const page = await openPage({ url: "/?budget=any&region=all#s1", override(app) { pending(app, app.findPlanReference("plan-0098"), "plan", "官网本次无法确认"); return {}; } });
+  const page = await openPage({ url: "/?budget=any&region=all#s1", override(app) { pending(app, app.findPlanReference("plan-0098")!, "plan", "官网本次无法确认"); return {}; } });
   const app = page.runtime, p = plan(page, "plan-0098");
   assert.equal(app.computeTableRows().includes(p), false);
   assert.equal(app.recommendablePlan(p), false);
@@ -128,24 +130,24 @@ test("待核个人价格退出推荐与价格图，完整表、搜索入口与�
   const urls = app.priceCheckSources(p);
   assert.ok(urls.length > 0);
   for (const text of [app.tableRowsCsv([p]), app.tableRowsMarkdown([p])]) {
-    for (const value of [app.planPriceLabel(p), "历史价 · 待核实", app.priceCheckOf(p).checkedAt, "价格核查来源", "官网本次无法确认", ...urls]) assert.ok(text.includes(value), value);
+    for (const value of [app.planPriceLabel(p), "历史价 · 待核实", app.priceCheckOf(p)!.checkedAt, "价格核查来源", "官网本次无法确认", ...urls]) assert.ok(text.includes(value), value);
   }
   page.healthy();
 });
 
 test("待核官方与推算额度退出 tokens、排行与默认额度表，明细保留历史范围说明", async () => {
   const page = await openPage({ url: "/?rank=all#s3", override(app) {
-    for (const id of ["plan-0031", "plan-0002"]) pending(app, app.findPlanReference(id));
+    for (const id of ["plan-0031", "plan-0002"]) pending(app, app.findPlanReference(id)!);
     return {};
   } });
   const app = page.runtime;
   const tokens = page.charts.get("chartTokens")!.option.series.flatMap((s: { data: { _r: { label: string } }[] }) => s.data).filter(Boolean);
   assert.equal(tokens.some((d: { _r: { label: string } }) => /Z\.ai Lite|Anthropic Claude Pro/.test(d._r.label)), false);
   app.renderRankChart();
-  assert.equal(page.charts.get("chartRank")!.option.series[0].data.filter((d: { _r?: unknown }) => d._r).some((d: { _r: { m: { ref: string } } }) => ["plan-0031", "plan-0002"].includes(app.findPlanReference(d._r.m.ref)?.id)), false);
-  assert.equal(app.metricsTableRows().rows.some((r: { m: { ref: string } }) => ["plan-0031", "plan-0002"].includes(app.findPlanReference(r.m.ref)?.id)), false);
+  assert.equal(page.charts.get("chartRank")!.option.series[0].data.filter((d: { _r?: unknown }) => d._r).some((d: { _r: { m: { ref: string } } }) => ["plan-0031", "plan-0002"].includes(app.findPlanReference(d._r.m.ref)?.id ?? "")), false);
+  assert.equal(app.metricsTableRows().rows.some((r) => ["plan-0031", "plan-0002"].includes(app.findPlanReference(r.m.ref)?.id ?? "")), false);
   app.metricsState.offer = "all";
-  app.metricsState.model = app.METRICS_ALL.find((m: { ref: string }) => app.findPlanReference(m.ref)?.id === "plan-0002")!.model;
+  app.metricsState.model = app.METRICS_ALL.find((m) => app.findPlanReference(m.ref)?.id === "plan-0002")!.model;
   await page.settle();
   assert.match(page.byId("metricsBody").textContent!, /历史价折算 · 价格待核/);
   page.healthy();
@@ -175,7 +177,7 @@ test("待核 PAYG 按 vendor/model 映射，明细按历史牌价降低置信", 
 
 test("免费入口排除待核状态，对比不将历史价格突出为最低价", async () => {
   const page = await openPage({ override(app) {
-    for (const id of ["plan-0096", "plan-0098"]) pending(app, app.findPlanReference(id));
+    for (const id of ["plan-0096", "plan-0098"]) pending(app, app.findPlanReference(id)!);
     return {};
   } });
   const app = page.runtime;

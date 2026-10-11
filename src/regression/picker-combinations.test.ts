@@ -59,8 +59,8 @@ test("225组四维推荐满足资格、预算、工具和地区；升级/补充�
     const cap = budget === "any" ? Infinity : Number(budget);
     for (const x of pool) {
       allowed(x.p, "候选 " + x.p.plan);
-      check(app.cnyOf(x.p, "M") <= cap + 0.05, "候选超预算");
-      check(budget === "0" ? x.p.priceM === 0 : x.p.priceM > 0, "候选免费/付费口径不符");
+      check((app.cnyOf(x.p, "M") ?? 0) <= cap + 0.05, "候选超预算");
+      check(budget === "0" ? x.p.priceM === 0 : (x.p.priceM ?? 0) > 0, "候选免费/付费口径不符");
     }
     const grid = checkCards();
     if (!main) { check(grid.querySelector(".picker-empty"), "无推荐时缺少原因"); continue; }
@@ -70,21 +70,21 @@ test("225组四维推荐满足资格、预算、工具和地区；升级/补充�
     check(alternatives.length <= 2 && new Set(alternatives.map((x) => x.p.id)).size === alternatives.length, "替代候选数量或去重错误");
     for (const x of alternatives) {
       allowed(x.p, "替代 " + x.p.plan);
-      check(pool.includes(x) && x.p !== main.p && app.cnyOf(x.p, "M") <= cap + 0.05, "替代候选超出预算或重复主计划");
+      check(pool.includes(x) && x.p !== main.p && (app.cnyOf(x.p, "M") ?? 0) <= cap + 0.05, "替代候选超出预算或重复主计划");
       check(fitsTask(x, task), "替代候选任务不符");
     }
     const next = app.nextTier(main);
     if (next) {
       allowed(next.p, "升级 " + next.p.plan);
-      check(next.p.vendor === main.p.vendor && app.cnyOf(next.p, "M") > app.cnyOf(main.p, "M"), "升级厂商/价格不符");
-      check(app.cnyOf(next.p, "M") <= app.upgradeBudgetCeiling() + 0.05, "升级跨过下一预算档");
+      check(next.p.vendor === main.p.vendor && (app.cnyOf(next.p, "M") ?? 0) > (app.cnyOf(main.p, "M") ?? 0), "升级厂商/价格不符");
+      check((app.cnyOf(next.p, "M") ?? 0) <= app.upgradeBudgetCeiling() + 0.05, "升级跨过下一预算档");
     }
     const supplement = app.pickSupplement(main, pool).chosen;
     if (supplement) {
       allowed(supplement.p, "补充 " + supplement.p.plan);
       check(app.dailyEntries(pool, main).some((x: Profile) => x.p === supplement.p) && supplement.p.vendor !== main.p.vendor, "补充重复或超出候选");
       check(pool.includes(supplement) || app.isFreeCodingEntry(supplement.p), "主计划候选外仅可加入真实免费推理入口");
-      check(app.cnyOf(main.p, "M") + app.cnyOf(supplement.p, "M") <= cap + 0.05, "补充合计超预算");
+      check((app.cnyOf(main.p, "M") ?? 0) + (app.cnyOf(supplement.p, "M") ?? 0) <= cap + 0.05, "补充合计超预算");
     }
   }
   expect(total).toBe(225);

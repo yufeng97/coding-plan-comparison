@@ -426,7 +426,7 @@ test("额度引用按稳定ID跟随主计划更名和调序，保留模型口径
   const app = page.runtime;
   const raw = app.METRICS_RAW.find((m) => typeof m.ref === "string")!;
   const plan = app.findPlanReference(raw.ref)!;
-  const oldRef = [plan.vendor, plan.plan];
+  const oldRef: [string, string] = [plan.vendor, plan.plan];
   const legacy = app.resolvePlan({ ...raw, ref: oldRef })!;
   plan.vendor = "稳定ID新厂商";
   plan.plan = "稳定ID新套餐";

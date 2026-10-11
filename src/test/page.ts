@@ -37,6 +37,7 @@ function readOptionalData(src: string) {
 /** 测试用的 ECharts 实例：记下每次设置的配置与派发的动作，并像 ECharts 一样维护图例选择。
  * 每次 setOption 按新配置的图例重新全选（页面须自行恢复隐藏的系列）；图例动作派发与 ECharts 同名的事件。 */
 export class FakeChart {
+  /** 页面最近一次传入的 ECharts 配置；断言按需深入任意层级，这里不收窄类型。 */
   option: any = null;
   actions: Record<string, unknown>[] = [];
   selected: Record<string, boolean> = {};

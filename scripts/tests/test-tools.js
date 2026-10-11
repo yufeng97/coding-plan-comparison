@@ -137,17 +137,18 @@ async function main() {
     assert.equal(sandbox.echarts.version, require("echarts/package.json").version);
     assert.equal(typeof sandbox.echarts.init, "function");
   });
-  await test("审计输入确定性生成类型化目录，保留永久 ID、正则、共享字段与评测摘要", () => fixture(async (root, write) => {
+  await test("审计输入确定性生成类型化目录，保留永久 ID、正则、共享字段与评测摘要，顶层函数参数须写明类型", () => fixture(async (root, write) => {
     const { catalogSource, writeCatalog, CATALOG_FILE } = await import("../build/catalog-types.mjs");
-    write("js/data.js", 'const RATE_USD_CNY = 6.71; const PLANS = [{id:"stable-id",plan:"fixture",quota:"shared"}]; const MODEL_ROLES = [{re:/glm-5/i}]; const PRICE_CHECKS = {checkedAt:"2026-10-10",sources:{},rows:{}}; function resolvedField(p,key,seen) { return p[key]; }');
-    write("js/benchmark-summary.js", 'const BENCHMARK_SUMMARY = {schemaVersion:1,checkedAt:"2026-10-10",protocols:[]};');
+    write("js/data.js", 'const RATE_USD_CNY = 6.71;\n/** @type {Plan[]} */\nconst PLANS = [{id:"stable-id",plan:"fixture",quota:"shared"}];\n/** @type {ModelRole[]} */\nconst MODEL_ROLES = [{re:/glm-5/i}];\n/** @type {PriceChecks} */\nconst PRICE_CHECKS = {checkedAt:"2026-10-10",sources:{},rows:{}};\n/** @param {Plan} p @param {PlanTextField} key @param {Set<Plan>} [seen] @returns {string} */\nfunction resolvedField(p,key,seen) { return p[key]; }');
+    write("js/benchmark-summary.js", '/** @type {BenchmarkSummary} */\nconst BENCHMARK_SUMMARY = {schemaVersion:1,checkedAt:"2026-10-10",protocols:[]};');
     write("js/project-data.js", 'const PUBLIC_PROJECT = Object.freeze({siteUrl:"https://example.com/"});');
     const source = catalogSource(root);
     assert.equal(source, catalogSource(root));
     assert.match(source, /PLANS: Plan\[\]/);
     assert.match(source, /BENCHMARK_SUMMARY: BenchmarkSummary/);
-    assert.match(source, /sources: Record<string/);
-    assert.match(source, /seen\?: any/);
+    assert.match(source, /MODEL_ROLES: ModelRole\[\]/);
+    assert.match(source, /PRICE_CHECKS: PriceChecks/);
+    assert.match(source, /function resolvedField\(p: Plan, key: PlanTextField, seen\?: Set<Plan>\): string/);
     assert.match(source, /export \{ RATE_USD_CNY, PLANS, MODEL_ROLES, PRICE_CHECKS, resolvedField, BENCHMARK_SUMMARY, PUBLIC_PROJECT \};/);
     const ts = require("typescript");
     const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
@@ -165,6 +166,9 @@ async function main() {
     assert.equal(fs.readFileSync(file, "utf8"), before, "检查模式不改仓库");
     write("js/project-data.js", "const PLANS = [];");
     assert.throws(() => catalogSource(root), /PLANS.*重复声明/);
+    write("js/project-data.js", 'const PUBLIC_PROJECT = Object.freeze({siteUrl:"https://example.com/"});');
+    write("js/data.js", "const PLANS = []; function untyped(p) { return p; }");
+    assert.throws(() => catalogSource(root), /js\/data\.js:1 函数 untyped 的参数 p 缺少 JSDoc 类型/);
     const real = path.resolve(__dirname, "..", "..");
     assert.equal(fs.readFileSync(path.join(real, CATALOG_FILE), "utf8"), catalogSource(real));
   }));

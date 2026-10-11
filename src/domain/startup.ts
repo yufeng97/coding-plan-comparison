@@ -1,23 +1,20 @@
 import { nextTick } from 'vue';
 import {
-  applyUrlState, auditProfiles, bindChartResize, bindEvents, bindMaintenanceEvents,
-  bindMetricsEvents, bindServiceEvents, byId, calcState, cancelPersonalSearch, cancelTableSearch,
+  applyUrlState, auditProfiles, bindChartResize, byId, calcState, cancelPersonalSearch, cancelTableSearch,
   chartCache, chartLibraryReady, closeCmpModal, cmpState, DEBUG_MODE, ensureChartLibrary,
-  evtTarget, focusTableControl, initTheme, isCmpModalOpen, loadViewData, markChartsForResize,
-  hasPendingSearch, metricsState, navigationHooks, openCmpModal, optionalDataLoaded,
-  personalState, pickerState, populateModelFilter, populateRankVendor, qs, qsa, rankState,
-  renderApiChart, renderApiDetails, renderCmpBar, renderCmpModal, renderCostCalculator, renderFree,
-  renderLegend, renderMetricsHead, renderMetricsTable, renderPersonalChart, renderPicker,
-  renderPublicBenchmarkChart, renderRankChart, renderRankDetails, renderTable, renderTeamChart,
-  renderTokensChart, rerenderCharts, resizeVisibleCharts, revealTablePlan, setUrlRestoring,
-  showChartError, syncControlsFromState, syncUrl, tableState, updateActiveNav,
+  evtTarget, focusTableControl, hasPendingSearch, initTheme, isCmpModalOpen, loadViewData, markChartsForResize,
+  metricsState, navigationHooks, openCmpModal, optionalDataLoaded, personalState, pickerState,
+  populateModelFilter, qs, qsa, rankState, renderApiChart, renderCmpBar, renderCostCalculator,
+  renderMetricsTable, renderPersonalChart, renderPicker, renderPublicBenchmarkChart, renderRankChart,
+  renderTable, renderTeamChart, renderTokensChart, rerenderCharts, resizeVisibleCharts, revealTablePlan,
+  setUrlRestoring, showChartError, syncControlsFromState, syncPresetButtons, syncUrl, tableState, updateActiveNav,
 } from './runtime';
 
-export function startApplication() {
-/* ============ Coding Plan 比价中心 — 启动与懒加载 ============ */
-"use strict";
+/* ============ Coding Plan 比价中心 — 启动、章节导航、历史恢复与图表懒加载 ============ */
+/* 业务入口经 ./runtime 导入：页面测试可替换其中的导出（如 auditProfiles）观察启动行为。 */
+
 /* ---------- 初始化：单块失败不阻断其余区块 ---------- */
-function boot(name: any, fn: any) {
+function boot(name: string, fn: () => unknown) {
     try {
         fn();
         return true;
@@ -30,15 +27,15 @@ function boot(name: any, fn: any) {
 /* 主选购页和辅助资料按标签显示；锚点仍是可分享、可前进后退的入口。 */
 const AUXILIARY_VIEWS = new Set(["updates", "benchmarks", "sources", "contribute"]);
 let currentSiteView = "compare";
-function activatePageForTarget(target: any) {
+function activatePageForTarget(target: Element | null) {
     const section = target && (target.classList.contains("section") ? target : target.closest(".section"));
     const view = section && AUXILIARY_VIEWS.has(section.id) ? section.id : "compare";
     currentSiteView = view;
-    qsa("main .section").forEach((item: any) => { item.hidden = AUXILIARY_VIEWS.has(item.id) ? item.id !== view : view !== "compare"; });
+    qsa("main .section").forEach((item) => { item.hidden = AUXILIARY_VIEWS.has(item.id) ? item.id !== view : view !== "compare"; });
     const hero = qs(".hero");
     if (hero)
         hero.hidden = view !== "compare";
-    qsa("[data-site-view]").forEach((link: any) => {
+    qsa("[data-site-view]").forEach((link) => {
         const selected = link.dataset.siteView === view;
         link.classList.toggle("active", selected);
         if (selected)
@@ -58,8 +55,11 @@ function activatePageForTarget(target: any) {
         requestAnimationFrame(() => { resizeVisibleCharts(); updateActiveNav(); });
 }
 /* Firefox 可能在 popstate 前清掉 fragment 内的焦点；保留最近的方案按钮身份。 */
-let historicalPlanFocus = null;
-function isCurrentFragmentTarget(target: any) {
+let historicalPlanFocus: { element: HTMLElement; url: string } | null = null;
+function isPlanButton(el: Element | null): el is HTMLElement {
+    return el instanceof HTMLElement && (el.classList.contains("cmp-add") || el.classList.contains("cmp-remove"));
+}
+function isCurrentFragmentTarget(target: Element | null) {
     try {
         return !!location.hash && target === byId(decodeURIComponent(location.hash.slice(1)));
     }
@@ -67,73 +67,37 @@ function isCurrentFragmentTarget(target: any) {
         return false;
     }
 }
-document.addEventListener("focusin", (e: FocusEvent) => {
+function rememberPlanFocus(e: FocusEvent) {
     const target = evtTarget(e);
     /* WebKit 历史 fragment 会在 popstate 前聚焦章节；显式点击已由 pointerdown 清除缓存。 */
     if (historicalPlanFocus && historicalPlanFocus.url !== location.href && isCurrentFragmentTarget(target))
         return;
-    historicalPlanFocus = target && (target.classList.contains("cmp-add") || target.classList.contains("cmp-remove"))
-        ? { element: target, url: location.href } : null;
-});
-document.addEventListener("pointerdown", (e: PointerEvent) => {
+    historicalPlanFocus = isPlanButton(target) ? { element: target, url: location.href } : null;
+}
+function forgetPlanFocus(e: PointerEvent) {
     const target = evtTarget(e);
     if (!target || !target.closest(".cmp-add,.cmp-remove"))
         historicalPlanFocus = null;
-}, { passive: true });
-navigationHooks.navigate = navigateToSection;
-navigationHooks.restore = restoreHistoryState;
-applyUrlState();
-let initialSection = "quick";
-try {
-    initialSection = decodeURIComponent(location.hash.slice(1)) || "quick";
 }
-catch (err) { /* 使用默认视图 */ }
-activatePageForTarget(byId(initialSection));
-syncControlsFromState();
-renderCmpBar();
-/* 分享的对比链接：≥2 档时自动弹出对比视图 */
-if (cmpState.items.length >= 2) {
-    boot("cmpModal", openCmpModal);
-    /* 初次载入的原生 fragment 导航可能清空降级窗口焦点；载入完成后恢复一次。 */
-    window.addEventListener("load", () => {
-        const restore = () => {
-            const dialog = byId("cmpModal");
-            if (isCmpModalOpen() && dialog && !dialog.contains(document.activeElement))
-                focusTableControl(byId("cmpCloseBtn"));
-        };
-        if (typeof requestAnimationFrame === "function")
-            requestAnimationFrame(restore);
-        else
-            restore();
-    }, { once: true });
-}
-/* 首屏只画「帮我选」以上的内容；图表在滚动接近时再初始化（见 LAZY_CHARTS） */
-boot("theme", initTheme);
-
-boot("rankVendors", populateRankVendor);
-boot("legend", renderLegend); /* 图例在区块头里，不随图表懒加载，避免滚达前空着 */
-boot("quick", renderPicker);
-boot("free", renderFree);
-boot("table", renderTable);
-boot("modelFilter", populateModelFilter);
-boot("metricsHead", renderMetricsHead);
-boot("metrics", renderMetricsTable);
-
-boot("rankDetails", renderRankDetails);
-boot("apiDetails", renderApiDetails);
 /* 首屏以下的图表进入视口再画，缩短首屏主线程占用；rootMargin 提前 200px 预热 */
-const LAZY_CHARTS = [
+interface LazyChart { name: string; el: string; fn: () => void }
+const LAZY_CHARTS: LazyChart[] = [
     { name: "rank", el: "chartRank", fn: renderRankChart },
     { name: "personal", el: "chartPersonal", fn: renderPersonalChart },
     { name: "team", el: "chartTeam", fn: renderTeamChart },
     { name: "tokens", el: "chartTokens", fn: renderTokensChart },
     { name: "api", el: "chartApi", fn: renderApiChart },
 ];
-const LAZY_DONE = new Set();
+const LAZY_DONE = new Set<string>();
 function chartHostAvailable(host: Element | null) {
     return !!host && !(host as HTMLElement).hidden && !host.closest<HTMLElement>(".section")?.hidden && !host.closest("[hidden]");
 }
-function bootLazy(item: any) {
+/* 图表在目标章节之内或之前：跳到目标前先画好，滚动途中不再增高顶偏目标。 */
+function chartPrecedes(item: LazyChart, target: HTMLElement) {
+    const chart = byId(item.el);
+    return !!chart && chartHostAvailable(chart) && (target.contains(chart) || (chart.compareDocumentPosition(target) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0);
+}
+function bootLazy(item: LazyChart) {
     if (LAZY_DONE.has(item.el) || !chartHostAvailable(byId(item.el)))
         return;
     LAZY_DONE.add(item.el);
@@ -145,7 +109,7 @@ function bootLazy(item: any) {
     }
 }
 /* 锚点跳转前完成目标前方图表的布局；滚动期间不再被懒加载增高顶偏。 */
-function prepareSection(hash: any) {
+function prepareSection(hash: string) {
     let id;
     try {
         id = decodeURIComponent(String(hash || "").replace(/^#/, ""));
@@ -158,15 +122,14 @@ function prepareSection(hash: any) {
         return null;
     if (id === "top")
         return target;
-    LAZY_CHARTS.forEach((item: { name: string; el: string; fn: () => void; }) => {
-        const chart = byId(item.el);
-        if (chartHostAvailable(chart) && (target.contains(chart) || (chart.compareDocumentPosition(target) & 4)))
+    LAZY_CHARTS.forEach((item) => {
+        if (chartPrecedes(item, target))
             bootLazy(item);
     });
     return target;
 }
 let sectionNavigationVersion = 0;
-function navigateToSection(hash: any, updateHistory: boolean = true, moveFocus: boolean = true, allowInitialLayout: boolean = false) {
+function navigateToSection(hash: string, updateHistory: boolean = true, moveFocus: boolean = true, allowInitialLayout: boolean = false) {
     const version = ++sectionNavigationVersion;
     let id = String(hash || "").slice(1) || "top";
     try {
@@ -188,11 +151,7 @@ function navigateToSection(hash: any, updateHistory: boolean = true, moveFocus: 
             location.hash = hash;
         }
     }
-    updateHistory = false;
-    const needsCharts = target && id !== "top" && LAZY_CHARTS.some((item: { name: string; el: string; fn: () => void; }) => {
-        const chart = byId(item.el);
-        return chartHostAvailable(chart) && (target.contains(chart) || (chart.compareDocumentPosition(target) & 4));
-    });
+    const needsCharts = id !== "top" && LAZY_CHARTS.some((item) => chartPrecedes(item, target));
     if (!chartLibraryReady() && needsCharts) {
         const initialScroll = window.scrollY;
         const initialFocus = document.activeElement;
@@ -200,8 +159,10 @@ function navigateToSection(hash: any, updateHistory: boolean = true, moveFocus: 
         const focusChanged = () => document.activeElement !== initialFocus && document.activeElement !== document.body;
         const abandonOnInput = () => { abandoned = true; };
         const scrollKeys = new Set(["Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "PageUp", "PageDown", "Home", "End", " "]);
-        const abandonOnKey = (/** @type {KeyboardEvent} */ event: KeyboardEvent) => { if (scrollKeys.has(event.key))
-            abandoned = true; };
+        const abandonOnKey = (event: KeyboardEvent) => {
+            if (scrollKeys.has(event.key))
+                abandoned = true;
+        };
         const inputEvents = ["wheel", "touchmove", "pointerdown"];
         const trackReading = () => {
             updateActiveNav();
@@ -210,11 +171,11 @@ function navigateToSection(hash: any, updateHistory: boolean = true, moveFocus: 
                 abandoned = true;
         };
         window.addEventListener("scroll", trackReading, { passive: true });
-        inputEvents.forEach((type: string) => window.addEventListener(type, abandonOnInput, { passive: true }));
+        inputEvents.forEach((type) => window.addEventListener(type, abandonOnInput, { passive: true }));
         window.addEventListener("keydown", abandonOnKey);
         const stopTracking = () => {
             window.removeEventListener("scroll", trackReading);
-            inputEvents.forEach((type: string) => window.removeEventListener(type, abandonOnInput));
+            inputEvents.forEach((type) => window.removeEventListener(type, abandonOnInput));
             window.removeEventListener("keydown", abandonOnKey);
         };
         /* 先排空已排队的图表渲染，再测量锚点；否则上方图表增高会顶偏目标。 */
@@ -223,35 +184,28 @@ function navigateToSection(hash: any, updateHistory: boolean = true, moveFocus: 
             const active = qs('.topnav a[aria-current="location"]');
             /* 显式键盘导航的来源链接可能在下一帧才滚入视口；不能把这个滚动当作放弃导航。 */
             /* 初次分享链接的 SSR/客户端行数和字体布局会触发原生 fragment 滚动；只有用户输入才取消这次对齐。 */
-            const movedAway = !allowInitialLayout && !moveFocus && Math.abs(window.scrollY - initialScroll) > 2 && active && active.getAttribute("href") !== hash;
+            const movedAway = !allowInitialLayout && !moveFocus && Math.abs(window.scrollY - initialScroll) > 2 && !!active && active.getAttribute("href") !== hash;
             return Promise.resolve(abandoned || movedAway || focusChanged());
-        }).then((movedAway: any) => {
+        }).then((movedAway) => {
             stopTracking();
+            /* 历史入口已在上方提交，图表就绪后的重入不再写历史。 */
             if (!movedAway && version === sectionNavigationVersion)
-                navigateToSection(hash, updateHistory, moveFocus, allowInitialLayout);
+                navigateToSection(hash, false, moveFocus, allowInitialLayout);
         }, () => {
             stopTracking();
             /* 图表不可用时仍让用户进入文字明细；本地错误卡可独立重试。 */
             if (!abandoned && !focusChanged() && version === sectionNavigationVersion)
-                navigateToSectionReady(hash, updateHistory, moveFocus);
+                navigateToSectionReady(hash, moveFocus);
         });
         return;
     }
-    navigateToSectionReady(hash, updateHistory, moveFocus);
+    navigateToSectionReady(hash, moveFocus);
 }
-function navigateToSectionReady(hash: any, updateHistory: any, moveFocus: any) {
-    const previousFocus = /** @type {HTMLElement | null} */ document.activeElement as HTMLElement;
+function navigateToSectionReady(hash: string, moveFocus: boolean) {
+    const previousFocus = document.activeElement as HTMLElement | null;
     const target = prepareSection(hash);
     if (!target)
         return;
-    if (updateHistory && location.hash !== hash) {
-        try {
-            history.pushState(null, "", location.pathname + location.search + hash);
-        }
-        catch (e) {
-            location.hash = hash;
-        }
-    }
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     target.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
     if (moveFocus) {
@@ -264,11 +218,12 @@ function navigateToSectionReady(hash: any, updateHistory: any, moveFocus: any) {
         focusTableControl(previousFocus);
     }
 }
-document.addEventListener("click", (e: PointerEvent) => {
+/* 站内锚点走章节导航（懒加载预热与焦点管理）；图表错误卡的重试按钮重画对应图表。 */
+function onDocumentClick(e: MouseEvent) {
     const target = evtTarget(e);
-    const link = target && target.closest ? target.closest('a[href^="#"]') : null;
+    const link = target ? target.closest('a[href^="#"]') : null;
     if (link && !e.defaultPrevented && e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
-        const hash = link.getAttribute("href");
+        const hash = link.getAttribute("href") || "";
         /* 判定与导航都用解码后的锚点，非 ASCII 章节名才能命中懒加载预热与焦点管理 */
         let anchorId = hash.slice(1);
         try {
@@ -280,44 +235,48 @@ document.addEventListener("click", (e: PointerEvent) => {
         e.preventDefault();
         navigateToSection(hash);
     }
-    const retry = target && target.closest ? target.closest("[data-retry-chart]") : null;
+    const retry = target ? target.closest<HTMLElement>("[data-retry-chart]") : null;
     if (retry) {
         const id = retry.dataset.retryChart;
         if (id === "chartPublicBenchmark") {
             boot("publicBenchmarkChart", renderPublicBenchmarkChart);
             return;
         }
-        const item = LAZY_CHARTS.find((x: { name: string; el: string; fn: () => void; }) => x.el === id);
+        const item = LAZY_CHARTS.find((x) => x.el === id);
         if (item) {
-            if (chartCache[id]) {
-                chartCache[id].dispose();
-                delete chartCache[id];
+            const chart = chartCache[item.el];
+            if (chart) {
+                chart.dispose();
+                delete chartCache[item.el];
             }
-            byId(id).innerHTML = "";
-            LAZY_DONE.delete(id);
+            const host = byId(item.el);
+            if (host)
+                host.innerHTML = "";
+            LAZY_DONE.delete(item.el);
             bootLazy(item);
         }
     }
-});
+}
 /* Back/Forward 恢复整份状态。恢复期间视图不允许写回 URL。 */
 let historyRestoreVersion = 0;
 /* popstate 恢复已处理过的锚点；紧随其后的 hashchange（hash 前进/后退会先 popstate 再 hashchange）不再二次滚动/抢焦点 */
-let restoredAnchorHash = null;
+let restoredAnchorHash: string | null = null;
 /* 六块可分享状态 + 对比选择的快照：纯锚点前进/后退时 URL 查询串不变，跳过全量重渲染 */
 function shareableStateSignature() {
-    return JSON.stringify([personalState, rankState, pickerState, tableState, metricsState, calcState, cmpState.items.map((p: Plan) => p.id)]);
+    return JSON.stringify([personalState, rankState, pickerState, tableState, metricsState, calcState, cmpState.items.map((p) => p.id)]);
 }
-async function restoreHistoryState(search: any, restoreAnchor: boolean = true) {
+async function restoreHistoryState(search: string | Event, restoreAnchor: boolean = true) {
     if (!restoreAnchor)
         ++sectionNavigationVersion;
     const restoreVersion = ++historyRestoreVersion;
-    const activeElement = /** @type {HTMLElement | null} */ document.activeElement as HTMLElement;
-    const nativeFocusLost = (activeElement === document.body || isCurrentFragmentTarget(activeElement)) && historicalPlanFocus && historicalPlanFocus.url !== location.href;
-    const focused = nativeFocusLost
-        ? historicalPlanFocus.element : activeElement;
+    const activeElement = document.activeElement as HTMLElement | null;
+    const remembered = historicalPlanFocus;
+    /* 原生 fragment 导航已把焦点移到页面或章节时，改用最近记下的方案按钮。 */
+    const focused = remembered && remembered.url !== location.href && (activeElement === document.body || isCurrentFragmentTarget(activeElement))
+        ? remembered.element : activeElement;
     const focusedClass = focused && (focused.classList.contains("cmp-remove") ? "cmp-remove" : focused.classList.contains("cmp-add") ? "cmp-add" : "");
-    const focusedPlanId = focusedClass ? focused.dataset.planId : "";
-    const focusedScope = focusedClass ? focused.dataset.cmpScope : "";
+    const focusedPlanId = focused && focusedClass ? focused.dataset.planId : "";
+    const focusedScope = focused && focusedClass ? focused.dataset.cmpScope : "";
     /* 状态已经写进 URL，但防抖视图可能还没有更新；不能把相同状态当作相同视图。 */
     const pendingSearch = hasPendingSearch();
     cancelPersonalSearch();
@@ -335,14 +294,13 @@ async function restoreHistoryState(search: any, restoreAnchor: boolean = true) {
             boot("restoreMetrics", renderMetricsTable);
             boot("restoreCmpBar", renderCmpBar);
             boot("restoreCharts", rerenderCharts);
-            boot("restoreRankDetails", renderRankDetails);
             boot("restoreCalculator", renderCostCalculator);
         }
         if (isCmpModalOpen()) {
             if (cmpState.items.length < 2)
                 closeCmpModal();
             else
-                boot("restoreCmpModal", renderCmpModal);
+                boot("restoreCmpModal", renderCmpBar);
         }
         if (restoreAnchor && location.hash) {
             navigateToSection(location.hash, false, false);
@@ -352,7 +310,8 @@ async function restoreHistoryState(search: any, restoreAnchor: boolean = true) {
             activatePageForTarget(byId("quick"));
         /* 关闭窗口已找回可用入口时保留；仅修复被重绘或隐藏后丢失的方案按钮焦点。 */
         await nextTick();
-        if (restoreVersion !== historyRestoreVersion) return;
+        if (restoreVersion !== historyRestoreVersion)
+            return;
         const currentFocus = document.activeElement;
         const modalClosed = focusedClass === "cmp-remove" && !isCmpModalOpen();
         const focusLostToPage = !currentFocus || currentFocus === document.body || currentFocus.isConnected === false || isCurrentFragmentTarget(currentFocus);
@@ -363,18 +322,20 @@ async function restoreHistoryState(search: any, restoreAnchor: boolean = true) {
             if (focusedClass === "cmp-add" && focusedPlanId && focusedScope === "tableBody") {
                 revealTablePlan(focusedPlanId);
                 await nextTick();
-                if (restoreVersion !== historyRestoreVersion) return;
+                if (restoreVersion !== historyRestoreVersion)
+                    return;
                 const afterReveal = document.activeElement;
-                if (afterReveal && afterReveal !== focused && afterReveal !== document.body && afterReveal.isConnected !== false && !isCurrentFragmentTarget(afterReveal)) return;
+                if (afterReveal && afterReveal !== focused && afterReveal !== document.body && afterReveal.isConnected !== false && !isCurrentFragmentTarget(afterReveal))
+                    return;
             }
-            const replacement = selector && focusedPlanId ? [...qsa(selector)].find((btn: any) => btn.dataset.planId === focusedPlanId && (!focusedScope || btn.dataset.cmpScope === focusedScope)) : null;
+            const replacement = selector && focusedPlanId ? [...qsa(selector)].find((btn) => btn.dataset.planId === focusedPlanId && (!focusedScope || btn.dataset.cmpScope === focusedScope)) : null;
             if (!focusTableControl(replacement))
                 focusTableControl(byId(isCmpModalOpen() ? "cmpCloseBtn" : "searchInput"));
         }
         /* 原生历史锚点处理可能在 popstate 返回后再次清空焦点；只补回这一轮已恢复的位置。 */
-        const restoredFocus = /** @type {HTMLElement | null} */ document.activeElement as HTMLElement;
+        const restoredFocus = document.activeElement as HTMLElement | null;
         /* keyed 节点保留焦点时不会再次触发 focusin，缓存仍须跟随当前历史位置。 */
-        if (restoredFocus && (restoredFocus.classList.contains("cmp-add") || restoredFocus.classList.contains("cmp-remove")))
+        if (isPlanButton(restoredFocus))
             historicalPlanFocus = { element: restoredFocus, url: location.href };
         if (focusedClass && restoredFocus && restoredFocus !== document.body && typeof requestAnimationFrame === "function") {
             const restoredUrl = location.href;
@@ -391,8 +352,7 @@ async function restoreHistoryState(search: any, restoreAnchor: boolean = true) {
         setUrlRestoring(false);
     }
 }
-window.addEventListener("popstate", restoreHistoryState);
-window.addEventListener("hashchange", () => {
+function onHashChange() {
     /* hash 前进/后退会先 popstate（已做过完整恢复）再 hashchange；只处理用户手改地址栏的情况 */
     if (restoredAnchorHash !== null) {
         const same = location.hash === restoredAnchorHash;
@@ -401,19 +361,33 @@ window.addEventListener("hashchange", () => {
             return;
     }
     navigateToSection(location.hash, false, false);
-});
-if (typeof IntersectionObserver === "function") {
-    const lazyIo = new IntersectionObserver((entries: IntersectionObserverEntry[]) => {
-        entries.forEach((e: IntersectionObserverEntry) => {
+}
+/* 初次载入的原生 fragment 导航可能清空降级窗口焦点；载入完成后恢复一次。 */
+function restoreCmpFocusAfterLoad() {
+    const restore = () => {
+        const dialog = byId("cmpModal");
+        if (isCmpModalOpen() && dialog && !dialog.contains(document.activeElement))
+            focusTableControl(byId("cmpCloseBtn"));
+    };
+    if (typeof requestAnimationFrame === "function")
+        requestAnimationFrame(restore);
+    else
+        restore();
+}
+function observeLazyCharts() {
+    if (typeof IntersectionObserver !== "function")
+        return;
+    const lazyIo = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
             if (!e.isIntersecting || !chartHostAvailable(e.target) || e.boundingClientRect.width <= 0 || e.boundingClientRect.height <= 0)
                 return;
             lazyIo.unobserve(e.target);
-            const item = LAZY_CHARTS.find((x: { name: string; el: string; fn: () => void; }) => byId(x.el) === e.target);
+            const item = LAZY_CHARTS.find((x) => byId(x.el) === e.target);
             if (item)
                 bootLazy(item);
         });
     }, { rootMargin: "200px 0px" });
-    LAZY_CHARTS.forEach((x: { name: string; el: string; fn: () => void; }) => {
+    LAZY_CHARTS.forEach((x) => {
         const el = byId(x.el);
         if (el)
             lazyIo.observe(el);
@@ -421,39 +395,19 @@ if (typeof IntersectionObserver === "function") {
 }
 /* 兜底：后台标签页等环境里 IO 可能不产生帧，滚动/缩放时按位置补渲染（LAZY_DONE 防重复） */
 function renderLazyIfNeeded() {
-    LAZY_CHARTS.forEach((item: { name: string; el: string; fn: () => void; }) => {
+    LAZY_CHARTS.forEach((item) => {
         if (LAZY_DONE.has(item.el))
             return;
         const el = byId(item.el);
-        if (!chartHostAvailable(el))
+        if (!el || !chartHostAvailable(el))
             return;
         const r = el.getBoundingClientRect();
         if (r.width > 0 && r.height > 0 && r.top < window.innerHeight + 200 && r.bottom > -200)
             bootLazy(item);
     });
 }
-const frameLazyCheck = onScrollFrame(renderLazyIfNeeded);
-window.addEventListener("scroll", frameLazyCheck, { passive: true });
-window.addEventListener("resize", renderLazyIfNeeded, { passive: true });
-renderLazyIfNeeded();
-/* 有限首屏兜底；恢复前台时再检查，不在首屏持续轮询。 */
-let lazyAttempts = 0;
-const lazyTimer = setInterval(() => {
-    renderLazyIfNeeded();
-    if (++lazyAttempts >= 5 || LAZY_DONE.size >= LAZY_CHARTS.length)
-        clearInterval(lazyTimer);
-}, 800);
-document.addEventListener("visibilitychange", () => {
-    if (!document.hidden)
-        renderLazyIfNeeded();
-});
-/* picker 的 headline 断言只在调试时跑：?debug=1 */
-if (DEBUG_MODE) {
-    boot("audit", auditProfiles);
-}
-/* ---------- 滚动进度条 ---------- */
 /* 三个滚动回调共用一帧调度：scroll 高频触发时每个回调每帧至多执行一次 */
-function onScrollFrame(fn: any) {
+function onScrollFrame(fn: () => void) {
     let queued = false;
     return () => {
         if (queued)
@@ -466,7 +420,8 @@ function onScrollFrame(fn: any) {
             run();
     };
 }
-(function () {
+/* ---------- 滚动进度条 ---------- */
+function bindScrollProgress() {
     const bar = byId("scrollBar");
     if (!bar)
         return;
@@ -475,12 +430,11 @@ function onScrollFrame(fn: any) {
         const max = h.scrollHeight - h.clientHeight;
         bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + "%";
     };
-    const frameUpdate = onScrollFrame(update);
-    window.addEventListener("scroll", frameUpdate, { passive: true });
+    window.addEventListener("scroll", onScrollFrame(update), { passive: true });
     update();
-})();
+}
 /* ---------- 回到顶部（贴在右侧滚动条旁） ---------- */
-(function () {
+function bindBackToTop() {
     const btn = byId("toTop");
     if (!btn)
         return;
@@ -489,29 +443,75 @@ function onScrollFrame(fn: any) {
         ++sectionNavigationVersion;
         const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
-        const title = currentSiteView === "compare" ? qs(".hero h1") : byId(currentSiteView).querySelector("h2");
+        const title = currentSiteView === "compare" ? qs(".hero h1") : byId(currentSiteView)?.querySelector("h2");
         if (title) {
             title.setAttribute("tabindex", "-1");
             title.focus({ preventScroll: true });
         }
     });
-    const frameToggle = onScrollFrame(toggle);
-    window.addEventListener("scroll", frameToggle, { passive: true });
+    window.addEventListener("scroll", onScrollFrame(toggle), { passive: true });
     toggle();
-})();
-boot("events", bindEvents);
-boot("services", bindServiceEvents);
-if (typeof bindMaintenanceEvents === "function")
-    boot("maintenance", bindMaintenanceEvents);
-boot("metricsEvents", bindMetricsEvents);
-boot("chartResize", bindChartResize);
-boot("syncUrl", syncUrl);
-/* 直接打开分享锚点时也先铺好上方布局。 */
-if (location.hash)
-    navigateToSection(location.hash, false, false, true);
-/* Vue 已挂载并恢复当前条件；清除默认预渲染标记，让带参数链接显示当前结果。 */
-qsa("[data-prerendered]").forEach((el: any) => el.removeAttribute("data-prerendered"));
-document.documentElement.classList.remove("has-query");
-window["codingPlanReady"] = true;
-
+}
+/* Vue 挂载并恢复地址栏条件后调用：登记导航与历史入口，绘制首屏，并安排其余图表懒加载。 */
+export function startApplication() {
+    document.addEventListener("focusin", rememberPlanFocus);
+    document.addEventListener("pointerdown", forgetPlanFocus, { passive: true });
+    navigationHooks.navigate = navigateToSection;
+    navigationHooks.restore = restoreHistoryState;
+    applyUrlState();
+    let initialSection = "quick";
+    try {
+        initialSection = decodeURIComponent(location.hash.slice(1)) || "quick";
+    }
+    catch (err) { /* 使用默认视图 */ }
+    activatePageForTarget(byId(initialSection));
+    syncControlsFromState();
+    renderCmpBar();
+    /* 分享的对比链接：≥2 档时自动弹出对比视图 */
+    if (cmpState.items.length >= 2) {
+        boot("cmpModal", openCmpModal);
+        window.addEventListener("load", restoreCmpFocusAfterLoad, { once: true });
+    }
+    /* 首屏只画「帮我选」以上的内容；图表在滚动接近时再初始化（见 LAZY_CHARTS） */
+    boot("theme", initTheme);
+    boot("quick", renderPicker);
+    boot("table", renderTable);
+    boot("modelFilter", populateModelFilter);
+    boot("metrics", renderMetricsTable);
+    document.addEventListener("click", onDocumentClick);
+    window.addEventListener("popstate", restoreHistoryState);
+    window.addEventListener("hashchange", onHashChange);
+    observeLazyCharts();
+    window.addEventListener("scroll", onScrollFrame(renderLazyIfNeeded), { passive: true });
+    window.addEventListener("resize", renderLazyIfNeeded, { passive: true });
+    renderLazyIfNeeded();
+    /* 有限首屏兜底；恢复前台时再检查，不在首屏持续轮询。 */
+    let lazyAttempts = 0;
+    const lazyTimer = setInterval(() => {
+        renderLazyIfNeeded();
+        if (++lazyAttempts >= 5 || LAZY_DONE.size >= LAZY_CHARTS.length)
+            clearInterval(lazyTimer);
+    }, 800);
+    document.addEventListener("visibilitychange", () => {
+        if (!document.hidden)
+            renderLazyIfNeeded();
+    });
+    /* picker 的 headline 断言只在调试时跑：?debug=1 */
+    if (DEBUG_MODE)
+        boot("audit", auditProfiles);
+    bindScrollProgress();
+    bindBackToTop();
+    boot("services", () => {
+        renderCostCalculator();
+        syncPresetButtons();
+    });
+    boot("chartResize", bindChartResize);
+    boot("syncUrl", syncUrl);
+    /* 直接打开分享锚点时也先铺好上方布局。 */
+    if (location.hash)
+        navigateToSection(location.hash, false, false, true);
+    /* Vue 已挂载并恢复当前条件；清除默认预渲染标记，让带参数链接显示当前结果。 */
+    qsa("[data-prerendered]").forEach((el) => el.removeAttribute("data-prerendered"));
+    document.documentElement.classList.remove("has-query");
+    window.codingPlanReady = true;
 }
