@@ -3,7 +3,7 @@ import { computed, onMounted, onBeforeUnmount, reactive, ref, watch } from "vue"
 import { API_PRICES, isPriceConfirmed, priceCheckOf } from "@generated/catalog";
 import { currencySymbol, displayModelName, REGION_LABEL, safeLink } from "@domain/core";
 import { fmtTok } from "@domain/metrics";
-import { calculateCostScenarios, calculateWorkload, COST_PRESETS, COST_SCENARIOS, fmtCalcCNY, fmtCalcNative, officialCachePrice, outputSharePct, parseUsageExport, USAGE_IMPORT_MAX, validCalcValue } from "@domain/workload";
+import { apiForUsageModel, calculateCostScenarios, calculateWorkload, COST_PRESETS, COST_SCENARIOS, fmtCalcCNY, fmtCalcNative, officialCachePrice, outputSharePct, parseUsageExport, USAGE_IMPORT_MAX, USAGE_IMPORT_TOO_LARGE, validCalcValue } from "@domain/workload";
 import { APP_DEFAULTS, calcState, pickerState } from "@state/app";
 import { updateAppState } from "@browser/url-state";
 import { calculatorView, usageToCalculator } from "@app/calculator";
@@ -68,22 +68,40 @@ function presetActive(id: string) { return Object.entries(COST_PRESETS[id]).ever
 function scenarioActive(id: string) { const scenario = COST_SCENARIOS[id]; return state.scenario === id && draft.input === scenario.input && draft.cache === scenario.cache; }
 function reset() { updateAppState(() => { Object.assign(state, APP_DEFAULTS.calc); syncDraft(); }); }
 const usageText = ref(""), usageFeedback = ref("");
-function importUsage(text: string) {
+function importUsage(texts: string | string[]) {
   try {
-    const usage = parseUsageExport(text), values = usageToCalculator(usage);
-    updateAppState(() => { Object.assign(state, values); Object.assign(draft, values); syncScenario(); });
+    const usage = parseUsageExport(texts), values = usageToCalculator(usage);
+    /* 主要模型占七成以上才换成对应的 API 牌价；混用多个模型时保留计算器当前模型。 */
+    const api = usage.modelShare >= 0.7 ? apiForUsageModel(usage.model, state.model) : null;
+    const model = api ? api.vendor + "|" + api.model : "";
+    updateAppState(() => {
+      Object.assign(state, values); Object.assign(draft, values);
+      if (model && state.model !== model) {
+        Object.assign(state, { model, cachePrice: "" });
+        Object.assign(draft, { model, cachePrice: "" });
+      }
+      syncScenario();
+    });
     const period = usage.activeDays ? `${usage.activeDays} 个有用量的日子` : usage.months ? `${usage.months} 个月` : "导入的记录";
+    const modelNote = !usage.model ? ""
+      : api ? `主要模型 ${usage.model} 已对应 ${api.vendor} · ${displayModelName(api.label || api.model)} 的 API 牌价。`
+      : usage.modelShare >= 0.7 ? `主要模型 ${usage.model} 没有精确匹配的 API 牌价，保留计算器当前模型。`
+      : "记录里混用了多个模型，保留计算器当前模型。";
     usageFeedback.value = `已导入 ${period}：共 ${fmtTok(usage.total / 1e6)} tokens，输入占比 ${values.input}%，缓存命中 ${values.cache}%`
       + (usage.cacheWrite ? `（另有缓存写入 ${fmtTok(usage.cacheWrite / 1e6)}，计入输入、未单独计价）` : "")
-      + `。已换算为每天 ${values.requests} 次 × ${values.tokens} tokens × ${values.days} 天。`;
+      + `。已换算为每天 ${values.requests} 次 × ${values.tokens} tokens × ${values.days} 天。` + modelNote;
   } catch (error) { usageFeedback.value = error instanceof Error ? error.message : String(error); }
 }
 async function importFile(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0];
-  if (!file) return;
-  if (file.size > USAGE_IMPORT_MAX) { usageFeedback.value = "文件超过 5MB，请只导出最近的按日用量。"; return; }
-  try { const text = await file.text(); usageText.value = text.slice(0, 20000); importUsage(text); }
-  catch { usageFeedback.value = "无法读取这个文件，请改为粘贴 JSON。"; }
+  const chosen = Array.from((event.target as HTMLInputElement).files ?? []);
+  if (!chosen.length) return;
+  if (chosen.reduce((n, file) => n + file.size, 0) > USAGE_IMPORT_MAX) { usageFeedback.value = USAGE_IMPORT_TOO_LARGE; return; }
+  /* 多份日志合并统计；文本框只回显能完整放下的内容，避免再次点击时导入截断的数据。 */
+  let contents: string[];
+  try { contents = await Promise.all(chosen.map((file) => file.text())); }
+  catch { usageFeedback.value = "无法读取这个文件，请改为粘贴内容。"; return; }
+  usageText.value = contents.length === 1 && contents[0]!.length <= 20000 ? contents[0]! : "";
+  importUsage(contents);
 }
 </script>
 <template>
@@ -91,10 +109,10 @@ async function importFile(event: Event) {
     <summary>按我的工作量计算 API 月费与套餐用量</summary>
     <p>填写每天的请求数和每次总 tokens，比较所选模型的按量费用与月预算。计算包括输入、输出和已知缓存单价；长上下文档位、工具费及税费仍按官网规则另计。</p>
     <details class="usage-import" id="usageImport">
-      <summary>从 ccusage 导入真实用量（可选）</summary>
-      <p class="maintenance-meta">在终端运行 <code>npx ccusage@latest daily --json</code>（Codex 用 <code>npx @ccusage/codex@latest daily --json</code>），把输出粘贴到下面或选择保存的 JSON 文件。只读取 token 计数和日期，数据在本页解析，不会上传。</p>
-      <label class="usage-import-field">ccusage JSON<textarea id="usageImportText" rows="5" spellcheck="false" placeholder='{"daily":[{"date":"2026-10-01","inputTokens":…}]}' v-model="usageText"></textarea></label>
-      <div class="service-actions"><label class="chip usage-import-file">选择 JSON 文件<input type="file" id="usageImportFile" accept=".json,application/json" @change="importFile"></label><button type="button" class="chip" id="usageImportBtn" @click="importUsage(usageText)">导入并计算</button></div>
+      <summary>从 ccusage 或会话日志导入真实用量（可选）</summary>
+      <p class="maintenance-meta">在终端运行 <code>npx ccusage@latest daily --json</code>（Codex 用 <code>npx @ccusage/codex@latest daily --json</code>），把输出粘贴到下面或选择保存的 JSON 文件；也可以直接选择 Claude Code（<code>~/.claude/projects</code>）或 Codex（<code>~/.codex/sessions</code>）的 <code>.jsonl</code> 会话日志，可多选。只读取 token 计数、日期和模型名，数据在本页解析，不会上传。</p>
+      <label class="usage-import-field">ccusage JSON 或会话日志<textarea id="usageImportText" rows="5" spellcheck="false" placeholder='{"daily":[{"date":"2026-10-01","inputTokens":…}]}' v-model="usageText"></textarea></label>
+      <div class="service-actions"><label class="chip usage-import-file">选择文件（可多选）<input type="file" id="usageImportFile" accept=".json,.jsonl,application/json" multiple @change="importFile"></label><button type="button" class="chip" id="usageImportBtn" @click="importUsage(usageText)">导入并计算</button></div>
       <p id="usageImportFeedback" class="table-feedback" role="status" aria-live="polite">{{ usageFeedback }}</p>
     </details>
     <div class="service-actions" id="costPresets" role="group" aria-label="工作量预设"><button v-for="[id, label] in presets" :key="id" type="button" class="chip" :class="{ active: presetActive(id) }" :data-cost-preset="id" :aria-pressed="presetActive(id)" @click.stop="choosePreset(id)">{{ label }}</button></div>
