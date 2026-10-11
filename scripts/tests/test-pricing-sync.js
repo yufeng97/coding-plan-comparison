@@ -537,7 +537,7 @@ test("custom 等任何状态改变事实（改为询价）都写入变更历史�
   assert.deepEqual(change.fields, ["priceM", "priceY"]);
   assert.deepEqual([change.before.priceM, change.after.priceM, change.before.priceY, change.after.priceY], [54, null, 45, null]);
   buildMaintenance(root, { asOf: "2026-10-08" });
-  assert.ok(fs.readFileSync(path.join(root, "public/changes.xml"), "utf8").includes(change.changeId));
+  assert.ok(fs.readFileSync(path.join(root, "data/generated/changes.xml"), "utf8").includes(change.changeId));
   const unverified = structuredClone(audit);
   Object.assign(unverified.sources[0], { id: "gemini-unverified-test" });
   Object.assign(unverified.records[0], { status: "unverified", checkedAt: "2026-10-08", old: { priceM: null, priceY: null }, patch: { priceM: 60, priceY: 50 }, sourceIds: ["gemini-unverified-test"] });

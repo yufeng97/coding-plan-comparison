@@ -135,7 +135,7 @@ function build(workspace = root, options = {check:false}) {
   const snapshot = { ...output, public: readPublic(workspace) };
   const outputs = [
     ["data/generated/benchmark-data.js", "/* 自动生成：npm run benchmark:build */\nconst BENCHMARKS = "+JSON.stringify(snapshot,null,2)+";\n"],
-    ["data/sources/benchmark-summary.js", "/* 自动生成：npm run benchmark:build。帮我选卡片的编程评测摘要；完整榜单见 benchmark-data.js（按需加载）。 */\n/** @type {BenchmarkSummary} */\nconst BENCHMARK_SUMMARY = "+JSON.stringify(benchmarkSummary(snapshot.public))+";\n"],
+    ["data/generated/benchmark-summary.js", "/* 自动生成：npm run benchmark:build。帮我选卡片的编程评测摘要；完整榜单见 benchmark-data.js（按需加载）。 */\n/** @type {BenchmarkSummary} */\nconst BENCHMARK_SUMMARY = "+JSON.stringify(benchmarkSummary(snapshot.public))+";\n"],
   ];
   const stale = outputs.filter(([name, content]) => { const file = path.join(workspace,name); return !fs.existsSync(file) || fs.readFileSync(file,"utf8")!==content; });
   if (stale.length && options.check) throw new Error(`测评公共数据过期（${stale.map(([name]) => name).join("、")}），请运行 npm run benchmark:build`);

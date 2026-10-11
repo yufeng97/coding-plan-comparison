@@ -4,7 +4,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import publicPaths from "../lib/paths.js";
 /* 只允许应用源码、明确登记的公开数据、公共资源与 npm 依赖；data/ 下的维护台账仍属私有输入。 */
-const PUBLIC_SOURCES = /^(?:index\.html$|(?:src|node_modules)\/|data\/(?:sources\/(?:data|benchmark-summary|project-data)|generated\/(?:maintenance-data|benchmark-data))\.js$|public\/(?:(?:img|feeds)\/|changes\.xml$))/;
+const PUBLIC_SOURCES = /^(?:index\.html$|(?:src|node_modules)\/|data\/(?:sources\/(?:data|project-data)|generated\/(?:maintenance-data|benchmark-data|benchmark-summary))\.js$|data\/generated\/(?:feeds\/|changes\.xml$)|public\/img\/)/;
 /** 词法路径与真实路径（展开链接、短名后）都须在项目内的公共源目录中，且不含隐藏段；
  *  防止经 junction / 符号链接把 audit/、scripts/ 等私有文件打进发布产物。 */
 export function assertPublicSource(root, file) {
@@ -41,9 +41,10 @@ export function publicSourcesOnly({ root }) {
 
 const CLASSIC_SCRIPT_RE = /(<script\b[^>]*?\bsrc=")((?:js|libs)\/[\w./-]+\.js)(")/g;
 
-/** public/ 源码与发布 URL 分离；开发时也检查真实路径，不能通过链接读取私有文件。 */
+/** 发布 URL 与来源目录分离：img/ 来自手写静态资源 public/，变更 RSS（changes.xml、feeds/）来自 data/generated/。
+ *  开发时也检查真实路径，不能通过链接读取私有文件。 */
 export function publicAssets({ root }) {
-  const publicRoot = path.join(root, "public");
+  const sourceRoot = (rel) => path.join(root, rel.startsWith("img/") ? "public" : "data/generated");
   return {
     name: "coding-plan:public-assets",
     configureServer(server) {
@@ -68,11 +69,12 @@ export function publicAssets({ root }) {
         }
         if (!/^(?:img\/|feeds\/|changes\.xml$|public\/)/.test(rel)) { next(); return; }
         if (rel.startsWith("public/") || !publicPaths.publicSiteFile(rel) || publicPaths.hiddenSegment(rel) || rel.includes("\\") || rel.includes(":")) { res.statusCode = 403; res.end(); return; }
-        const file = path.resolve(publicRoot, rel);
+        const base = sourceRoot(rel);
+        const file = path.resolve(base, rel);
         try {
           assertPublicSource(root, file);
           const real = fs.realpathSync.native(file);
-          const actual = path.relative(fs.realpathSync.native(publicRoot), real).split(path.sep).join("/");
+          const actual = path.relative(fs.realpathSync.native(base), real).split(path.sep).join("/");
           if (!publicPaths.publicSiteFile(actual) || publicPaths.hiddenSegment(actual) || !fs.statSync(real).isFile()) throw new Error("公共资源不在白名单");
           res.setHeader("Content-Type", file.endsWith(".xml") ? "application/rss+xml; charset=utf-8" : file.endsWith(".png") ? "image/png" : file.endsWith(".svg") ? "image/svg+xml" : "application/octet-stream");
           res.setHeader("Cache-Control", "no-cache");

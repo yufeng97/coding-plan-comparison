@@ -18,3 +18,6 @@ audit/news/
 audit/benchmarks/
 audit/frontend-maintenance/
 audit/benchmark-sources/
+
+# 个人编辑器配置
+.zcodeignore

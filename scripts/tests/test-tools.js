@@ -50,11 +50,13 @@ async function test(name, fn) { await fn(); passed++; console.log("  ✓ " + nam
 
 async function main() {
   await test("RSS、分享图与分厂商订阅随站发布，隐藏文件与白名单外的构建产物被拒绝", () => fixture(async (root, write) => {
-    write("public/changes.xml", '<rss version="2.0"><channel><title>Changes</title></channel></rss>');
-    write("public/img/og-card.png", "png"); write("public/img/.DS_Store", "x"); write("public/feeds/vendor.xml", "<rss/>");
+    write("data/generated/changes.xml", '<rss version="2.0"><channel><title>Changes</title></channel></rss>');
+    write("public/img/og-card.png", "png"); write("public/img/.DS_Store", "x"); write("data/generated/feeds/vendor.xml", "<rss/>");
+    /* data/generated/ 里只有 RSS 随站发布；维护快照与数据脚本经各自的构建步骤进入产物。 */
+    write("data/generated/maintenance.json", "{}"); write("data/generated/feeds/.draft.xml", "x");
     const site = await stage(root);
     for (const rel of ["changes.xml", "img/og-card.png", "feeds/vendor.xml", "vercel.json", "index.html", "js/extra.js"]) assert.ok(site.files.includes(rel), rel);
-    assert.equal(site.files.includes("img/.DS_Store"), false);
+    for (const rel of ["img/.DS_Store", "feeds/.draft.xml", "maintenance.json"]) assert.equal(site.files.includes(rel), false, rel);
     const before = tree(path.join(root, ".site-build"));
     const leaky = async (outDir, from) => { await fakeBuild(outDir, from); fs.writeFileSync(path.join(outDir, "private.xml"), "PRIVATE"); };
     await assert.rejects(stageSite(root, { build: leaky }), /白名单：private\.xml/);
@@ -62,10 +64,10 @@ async function main() {
     assert.equal(fs.readdirSync(root).some((name) => /^\.site-(stage|backup)-/.test(name)), false);
   }));
   await test("附带目录里经链接指向私有或隐藏位置的内容不得发布", () => fixture(async (root, write) => {
-    for (const rel of [".private", "scripts", "public/img/.hidden"]) {
+    for (const [dir, rel] of ["public/img", "data/generated/feeds"].flatMap((dir) => [".private", "scripts", "public/img/.hidden"].map((rel) => [dir, rel]))) {
       write(rel + "/secret.txt", "PRIVATE_SECRET_MARKER");
       /* 目录 junction（Windows 无需特权）：附带目录只发布直属文件，链接目录整体跳过 */
-      const junction = path.join(root, "public/img", "alias");
+      const junction = path.join(root, dir, "alias");
       fs.mkdirSync(path.dirname(junction), { recursive: true });
       fs.symlinkSync(path.join(root, rel), junction, process.platform === "win32" ? "junction" : "dir");
       try {
@@ -73,7 +75,7 @@ async function main() {
         assert.equal(site.files.some((file) => file.includes("alias") || file.includes("secret")), false);
       } finally { fs.unlinkSync(junction); }
       /* 文件符号链接：真实路径不在白名单时拒绝。Windows 未开启开发者模式时不能创建，跳过这一半 */
-      const link = path.join(root, "public/img", "secret.txt");
+      const link = path.join(root, dir, "secret.txt");
       try { fs.symlinkSync(path.join(root, rel, "secret.txt"), link, "file"); }
       catch (error) { if (error && error.code === "EPERM") continue; throw error; }
       try { await assert.rejects(stage(root), /白名单|隐藏目录/); }
@@ -173,11 +175,12 @@ async function main() {
       assert.equal((await load()).fixtureMessage, "fixed!");
     } finally { await server.close(); }
   }));
-  await test("public 开发 URL 保持分享图及 RSS 地址，阻止私有链接与源码目录 URL", () => fixture(async (root, write) => {
+  await test("开发 URL 保持分享图及 RSS 地址，阻止私有链接与源码目录 URL", () => fixture(async (root, write) => {
     const { createServer } = await import("vite");
     const { publicAssets } = await import("../build/vite-assets.mjs");
     write("public/img/og-card.png", "public image");
-    write("public/changes.xml", "<rss/>");
+    write("data/generated/changes.xml", "<rss/>");
+    write("data/generated/feeds/vendor.xml", "<rss>vendor</rss>");
     write("audit/secret.txt", "PRIVATE_SECRET_MARKER");
     const server = await createServer({ root, configFile: false, publicDir: false, plugins: [publicAssets({ root })], server: { host: "127.0.0.1", port: 0 }, logLevel: "silent" });
     try {
@@ -187,13 +190,16 @@ async function main() {
       const base = `http://127.0.0.1:${address.port}`;
       assert.equal(await (await fetch(base + "/img/og-card.png")).text(), "public image");
       assert.equal(await (await fetch(base + "/changes.xml")).text(), "<rss/>");
-      assert.equal((await fetch(base + "/public/img/og-card.png")).status, 403);
+      assert.equal(await (await fetch(base + "/feeds/vendor.xml")).text(), "<rss>vendor</rss>");
+      for (const rel of ["/public/img/og-card.png", "/data/generated/changes.xml", "/data/generated/maintenance-data.js"]) assert.equal((await fetch(base + rel)).status, 403, rel);
       assert.equal((await fetch(base + "/audit/secret.txt")).status, 403);
       assert.equal((await fetch(base + "/@fs/" + path.join(root, "audit/secret.txt").split(path.sep).join("/"))).status, 403);
-      const alias = path.join(root, "public/img/alias");
-      fs.symlinkSync(path.join(root, "audit"), alias, process.platform === "win32" ? "junction" : "dir");
-      try { assert.equal((await fetch(base + "/img/alias/secret.txt")).status, 403); }
-      finally { fs.unlinkSync(alias); }
+      for (const [dir, url] of [["public/img", "/img"], ["data/generated/feeds", "/feeds"]]) {
+        const alias = path.join(root, dir, "alias");
+        fs.symlinkSync(path.join(root, "audit"), alias, process.platform === "win32" ? "junction" : "dir");
+        try { assert.equal((await fetch(base + url + "/alias/secret.txt")).status, 403, dir); }
+        finally { fs.unlinkSync(alias); }
+      }
     } finally { await server.close(); }
   }));
   await test("生成中的依赖变化不会把旧字节登记为新缓存，watcher 延迟时也重新生成", async () => {
@@ -230,7 +236,7 @@ async function main() {
   await test("审计输入确定性生成类型化目录，保留永久 ID、正则、共享字段与评测摘要，顶层函数参数须写明类型", () => fixture(async (root, write) => {
     const { catalogSource, writeCatalog, CATALOG_FILE } = await import("../build/catalog-types.mjs");
     write("data/sources/data.js", 'const RATE_USD_CNY = 6.71;\n/** @type {Plan[]} */\nconst PLANS = [{id:"stable-id",plan:"fixture",quota:"shared"}];\n/** @type {ModelRole[]} */\nconst MODEL_ROLES = [{re:/glm-5/i}];\n/** @type {PriceChecks} */\nconst PRICE_CHECKS = {checkedAt:"2026-10-10",sources:{},rows:{}};\n/** @param {Plan} p @param {PlanTextField} key @param {Set<Plan>} [seen] @returns {string} */\nfunction resolvedField(p,key,seen) { return p[key]; }');
-    write("data/sources/benchmark-summary.js", '/** @type {BenchmarkSummary} */\nconst BENCHMARK_SUMMARY = {schemaVersion:1,checkedAt:"2026-10-10",protocols:[]};');
+    write("data/generated/benchmark-summary.js", '/** @type {BenchmarkSummary} */\nconst BENCHMARK_SUMMARY = {schemaVersion:1,checkedAt:"2026-10-10",protocols:[]};');
     write("data/sources/project-data.js", 'const PUBLIC_PROJECT = Object.freeze({siteUrl:"https://example.com/"});');
     const source = catalogSource(root);
     assert.equal(source, catalogSource(root));
@@ -285,7 +291,7 @@ async function main() {
   await test("开发目录插件加载时不写源码，已登记输入热更新后重建类型目录", () => fixture(async (root, write) => {
     const { watchCatalog, writeCatalog, CATALOG_FILE } = await import("../build/catalog-types.mjs");
     write("data/sources/data.js", "const PLANS = [];");
-    write("data/sources/benchmark-summary.js", "const BENCHMARK_SUMMARY = {};");
+    write("data/generated/benchmark-summary.js", "const BENCHMARK_SUMMARY = {};");
     write("data/sources/project-data.js", 'const PUBLIC_PROJECT = {siteUrl:"https://before.example.com/"};');
     const plugin = watchCatalog({ root });
     const generated = path.join(root, CATALOG_FILE);

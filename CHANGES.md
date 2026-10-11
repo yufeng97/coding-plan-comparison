@@ -2,6 +2,15 @@
 
 > 按数据核查和代码修复批次记录。
 
+## 2026-10-11：工程配置整理——类型配置、端到端测试与生成文件归位
+
+- 新增根目录 `tsconfig.json`，只引用 `app`、`vitest`、`data`、`node` 四个子项目；原 `jsconfig.json` / `jsconfig.node.json` 改名为 `tsconfig.data.json` / `tsconfig.node.json`。编辑器按文件选用对应配置，`src/` 里的路径别名不再报错；`node` 配置新纳入端到端用例与 `vite.config.mjs` 的类型检查。
+- Playwright 端到端用例从 `scripts/tests/browser/` 移到 `tests/e2e/`，`scripts/tests/` 只留工具自身的测试。
+- 生成文件统一放进 `data/generated/`：首屏评测摘要 `benchmark-summary.js`、维护快照 `maintenance.json`、全站与分厂商变更 RSS `changes.xml` / `feeds/` 从 `data/sources/`、`data/`、`public/` 移入；`data/sources/` 只留人工维护的 `data.js` 与 `project-data.js`，`public/` 只留手写的分享图。发布 URL 与产物不变（92 个文件逐字节相同）。
+- `.gitattributes` 把 `src/generated/`、`data/generated/` 标为生成文件；个人编辑器配置 `.zcodeignore` 不再纳入版本库。
+- 发布白名单与开发中间件按来源目录分别读取分享图与 RSS，并拒绝 `/data/` 下的直接访问；工具回归补充生成目录中非 RSS 文件不发布、`feeds/` 内链接越界被拒绝的用例。
+- 验证：`typecheck`、数据 / 维护 / 评测 / 目录一致性检查通过；14 个 Node 工具套件与 354 项 TS / Vue 测试全部通过；`build:site` 产物与改动前一致。
+
 ## 2026-10-11：前端工程分层与目录整理
 
 - 将业务规则、共享状态、浏览器适配和应用协调拆为 `src/domain/`、`src/state/`、`src/browser/`、`src/application/`，推荐规则显式接收条件参数；新增架构检查和回归，拒绝生产模块的运行时循环依赖及反向分层依赖。

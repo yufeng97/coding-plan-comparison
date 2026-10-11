@@ -6,7 +6,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 const { expect } = require("@playwright/test");
 
-const root = path.resolve(__dirname, "..", "..", "..");
+const root = path.resolve(__dirname, "..", "..");
 
 /** 在 Node 里执行页面使用的数据脚本，返回其中的顶层名称。 */
 function readScript(file, names) {

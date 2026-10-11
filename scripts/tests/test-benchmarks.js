@@ -78,10 +78,10 @@ try {
   assert.equal(fs.readFileSync(publicFile,"utf8"),"stale-public-data","检查模式必须只读");
   build(workspace);
   assert.doesNotThrow(()=>build(workspace,{check:true}));
-  const summaryFile=path.join(workspace,"data/sources/benchmark-summary.js");
+  const summaryFile=path.join(workspace,"data/generated/benchmark-summary.js");
   assert.match(fs.readFileSync(summaryFile,"utf8"),/\nconst BENCHMARK_SUMMARY = \{"schemaVersion":1,/);
   fs.writeFileSync(summaryFile,"stale-summary");
-  assert.throws(()=>build(workspace,{check:true}),/过期（data\/sources\/benchmark-summary\.js）/);
+  assert.throws(()=>build(workspace,{check:true}),/过期（data\/generated\/benchmark-summary\.js）/);
   assert.equal(fs.readFileSync(summaryFile,"utf8"),"stale-summary","检查模式必须只读");
   build(workspace);
   assert.doesNotThrow(()=>build(workspace,{check:true}));

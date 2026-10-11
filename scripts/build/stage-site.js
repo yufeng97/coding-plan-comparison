@@ -21,25 +21,32 @@ function assertPublicFile(root, file) {
   }
 }
 
-/* 不经 Vite 引用、但要随站发布的文件：变更 RSS、分享卡片图（og:image）与分厂商变更 RSS。隐藏文件与子目录不发布。 */
-const EXTRA_FILES = ["changes.xml"];
-const EXTRA_DIRS = ["img", "feeds"];
+/* 不经 Vite 引用、但要随站发布的文件，按来源目录登记：public/ 只放手写静态资源（分享卡片图 og:image），
+   data/generated/ 放维护脚本生成的全站与分厂商变更 RSS。发布路径相对各自来源目录；隐藏文件与子目录不发布。 */
+const EXTRA_SOURCES = [
+  { base: "public", files: [], dirs: ["img"] },
+  { base: "data/generated", files: ["changes.xml"], dirs: ["feeds"] },
+];
+/** @param {string} root @returns {{ file: string, rel: string }[]} 来源文件与发布路径 */
 function publicExtras(root) {
-  const publicRoot = path.join(root, "public");
+  /** @type {{ file: string, rel: string }[]} */
   const extras = [];
-  for (const rel of EXTRA_FILES) {
-    const file = path.join(publicRoot, rel);
-    if (fs.existsSync(file)) { assertPublicFile(publicRoot, file); extras.push(file); }
-  }
-  for (const dir of EXTRA_DIRS) {
-    const base = path.join(publicRoot, dir);
-    if (!fs.existsSync(base) || !fs.statSync(base).isDirectory()) continue;
-    for (const entry of fs.readdirSync(base, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-      if (entry.name.startsWith(".")) continue;
-      const file = path.join(base, entry.name);
-      if (!fs.statSync(file).isFile()) continue;
-      assertPublicFile(publicRoot, file);
-      extras.push(file);
+  for (const source of EXTRA_SOURCES) {
+    const sourceRoot = path.join(root, source.base);
+    for (const rel of source.files) {
+      const file = path.join(sourceRoot, rel);
+      if (fs.existsSync(file)) { assertPublicFile(sourceRoot, file); extras.push({ file, rel }); }
+    }
+    for (const dir of source.dirs) {
+      const base = path.join(sourceRoot, dir);
+      if (!fs.existsSync(base) || !fs.statSync(base).isDirectory()) continue;
+      for (const entry of fs.readdirSync(base, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+        if (entry.name.startsWith(".")) continue;
+        const file = path.join(base, entry.name);
+        if (!fs.statSync(file).isFile()) continue;
+        assertPublicFile(sourceRoot, file);
+        extras.push({ file, rel: dir + "/" + entry.name });
+      }
     }
   }
   return extras;
@@ -85,8 +92,8 @@ async function stageSite(workspace = repositoryRoot, options = {}) {
     for (const rel of listFiles(stage)) {
       if (!publicSiteFile(rel) || hiddenSegment(rel)) throw new Error(`构建产物不在公共白名单：${rel}`);
     }
-    for (const file of extras) {
-      const next = path.join(stage, path.relative(path.join(root, "public"), file));
+    for (const { file, rel } of extras) {
+      const next = path.join(stage, rel);
       fs.mkdirSync(path.dirname(next), { recursive: true });
       fs.copyFileSync(file, next);
     }

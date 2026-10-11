@@ -223,7 +223,7 @@ test.each(["/index.html", "/index.html?budget=500&tall=1#table"])("真实 Vue �
 });
 
 test("发布静态文件白名单含分享图与订阅，跳过隐藏文件", () => {
-  const { publicExtras } = requireTool("../../scripts/build/stage-site.js") as { publicExtras(root: string): string[] };
+  const { publicExtras } = requireTool("../../scripts/build/stage-site.js") as { publicExtras(root: string): { file: string; rel: string }[] };
   const temporaryRoot = fs.realpathSync(os.tmpdir());
   const directory = fs.realpathSync(fs.mkdtempSync(path.join(temporaryRoot, "cp-extras-")));
   assert.equal(path.dirname(directory), temporaryRoot);
@@ -231,11 +231,16 @@ test("发布静态文件白名单含分享图与订阅，跳过隐藏文件", ()
   try {
     fs.writeFileSync(path.join(directory, "index.html"), "<!doctype html>");
     fs.mkdirSync(path.join(directory, "public", "img"), { recursive: true });
-    fs.mkdirSync(path.join(directory, "public", "feeds"));
+    fs.mkdirSync(path.join(directory, "data", "generated", "feeds"), { recursive: true });
     fs.writeFileSync(path.join(directory, "public", "img", "og-card.png"), "png");
     fs.writeFileSync(path.join(directory, "public", "img", ".DS_Store"), "x");
-    fs.writeFileSync(path.join(directory, "public", "feeds", "vendor-test.xml"), "<rss/>");
-    assert.deepEqual(publicExtras(directory).map((file) => path.relative(path.join(directory, "public"), file).split(path.sep).join("/")), ["img/og-card.png", "feeds/vendor-test.xml"]);
+    fs.writeFileSync(path.join(directory, "data", "generated", "feeds", "vendor-test.xml"), "<rss/>");
+    fs.writeFileSync(path.join(directory, "data", "generated", "maintenance.json"), "{}");
+    /* 分享图来自手写静态资源 public/，订阅来自生成目录；发布路径不含来源目录。 */
+    assert.deepEqual(publicExtras(directory).map((extra) => [path.relative(directory, extra.file).split(path.sep).join("/"), extra.rel]), [
+      ["public/img/og-card.png", "img/og-card.png"],
+      ["data/generated/feeds/vendor-test.xml", "feeds/vendor-test.xml"],
+    ]);
   } finally { fs.rmSync(directory, { recursive: true, force: true }); }
   assert.match(html, /<meta property="og:image" content="https:\/\/[^"]+\/img\/og-card\.png">/);
   assert.ok(fs.existsSync(path.join(root, "public", "img", "og-card.png")));
@@ -265,19 +270,19 @@ test("关注同步链接只带套餐 ID，打开后确认合并且地址立即�
 });
 
 test("每个在库厂商有确定变更订阅，条目链接对应档位并用中文字段名", async () => {
-  const maintenance = JSON.parse(fs.readFileSync(path.join(root, "data/maintenance.json"), "utf8")) as MaintenanceSnapshot;
+  const maintenance = JSON.parse(fs.readFileSync(path.join(root, "data/generated/maintenance.json"), "utf8")) as MaintenanceSnapshot;
   const { vendorFeedSlug } = requireTool("../../scripts/maintenance/build-maintenance.js") as { vendorFeedSlug(vendor: string): string };
   const page = await openPage(), app = page.runtime;
   const vendors = [...new Set([...app.PLANS, ...app.API_PRICES, ...app.PAYG_REFERENCES].map((r) => r.vendor))].sort();
   assert.deepEqual(maintenance.feeds!.map((feed) => feed.vendor), vendors);
   for (const feed of maintenance.feeds!) {
     assert.equal(feed.path, "feeds/" + vendorFeedSlug(feed.vendor) + ".xml");
-    const xml = fs.readFileSync(path.join(root, "public", feed.path), "utf8");
+    const xml = fs.readFileSync(path.join(root, "data/generated", feed.path), "utf8");
     assert.equal((xml.match(/<item>/g) || []).length, feed.changes, feed.vendor);
   }
   const busy = maintenance.feeds!.find((feed) => feed.changes > 0)!;
-  assert.match(fs.readFileSync(path.join(root, "public", busy.path), "utf8"), /\?q=[^<]+&amp;tall=1#table/);
-  assert.doesNotMatch(fs.readFileSync(path.join(root, "public", "changes.xml"), "utf8"), /<description>[^<]*\bprice[MY]：/);
+  assert.match(fs.readFileSync(path.join(root, "data/generated", busy.path), "utf8"), /\?q=[^<]+&amp;tall=1#table/);
+  assert.doesNotMatch(fs.readFileSync(path.join(root, "data/generated/changes.xml"), "utf8"), /<description>[^<]*\bprice[MY]：/);
   page.healthy();
 });
 

@@ -36,21 +36,22 @@
 | `types/catalog.d.ts` / `src/types.d.ts` | 审计数据的结构类型（套餐、额度行、核价、评测与维护快照），数据文件的 checkJs 与应用共用同一份；`src/types.d.ts` 只声明应用专用全局：按需数据常量与 ECharts 精简包（下载前为 `undefined`）及 `window` 扩展 |
 | `src/browser/theme.ts` / `loader.ts` | 首帧主题与主入口加载失败提示；构建为先于应用入口执行的经典脚本，保留失败重试与 CSP 外链约定 |
 | `src/styles/index.css` | 固定顺序导入主题、基础、布局、控件、功能与响应式样式；`--cat-*` 是图表/图例/标签的单一色源，拆分保持原级联顺序 |
-| `data/sources/data.js` / `benchmark-summary.js` / `project-data.js` | 刻意保留的审计及维护输入；订阅永久 ID、引用权益、首屏评测摘要和公开项目配置在此维护，生成 TS 目录后进入应用 |
+| `data/sources/data.js` / `project-data.js` | 人工维护的审计数据与公开项目配置；订阅永久 ID、引用权益与项目入口在此维护，生成 TS 目录后进入应用 |
 | `src/charts/echarts.ts` | ECharts 按需精简包入口（仅柱状图 + Grid/Tooltip/Legend/Title/AxisPointer）；构建时由 npm 包生成 `libs/echarts-<hash>.js`，版本跟随 package.json |
 | `src/assets/fonts/` | Manrope、IBM Plex Mono 本地子集；39 个字体声明共用 21 份内容去重资产 |
 | `scripts/lib/paths.js` / `atomic-swap.js` | 共享的「路径是否在根内 / 封锁段」判断、目录级原子交换（暂存→备份→切换→回滚）与逐文件替换回滚 |
 | `scripts/build/` | 构建与校验工具：vite-assets（公共源白名单、经典资源哈希与 ECharts 生成）、catalog-types、vendor-fonts、stage-site、prerender、render-vue、deploy-site、check-syntax、validate-data、sync-pricing-audit |
 | `src/regression/` / `src/test/page.ts` | 公式及数据直接导入 TS 模块；用户流程挂载真实 `App.vue` 并按生产顺序启动。测试只替换浏览器边界：历史、计时器、ECharts、存储、剪贴板、下载及按需数据；无旧页面外壳或渲染器 |
-| `public/img/` | 分享卡片图（og:image），发布 URL 保持 `img/` |
-| `public/feeds/` / `public/changes.xml` | 生成的分厂商 RSS 与全站变更 RSS，发布 URL 保持 `feeds/` 与 `changes.xml` |
+| `public/` | 只放手写静态资源：分享卡片图 `img/og-card.png`（og:image）。由 `build:site` 与开发中间件按白名单发布，发布 URL 保持 `img/` |
 | `scripts/server/serve.js` | 发布产物预览服务器（`serve.js .site-build`；只监听 127.0.0.1，只读站点目录内的白名单文件并拒绝隐藏路径） |
 | `scripts/news/collect-news.js` | 联网采集资讯候选与页面变化；保留缓存和来源错误，不改正式数据 |
 | `config/news-sources.json` / `review-calendar.json` | 官方监测、开放发现与有来源的复核日历 |
-| `data/generated/maintenance-data.js` / `benchmark-data.js` | 维护和评测生成的公共数据，按需加载；状态与计算在 TS 业务模块，展示在 Vue 组件 |
+| `data/generated/` | 维护与评测脚本生成、随源数据提交的文件（`.gitattributes` 标为生成文件）：按需加载的 `maintenance-data.js` / `benchmark-data.js`、首屏评测摘要 `benchmark-summary.js`、维护快照 `maintenance.json`，以及全站与分厂商变更 RSS `changes.xml` / `feeds/`（发布 URL 保持 `changes.xml` 与 `feeds/`） |
 | `scripts/maintenance/` / `data/` | 维护摘要、真实变更历史、RSS 构建与回归 |
 | `scripts/benchmarks/` / `benchmarks/` | 官方公开评测 adapter、带哈希证据的采集/审核、public-results.json 快照、固定任务验收与公共测评构建 |
-| `scripts/tests/` | Node 工具、架构约束及维护回归；Chromium、Firefox、WebKit 用例在 `scripts/tests/browser/`，通过 DOM、地址、存储和 ECharts 公共 API 检查发布产物；TS 公式、数据、整页与就近组件测试由 `npm test` 一并运行 |
+| `scripts/tests/` | Node 工具、架构约束及维护回归；TS 公式、数据、整页与就近组件测试由 `npm test` 一并运行 |
+| `tests/e2e/` | Chromium、Firefox、WebKit 端到端用例（Playwright），通过 DOM、地址、存储和 ECharts 公共 API 检查发布产物 |
+| `tsconfig.json` / `tsconfig.*.json` | 根配置只引用子项目，编辑器据此为每个文件选用对应配置：`app`（业务模块与组件，不含 Node 类型）、`vitest`（测试）、`data`（数据文件 checkJs）、`node`（工具脚本、端到端测试与 Vite / Playwright 配置） |
 | `audit/` | 258 条价格的原始库存、分组官网证据与 JSON/CSV 合并台账；不复制到公共部署产物 |
 
 ## 前端结构与迁移
@@ -61,7 +62,7 @@
 - **共享状态**：`src/state/` 集中使用 Vue `reactive`；保存目录对象引用的 `cmpState` 用 `shallowReactive`，替换选择数组时保持原套餐对象身份。推荐、表格、关注与完整权益窗口读取同一份状态，Vue 拥有这些容器的 DOM。
 - **按需数据与图表**：维护和评测仍按经典数据资产下载。`refreshOptionalViews` 递增 `dataRevision.maintenance` / `dataRevision.benchmark`，组件据此重算；图表加载、主题与尺寸变化通过组件登记的重绘钩子处理，卸载时释放图表资源。
 - **类型边界**：`src/` 全部代码在同一份严格配置下检查：`tsconfig.app.json` 覆盖业务模块、组件与模板（不含 Node 类型），`tsconfig.vitest.json` 继承它并加入测试与 Node 类型。数据结构只在 `types/catalog.d.ts` 声明一次；价格、额度等可缺省的值按 `number | null` 处理，付款报价按 `available` 区分有价与未列价两种形态，额度表行按 `payg` 区分套餐额度与按量参照。按需数据与 ECharts 全局在下载前不存在，类型为 `| undefined`，使用前先判断。生产源不使用 `any`、`@ts-nocheck` 或 `@ts-ignore`；测试替身 `FakeChart` 记录的 ECharts 配置是唯一保留 `any` 的地方，便于断言读取任意层级。
-- **审计目录**：`catalog:build` 从 `data/sources/data.js`、`benchmark-summary.js`、`project-data.js` 确定性生成 `catalog.ts`，保留正则、资格函数与永久 ID。类型只来自数据文件里的 JSDoc（`@type`、`@param`、`@returns`），如 `Plan[]`、`PriceChecks`、`BenchmarkSummary`；顶层函数的参数缺少注解时生成失败。生成文件应随维护输入一同提交；`catalog:check` 只检查漂移，不改仓库。维护输入变化后先重建目录再提交。
+- **审计目录**：`catalog:build` 从 `data/sources/data.js`、`data/sources/project-data.js` 与生成的首屏评测摘要 `data/generated/benchmark-summary.js` 确定性生成 `catalog.ts`，保留正则、资格函数与永久 ID。类型只来自数据文件里的 JSDoc（`@type`、`@param`、`@returns`），如 `Plan[]`、`PriceChecks`、`BenchmarkSummary`；顶层函数的参数缺少注解时生成失败。生成文件应随维护输入一同提交；`catalog:check` 只检查漂移，不改仓库。维护输入变化后先重建目录再提交。
 - **关注与对比按钮**：推荐、数据表、完整权益和关注列表复用 Vue 按钮组件，直接从共享状态计算选中、禁用与 ARIA；统一服务处理套餐身份与关注变更。旧同步函数不改写 Vue 所有的节点。
 - **静态首屏**：`render-vue.mjs` 在隔离进程里通过 Vite 加载同一个 App，调用 Vue `renderToString`；happy-dom 仅提供浏览器 API 边界。SSR 不运行启动、图表下载或用户存储恢复。浏览器按 URL 与本机状态重新挂载；静态输出不插入关闭窗口的 Teleport 节点，避免重复 ID。
 - **回归边界**：Vitest 直接导入 TS 计算；整页测试重新载入业务模块、挂载真实 App 并启动，不维护另一套 HTML。每次结束卸载组件并清理事件、计时器与浏览器替身。真实浏览器负责布局、焦点时序、滚动与 ECharts 绘制；断言只经 DOM、地址、存储及第三方公共 API 观察页面。业务全局 getter、TS 转经典脚本适配器和旧 HTML 渲染夹具已删除。
@@ -85,7 +86,7 @@
 - **厂商名规范**：同一厂商在 `PLANS`、`API_PRICES`、`PAYG_REFERENCES`、指标行中使用同一 `vendor` 字符串（同一厂商的不同产品线各用专名，如 腾讯云 CodeBuddy / 腾讯云 TokenHub / 腾讯云（LKEAP 知识引擎））；图表缩写由 `VENDOR_SHORT` 承担，校验器会对同厂商同型号的牌价做币种与数值交叉校验。
 - **单一数据源**：类别色走 CSS 变量 `--cat-*`（JS 的 `refreshCategoryColors()` 在主题切换时重读）；数据表正文、CSV 与 Markdown 共享 `PLAN_COLUMNS`，各渠道按配置选列；额度表的列定义只在 `METRICS_COLUMNS` 一处。已有继承权益均通过 `fieldRefs` 的永久 ID 明确目标，新增继承也填写目标 ID，追加权益保留且循环引用安全中止。解析器保留旧文本名称及「同上」相邻位置的兼容能力，不用它们建立新数据引用。
 - **推荐元数据**：`windowPeriod` 与 `quotaSharing` 分别描述重置周期与模型额度是否共享，缺省表示未知；`codingSurface`、`includedModelQuota`、`modelAccess` 与 `purchaseCountries` 分别描述编程入口、是否包含推理、自备模型和国家限定资格。`modelBaseRef` 通过计划引用继承模型，`modelIncludes`/`modelExcludes` 显式补充和排除模型，`ownClient` 明确自家编程入口；校验器检查字段类型、引用及混合继承环。填有依据的事实，未知情况不靠条数或文案猜测。月 credits 及无 5h 上限的套餐不生成虚假的 5h 额度，官方与估算的重复周额度按稳定引用去重。
-- **资源版本与发布范围**：Vite 按内容哈希命名入口、样式与字体；主题引导、加载提示、按需数据和 ECharts 由经典资源插件按内容哈希另存。可进入构建的源文件仅限入口、应用源码、明确登记的公开数据文件、公共图片/RSS 与 npm 依赖，`data/` 中的维护台账不会因整目录放行而进入产物。词法路径和真实路径都须满足白名单。`publicDir` 保持关闭，开发中间件与发布构建按白名单映射 `public/`，发布 URL 保持 `img/`、`feeds/` 和 `changes.xml`。`.gitattributes` 固定文本为 LF。
+- **资源版本与发布范围**：Vite 按内容哈希命名入口、样式与字体；主题引导、加载提示、按需数据和 ECharts 由经典资源插件按内容哈希另存。可进入构建的源文件仅限入口、应用源码、明确登记的公开数据文件、公共图片/RSS 与 npm 依赖，`data/` 中的维护台账不会因整目录放行而进入产物。词法路径和真实路径都须满足白名单。`publicDir` 保持关闭（Vite 会原样复制隐藏文件和经链接越界的内容），开发中间件与发布构建按白名单发布：分享图来自手写静态资源 `public/img/`，变更 RSS 来自生成目录 `data/generated/`，发布 URL 保持 `img/`、`feeds/` 和 `changes.xml`。`.gitattributes` 固定文本为 LF。
 - **开发环境与校验**：Node.js 22.12+（Vite 8 的要求），首次运行 `npm ci`。开发依赖固定版本并提交 lockfile。`npm run typecheck` 先检查生成目录与审计输入一致及模块分层，再以 checkJs 检查数据与工具脚本，随后以严格模式检查业务模块、Vue 组件及模板（`tsconfig.app.json`，不含 Node 类型）和 TS 公式、数据、整页与组件测试（`tsconfig.vitest.json`）。公式测试直接导入生产模块；整页回归使用真实 Vue 渲染，测试文件同样纳入严格类型检查。`npm run validate` 检查数据结构、引用、有限数字、日期和价格区间；同一套规则可校验内存候选源码。`npm test` 执行 14 个 Node 工具套件（含架构约束）和 TS / Vue 回归，包含额度公式、真实数据、真实 Vue 用户流程、HTTP 服务、审计无效输入/幂等/失败回滚、资讯与字体工具、目录生成漂移、Vue SSR 和公共产物回归。`npm run test:browser` 先生成发布产物，再对 Chromium、Firefox、WebKit 运行真实浏览器用例，覆盖图表、历史导航、服务功能及桌面/手机布局。CI 在 Linux 与 Windows 安装三种浏览器并执行各项检查，浏览器缓存键包含 lockfile 哈希；失败保留截图，首次重试才录制 trace（[Playwright 官方建议](https://playwright.dev/docs/trace-viewer#tracing-on-ci)）。本地需要追踪时显式加 `--trace on`。
 - **开发资源更新**：`predev` 显式生成类型化目录；开发插件监听已登记的数据输入并更新目录。经典脚本通过 esbuild 依赖信息和内容指纹检查缓存，入口或依赖变化后失效并刷新。加载 Vite/Vitest 配置不写生产源码；测试生命周期执行 `catalog:check`，数据变更须先运行 `catalog:build`。
 - **ECharts 精简包**：入口 `src/charts/echarts.ts` 只注册页面用到的图表与组件，构建时用 esbuild 打成经典脚本；新增图表类型或组件时在入口里注册。仍按经典脚本加载是为了失败可重试：Chromium 会缓存失败的动态 `import()`，同一地址重试不会再请求。

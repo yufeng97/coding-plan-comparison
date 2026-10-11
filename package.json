@@ -11,7 +11,7 @@
     "pretest": "npm run catalog:check",
     "test": "node scripts/tests/run.js",
     "check": "node scripts/build/check-syntax.js",
-    "typecheck": "npm run catalog:check && npm run check:architecture && tsc -p jsconfig.json && tsc -p jsconfig.node.json && vue-tsc -p tsconfig.app.json && vue-tsc -p tsconfig.vitest.json",
+    "typecheck": "npm run catalog:check && npm run check:architecture && tsc -p tsconfig.data.json && tsc -p tsconfig.node.json && vue-tsc -p tsconfig.app.json && vue-tsc -p tsconfig.vitest.json",
     "check:architecture": "node scripts/build/check-architecture.js",
     "test:architecture": "node scripts/tests/test-architecture.js",
     "catalog:build": "node scripts/build/catalog-types.mjs",

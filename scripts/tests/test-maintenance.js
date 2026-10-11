@@ -9,7 +9,7 @@ const { buildMaintenance, parseArgs, rssOf } = require("../maintenance/build-mai
 const { seededHistory, canonical, changeOf, validateHistory } = require("../maintenance/history");
 const { rewindToFullAudit } = require("./full-audit-baseline");
 const workspace = path.resolve(__dirname, "../..");
-const outputs = ["data/change-history.json", "data/maintenance.json", "data/generated/maintenance-data.js", "public/changes.xml"];
+const outputs = ["data/change-history.json", "data/generated/maintenance.json", "data/generated/maintenance-data.js", "data/generated/changes.xml"];
 
 function fixture(run) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "coding-plan-maintenance-test-"));
@@ -23,8 +23,8 @@ function fixture(run) {
     rewindToFullAudit(root, workspace);
     const snapshot = () => outputs.map((file) => fs.existsSync(path.join(root, file)) ? fs.readFileSync(path.join(root, file)).toString("base64") : null);
     const calendar = (events) => fs.writeFileSync(path.join(root, "config/review-calendar.json"), JSON.stringify({ schemaVersion: 1, events }));
-    // Generated files copied from data/generated must not affect the initial output snapshot.
-    fs.rmSync(path.join(root, "data/generated/maintenance-data.js"), { force: true });
+    // Maintenance outputs copied from data/generated must not affect the initial output snapshot.
+    for (const generated of ["maintenance-data.js", "maintenance.json", "changes.xml", "feeds"]) fs.rmSync(path.join(root, "data/generated", generated), { recursive: true, force: true });
     run({ root, snapshot, calendar });
   } finally {
     if (path.dirname(root) !== fs.realpathSync(os.tmpdir()) || !path.basename(root).startsWith("coding-plan-maintenance-test-")) throw new Error("拒绝清理未知维护测试目录");
@@ -117,12 +117,12 @@ test("JSON/classicJS事实相同，file协议可读取，RSS只含真实changes�
   const before = snapshot();
   assert.equal(buildMaintenance(root, { asOf: "2026-10-08", rename: () => { throw new Error("幂等生成不应写入"); } }).filesChanged, 0);
   assert.deepEqual(snapshot(), before);
-  const json = JSON.parse(fs.readFileSync(path.join(root, "data/maintenance.json"), "utf8"));
+  const json = JSON.parse(fs.readFileSync(path.join(root, "data/generated/maintenance.json"), "utf8"));
   const box = {};
   vm.createContext(box);
   vm.runInContext(fs.readFileSync(path.join(root, "data/generated/maintenance-data.js"), "utf8") + ";globalThis.value=MAINTENANCE;", box);
   assert.equal(JSON.stringify(box.value), JSON.stringify(json));
-  const rss = fs.readFileSync(path.join(root, "public/changes.xml"), "utf8");
+  const rss = fs.readFileSync(path.join(root, "data/generated/changes.xml"), "utf8");
   assert.equal((rss.match(/<item>/g) || []).length, 22);
   assert.ok(rss.includes(new Date("2026-10-04T00:00:00Z").toUTCString()));
   assert.ok(rss.includes("#table") && !rss.includes("?plan="));
@@ -202,7 +202,7 @@ test("--check检测data事实/history/calendar变化与丢失产物，不改任�
   assert.throws(() => buildMaintenance(root, { check: true }), /data\/generated\/maintenance-data/);
   assert.deepEqual(snapshot(), before);
   buildMaintenance(root, { asOf: "2026-10-08" });
-  fs.appendFileSync(path.join(root, "public/changes.xml"), "tampered");
+  fs.appendFileSync(path.join(root, "data/generated/changes.xml"), "tampered");
   before = snapshot();
   assert.throws(() => buildMaintenance(root, { check: true }), /changes\.xml/);
   assert.deepEqual(snapshot(), before);
