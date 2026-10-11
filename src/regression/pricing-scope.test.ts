@@ -2,9 +2,18 @@
 /* 「应用选购条件」对排行、价格表与个人图的局部重算，以及年价与搜索长度边界。原 scripts/tests/test-app-pricing-scope.js，现用真实 App。
  * 全年金额冲突的数据校验见 data.test.ts。 */
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { createRequire } from "node:module";
 import { test } from "vitest";
 import type { RankRow } from "../test/runtime";
 import { openPage, type Page } from "../test/page";
+
+const root = path.resolve(".");
+const { validateData, PLAN_MARKERS } = createRequire(import.meta.url)("../../scripts/build/validate-data.js") as {
+  validateData(options: { workspace: string; source: string }): { errors: string[] };
+  PLAN_MARKERS: { field: string; name: RegExp }[];
+};
 
 const near = (actual: number | null | undefined, expected: number | null | undefined) => assert.ok(Math.abs((actual ?? NaN) - (expected ?? NaN)) < 1e-8, `${actual} != ${expected}`);
 const plan = (page: Page, id: string) => page.runtime.findPlanReference(id) as Plan;
@@ -103,11 +112,32 @@ test("全年结构金额不受备注折月措辞影响，缺结构字段才估�
   page.healthy();
 });
 
-test("无限量和不限量不被当作限量发售，真正限量和抢购仍排除", async () => {
+test("无限量和不限量不被当作限量发售，真正限量和抢购须标 availability:limited 并排除", async () => {
+  const limited = PLAN_MARKERS.find((m) => m.field === 'availability: "limited"')!.name;
+  for (const name of ["无限量", "不限量", "专业版（无限量）"]) assert.equal(limited.test(name), false, name);
+  for (const name of ["限量", "专业版限量发售", "抢购"]) assert.equal(limited.test(name), true, name);
   const page = await openPage();
-  for (const name of ["无限量", "不限量", "专业版（无限量）"]) assert.equal(page.runtime.offerable({ plan: name } as Plan), true, name);
-  for (const name of ["限量", "专业版限量发售", "抢购"]) assert.equal(page.runtime.offerable({ plan: name } as Plan), false, name);
+  assert.equal(page.runtime.offerable({ plan: "专业版限量发售" } as Plan), true, "页面不再按计划名猜测购买资格");
+  assert.equal(page.runtime.offerable({ plan: "专业版", availability: "limited" } as Plan), false);
   page.healthy();
+});
+
+test("计划名状态标记与结构化字段不一致时校验失败", () => {
+  const source = fs.readFileSync(path.join(root, "data/sources/data.js"), "utf8");
+  const cases = [
+    { pattern: /(plan: "Starter 预付包（已下架）"[^\n]*?) availability: "retired",/, field: 'availability: "retired"' },
+    { pattern: /(plan: "Pro（4 周订阅）"[^\n]*?) billingUnit: "four-weeks",/, field: 'billingUnit: "four-weeks"' },
+    { pattern: /(plan: "GLM Coding V2 Lite（老用户续费）"[^\n]*?) renewalOnly: true,/, field: "renewalOnly: true" },
+  ];
+  for (const { pattern, field } of cases) {
+    const broken = source.replace(pattern, "$1");
+    assert.notEqual(broken, source, field);
+    assert.ok(validateData({ workspace: root, source: broken }).errors.some((e) => e.includes("计划名标记与结构化字段不一致") && e.includes(field)), field);
+  }
+  const extra = source.replace(/(plan: "GLM Coding V3 Lite"[^\n]*?seat: false,)/, "$1 renewalOnly: true,");
+  assert.notEqual(extra, source);
+  assert.ok(validateData({ workspace: root, source: extra }).errors.some((e) => e.includes("renewalOnly: true")), "多填的字段同样报错");
+  assert.deepEqual(validateData({ workspace: root, source }).errors, []);
 });
 
 test("分享URL及输入事件统一限制搜索长度，地址与控件保持同步", async () => {

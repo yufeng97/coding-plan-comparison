@@ -141,14 +141,11 @@ export function mainlandAccessText(p: Plan | null | undefined) {
     return p && p.region === "cn" ? "国内服务" : "未核实官方支持地区";
 }
 
-/** 额度行对应的档位是否仍可正常购买（排除停售、待核价、一次性、仅老用户与限量）；只传 ref 时只看档位本身。 */
-export function metricOfferOk(m: Pick<QuotaRow, "ref"> & { plan?: string }) {
-    if (/已停售|已下架|老用户|一次性|预付/.test(m.plan || ""))
-        return false;
+/** 额度行对应的档位是否仍可正常购买（排除停售、待核价、一次性、仅老用户与限量）。
+ * 经 ref 读取主表的结构化状态（校验器要求每行都有 ref），不按行名猜测购买资格。 */
+export function metricOfferOk(m: Pick<QuotaRow, "ref">) {
     const p = findPlanReference(m.ref);
-    if (p && (isRetiredPlan(p) || !isPriceConfirmed(p) || isOneTimePlan(p) || isRenewalOnly(p) || !offerable(p)))
-        return false;
-    return true;
+    return !p || !(isRetiredPlan(p) || !isPriceConfirmed(p) || isOneTimePlan(p) || isRenewalOnly(p) || !offerable(p));
 }
 
 function adoptMetric(m: QuotaRow, isEst: boolean): MetricRow | null {
