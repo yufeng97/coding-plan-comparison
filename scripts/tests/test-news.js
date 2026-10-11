@@ -26,7 +26,7 @@ async function fixture(fn) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "coding-plan-news-test-"));
   const write = (relative, value) => { const file = path.join(root, relative); fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, value); };
   write("data/sources/data.js", 'const PLANS=[{id:"plan-existing",vendor:"Existing",url:"https://existing.example.com/pricing"}]; const API_PRICES=[{vendor:"API Only",source:"https://api-only.example.com/pricing"}]; const PAYG_REFERENCES=[{vendor:"Payg Only",url:"https://payg-only.example.com/pricing"}];');
-  write("config/news-sources.json", JSON.stringify(config(source())));
+  write("data/config/news-sources.json", JSON.stringify(config(source())));
   try { await fn(root, write); }
   finally {
     if (path.dirname(root) !== fs.realpathSync(os.tmpdir()) || !path.basename(root).startsWith("coding-plan-news-test-")) throw new Error("拒绝清理未知资讯测试路径");
@@ -198,43 +198,43 @@ async function tests() {
     assert.equal(report.status, "ok"); assert.equal(report.candidates.length, 2); assert.equal(report.stats.knownVendor, 1); assert.equal(report.stats.vendorReviewCandidates, 1);
     assert.equal(report.candidates.find((value) => value.url.includes("api-only")).summary.length, 360);
     assert.deepEqual(fs.readFileSync(path.join(root, "data/sources/data.js")), data);
-    assert.equal(JSON.parse(fs.readFileSync(path.join(root, "audit/news/latest.json"), "utf8")).checkedAt, NOW.toISOString());
-    assert.equal(JSON.parse(fs.readFileSync(path.join(root, "audit/news/state.json"), "utf8")).schemaVersion, 1);
+    assert.equal(JSON.parse(fs.readFileSync(path.join(root, "data/audit/news/latest.json"), "utf8")).checkedAt, NOW.toISOString());
+    assert.equal(JSON.parse(fs.readFileSync(path.join(root, "data/audit/news/state.json"), "utf8")).schemaVersion, 1);
   }));
   await test("CLI导入无效记录/源失败非零但写可用报告，导入链接不执行远端内容", () => fixture(async (root, write) => {
     write("import.json", JSON.stringify([{ title: "New coding plan", url: "https://new.example.com/import" }, { title: "Coding plan bad", url: "javascript:alert(1)" }]));
     const code = await main(["--import", "import.json"], { workspace: root, now: NOW, resolver, fetcher: async () => new Response("down", { status: 503 }) });
     assert.equal(code, 1);
-    const report = JSON.parse(fs.readFileSync(path.join(root, "audit/news/latest.json"), "utf8")); assert.equal(report.status, "failed"); assert.equal(report.candidates.length, 1); assert.equal(report.errors.length, 2);
+    const report = JSON.parse(fs.readFileSync(path.join(root, "data/audit/news/latest.json"), "utf8")); assert.equal(report.status, "failed"); assert.equal(report.candidates.length, 1); assert.equal(report.errors.length, 2);
     const data = fs.readFileSync(path.join(root, "data/sources/data.js")); assert.match(data.toString(), /^const PLANS=/);
   }));
   await test("损坏缓存保留原始文件且报告输入错误，不假装重建缓存成功", () => fixture(async (root, write) => {
-    write("audit/news/state.json", "broken state");
+    write("data/audit/news/state.json", "broken state");
     const report = await runCollection({ workspace: root, now: NOW, resolver, fetcher: async () => new Response(rss()) });
-    assert.equal(report.status, "partial"); assert.ok(report.errors.some((error) => error.sourceId === "state")); assert.equal(fs.readFileSync(path.join(root, "audit/news/state.json"), "utf8"), "broken state");
+    assert.equal(report.status, "partial"); assert.ok(report.errors.some((error) => error.sourceId === "state")); assert.equal(fs.readFileSync(path.join(root, "data/audit/news/state.json"), "utf8"), "broken state");
   }));
   await test("第二个输出替换失败回滚报告/缓存原字节，清理暂存文件", () => fixture(async (root, write) => {
-    const reportFile = path.join(root, "audit/news/latest.json"), stateFile = path.join(root, "audit/news/state.json");
-    write("audit/news/latest.json", '{"old":"report"}'); write("audit/news/state.json", JSON.stringify({ schemaVersion: 1, sources: {} }));
+    const reportFile = path.join(root, "data/audit/news/latest.json"), stateFile = path.join(root, "data/audit/news/state.json");
+    write("data/audit/news/latest.json", '{"old":"report"}'); write("data/audit/news/state.json", JSON.stringify({ schemaVersion: 1, sources: {} }));
     const beforeReport = fs.readFileSync(reportFile), beforeState = fs.readFileSync(stateFile);
     await assert.rejects(runCollection({ workspace: root, now: NOW, resolver, fetcher: async () => new Response(rss()), rename: (from, to) => { if (to === stateFile && path.basename(from) === "next") throw new Error("injected replace failure"); fs.renameSync(from, to); } }), /injected/);
     assert.deepEqual(fs.readFileSync(reportFile), beforeReport); assert.deepEqual(fs.readFileSync(stateFile), beforeState);
     assert.deepEqual(fs.readdirSync(path.dirname(reportFile)).sort(), ["latest.json", "state.json"]);
   }));
   await test("首次创建报告后缓存替换失败删除新报告，危险output不能覆盖数据/配置/导入/链接", () => fixture(async (root, write) => {
-    const stateFile = path.join(root, "audit/news/state.json"), data = fs.readFileSync(path.join(root, "data/sources/data.js"));
+    const stateFile = path.join(root, "data/audit/news/state.json"), data = fs.readFileSync(path.join(root, "data/sources/data.js"));
     await assert.rejects(runCollection({ workspace: root, now: NOW, resolver, fetcher: async () => new Response(rss()), rename: (from, to) => { if (to === stateFile) throw new Error("injected new failure"); fs.renameSync(from, to); } }), /injected/);
     assert.deepEqual(fs.readdirSync(path.dirname(stateFile)), []);
-    const forbidden = ["data/sources/data.js", "config/news-sources.json", "README.md", "audit/else.json", "audit/news/../../data/sources/data.js", "audit/news/state.json"];
+    const forbidden = ["data/sources/data.js", "data/config/news-sources.json", "README.md", "data/audit/else.json", "data/audit/news/../../data/sources/data.js", "data/audit/news/state.json"];
     for (const outputPath of forbidden) await assert.rejects(runCollection({ workspace: root, outputPath }), /输出/);
-    write("audit/news/input.json", "[]"); await assert.rejects(runCollection({ workspace: root, outputPath: "audit/news/input.json", importPath: "audit/news/input.json" }), /输入/);
-    fs.mkdirSync(path.join(root, "elsewhere")); fs.symlinkSync(path.join(root, "elsewhere"), path.join(root, "audit/news/linked"), "junction");
-    await assert.rejects(runCollection({ workspace: root, outputPath: "audit/news/linked/report.json" }), /符号链接/);
-    fs.unlinkSync(path.join(root, "audit/news/linked"));
+    write("data/audit/news/input.json", "[]"); await assert.rejects(runCollection({ workspace: root, outputPath: "data/audit/news/input.json", importPath: "data/audit/news/input.json" }), /输入/);
+    fs.mkdirSync(path.join(root, "elsewhere")); fs.symlinkSync(path.join(root, "elsewhere"), path.join(root, "data/audit/news/linked"), "junction");
+    await assert.rejects(runCollection({ workspace: root, outputPath: "data/audit/news/linked/report.json" }), /符号链接/);
+    fs.unlinkSync(path.join(root, "data/audit/news/linked"));
     assert.deepEqual(fs.readFileSync(path.join(root, "data/sources/data.js")), data);
   }));
   await test("CLI选项校验和--help保持只读", async () => {
-    assert.deepEqual(parseArguments(["--days", "7", "--config", "custom.json", "--output", "audit/news/custom.json"]), { days: 7, configPath: "custom.json", outputPath: "audit/news/custom.json" });
+    assert.deepEqual(parseArguments(["--days", "7", "--config", "custom.json", "--output", "data/audit/news/custom.json"]), { days: 7, configPath: "custom.json", outputPath: "data/audit/news/custom.json" });
     for (const args of [["--days", "0"], ["--days", "1.5"], ["--days", "366"], ["--config"], ["--oops"]]) assert.throws(() => parseArguments(args));
     assert.equal(await main(["--help"]), 0);
   });
@@ -434,19 +434,19 @@ async function tests() {
   await test("四输出后段替换失败报告/缓存/队列/健康全部回滚，保留人工决定", () => fixture(async (root) => {
     const options = { workspace: root, now: OCT8, resolver, fetcher: async () => new Response(rss(itemXML("Coding plan launch", "https://new.example.com/a"))) };
     await runCollection(options);
-    const dir = path.join(root, "audit/news"), names = ["latest.json", "state.json", "inbox.json", "health.json"], before = names.map((name) => fs.readFileSync(path.join(dir, name)));
+    const dir = path.join(root, "data/audit/news"), names = ["latest.json", "state.json", "inbox.json", "health.json"], before = names.map((name) => fs.readFileSync(path.join(dir, name)));
     await assert.rejects(runCollection({ ...options, now: new Date("2026-10-09T00:00:00Z"), fetcher: async () => new Response(rss(itemXML("Coding plan changes pricing", "https://new.example.com/a"))), rename: (from, to) => { if (to === path.join(dir, "health.json") && path.basename(from) === "next") throw new Error("injected health failure"); fs.renameSync(from, to); } }), /injected/);
     names.forEach((name, index) => assert.deepEqual(fs.readFileSync(path.join(dir, name)), before[index])); assert.deepEqual(fs.readdirSync(dir).sort(), names.sort());
   }));
   await test("人工review更新队列+报告回滚/幂等，不改data；triage只导出JSON候选", () => fixture(async (root) => {
     await runCollection({ workspace: root, now: OCT8, resolver, fetcher: async () => new Response(rss(itemXML("Existing coding plan launch", "https://existing.example.com/a"))) });
-    const dir = path.join(root, "audit/news"), data = fs.readFileSync(path.join(root, "data/sources/data.js")), inbox = JSON.parse(fs.readFileSync(path.join(dir, "inbox.json"), "utf8"));
+    const dir = path.join(root, "data/audit/news"), data = fs.readFileSync(path.join(root, "data/sources/data.js")), inbox = JSON.parse(fs.readFileSync(path.join(dir, "inbox.json"), "utf8"));
     const options = { command: "review", workspace: root, now: OCT8, id: inbox.items[0].id, status: "accepted", reason: "已有计划官方依据已核对", evidenceUrls: ["https://existing.example.com/pricing"], planIds: ["plan-existing"] };
     const original = fs.readFileSync(path.join(dir, "inbox.json")), report = fs.readFileSync(path.join(dir, "latest.json"));
     await assert.rejects(runReview({ ...options, rename: (from, to) => { if (to === path.join(dir, "latest.json") && path.basename(from) === "next") throw new Error("injected review failure"); fs.renameSync(from, to); } }), /injected/);
     assert.deepEqual(fs.readFileSync(path.join(dir, "inbox.json")), original); assert.deepEqual(fs.readFileSync(path.join(dir, "latest.json")), report);
     await runReview(options); const reviewed = fs.readFileSync(path.join(dir, "inbox.json")); await runReview(options); assert.deepEqual(fs.readFileSync(path.join(dir, "inbox.json")), reviewed);
-    const exported = await runReview({ command: "triage", workspace: root, status: "accepted", now: OCT8, outputPath: "audit/news/triage.json" }); assert.ok("candidates" in exported); assert.equal(exported.candidates.length, 1); assert.equal(exported.candidates[0].status, "accepted");
+    const exported = await runReview({ command: "triage", workspace: root, status: "accepted", now: OCT8, outputPath: "data/audit/news/triage.json" }); assert.ok("candidates" in exported); assert.equal(exported.candidates.length, 1); assert.equal(exported.candidates[0].status, "accepted");
     assert.deepEqual(fs.readFileSync(path.join(root, "data/sources/data.js")), data); assert.deepEqual(fs.readFileSync(path.join(dir, "inbox.json")), reviewed);
     await assert.rejects(runReview({ command: "triage", workspace: root, outputPath: "data/sources/data.js" }), /输出/);
     assert.equal(reviewArguments(["review", "--id", "abc", "--status", "deferred", "--reason", "later"]).command, "review");
@@ -455,7 +455,7 @@ async function tests() {
   await test("list/triage读取正式动态，checked核查与通用定价证据不消除待发布候选", () => fixture(async (root, write) => {
     const url = "https://existing.example.com/events/launch";
     await runCollection({ workspace: root, now: OCT8, resolver, fetcher: async () => new Response(rss(itemXML("Existing coding plan launch", url))) });
-    const inboxFile = path.join(root, "audit/news/inbox.json"), dataFile = path.join(root, "data/sources/data.js");
+    const inboxFile = path.join(root, "data/audit/news/inbox.json"), dataFile = path.join(root, "data/sources/data.js");
     const inbox = JSON.parse(fs.readFileSync(inboxFile, "utf8")), base = fs.readFileSync(dataFile, "utf8");
     await runReview({ command: "review", workspace: root, now: OCT8, id: inbox.items[0].id, status: "accepted", reason: "官方事件值得入库",
       evidenceUrls: ["https://existing.example.com/pricing"], planIds: ["plan-existing"] });
@@ -477,14 +477,14 @@ async function tests() {
   }));
   await test("迁移旧latest保留过期候选；损坏inbox失败时不覆写原历史或缓存", () => fixture(async (root, write) => {
     const first = await collect([source()], async () => new Response(rss(itemXML("Coding plan launch", "https://new.example.com/a"))), { now: OCT8 });
-    write("audit/news/latest.json", JSON.stringify(first.report));
+    write("data/audit/news/latest.json", JSON.stringify(first.report));
     const report = await runCollection({ workspace: root, now: new Date("2026-11-08T00:00:00Z"), resolver, fetcher: async () => new Response(rss()) });
     assert.equal(report.queue.total, 1); assert.equal(report.queue.agedBacklog, 1);
-    const oldReport = fs.readFileSync(path.join(root, "audit/news/latest.json")), oldState = fs.readFileSync(path.join(root, "audit/news/state.json"));
-    write("audit/news/inbox.json", "broken review history");
+    const oldReport = fs.readFileSync(path.join(root, "data/audit/news/latest.json")), oldState = fs.readFileSync(path.join(root, "data/audit/news/state.json"));
+    write("data/audit/news/inbox.json", "broken review history");
     await assert.rejects(runCollection({ workspace: root, resolver, fetcher: async () => new Response(rss()) }));
-    assert.equal(fs.readFileSync(path.join(root, "audit/news/inbox.json"), "utf8"), "broken review history");
-    assert.deepEqual(fs.readFileSync(path.join(root, "audit/news/latest.json")), oldReport); assert.deepEqual(fs.readFileSync(path.join(root, "audit/news/state.json")), oldState);
+    assert.equal(fs.readFileSync(path.join(root, "data/audit/news/inbox.json"), "utf8"), "broken review history");
+    assert.deepEqual(fs.readFileSync(path.join(root, "data/audit/news/latest.json")), oldReport); assert.deepEqual(fs.readFileSync(path.join(root, "data/audit/news/state.json")), oldState);
     assert.throws(() => validateInbox({ schemaVersion: 1, items: [] }));
   }));
   await test("采集进行中拒绝并发人工复核，避免后写覆盖已决状态", () => fixture(async (root) => {
@@ -493,13 +493,13 @@ async function tests() {
     const running = runCollection({ workspace: root, now: OCT8, resolver, fetcher: async () => { begin(); await gate; return new Response(rss()); } });
     await started;
     await assert.rejects(runReview({ command: "review", workspace: root, id: "missing", status: "rejected", reason: "later" }), /正在采集或复核/);
-    release(); await running; assert.equal(fs.existsSync(path.join(root, "audit/news/.news.lock")), false);
+    release(); await running; assert.equal(fs.existsSync(path.join(root, "data/audit/news/.news.lock")), false);
   }));
   await test("资讯遗留锁阻止同时采集与复核，不删锁或改已有队列", () => fixture(async (root, write) => {
     const exited = require("node:child_process").spawnSync(process.execPath, ["-e", "process.stdout.write(String(process.pid))"], { encoding: "utf8" });
     assert.equal(exited.status, 0);
     const stale = JSON.stringify({ pid: Number(exited.stdout), hostname: os.hostname() });
-    write("audit/news/.news.lock", stale); write("audit/news/inbox.json", "saved review queue");
+    write("data/audit/news/.news.lock", stale); write("data/audit/news/inbox.json", "saved review queue");
     let fetched = false;
     const outcomes = await Promise.allSettled([
       runCollection({ workspace: root, resolver, fetcher: async () => { fetched = true; return new Response(rss()); } }),
@@ -507,11 +507,11 @@ async function tests() {
     ]);
     for (const outcome of outcomes) { assert.equal(outcome.status, "rejected"); if (outcome.status === "rejected") assert.match(outcome.reason.message, /人工检查/); }
     assert.equal(fetched, false);
-    assert.equal(fs.readFileSync(path.join(root, "audit/news/.news.lock"), "utf8"), stale);
-    assert.equal(fs.readFileSync(path.join(root, "audit/news/inbox.json"), "utf8"), "saved review queue");
+    assert.equal(fs.readFileSync(path.join(root, "data/audit/news/.news.lock"), "utf8"), stale);
+    assert.equal(fs.readFileSync(path.join(root, "data/audit/news/inbox.json"), "utf8"), "saved review queue");
   }));
   await test("资讯操作失去锁所有权后保留替换锁，抛错操作正常释放自己的锁", () => fixture(async root => {
-    const dir = path.join(root, "audit/news"), lock = path.join(dir, ".news.lock");
+    const dir = path.join(root, "data/audit/news"), lock = path.join(dir, ".news.lock");
     const failure = new Error("news action failed");
     await assert.rejects(withNewsLock(dir, () => { throw failure; }), error => error === failure);
     assert.equal(fs.existsSync(lock), false);
@@ -525,13 +525,13 @@ async function tests() {
     const options = { workspace:root, now:NOW, resolver, fetcher:async () => new Response("unavailable", {status:503}), onCommitted:ready => readiness.push(ready) };
     await runCollection(options);
     assert.deepEqual(readiness, [true]); // Partial network failure still preserves a valid queue.
-    write("audit/news/state.json", "broken state");
+    write("data/audit/news/state.json", "broken state");
     await runCollection(options);
     assert.deepEqual(readiness, [true, false]);
-    write("audit/news/inbox.json", "broken review queue");
+    write("data/audit/news/inbox.json", "broken review queue");
     await assert.rejects(runCollection(options));
     assert.deepEqual(readiness, [true, false]);
-    assert.equal(fs.readFileSync(path.join(root,"audit/news/inbox.json"),"utf8"), "broken review queue");
+    assert.equal(fs.readFileSync(path.join(root,"data/audit/news/inbox.json"),"utf8"), "broken review queue");
   }));
   console.log("资讯离线回归通过：" + passed + " 项（无网络请求）");
 }

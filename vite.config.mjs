@@ -43,7 +43,7 @@ export default defineConfig({
   server: {
     host: "127.0.0.1",
     /* Windows 上监听句柄会让 build:site 无法整目录替换 .site-build；产物、测试报告与审计资料都不需要热更新。 */
-    watch: { ignored: ["**/.site-*/**", "**/test-results/**", "**/playwright-report/**", "**/audit/**"] },
+    watch: { ignored: ["**/.site-*/**", "**/test-results/**", "**/playwright-report/**", "**/data/audit/**"] },
   },
   build: {
     outDir: ".site-build",

@@ -1,6 +1,6 @@
 .vercel
 .claude/
-audit/.pricing.lock
+data/audit/.pricing.lock
 **/.audit-update-*/
 .site-stage-*/
 .site-backup-*/
@@ -13,11 +13,11 @@ node_modules/
 playwright-report/
 test-results/
 scratchpad/
-audit/ui-*.png
-audit/news/
-audit/benchmarks/
-audit/frontend-maintenance/
-audit/benchmark-sources/
+data/audit/ui-*.png
+data/audit/news/
+data/audit/benchmarks/
+data/audit/frontend-maintenance/
+data/audit/benchmark-sources/
 
 # 个人编辑器配置
 .zcodeignore

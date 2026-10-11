@@ -9,7 +9,7 @@ const BENCHMARKS = {
       "description": "修复缓存命中 tokens 重复计费，校验非法输入，保留纯函数接口。只编辑 solution.cjs。",
       "acceptance": "固定公开验收：缓存/非缓存、全命中、零用量，以及每个数量/价格的负数、非有限与缺失值。",
       "fixture": "cached-cost",
-      "fixtureHash": "6ff347efba6195fd9f5ef298a4f39486eb172cc1d6d08a7d801300823da6ae37"
+      "fixtureHash": "70f6da4838a078dddce6b5a08146e9e133dcd67242809e2e3e38e691a7c246a0"
     },
     {
       "id": "csv-export",
@@ -18,7 +18,7 @@ const BENCHMARKS = {
       "description": "实现 encodeCSV(rows)，正确处理引号、逗号、换行和空值；防止以公式字符开头的单元格被电子表格执行。只编辑 solution.cjs。",
       "acceptance": "6 项验收：标准 CSV 转义、空值、换行、公式前缀及二维输入检查。",
       "fixture": "csv-export",
-      "fixtureHash": "c3092e2012f37738f02cfe85f8a02a908fda4382eeab63f40d8504c9e5867665"
+      "fixtureHash": "b756bd4aafce4793ac9299212f8f6150f84e8831bcb8f2b35075c7420df2d6a6"
     },
     {
       "id": "url-state",
@@ -27,7 +27,7 @@ const BENCHMARKS = {
       "description": "实现 encode/decode：budget 为 any/50/100，region 为 all/cn/intl；未知值回退 any/all，忽略额外参数并支持中文 search。只编辑 solution.cjs。",
       "acceptance": "5 项验收：默认值、有效筛选、中文往返、无效输入及未知参数。",
       "fixture": "url-state",
-      "fixtureHash": "7c127392e92b795eb3c4be615be1b8c1c56f05060ef8b7f45ecf551bc6b03659"
+      "fixtureHash": "0891174557d5c7f6149f838c88eaa841bf90684825e8fbceedad4e5a630232b8"
     }
   ],
   "runs": [],

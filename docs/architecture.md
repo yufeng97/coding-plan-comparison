@@ -45,14 +45,14 @@
 | `public/` | 只放手写静态资源：分享卡片图 `img/og-card.png`（og:image）。由 `build:site` 与开发中间件按白名单发布，发布 URL 保持 `img/` |
 | `scripts/server/serve.js` | 发布产物预览服务器（`serve.js .site-build`；只监听 127.0.0.1，只读站点目录内的白名单文件并拒绝隐藏路径） |
 | `scripts/news/collect-news.js` | 联网采集资讯候选与页面变化；保留缓存和来源错误，不改正式数据 |
-| `config/news-sources.json` / `review-calendar.json` | 官方监测、开放发现与有来源的复核日历 |
+| `data/config/news-sources.json` / `review-calendar.json` | 官方监测、开放发现与有来源的复核日历 |
 | `data/generated/` | 维护与评测脚本生成、随源数据提交的文件（`.gitattributes` 标为生成文件）：按需加载的 `maintenance-data.js` / `benchmark-data.js`、首屏评测摘要 `benchmark-summary.js`、维护快照 `maintenance.json`，以及全站与分厂商变更 RSS `changes.xml` / `feeds/`（发布 URL 保持 `changes.xml` 与 `feeds/`） |
 | `scripts/maintenance/` / `data/` | 维护摘要、真实变更历史、RSS 构建与回归 |
-| `scripts/benchmarks/` / `benchmarks/` | 官方公开评测 adapter、带哈希证据的采集/审核、public-results.json 快照、固定任务验收与公共测评构建 |
+| `scripts/benchmarks/` / `data/benchmarks/` | 官方公开评测 adapter、带哈希证据的采集/审核、public-results.json 快照、固定任务验收与公共测评构建 |
 | `scripts/tests/` | Node 工具、架构约束及维护回归；TS 公式、数据、整页与就近组件测试由 `npm test` 一并运行 |
 | `tests/e2e/` | Chromium、Firefox、WebKit 端到端用例（Playwright），通过 DOM、地址、存储和 ECharts 公共 API 检查发布产物 |
 | `tsconfig.json` / `tsconfig.*.json` | 根配置只引用子项目，编辑器据此为每个文件选用对应配置：`app`（业务模块与组件，不含 Node 类型）、`vitest`（测试）、`data`（数据文件 checkJs）、`node`（工具脚本、端到端测试与 Vite / Playwright 配置） |
-| `audit/` | 258 条价格的原始库存、分组官网证据与 JSON/CSV 合并台账；不复制到公共部署产物 |
+| `data/audit/` | 258 条价格的原始库存、分组官网证据与 JSON/CSV 合并台账；不复制到公共部署产物 |
 
 ## 前端结构与迁移
 

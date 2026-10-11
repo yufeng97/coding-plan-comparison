@@ -4,7 +4,7 @@
 
 ## 发现与审核
 
-运行 `npm run news:collect`，查看 `audit/news/latest.json`、`health.json` 与持久 `inbox.json`。`npm run news:review -- list --status pending` 列出队列；`triage --output audit/news/triage.json` 导出审核材料。pending 待审、accepted 值得继续核实、rejected 驳回、deferred 暂缓；每次决定需理由，候选内容变化需再次复核。
+运行 `npm run news:collect`，查看 `data/audit/news/latest.json`、`health.json` 与持久 `inbox.json`。`npm run news:review -- list --status pending` 列出队列；`triage --output data/audit/news/triage.json` 导出审核材料。pending 待审、accepted 值得继续核实、rejected 驳回、deferred 暂缓；每次决定需理由，候选内容变化需再次复核。
 
 接受已知产品时提供 `--evidence https://官方证据 --plan-id plan-xxxx`。未知厂商可不关联已有计划，人工确认官方身份后提供 `--official-domain example.com` 与该域名官方证据。官网声明是审核者判断，脚本不会证明域名身份。accepted 不等于已核价或已发布。
 
@@ -16,7 +16,7 @@
 
 ## 增量核价
 
-输入放在 `audit/` 内。下面是模板，占位日期与 ID 必须替换，不能直接发布：
+输入放在 `data/audit/` 内。下面是模板，占位日期与 ID 必须替换，不能直接发布：
 
 ```json
 {
@@ -46,7 +46,7 @@
 API 条目的 `apiCache` 是同币种的缓存命中（读取）单价，只在官方写明本档价格时填写；费用计算器在用户未填缓存价时按它计价，范围价、未公布或不支持缓存时留空。`CALC_DEFAULT_API` 固定计算器默认模型，删改该条目前先改这里。国际档的中国大陆可用性登记在 `MAINLAND_ACCESS`，要求官方支持地区页面作来源，见 [数据维护手册](docs/maintenance.md#中国大陆可用性登记)。
 
 ```bash
-npm run pricing:sync -- --incremental --input audit/incremental.json
+npm run pricing:sync -- --incremental --input data/audit/incremental.json
 npm run maintenance:build
 npm run benchmark:build
 npm run catalog:build
@@ -67,15 +67,15 @@ npm run build:site
 
 ## 变更、关注与测评
 
-`data/change-history.json` 是正式变化历史。旧审计种子只记录可重建的真实字段差异；不是所有 changed 状态都代表可重建的调价。新增历史保留永久记录身份和稳定 changeId，关注已读使用 changeId。不要清空历史或改 ID。`config/review-calendar.json` 仅记录有来源的复核日期，不自行断言到期后的价格。
+`data/audit/change-history.json` 是正式变化历史。旧审计种子只记录可重建的真实字段差异；不是所有 changed 状态都代表可重建的调价。新增历史保留永久记录身份和稳定 changeId，关注已读使用 changeId。不要清空历史或改 ID。`data/config/review-calendar.json` 仅记录有来源的复核日期，不自行断言到期后的价格。
 
-公开模型评测先运行 `npm run benchmark:collect`，核对 `audit/benchmark-sources/latest.json`、`diff.json` 和 `health.json`。逐榜访问官方页面，核对协议版本、模型精确名称、推理档位、Agent/工具、实际样本数、费用单位和源更新日期。确认后执行 `benchmark:publish -- --input ... --reviewer ... --reason ...`；脚本必须找到下载哈希一致的原始证据。运行 validate/build/check、相关回归和缓存版本检查后再提交部署。来源失败不刷新正式日期；新增/撤回条目与同 ID 的实际成绩变化需要复核。
+公开模型评测先运行 `npm run benchmark:collect`，核对 `data/audit/benchmark-sources/latest.json`、`diff.json` 和 `health.json`。逐榜访问官方页面，核对协议版本、模型精确名称、推理档位、Agent/工具、实际样本数、费用单位和源更新日期。确认后执行 `benchmark:publish -- --input ... --reviewer ... --reason ...`；脚本必须找到下载哈希一致的原始证据。运行 validate/build/check、相关回归和缓存版本检查后再提交部署。来源失败不刷新正式日期；新增/撤回条目与同 ID 的实际成绩变化需要复核。
 
 公开成绩的粒度是评测协议 + 准确模型 + 推理档位 + Agent。禁止把 HLE 原版、Diamond、工具/无工具、纯文本/多模态混用，也不把 OSWorld 各版本、步数、样本分母和完整/部分指标混排。新模型不依赖已有 Coding Plan 厂商白名单；不要仅根据模型名推断某个订阅的可用资格。新增来源在 `scripts/benchmarks/sources/` 提供 adapter，登记第一方固定域名/仓库路径，补离线格式变更与异常输入测试；不执行网页 JS，不用第三方聚合站填数。
 
 费用采用官方评测每任务/rollout 口径，注明实际记录或官网价格折算；不等同 API 每百万 token 价或订阅月费。总费用缺乏重复次数/样本分母时不换算为每任务；缺值为 null，合法零分/零成本只有官方明确时才是 0。真实采集时间与官方更新日分开，原始来源哈希留在正式快照，下载缓存不进入公共部署。
 
-贡献者固定任务和验收见 `benchmarks/`，命令见 [数据维护手册](docs/maintenance.md#贡献者如何跑本机任务验收)。记录真实提示词、环境、解答与账单公开证据。区分模型生成与验收时间；至少 3 次同一解答验收不是独立模型成功率。发布前人工核对证据，使用 `benchmark:import --input ... --solution ... --reviewer ...`，导入时核对实际解答哈希并重新验收，再运行 validate/build；当前本机贡献者记录为空，不应补随机或模拟成绩。它与官方模型公开榜单分开，页面中的贡献者工具默认折叠。
+贡献者固定任务和验收见 `data/benchmarks/`，命令见 [数据维护手册](docs/maintenance.md#贡献者如何跑本机任务验收)。记录真实提示词、环境、解答与账单公开证据。区分模型生成与验收时间；至少 3 次同一解答验收不是独立模型成功率。发布前人工核对证据，使用 `benchmark:import --input ... --solution ... --reviewer ...`，导入时核对实际解答哈希并重新验收，再运行 validate/build；当前本机贡献者记录为空，不应补随机或模拟成绩。它与官方模型公开榜单分开，页面中的贡献者工具默认折叠。
 
 ## 发布与巡检
 

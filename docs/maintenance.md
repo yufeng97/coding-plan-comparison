@@ -10,7 +10,7 @@
 
 - `data/sources/data.js` 的 `PRICE_CHECKS` 使用永久计划 ID、API/PAYG 的厂商及模型标识，记录状态、日期、来源和说明。页面来源列与页脚、比较及 CSV/Markdown 导出显示这些信息。
 - 待核实历史价退出推荐、免费入口和价格/性价比图；公开标价表默认收起待核价格与中转站，打开「含中转站与待核价格」后仍可查看和导出。未列年付价的套餐不进入年付价格图。
-- 完整旧值、新值、官网观察、修正与原因见 [JSON 台账](../audit/pricing-verification-2026-10-04.json) 和 [CSV 台账](../audit/pricing-verification-2026-10-04.csv)。`pricing-inventory.json` 保留本轮核查前库存；四份厂商分组 JSON 是同步输入。
+- 完整旧值、新值、官网观察、修正与原因见 [JSON 台账](../data/audit/pricing-verification-2026-10-04.json) 和 [CSV 台账](../data/audit/pricing-verification-2026-10-04.csv)。`pricing-inventory.json` 保留本轮核查前库存；四份厂商分组 JSON 是同步输入。
 - 完成整批价格复核并修改核查输入后，运行 `node scripts/build/sync-pricing-audit.js`、`npm run catalog:build`，再运行 `npm run validate` 和 `npm test`；日常增量维护见下文。同步器不联网；候选源码在内存中通过完整数据校验后，才暂存并提交 `data.js` 与 JSON/CSV 台账。任一文件写入或替换失败会回滚整组输出，回滚受限时保留原文件备份并报告路径。核查日期只推进整份数据的版本日期，不会覆盖较新的巡检版本；重复同步没有变化时不写入。校验器拒绝遗漏、重复、无来源、无效日期、非法价格和模型继承环。
 
 ## 最新资讯如何更新
@@ -34,20 +34,20 @@ npm ci
 npm run news:collect
 
 # 调整时间窗口或使用自己的来源配置
-npm run news:collect -- --days 30 --config config/news-sources.json
+npm run news:collect -- --days 30 --config data/config/news-sources.json
 
 # 合并人工发现/外部搜索的候选链接
-npm run news:collect -- --import audit/news/manual.json
+npm run news:collect -- --import data/audit/news/manual.json
 
 # 只运行采集器的离线回归测试
 npm run test:news
 ```
 
-默认来源配置在 [config/news-sources.json](../config/news-sources.json)：23 个来源。模型发布入口包括 OpenAI、Mistral、Google 官方 RSS，以及 Anthropic、MiniMax、Kimi、DeepSeek、Z.ai 官方博客；保留产品页面、GitHub 更新日志、三个 Hacker News 搜索和中文发现源。`authority: "official"` 表示来源渠道是官网，仍需核对具体事实；`"discovery"` 表示发现线索，不能替代官网报价。支持 `rss`、`atom`、`blog`、`page`、`hn-search`，使用 `keywords` 扩展关键词；默认识别常见模型系列与版本，无需新闻包含套餐或价格字样。
+默认来源配置在 [data/config/news-sources.json](../data/config/news-sources.json)：23 个来源。模型发布入口包括 OpenAI、Mistral、Google 官方 RSS，以及 Anthropic、MiniMax、Kimi、DeepSeek、Z.ai 官方博客；保留产品页面、GitHub 更新日志、三个 Hacker News 搜索和中文发现源。`authority: "official"` 表示来源渠道是官网，仍需核对具体事实；`"discovery"` 表示发现线索，不能替代官网报价。支持 `rss`、`atom`、`blog`、`page`、`hn-search`，使用 `keywords` 扩展关键词；默认识别常见模型系列与版本，无需新闻包含套餐或价格字样。
 
 `blog` 从目录逐篇读取同源文章，不再仅记录整页哈希变化。`articlePaths` 是首尾锚定的 URL 路径正则数组，默认最多 20 篇（可设 `maxArticles`，上限 40）；首次采集也读取已有文章，再按真实发布日期筛选窗口。文章使用 JSON-LD 的 `datePublished`、发布元数据或正文 `time`；没有发布日期的候选保留 `dateStatus: "missing"`，来源报告单列 `missingPublicationDates`，不能用采集日或修改日补齐。未来时间单列 `futurePublicationDates`，不当作已发生事件；文章发表日也不自动等于模型首次发布日。目录或文章解析失败显式记录，部分文章失败仍保存成功候选，截断标记说明覆盖上限。xAI 直接抓取当前返回 403，Qwen 新博客尚无已验证的稳定入口，仍需周期性官方搜索补充。
 
-默认报告为 `audit/news/latest.json`，同目录的 `state.json` 保留页面基线、已解析条目和条件请求缓存；`--output` 只允许写入项目 `audit/news/` 内的 JSON 报告，例如 `--output audit/news/2026-10-07.json` 保存当次报告，不能覆盖代码、配置或导入文件。`latest.json` 为滚动报告，`inbox.json` 为持久待审队列：pending / accepted / rejected / deferred，保留审核理由、官方证据、关联计划与历史决策。候选超出窗口或来源失败不会删除；内容变化会标记 needsReReview，不重复推送完全相同的内容。`health.json` 记录逐源最后成功、连续失败与缓存状态。此目录已忽略，不进入 Git 或公开部署产物。请保存状态文件：删除后页面监测会重新建立基线；CI 的临时工作目录也需要单独恢复状态。RSS/Atom 和搜索结果有窗口与条数限制，报告中需查看来源的错误和截断标记；一次执行不能当作全网检索。候选统计中的厂商待识别数量是条目数，不是确认新增的厂商数。
+默认报告为 `data/audit/news/latest.json`，同目录的 `state.json` 保留页面基线、已解析条目和条件请求缓存；`--output` 只允许写入项目 `data/audit/news/` 内的 JSON 报告，例如 `--output data/audit/news/2026-10-07.json` 保存当次报告，不能覆盖代码、配置或导入文件。`latest.json` 为滚动报告，`inbox.json` 为持久待审队列：pending / accepted / rejected / deferred，保留审核理由、官方证据、关联计划与历史决策。候选超出窗口或来源失败不会删除；内容变化会标记 needsReReview，不重复推送完全相同的内容。`health.json` 记录逐源最后成功、连续失败与缓存状态。此目录已忽略，不进入 Git 或公开部署产物。请保存状态文件：删除后页面监测会重新建立基线；CI 的临时工作目录也需要单独恢复状态。RSS/Atom 和搜索结果有窗口与条数限制，报告中需查看来源的错误和截断标记；一次执行不能当作全网检索。候选统计中的厂商待识别数量是条目数，不是确认新增的厂商数。
 
 导入文件是 JSON 数组，字段为 `title`、`url`，可选 `publishedAt`、`summary`。例如下面是格式示例，不代表已核实产品：
 
@@ -85,20 +85,20 @@ npm run test:news
 
 **全量与增量分开运行**：默认同步仍要求四份全量审计输入日期一致、覆盖全部记录。日常使用增量模式，只更新此次有新证据的行，保留其他行的核查日期；拒绝日期倒退、旧 patch 覆盖新值、来源 ID 的证据冲突及无证据修改。新增套餐通过 record.new 提交完整 Plan，并分配从未使用过的永久 ID。同步会原子更新数据、审计台账与变更历史，失败整组回滚；不会更新动态、来源目录或额度指标。输入字段及完整步骤见 [贡献指南](../CONTRIBUTING.md)。
 
-核价同步与维护摘要构建共用 `audit/.pricing.lock`，互斥覆盖读取、校验、历史合并到提交全过程，维护一致性检查也参与这把锁。释放时核对唯一所有者；运行期间不得人工删除或替换锁文件。异常退出后先检查其中的主机、PID 与时间，确认没有核价或维护进程后再人工清理；脚本不会按死 PID 自动删锁。
+核价同步与维护摘要构建共用 `data/audit/.pricing.lock`，互斥覆盖读取、校验、历史合并到提交全过程，维护一致性检查也参与这把锁。释放时核对唯一所有者；运行期间不得人工删除或替换锁文件。异常退出后先检查其中的主机、PID 与时间，确认没有核价或维护进程后再人工清理；脚本不会按死 PID 自动删锁。
 
-资讯采集／复核和评测采集／发布／贡献者导入／公共构建也使用互斥锁。异常退出留下 `audit/news/.news.lock` 或 `audit/benchmark-sources/.benchmark.lock` 时，先确认没有对应操作进程后再人工清理。文件锁协调合作进程，不能抵抗运行期间外部删除或替换锁路径。
+资讯采集／复核和评测采集／发布／贡献者导入／公共构建也使用互斥锁。异常退出留下 `data/audit/news/.news.lock` 或 `data/audit/benchmark-sources/.benchmark.lock` 时，先确认没有对应操作进程后再人工清理。文件锁协调合作进程，不能抵抗运行期间外部删除或替换锁路径。
 
 ```bash
 # 列出持久待审队列；accepted 只表示值得继续核实，并非自动收录
 npm run news:review -- list --status pending
-npm run news:review -- triage --output audit/news/triage.json
+npm run news:review -- triage --output data/audit/news/triage.json
 
 # 候选需理由；接受还需官方证据，新厂商需人工声明官网域名
 npm run news:review -- review --id 候选SHA256 --status accepted --reason "官网有编程订阅，进入核价" --evidence https://厂商官网/pricing --official-domain 厂商官网
 
 # 访问官网并准备逐条证据后，执行增量同步
-npm run pricing:sync -- --incremental --input audit/incremental.json
+npm run pricing:sync -- --incremental --input data/audit/incremental.json
 npm run maintenance:build -- --as-of 2026-10-08
 npm run benchmark:build
 npm run catalog:build
@@ -108,7 +108,7 @@ npm test
 
 `list` / `triage` 独立列出 `awaitingPublication`（已接受、无需再次复核、尚未收录正式动态）和 `needsReReview`，默认 pending 筛选不会隐藏这些积压。`publication` 仅按候选 URL 与非 `checked` 的 `DYNAMICS` 来源 URL 归一后精确匹配，表示正式数据已收录；仍需验证并部署后才算线上更新。`evidencePublicationMatches` 仅供人工核对，不会因为共用定价页而误判同一事件已发布。厂商发布新的编程模型本身可以成为重要动态，无需等待套餐调价；发布消息不自动证明每个订阅档的可用模型或权益。每天巡检都须处理待收录项目，不因已接受或已通知而视为完成。
 
-维护摘要在 data/generated/maintenance.json，变更历史在 data/change-history.json；通过按需加载的经典脚本同步到页面。页面显示核查时效、待核条目、复核日历和已确认变化，可下载 schemaVersion 1 的公开套餐/API/核价/历史/测评 JSON（不含本机关注和待审材料）；过期提醒不会自行改价。[changes.xml](https://coding-plan-comparison-tau.vercel.app/changes.xml) 是可订阅的已确认变更 RSS，重复构建不会产生新事件。套餐关注和已读状态保存在当前浏览器，不跨设备；RSS 阅读器可独立订阅。
+维护摘要在 data/generated/maintenance.json，变更历史在 data/audit/change-history.json；通过按需加载的经典脚本同步到页面。页面显示核查时效、待核条目、复核日历和已确认变化，可下载 schemaVersion 1 的公开套餐/API/核价/历史/测评 JSON（不含本机关注和待审材料）；过期提醒不会自行改价。[changes.xml](https://coding-plan-comparison-tau.vercel.app/changes.xml) 是可订阅的已确认变更 RSS，重复构建不会产生新事件。套餐关注和已读状态保存在当前浏览器，不跨设备；RSS 阅读器可独立订阅。
 
 ## 持续维护的方向
 
@@ -146,14 +146,14 @@ HLE 原版目前采用 CAIS 官网页面上的历史量化表，试题更新日�
 npm run benchmark:collect
 # 查看 latest.json 的成绩、diff.json 的新增/变化/撤回和 health.json 的失败
 # 访问原始官方榜单核对版本、配置、费用口径与真实数字，再登记审核
-npm run benchmark:publish -- --input audit/benchmark-sources/latest.json --reviewer 维护者 --reason "已逐榜核对官方成绩、配置及来源日期"
+npm run benchmark:publish -- --input data/audit/benchmark-sources/latest.json --reviewer 维护者 --reason "已逐榜核对官方成绩、配置及来源日期"
 npm run benchmark:validate
 npm run benchmark:build
 npm run catalog:build
 npm test
 ```
 
-`collect` 只写忽略目录 `audit/benchmark-sources/`，保留原始下载 SHA-256、完整历史候选和来源连续失败；变化比较按协议/精确模型/推理/Agent 的稳定 ID，日期刷新不会冒充成绩变化。任何必需来源失败或格式改变均返回非零码，保留正式数据与上一份完整候选。`publish` 要求审核者、理由及哈希匹配的原始证据，然后原子替换 `benchmarks/public-results.json`；`benchmark:build` 生成浏览器可离线读取的 `BENCHMARKS.public`（按需加载），并从中派生首屏加载的 `data/sources/benchmark-summary.js`：仅编程协议的每模型最佳配置与本协议名次，供「帮我选」卡片显示本档明确包含的模型成绩，只作参考、不参与推荐排序；`benchmark:check` 在 CI 只读核对两份产物。采集不直接提交或部署；可从 [手动采集工作流](../.github/workflows/benchmark-collect.yml) 下载待审材料。
+`collect` 只写忽略目录 `data/audit/benchmark-sources/`，保留原始下载 SHA-256、完整历史候选和来源连续失败；变化比较按协议/精确模型/推理/Agent 的稳定 ID，日期刷新不会冒充成绩变化。任何必需来源失败或格式改变均返回非零码，保留正式数据与上一份完整候选。`publish` 要求审核者、理由及哈希匹配的原始证据，然后原子替换 `data/benchmarks/public-results.json`；`benchmark:build` 生成浏览器可离线读取的 `BENCHMARKS.public`（按需加载），并从中派生首屏加载的 `data/sources/benchmark-summary.js`：仅编程协议的每模型最佳配置与本协议名次，供「帮我选」卡片显示本档明确包含的模型成绩，只作参考、不参与推荐排序；`benchmark:check` 在 CI 只读核对两份产物。采集不直接提交或部署；可从 [手动采集工作流](../.github/workflows/benchmark-collect.yml) 下载待审材料。
 
 核查日期是本站本次下载/核对时间，官方更新日另记；未公布的运行日、工具、费用或样本数保留未知。费用列属于评测任务或 rollout 的官方成本，DeepSWE 的部分模型按官网当前价格修正表折算，CursorBench 4.0 按公布的 token 价格计算，3.0 历史发布节选的费用未公布；不把原始费用、折算费用或未知费用混为真实账单，不等同订阅月费。不跨模型/协议推断未公布的成绩，也不把空值补成零。
 
@@ -161,12 +161,12 @@ npm test
 
 可信 checker 在解答进程之外执行断言；解答 worker 只接收函数调用参数，完成口令由 checker 在全部断言完成后输出。导入要求实际 `--solution`，重新核对哈希并验收，不能仅凭贡献者提交的 JSON 宣称通过。独立进程隔离用于保障检查流程，仍只运行维护者主动选择的可信解答，不是恶意代码安全沙箱。
 
-固定任务在 benchmarks/tasks.json，起始代码与验收在 benchmarks/fixtures/。先把某项任务的 solution.cjs 复制到单独目录，记录相同提示词、模型/工具版本和实际生成过程，由选定模型修复，再执行：
+固定任务在 data/benchmarks/tasks.json，起始代码与验收在 data/benchmarks/fixtures/。先把某项任务的 solution.cjs 复制到单独目录，记录相同提示词、模型/工具版本和实际生成过程，由选定模型修复，再执行：
 
 ```bash
 npm run benchmark:run -- --task cached-cost --solution /你的/解答目录 --model 实际模型 --tool 实际工具 --generation-seconds 42 --cost-basis api-receipt --cost 0.12 --currency CNY --evidence https://公开的复现记录
 # 人工检查解答、费用和证据后，导入脚本输出的记录
-npm run benchmark:import -- --input audit/benchmarks/run-实际ID.json --solution /你的/解答目录 --reviewer 维护者
+npm run benchmark:import -- --input data/audit/benchmarks/run-实际ID.json --solution /你的/解答目录 --reviewer 维护者
 npm run benchmark:validate
 npm run benchmark:build
 npm run catalog:build

@@ -6,7 +6,7 @@ import publicPaths from "../lib/paths.js";
 /* 只允许应用源码、明确登记的公开数据、公共资源与 npm 依赖；data/ 下的维护台账仍属私有输入。 */
 const PUBLIC_SOURCES = /^(?:index\.html$|(?:src|node_modules)\/|data\/(?:sources\/(?:data|project-data)|generated\/(?:maintenance-data|benchmark-data|benchmark-summary))\.js$|data\/generated\/(?:feeds\/|changes\.xml$)|public\/img\/)/;
 /** 词法路径与真实路径（展开链接、短名后）都须在项目内的公共源目录中，且不含隐藏段；
- *  防止经 junction / 符号链接把 audit/、scripts/ 等私有文件打进发布产物。 */
+ *  防止经 junction / 符号链接把 data/audit/、scripts/ 等私有文件打进发布产物。 */
 export function assertPublicSource(root, file) {
   const rootReal = fs.realpathSync.native(root);
   for (const [base, target] of [[root, file], [rootReal, fs.realpathSync.native(file)]]) {

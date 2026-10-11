@@ -112,9 +112,9 @@ function triageData(inbox, options = {}) {
 
 /** @param {{command:string,workspace?:string,inboxPath?:string,configPath?:string,id?:string,status?:string,reason?:string,evidenceUrls?:string[],planIds?:string[],officialDomains?:string[],needsReReview?:boolean,outputPath?:string,now?:Date,rename?:(from:string,to:string)=>void}} options */
 async function runReview(options) {
-  const root = options.workspace || path.join(__dirname, "..", ".."), inboxPath = options.inboxPath || "audit/news/inbox.json";
-  if (path.basename(inboxPath).toLowerCase() !== "inbox.json") throw new Error("--inbox 必须指向 audit/news 内的 inbox.json");
-  let files = resolveNewsPaths(root, path.join(path.dirname(inboxPath), "latest.json"), [options.configPath || "config/news-sources.json"]);
+  const root = options.workspace || path.join(__dirname, "..", ".."), inboxPath = options.inboxPath || "data/audit/news/inbox.json";
+  if (path.basename(inboxPath).toLowerCase() !== "inbox.json") throw new Error("--inbox 必须指向 data/audit/news 内的 inbox.json");
+  let files = resolveNewsPaths(root, path.join(path.dirname(inboxPath), "latest.json"), [options.configPath || "data/config/news-sources.json"]);
   function readInbox() { return validateInbox(JSON.parse(fs.readFileSync(files.inboxFile, "utf8"))); }
   if (options.command !== "review") {
     const inbox = readInbox();
@@ -122,7 +122,7 @@ async function runReview(options) {
     const data = triageData(inbox, { ...options, publishedURLs: readPublishedURLs(files.workspace) });
     if (options.outputPath) {
       if (options.command !== "triage") throw new Error("只有 triage 可以指定 --output");
-      const target = resolveNewsPaths(files.workspace, options.outputPath, [options.configPath || "config/news-sources.json"]);
+      const target = resolveNewsPaths(files.workspace, options.outputPath, [options.configPath || "data/config/news-sources.json"]);
       if ([files.inboxFile, files.stateFile, files.healthFile, path.join(files.dir, inbox.reportFile || "latest.json")].some((file) => file.toLowerCase() === target.output.toLowerCase())) throw new Error("triage 输出不能覆盖采集报告或复核队列");
       commitOutputs(new Map([[target.output, Buffer.from(JSON.stringify(data, null, 2) + "\n")]]), options);
     }
@@ -130,8 +130,8 @@ async function runReview(options) {
   }
   return withNewsLock(files.dir, async () => {
     const previous = readInbox();
-    files = resolveNewsPaths(files.workspace, path.join(files.dir, previous.reportFile || "latest.json"), [options.configPath || "config/news-sources.json"]);
-    const context = { config: JSON.parse(fs.readFileSync(path.resolve(files.workspace, options.configPath || "config/news-sources.json"), "utf8")),
+    files = resolveNewsPaths(files.workspace, path.join(files.dir, previous.reportFile || "latest.json"), [options.configPath || "data/config/news-sources.json"]);
+    const context = { config: JSON.parse(fs.readFileSync(path.resolve(files.workspace, options.configPath || "data/config/news-sources.json"), "utf8")),
       knownVendors: readKnownVendors(files.workspace), plans: readPlanReferences(files.workspace), now: options.now };
     const inbox = applyReview(previous, { id: options.id, status: options.status, reason: options.reason, evidenceUrls: options.evidenceUrls, planIds: options.planIds, officialDomains: options.officialDomains }, context);
     if (JSON.stringify(previous) === JSON.stringify(inbox)) return inbox;
@@ -150,8 +150,8 @@ const HELP = `资讯候选人工复核（不修改正式价格、不发布、不
   node scripts/news/review-news.js list [--status pending|accepted|rejected|deferred|all] [--needs-re-review]
   node scripts/news/review-news.js review --id SHA256 --status STATUS --reason 理由
       [--evidence https://官网/证据] [--plan-id 永久计划ID] [--official-domain 新厂商官网]
-  node scripts/news/review-news.js triage [--status STATUS] [--id SHA256] [--output audit/news/triage.json]
-通用：--inbox audit/news/inbox.json --config config/news-sources.json --help
+  node scripts/news/review-news.js triage [--status STATUS] [--id SHA256] [--output data/audit/news/triage.json]
+通用：--inbox data/audit/news/inbox.json --config data/config/news-sources.json --help
 evidence/plan-id/official-domain 可重复。所有复核须理由；accepted 须官方HTTPS证据。
 新厂商可不填plan-id，但必须人工确认官网并声明official-domain（已有官方来源除外）。
 证据按完整主机名匹配官方来源；计划网址之外的官方子域也须用official-domain声明，社区/论坛栏目不能作证据。

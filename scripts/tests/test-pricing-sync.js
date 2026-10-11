@@ -25,30 +25,30 @@ function fixture(run) {
   try {
     /* 候选数据校验同时检查实际 Vue/TypeScript 应用入口；临时工作区复制完整公共源码布局。 */
     for (const item of ["index.html", "src", "data/sources", "data/generated", "types"]) fs.cpSync(path.join(workspace, item), path.join(root, item), { recursive: true });
-    fs.mkdirSync(path.join(root, "audit"));
-    for (const file of inputs) fs.copyFileSync(path.join(workspace, "audit", file), path.join(root, "audit", file));
-    const checkedAt = JSON.parse(fs.readFileSync(path.join(root, "audit", inputs[0]), "utf8")).checkedAt;
-    const outputs = ["data/sources/data.js", `audit/pricing-verification-${checkedAt}.json`, `audit/pricing-verification-${checkedAt}.csv`];
+    fs.mkdirSync(path.join(root, "data/audit"));
+    for (const file of inputs) fs.copyFileSync(path.join(workspace, "data/audit", file), path.join(root, "data/audit", file));
+    const checkedAt = JSON.parse(fs.readFileSync(path.join(root, "data/audit", inputs[0]), "utf8")).checkedAt;
+    const outputs = ["data/sources/data.js", `data/audit/pricing-verification-${checkedAt}.json`, `data/audit/pricing-verification-${checkedAt}.csv`];
     for (const file of outputs.slice(1)) fs.copyFileSync(path.join(workspace, file), path.join(root, file));
     fs.mkdirSync(path.join(root, "data"), {recursive: true});
-    fs.writeFileSync(path.join(root, "data/change-history.json"), JSON.stringify(seededHistory(root), null, 2) + "\n");
-    outputs.push("data/change-history.json");
+    fs.writeFileSync(path.join(root, "data/audit/change-history.json"), JSON.stringify(seededHistory(root), null, 2) + "\n");
+    outputs.push("data/audit/change-history.json");
     /* 增量核查后的仓库数据先回放到全量台账基线，后续用例从一致的起点开始。 */
     rewindToFullAudit(root, workspace);
     const snapshot = () => outputs.map((file) => fs.existsSync(path.join(root, file)) ? fs.readFileSync(path.join(root, file)).toString("base64") : null);
     const changeAudit = (patch) => {
-      const file = path.join(root, "audit", inputs[0]);
+      const file = path.join(root, "data/audit", inputs[0]);
       const audit = JSON.parse(fs.readFileSync(file, "utf8"));
       Object.assign(audit.records.find((record) => record.id === "plan-0002").patch, patch);
       fs.writeFileSync(file, JSON.stringify(audit));
     };
-    const stages = () => ["data/sources", "audit", "data"].flatMap((dir) => fs.readdirSync(path.join(root, dir)).filter((name) => name.startsWith(".audit-update-")).map((name) => path.join(root, dir, name)));
+    const stages = () => ["data/sources", "data/audit", "data"].flatMap((dir) => fs.readdirSync(path.join(root, dir)).filter((name) => name.startsWith(".audit-update-")).map((name) => path.join(root, dir, name)));
     const incremental = (patch = { priceM: 21 }, checked = "2026-10-07", old = { priceM: 20 }) => ({
       sources: [{ id: "claude-update-test", url: "https://claude.com/pricing", evidence: "测试：官网明确月费及权益变化。" }],
       records: [{ kind: "plan", id: "plan-0002", vendor: "Anthropic", name: "Claude Pro", status: "changed", checkedAt: checked, old, patch, sourceIds: ["claude-update-test"], reason: "测试：人工核对官网月费与权益。" }],
     });
-    const writeIncremental = (audit) => { fs.writeFileSync(path.join(root, "audit/incremental.json"), JSON.stringify(audit)); return { incremental: true, input: "audit/incremental.json" }; };
-    const allOutputs = () => [...outputs, ...fs.readdirSync(path.join(root, "audit")).filter((name) => /^pricing-incremental-/.test(name)).map((name) => "audit/" + name)].sort().map((file) => [file, fs.existsSync(path.join(root, file)) ? fs.readFileSync(path.join(root, file)).toString("base64") : null]);
+    const writeIncremental = (audit) => { fs.writeFileSync(path.join(root, "data/audit/incremental.json"), JSON.stringify(audit)); return { incremental: true, input: "data/audit/incremental.json" }; };
+    const allOutputs = () => [...outputs, ...fs.readdirSync(path.join(root, "data/audit")).filter((name) => /^pricing-incremental-/.test(name)).map((name) => "data/audit/" + name)].sort().map((file) => [file, fs.existsSync(path.join(root, file)) ? fs.readFileSync(path.join(root, file)).toString("base64") : null]);
     run({ root, outputs, snapshot, changeAudit, stages, checkedAt, incremental, writeIncremental, allOutputs });
   } finally {
     if (path.dirname(root) !== fs.realpathSync(os.tmpdir()) || !path.basename(root).startsWith("coding-plan-sync-test-")) throw new Error("拒绝清理未知核价测试目录");
@@ -95,7 +95,7 @@ test("较新的核价推进整站版本并生成对应日期台账", ({ root }) 
   next.setUTCDate(next.getUTCDate() + 1);
   const checkedAt = next.toISOString().slice(0, 10);
   for (const file of inputs) {
-    const target = path.join(root, "audit", file);
+    const target = path.join(root, "data/audit", file);
     const audit = JSON.parse(fs.readFileSync(target, "utf8"));
     audit.checkedAt = checkedAt;
     fs.writeFileSync(target, JSON.stringify(audit));
@@ -103,7 +103,7 @@ test("较新的核价推进整站版本并生成对应日期台账", ({ root }) 
   const result = syncPricingAudit(root);
   assert.equal(result.updated, checkedAt);
   assert.equal(dataOf(fs.readFileSync(path.join(root, "data/sources/data.js"), "utf8")).PRICE_CHECKS.checkedAt, checkedAt);
-  for (const extension of ["json", "csv"]) assert.ok(fs.existsSync(path.join(root, "audit", `pricing-verification-${checkedAt}.${extension}`)));
+  for (const extension of ["json", "csv"]) assert.ok(fs.existsSync(path.join(root, "data/audit", `pricing-verification-${checkedAt}.${extension}`)));
 });
 
 test("完整校验拒绝负价、模型类型和混合继承环，失败前零写入", ({ root, snapshot, changeAudit, stages }) => {
@@ -126,7 +126,7 @@ test("完整校验拒绝负价、模型类型和混合继承环，失败前零�
 test("非法核价日期在落盘前拒绝", ({ root, snapshot, stages }) => {
   const before = snapshot();
   for (const file of inputs) {
-    const target = path.join(root, "audit", file);
+    const target = path.join(root, "data/audit", file);
     const audit = JSON.parse(fs.readFileSync(target, "utf8"));
     audit.checkedAt = "2026-02-30";
     fs.writeFileSync(target, JSON.stringify(audit));
@@ -138,7 +138,7 @@ test("非法核价日期在落盘前拒绝", ({ root, snapshot, stages }) => {
 
 test("无效来源URL通过完整校验拒绝且所有输出不变", ({ root, snapshot, stages }) => {
   const before = snapshot();
-  const file = path.join(root, "audit", inputs[0]);
+  const file = path.join(root, "data/audit", inputs[0]);
   const audit = JSON.parse(fs.readFileSync(file, "utf8"));
   audit.sources[0].url = "invalid-source";
   fs.writeFileSync(file, JSON.stringify(audit));
@@ -152,7 +152,7 @@ test("新增字段遇到原对象尾逗号仍能生成合法源码", ({ root, ch
   const source = fs.readFileSync(file, "utf8").replace('url: "https://claude.com/pricing" },', 'url: "https://claude.com/pricing", },');
   fs.writeFileSync(file, source);
   // The free plan has no ownClient property, so this exercises appending after a trailing comma.
-  const auditFile = path.join(root, "audit", inputs[0]);
+  const auditFile = path.join(root, "data/audit", inputs[0]);
   const audit = JSON.parse(fs.readFileSync(auditFile, "utf8"));
   audit.records.find((record) => record.id === "plan-0001").patch.ownClient = true;
   fs.writeFileSync(auditFile, JSON.stringify(audit));
@@ -231,7 +231,7 @@ test("增量仅更新查到的记录，逐行日期和旧来源保持原样", ({
   assert.equal(after.PRICE_CHECKS.checkedAt, "2026-10-08");
   for (const [key, value] of Object.entries(before.PRICE_CHECKS.rows)) if (!["plan:plan-0002", "plan:plan-0003"].includes(key)) assert.equal(JSON.stringify(after.PRICE_CHECKS.rows[key]), JSON.stringify(value));
   for (const [key, value] of Object.entries(before.PRICE_CHECKS.sources)) assert.equal(JSON.stringify(after.PRICE_CHECKS.sources[key]), JSON.stringify(value));
-  const history = JSON.parse(fs.readFileSync(path.join(root, "data/change-history.json"), "utf8"));
+  const history = JSON.parse(fs.readFileSync(path.join(root, "data/audit/change-history.json"), "utf8"));
   const change = history.changes.find((row) => row.id === "plan-0002" && row.checkedAt === "2026-10-07");
   assert.deepEqual(change.fields, ["priceM", "quota"]);
   assert.equal(change.before.priceM, 20);
@@ -253,8 +253,8 @@ test("核价锁覆盖读取到提交，交错增量不能覆盖另一批已接�
   const second = incremental({ priceM: 101 }, "2026-10-08");
   Object.assign(second.sources[0], { id: "max-update-test" });
   Object.assign(second.records[0], { id: "plan-0003", name: "Claude Max 5x", old: { priceM: 100 }, sourceIds: ["max-update-test"] });
-  fs.writeFileSync(path.join(root, "audit/second.json"), JSON.stringify(second));
-  const secondOptions = { incremental: true, input: "audit/second.json" };
+  fs.writeFileSync(path.join(root, "data/audit/second.json"), JSON.stringify(second));
+  const secondOptions = { incremental: true, input: "data/audit/second.json" };
   let blocked = false;
   syncPricingAudit(root, { ...firstOptions, rename(from, to) {
     if (!blocked) {
@@ -264,7 +264,7 @@ test("核价锁覆盖读取到提交，交错增量不能覆盖另一批已接�
     fs.renameSync(from, to);
   } });
   assert.equal(blocked, true);
-  assert.equal(fs.existsSync(path.join(root, "audit/.pricing.lock")), false);
+  assert.equal(fs.existsSync(path.join(root, "data/audit/.pricing.lock")), false);
   syncPricingAudit(root, secondOptions);
   const data = dataOf(fs.readFileSync(path.join(root, "data/sources/data.js"), "utf8"));
   assert.equal(data.PLANS.find(plan => plan.id === "plan-0002").priceM, 21);
@@ -276,7 +276,7 @@ test("核价锁覆盖读取到提交，交错增量不能覆盖另一批已接�
 test("核价失败释放锁，损坏的既有锁保留且不修改数据", ({ root, incremental, writeIncremental, allOutputs }) => {
   const bad = incremental({ priceM: -1 });
   assert.throws(() => syncPricingAudit(root, writeIncremental(bad)), /校验失败/);
-  const lock = path.join(root, "audit/.pricing.lock");
+  const lock = path.join(root, "data/audit/.pricing.lock");
   assert.equal(fs.existsSync(lock), false);
   fs.writeFileSync(lock, "corrupt lock retained");
   const before = allOutputs();
@@ -286,7 +286,7 @@ test("核价失败释放锁，损坏的既有锁保留且不修改数据", ({ ro
 });
 
 test("已退出进程的遗留锁也不自动删除，避免并发恢复误删新锁", ({ root, allOutputs }) => {
-  const lock = path.join(root, "audit/.pricing.lock");
+  const lock = path.join(root, "data/audit/.pricing.lock");
   const child = require("node:child_process").spawnSync(process.execPath, ["-e", "process.stdout.write(String(process.pid))"], { encoding:"utf8" });
   assert.equal(child.status, 0);
   const previous = JSON.stringify({ pid:Number(child.stdout), hostname:os.hostname(), startedAt:"2026-10-08T00:00:00Z" });
@@ -326,7 +326,7 @@ test("API与按量对照以原币一致增量更新，型号更名清理旧核�
   const snapshot = allOutputs();
   assert.equal(syncPricingAudit(root, options).filesChanged, 0);
   assert.deepEqual(allOutputs(), snapshot);
-  const history = JSON.parse(fs.readFileSync(path.join(root, "data/change-history.json"), "utf8"));
+  const history = JSON.parse(fs.readFileSync(path.join(root, "data/audit/change-history.json"), "utf8"));
   assert.deepEqual(history.changes.filter((change) => change.checkedAt === "2026-10-07").map((change) => [change.kind, change.id]).sort(), [["api", apiKey], ["payg", key]]);
 });
 
@@ -364,7 +364,7 @@ test("同日增量权益也拒绝旧full重放，新的full需声明当前基值
   const before = allOutputs();
   assert.throws(() => syncPricingAudit(root), /同日旧全量权益 patch/);
   assert.deepEqual(allOutputs(), before);
-  const input = path.join(root, "audit", inputs[0]);
+  const input = path.join(root, "data/audit", inputs[0]);
   const audit = JSON.parse(fs.readFileSync(input, "utf8"));
   const record = audit.records.find((item) => item.id === "plan-0002");
   record.old.note = note;
@@ -427,7 +427,7 @@ test("增量data、台账、history第四文件失败回滚，不留新台账", 
 });
 
 test("CLI明确增量参数，拒绝未知、缺值和audit目录外输入", ({ root, incremental, writeIncremental }) => {
-  assert.deepEqual(parseArgs(["--incremental", "--input", "audit/incremental.json"]), { incremental: true, input: "audit/incremental.json" });
+  assert.deepEqual(parseArgs(["--incremental", "--input", "data/audit/incremental.json"]), { incremental: true, input: "data/audit/incremental.json" });
   assert.throws(() => parseArgs(["--input"]), /缺值/);
   assert.throws(() => parseArgs(["--force"]), /未知/);
   assert.throws(() => syncPricingAudit(root, { incremental: true }), /同时提供/);
@@ -451,7 +451,7 @@ test("结构化全年金额可随年价共同核入，金额冲突在提交前�
 });
 
 test("核价结束时保留替换所有者的锁", ({ root, incremental, writeIncremental }) => {
-  const lock = path.join(root,"audit/.pricing.lock"), replacement = JSON.stringify({ownerId:"replacement-owner",pid:process.pid});
+  const lock = path.join(root,"data/audit/.pricing.lock"), replacement = JSON.stringify({ownerId:"replacement-owner",pid:process.pid});
   let replaced = false;
   assert.throws(() => syncPricingAudit(root, { ...writeIncremental(incremental()), rename(from,to) {
     if (!replaced) { fs.renameSync(lock,lock+".previous-owner"); fs.writeFileSync(lock,replacement); replaced=true; }
@@ -462,7 +462,7 @@ test("核价结束时保留替换所有者的锁", ({ root, incremental, writeIn
   assert.equal(dataOf(fs.readFileSync(path.join(root,"data/sources/data.js"),"utf8")).PLANS.find(p=>p.id==="plan-0002").priceM,21);
 });
 test("核价失败和释放失败同时保留，回滚不删除替换锁", ({ root, incremental, writeIncremental, snapshot }) => {
-  const options = writeIncremental(incremental()), before=snapshot(), lock=path.join(root,"audit/.pricing.lock");
+  const options = writeIncremental(incremental()), before=snapshot(), lock=path.join(root,"data/audit/.pricing.lock");
   const replacement=JSON.stringify({ownerId:"replacement-owner",pid:process.pid}), failure=new Error("pricing commit fixture");
   assert.throws(() => syncPricingAudit(root,{...options,rename() {
     fs.renameSync(lock,lock+".previous-owner");fs.writeFileSync(lock,replacement);throw failure;
@@ -478,7 +478,7 @@ test("核价持锁时维护生成和check均拒绝，随后保留新增历史", 
     fs.renameSync(from,to);
   }});
   assert.ok(blocked);
-  const historyFile=path.join(root,"data/change-history.json"), accepted=fs.readFileSync(historyFile);
+  const historyFile=path.join(root,"data/audit/change-history.json"), accepted=fs.readFileSync(historyFile);
   assert.ok(JSON.parse(accepted.toString()).changes.some(c=>c.id==="plan-0002"&&c.checkedAt==="2026-10-07"&&c.after.priceM===21));
   buildMaintenance(root,{asOf:"2026-10-08"});
   assert.deepEqual(fs.readFileSync(historyFile),accepted);
@@ -486,7 +486,7 @@ test("核价持锁时维护生成和check均拒绝，随后保留新增历史", 
 });
 test("maintenance读取历史期间持有共享锁", ({ root, incremental, writeIncremental }) => {
   buildMaintenance(root,{asOf:"2026-10-08"});
-  const options=writeIncremental(incremental()), historyFile=path.join(root,"data/change-history.json"), original=fs.readFileSync;
+  const options=writeIncremental(incremental()), historyFile=path.join(root,"data/audit/change-history.json"), original=fs.readFileSync;
   let attempted=false;
   fs.readFileSync=new Proxy(original,{apply(target,receiver,args) {
     const result=Reflect.apply(target,receiver,args);
@@ -495,7 +495,7 @@ test("maintenance读取历史期间持有共享锁", ({ root, incremental, write
   }});
   try { assert.equal(buildMaintenance(root,{check:true}).checked,true); } finally { fs.readFileSync=original; }
   assert.ok(attempted);
-  assert.equal(fs.existsSync(path.join(root,"audit/.pricing.lock")),false);
+  assert.equal(fs.existsSync(path.join(root,"data/audit/.pricing.lock")),false);
   syncPricingAudit(root,options);
   const accepted=fs.readFileSync(historyFile);buildMaintenance(root,{asOf:"2026-10-08"});assert.deepEqual(fs.readFileSync(historyFile),accepted);
 });
@@ -507,7 +507,7 @@ test("未来核查日期（记录/来源/批次）在落盘前拒绝，按 Asia/
   futureSource.sources[0].checkedAt = "2062-10-09";
   assert.throws(() => syncPricingAudit(root, writeIncremental(futureSource)), /来源 claude-update-test 的核查日期 2062-10-09 晚于今天/);
   for (const file of inputs) {
-    const target = path.join(root, "audit", file), audit = JSON.parse(fs.readFileSync(target, "utf8"));
+    const target = path.join(root, "data/audit", file), audit = JSON.parse(fs.readFileSync(target, "utf8"));
     audit.checkedAt = "2062-10-09";
     fs.writeFileSync(target, JSON.stringify(audit));
   }
@@ -531,7 +531,7 @@ test("custom 等任何状态改变事实（改为询价）都写入变更历史�
   syncPricingAudit(root, writeIncremental(audit));
   const plan = dataOf(fs.readFileSync(path.join(root, "data/sources/data.js"), "utf8")).PLANS.find((item) => item.id === "plan-0022");
   assert.deepEqual([plan.priceM, plan.priceY], [null, null]);
-  const history = JSON.parse(fs.readFileSync(path.join(root, "data/change-history.json"), "utf8"));
+  const history = JSON.parse(fs.readFileSync(path.join(root, "data/audit/change-history.json"), "utf8"));
   const change = history.changes.find((row) => row.id === "plan-0022" && row.checkedAt === "2026-10-07");
   assert.ok(change, "custom 改价必须进入历史");
   assert.deepEqual(change.fields, ["priceM", "priceY"]);
@@ -545,7 +545,7 @@ test("custom 等任何状态改变事实（改为询价）都写入变更历史�
 });
 
 test("同日增量重放：缺 old 的改值记录被拒绝，不能把较新的同日价格改回并写出伪历史", ({ root, incremental, allOutputs }) => {
-  const write = (name, audit) => { fs.writeFileSync(path.join(root, "audit", name), JSON.stringify(audit)); return { incremental: true, input: "audit/" + name }; };
+  const write = (name, audit) => { fs.writeFileSync(path.join(root, "data/audit", name), JSON.stringify(audit)); return { incremental: true, input: "data/audit/" + name }; };
   const first = write("first.json", incremental({ priceM: 21 }));
   syncPricingAudit(root, first);
   const withoutOld = incremental({ priceM: 21 });
@@ -557,7 +557,7 @@ test("同日增量重放：缺 old 的改值记录被拒绝，不能把较新的
   assert.throws(() => syncPricingAudit(root, first), /旧审计 patch 与现值不符/);
   assert.deepEqual(allOutputs(), before);
   assert.equal(dataOf(fs.readFileSync(path.join(root, "data/sources/data.js"), "utf8")).PLANS.find((item) => item.id === "plan-0002").priceM, 22);
-  const history = JSON.parse(fs.readFileSync(path.join(root, "data/change-history.json"), "utf8"));
+  const history = JSON.parse(fs.readFileSync(path.join(root, "data/audit/change-history.json"), "utf8"));
   assert.ok(!history.changes.some((change) => change.id === "plan-0002" && change.before.priceM === 22 && change.after.priceM === 21), "不得写出 22→21 的伪历史");
   // 未改值的复核记录（以及新增缺失字段的 old:null）不需要额外基值。
   const recheck = incremental({ priceM: 22 }, "2026-10-08");
@@ -576,7 +576,7 @@ test("单月价、售罄与重复入口标记可增量维护，历史完整且�
   const plan = () => read().PLANS.find((p) => p.id === "plan-0002");
   assert.equal(plan().singleMonthPrice, 25);
   assert.equal(plan().availability, "sold-out");
-  const history = JSON.parse(fs.readFileSync(path.join(root, "data/change-history.json"), "utf8"));
+  const history = JSON.parse(fs.readFileSync(path.join(root, "data/audit/change-history.json"), "utf8"));
   assert.ok(history.changes.some((row) => row.id === "plan-0002" && row.fields.includes("singleMonthPrice") && row.fields.includes("availability")));
   const snapshot = allOutputs();
   assert.equal(syncPricingAudit(root, options).filesChanged, 0);

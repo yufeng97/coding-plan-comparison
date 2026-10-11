@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const loadSolution = require('../../../scripts/benchmarks/load-solution.cjs');
+const loadSolution = require('../../../../scripts/benchmarks/load-solution.cjs');
 (async () => {
   const client = await loadSolution(process.argv[2]);
   try {

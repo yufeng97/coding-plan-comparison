@@ -115,11 +115,11 @@ async function main() {
   });
   await test("构建只读入公共源目录，经 junction 指向私有目录的模块和资源被拒绝", () => fixture(async (root, write) => {
     const { assertPublicSource, publicSourcesOnly } = await import("../build/vite-assets.mjs");
-    write("audit/secret.js", "PRIVATE_SECRET_MARKER");
+    write("data/audit/secret.js", "PRIVATE_SECRET_MARKER");
     assert.doesNotThrow(() => assertPublicSource(root, path.join(root, "src/browser/extra.js")));
-    assert.throws(() => assertPublicSource(root, path.join(root, "audit/secret.js")), /公共目录以外/);
+    assert.throws(() => assertPublicSource(root, path.join(root, "data/audit/secret.js")), /公共目录以外/);
     const link = path.join(root, "src/assets", "alias");
-    fs.symlinkSync(path.join(root, "audit"), link, process.platform === "win32" ? "junction" : "dir");
+    fs.symlinkSync(path.join(root, "data/audit"), link, process.platform === "win32" ? "junction" : "dir");
     try {
       const guard = publicSourcesOnly({ root });
       assert.throws(() => guard.load(path.join(link, "secret.js") + "?import"), /公共目录以外.*audit/);
@@ -181,7 +181,7 @@ async function main() {
     write("public/img/og-card.png", "public image");
     write("data/generated/changes.xml", "<rss/>");
     write("data/generated/feeds/vendor.xml", "<rss>vendor</rss>");
-    write("audit/secret.txt", "PRIVATE_SECRET_MARKER");
+    write("data/audit/secret.txt", "PRIVATE_SECRET_MARKER");
     const server = await createServer({ root, configFile: false, publicDir: false, plugins: [publicAssets({ root })], server: { host: "127.0.0.1", port: 0 }, logLevel: "silent" });
     try {
       await server.listen();
@@ -192,11 +192,11 @@ async function main() {
       assert.equal(await (await fetch(base + "/changes.xml")).text(), "<rss/>");
       assert.equal(await (await fetch(base + "/feeds/vendor.xml")).text(), "<rss>vendor</rss>");
       for (const rel of ["/public/img/og-card.png", "/data/generated/changes.xml", "/data/generated/maintenance-data.js"]) assert.equal((await fetch(base + rel)).status, 403, rel);
-      assert.equal((await fetch(base + "/audit/secret.txt")).status, 403);
-      assert.equal((await fetch(base + "/@fs/" + path.join(root, "audit/secret.txt").split(path.sep).join("/"))).status, 403);
+      assert.equal((await fetch(base + "/data/audit/secret.txt")).status, 403);
+      assert.equal((await fetch(base + "/@fs/" + path.join(root, "data/audit/secret.txt").split(path.sep).join("/"))).status, 403);
       for (const [dir, url] of [["public/img", "/img"], ["data/generated/feeds", "/feeds"]]) {
         const alias = path.join(root, dir, "alias");
-        fs.symlinkSync(path.join(root, "audit"), alias, process.platform === "win32" ? "junction" : "dir");
+        fs.symlinkSync(path.join(root, "data/audit"), alias, process.platform === "win32" ? "junction" : "dir");
         try { assert.equal((await fetch(base + url + "/alias/secret.txt")).status, 403, dir); }
         finally { fs.unlinkSync(alias); }
       }
@@ -281,10 +281,10 @@ async function main() {
   });
   await test("目录生成不经公共路径链接读入私有审计内容", () => fixture(async (root, write) => {
     const { catalogSource } = await import("../build/catalog-types.mjs");
-    write("audit/private/data.js", "const PRIVATE_SECRET_MARKER = 'must-not-publish';");
+    write("data/audit/private/data.js", "const PRIVATE_SECRET_MARKER = 'must-not-publish';");
     const input = path.join(root, "data/sources"), backup = path.join(root, "data/sources-original");
     fs.renameSync(input, backup);
-    fs.symlinkSync(path.join(root, "audit/private"), input, process.platform === "win32" ? "junction" : "dir");
+    fs.symlinkSync(path.join(root, "data/audit/private"), input, process.platform === "win32" ? "junction" : "dir");
     try { assert.throws(() => catalogSource(root), /公共目录以外.*audit/); }
     finally { fs.unlinkSync(input); fs.renameSync(backup, input); }
   }));

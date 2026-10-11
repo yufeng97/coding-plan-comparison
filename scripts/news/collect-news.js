@@ -382,11 +382,11 @@ function commitOutputs(outputs, options = {}) {
 
 /** All generated artifacts share a validated directory; none may replace code, inputs, or another reserved artifact.
  * @param {string} workspace @param {string} outputPath @param {Array<string|null>} inputs */
-function resolveNewsPaths(workspace, outputPath = "audit/news/latest.json", inputs = []) {
+function resolveNewsPaths(workspace, outputPath = "data/audit/news/latest.json", inputs = []) {
   const root = fs.realpathSync(path.resolve(workspace)), output = path.resolve(root, outputPath);
   const dir = path.dirname(output), stateFile = path.join(dir, "state.json"), inboxFile = path.join(dir, "inbox.json"), healthFile = path.join(dir, "health.json");
-  const outputRoot = path.join(root, "audit", "news"), relative = path.relative(outputRoot, output);
-  if (!relative || relative.startsWith(".." + path.sep) || relative === ".." || path.isAbsolute(relative) || path.extname(output).toLowerCase() !== ".json") throw new Error("报告输出必须位于 audit/news 内且为 .json 文件");
+  const outputRoot = path.join(root, "data/audit", "news"), relative = path.relative(outputRoot, output);
+  if (!relative || relative.startsWith(".." + path.sep) || relative === ".." || path.isAbsolute(relative) || path.extname(output).toLowerCase() !== ".json") throw new Error("报告输出必须位于 data/audit/news 内且为 .json 文件");
   if ([stateFile, inboxFile, healthFile].some((file) => output.toLowerCase() === file.toLowerCase())) throw new Error("报告输出路径不能覆盖 state.json/inbox.json/health.json");
   const outputs = [output, stateFile, inboxFile, healthFile, path.join(dir, ".news.lock")];
   for (const input of inputs) if (input && outputs.some((file) => file.toLowerCase() === path.resolve(root, input).toLowerCase())) throw new Error("输出不能覆盖配置或导入输入文件");
@@ -410,9 +410,9 @@ async function withNewsLock(dir, action) {
 /** @param {{workspace?:string,configPath?:string,outputPath?:string,importPath?:string,days?:number,now?:Date,rename?:(from:string,to:string)=>void,onCommitted?:(cacheReady:boolean)=>void} & NetworkOptions} options
  * @returns {Promise<NewsReport>} */
 async function runCollection(options = {}) {
-  const resolved = resolveNewsPaths(options.workspace || path.join(__dirname, "..", ".."), options.outputPath, [options.configPath || "config/news-sources.json", options.importPath || null]);
+  const resolved = resolveNewsPaths(options.workspace || path.join(__dirname, "..", ".."), options.outputPath, [options.configPath || "data/config/news-sources.json", options.importPath || null]);
   const { workspace, output, stateFile, inboxFile, healthFile } = resolved;
-  const configFile = path.resolve(workspace, options.configPath || "config/news-sources.json");
+  const configFile = path.resolve(workspace, options.configPath || "data/config/news-sources.json");
   const importFile = options.importPath ? path.resolve(workspace, options.importPath) : null;
   return withNewsLock(resolved.dir, async () => {
   const errors = [], now = options.now || new Date();
@@ -450,8 +450,8 @@ async function runCollection(options = {}) {
 const HELP = `采集编程服务资讯候选，输出仅供人工审核，不修改正式价格或部署。
 用法：node scripts/news/collect-news.js [选项]
   --days N       最近 N 天，默认 14（1–365）
-  --config PATH  来源配置，默认 config/news-sources.json
-  --output PATH  audit/news 内的 JSON 报告，默认 audit/news/latest.json
+  --config PATH  来源配置，默认 data/config/news-sources.json
+  --output PATH  data/audit/news 内的 JSON 报告，默认 data/audit/news/latest.json
                  同目录 state.json / inbox.json / health.json 保存缓存、队列与来源健康
   --import PATH  外部候选 JSON 数组，字段 title/url/publishedAt?/summary?
   --help         显示帮助

@@ -90,8 +90,8 @@ async function main() {
     assert.equal(allowedHost("localhost", 8123), false);
     console.log("  ✓ Host 只接受本端口的 127.0.0.1/localhost，拒绝 DNS 重绑定域名与缺失 Host");
 
-    for (const urlPath of ["/audit/pricing-root.json", "/.vercel/project.json", "/node_modules/typescript/package.json", "/test-results/screenshot.png", "/playwright-report/index.html",
-      "/package.json", "/README.md", "/scripts/server/serve.js", "/config/news-sources.json", "/data/change-history.json", "/benchmarks/public-results.json", "/.github/workflows/ci.yml", "/js/.hidden.js", "/JS/data.js"]) {
+    for (const urlPath of ["/data/audit/pricing-root.json", "/.vercel/project.json", "/node_modules/typescript/package.json", "/test-results/screenshot.png", "/playwright-report/index.html",
+      "/package.json", "/README.md", "/scripts/server/serve.js", "/data/config/news-sources.json", "/data/audit/change-history.json", "/data/benchmarks/public-results.json", "/.github/workflows/ci.yml", "/js/.hidden.js", "/JS/data.js"]) {
       assert.equal(fileFromUrl(urlPath), null, urlPath);
       assert.equal((await request(port, urlPath)).status, 403, urlPath);
     }
@@ -124,14 +124,14 @@ async function main() {
     write("js/app.js", '"use strict";');
     write("js/.git/config", "[core] private");
     write("js/.hidden-secret.txt", "PRIVATE_SECRET_MARKER");
-    write("audit/secret.json", "{}");
+    write("data/audit/secret.json", "{}");
     write(".git/config", "[core] private");
     fs.writeFileSync(path.join(outside, "outside.txt"), "outside project fixture");
     fixtureServer = createServer({ root: fixture });
     const fixturePort = await listen(fixtureServer);
     assert.equal((await request(fixturePort, "/js/app.js")).status, 200);
     try {
-      for (const [name, target, file] of [["outside-link", outside, "outside.txt"], ["audit-link", path.join(fixture, "audit"), "secret.json"], ["git-link", path.join(fixture, ".git"), "config"]]) {
+      for (const [name, target, file] of [["outside-link", outside, "outside.txt"], ["audit-link", path.join(fixture, "data/audit"), "secret.json"], ["git-link", path.join(fixture, ".git"), "config"]]) {
         const link = path.join(fixture, "js", name);
         fs.symlinkSync(target, link, process.platform === "win32" ? "junction" : "dir");
         links.push(link);

@@ -2,6 +2,13 @@
 
 > 按数据核查和代码修复批次记录。
 
+## 2026-10-11：数据目录收拢——核价证据、测评任务与工具配置移入 `data/`
+
+- `audit/` 移到 `data/audit/`（核价库存、官网证据与 JSON/CSV 台账，以及被忽略的资讯、评测采集与截图工作目录），`benchmarks/` 移到 `data/benchmarks/`，`config/` 移到 `data/config/`；变更历史 `data/change-history.json` 与核价台账同放在 `data/audit/`。根目录只留工程入口、源码、工具与文档。
+- 核价同步、维护摘要、资讯采集与复核、评测采集与验收、文件锁、CI 工作流、`.gitignore` 与各说明文档同步新路径；命令行帮助里的默认路径一并更新。私有目录仍不进入构建与发布产物。
+- 测评任务验收脚本按新位置引用公共运行器，任务夹具内容哈希随之更新并重新生成 `benchmark-data.js`；仓库中尚无记录引用旧哈希。
+- 验证：`typecheck`、语法、数据、维护摘要、评测一致性与验收记录检查通过；14 个 Node 工具套件与 354 项 TS / Vue 测试全部通过。上一步的三浏览器回归 330 项全部通过。
+
 ## 2026-10-11：工程配置整理——类型配置、端到端测试与生成文件归位
 
 - 新增根目录 `tsconfig.json`，只引用 `app`、`vitest`、`data`、`node` 四个子项目；原 `jsconfig.json` / `jsconfig.node.json` 改名为 `tsconfig.data.json` / `tsconfig.node.json`。编辑器按文件选用对应配置，`src/` 里的路径别名不再报错；`node` 配置新纳入端到端用例与 `vite.config.mjs` 的类型检查。

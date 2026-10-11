@@ -74,7 +74,7 @@ function atomicWrite(file, content) {
   try { fs.writeFileSync(tmp, content); fs.renameSync(tmp, file); }
   finally { if (fs.existsSync(tmp)) fs.unlinkSync(tmp); }
 }
-const lockFile = workspace => path.join(workspace, "audit/benchmark-sources/.benchmark.lock");
+const lockFile = workspace => path.join(workspace, "data/audit/benchmark-sources/.benchmark.lock");
 const lockOptions = { busyMessage: "公开评测正在采集或审核，或存在遗留锁" };
 function compareScores(previous, next) {
   const old = new Map(previous.scores.map(row => [row.id, row]));
@@ -97,7 +97,7 @@ function compareProtocols(previous, next) {
   };
 }
 function readPublic(workspace = root) {
-  const data = validatePublic(JSON.parse(fs.readFileSync(path.join(workspace, "benchmarks/public-results.json"), "utf8")));
+  const data = validatePublic(JSON.parse(fs.readFileSync(path.join(workspace, "data/benchmarks/public-results.json"), "utf8")));
   const { review, ...candidate } = data;
   if (!review) throw new Error("正式公开评测缺少审核记录");
   text(review.by, "审核者", 200); text(review.reason, "审核理由", 2000); iso(review.reviewedAt, "审核时间");
@@ -109,7 +109,7 @@ function readPublic(workspace = root) {
  * @param {{fetchSource?:Function,adapters?:Array<{id:string,collect:Function}>}} options */
 async function collect(workspace = root, options = {}) {
   return withFileLock(lockFile(workspace), async () => {
-  const audit = path.join(workspace, "audit/benchmark-sources");
+  const audit = path.join(workspace, "data/audit/benchmark-sources");
   const artifacts = new Map(), cache = new Map();
   const getter = options.fetchSource || fetchSource;
   const get = raw => {
@@ -144,11 +144,11 @@ async function collect(workspace = root, options = {}) {
     return { id: adapter.id, ok: result.status === "fulfilled", checkedAt, consecutiveFailures: result.status === "fulfilled" ? 0 : (last?.consecutiveFailures || 0) + 1, error: result.status === "rejected" ? String(result.reason?.message || result.reason).slice(0, 1000) : null };
   });
   atomicWrite(healthFile, JSON.stringify({ schemaVersion: 1, checkedAt, sources }, null, 2) + "\n");
-  if (outcomes.some(result => result.status === "rejected")) throw new Error("公开评测采集部分失败；保留已发布数据和上一份完整候选，请查看 audit/benchmark-sources/health.json");
+  if (outcomes.some(result => result.status === "rejected")) throw new Error("公开评测采集部分失败；保留已发布数据和上一份完整候选，请查看 data/audit/benchmark-sources/health.json");
   const values = outcomes.map(result => result.status === "fulfilled" ? result.value : null);
   const data = { schemaVersion: 1, checkedAt, benchmarks: values.flatMap(value => value.benchmarks), scores: values.flatMap(value => value.scores).map(row => ({ ...row, id: rowId(row) })), artifacts: [...artifacts.values()] };
   validatePublic(data);
-  const formal = path.join(workspace, "benchmarks/public-results.json");
+  const formal = path.join(workspace, "data/benchmarks/public-results.json");
   const previousData = fs.existsSync(formal) ? readPublic(workspace) : { scores: [], benchmarks: [] };
   const diff = compareScores(previousData, data), protocols = compareProtocols(previousData, data);
   atomicWrite(path.join(audit, "diff.json"), JSON.stringify({ checkedAt, ...diff, protocols }, null, 2) + "\n");
@@ -163,9 +163,9 @@ function publish(input, reviewer, reason, workspace = root) {
   const { review: priorReview, ...inputData } = JSON.parse(fs.readFileSync(path.resolve(input), "utf8"));
   const data = validatePublic(inputData);
   const candidateHash = digest(canonical(data));
-  const archived = path.join(workspace, "audit/benchmark-sources/snapshots", candidateHash + ".json");
+  const archived = path.join(workspace, "data/audit/benchmark-sources/snapshots", candidateHash + ".json");
   if (!fs.existsSync(archived) || digest(canonical(JSON.parse(fs.readFileSync(archived, "utf8")))) !== candidateHash) throw new Error("候选与采集归档不匹配，请重新 collect；人工修订需先修正 adapter");
-  const file = path.join(workspace, "benchmarks/public-results.json");
+  const file = path.join(workspace, "data/benchmarks/public-results.json");
   if (fs.existsSync(file)) {
     const previous = validatePublic(JSON.parse(fs.readFileSync(file, "utf8")));
     if (Date.parse(data.checkedAt) < Date.parse(previous.checkedAt)) throw new Error("历史候选不得覆盖更新的正式核查日期，请重新 collect");
@@ -176,7 +176,7 @@ function publish(input, reviewer, reason, workspace = root) {
   }
   // Publishing requires the actual downloaded evidence, never just a pasted leaderboard URL.
   for (const item of data.artifacts) {
-    const file = path.join(workspace, "audit/benchmark-sources/raw", item.sha256 + ".bin");
+    const file = path.join(workspace, "data/audit/benchmark-sources/raw", item.sha256 + ".bin");
     if (!fs.existsSync(file) || digest(fs.readFileSync(file)) !== item.sha256) throw new Error("缺少匹配的官方原始证据，请先 collect");
   }
   const output = { ...data, review: { by: reviewer, reason, reviewedAt: new Date().toISOString(), candidateHash } };

@@ -11,17 +11,17 @@ const { withFileLockSync } = require("../lib/file-lock");
 const root = path.resolve(__dirname, "../..");
 const digest = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex");
 const runnerFiles = ["load-solution.cjs", "solution-worker.cjs", "solution-values.cjs"];
-const lockFile = workspace => path.join(workspace, "audit/benchmark-sources/.benchmark.lock");
+const lockFile = workspace => path.join(workspace, "data/audit/benchmark-sources/.benchmark.lock");
 const lockOptions = { busyMessage: "测评正在采集、验收导入或构建，或存在遗留锁" };
 function tasks(workspace = root) {
-  const data = JSON.parse(fs.readFileSync(path.join(workspace, "benchmarks/tasks.json"), "utf8"));
+  const data = JSON.parse(fs.readFileSync(path.join(workspace, "data/benchmarks/tasks.json"), "utf8"));
   if (data.schemaVersion !== 1 || !Array.isArray(data.tasks)) throw new Error("任务格式无效");
   const ids = new Set();
   for (const task of data.tasks) {
     if (!/^[a-z0-9-]+$/.test(task.id) || task.fixture !== task.id || ids.has(task.id) || !Number.isInteger(task.version) || task.version < 1) throw new Error("任务 ID/版本无效");
     for (const key of ["title", "description", "acceptance"]) textField(task[key], key, 2000);
     ids.add(task.id);
-    const dir = path.join(workspace, "benchmarks/fixtures", task.fixture);
+    const dir = path.join(workspace, "data/benchmarks/fixtures", task.fixture);
     task.fixtureHash = digest(JSON.stringify([
       ...["solution.cjs","check.cjs"].map(file=>[file,fs.readFileSync(path.join(dir,file)).toString("base64")]),
       ...runnerFiles.map(file=>[file,fs.readFileSync(path.join(workspace,"scripts/benchmarks",file)).toString("base64")]),
@@ -92,7 +92,7 @@ function runTask(options, workspace = root) {
       fs.writeFileSync(path.join(attemptDir,"solution.cjs"),bytes);
       const nonce=crypto.randomBytes(16).toString("hex");
       const start = performance.now();
-      const outcome = spawnSync(process.execPath, [path.join(workspace, "benchmarks/fixtures", task.fixture, "check.cjs"), attemptDir, nonce], {encoding:"utf8",timeout:10000,maxBuffer:256*1024,shell:false});
+      const outcome = spawnSync(process.execPath, [path.join(workspace, "data/benchmarks/fixtures", task.fixture, "check.cjs"), attemptDir, nonce], {encoding:"utf8",timeout:10000,maxBuffer:256*1024,shell:false});
       const completed=String(outcome.stdout||"").split(/\r?\n/).includes("BENCHMARK_COMPLETE:"+nonce);
       const snapshot=path.join(attemptDir,"solution.cjs");
       const solutionUnchanged=fs.existsSync(snapshot)&&fs.lstatSync(snapshot).isFile()&&!fs.lstatSync(snapshot).isSymbolicLink()&&digest(fs.readFileSync(snapshot))===digest(bytes);
@@ -130,7 +130,7 @@ function benchmarkSummary(data) {
 }
 function build(workspace = root, options = {check:false}) {
   return withFileLockSync(lockFile(workspace), () => {
-  const data = validateRuns(JSON.parse(fs.readFileSync(path.join(workspace,"benchmarks/results.json"),"utf8")),tasks(workspace));
+  const data = validateRuns(JSON.parse(fs.readFileSync(path.join(workspace,"data/benchmarks/results.json"),"utf8")),tasks(workspace));
   const output = {schemaVersion:1,tasks:tasks(workspace),runs:data.runs,methodology:"固定任务与版本；同一解答在独立暂存目录重复验收至少 3 次，不代表独立模型尝试。断言由独立于解答的 checker 执行，导入须提供原解答并复验其哈希与通过状态。生成耗时由贡献者记录，展示的验收耗时为导入时本机重跑结果；费用为生成该解答的真实 API 账单金额，订阅内/未知不记零。解答仅运行维护者选择的可信本机代码，独立进程不构成恶意代码安全沙箱。不同工具、任务、版本和费用口径分别比较。",generatedAt:data.runs.reduce((date,run)=>run.reviewedAt.slice(0,10)>date?run.reviewedAt.slice(0,10):date,"2026-10-08")};
   const snapshot = { ...output, public: readPublic(workspace) };
   const outputs = [
@@ -168,7 +168,7 @@ function importRun(options, workspace = root) {
     const run={...claimed,attempts:verified.attempts,passed:verified.passed,durationSeconds:verified.durationSeconds,
       measuredAt:verified.measuredAt,environment:verified.environment,originalEnvironment:claimed.environment,
       originalMeasuredAt:claimed.measuredAt,reviewedAt:new Date().toISOString()};
-    const file=path.join(workspace,"benchmarks/results.json");
+    const file=path.join(workspace,"data/benchmarks/results.json");
     const data=JSON.parse(fs.readFileSync(file,"utf8"));
     data.runs.push(run);validateRuns(data,tasks(workspace));
     atomicWrite(file,JSON.stringify(data,null,2)+"\n");
@@ -187,10 +187,10 @@ function main(argv) {
   }
   if (command === "build") return build();
   if (command === "check") return build(root,{check:true});
-  if (command === "validate") { readPublic(); return validateRuns(JSON.parse(fs.readFileSync(path.join(root,"benchmarks/results.json"),"utf8"))); }
+  if (command === "validate") { readPublic(); return validateRuns(JSON.parse(fs.readFileSync(path.join(root,"data/benchmarks/results.json"),"utf8"))); }
   if (command === "run") {
     const run=runTask(options);
-    atomicWrite(path.join(root,"audit/benchmarks",run.id+".json"),JSON.stringify(run,null,2)+"\n");
+    atomicWrite(path.join(root,"data/audit/benchmarks",run.id+".json"),JSON.stringify(run,null,2)+"\n");
     console.log(`验收${run.passed?"通过":"失败"}：${run.id}；审核后使用 import 发布；本命令不调用模型。`);
     return run;
   }

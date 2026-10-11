@@ -55,7 +55,7 @@ function commitOutputs(outputs, options = {}) {
  *   now 仅供测试注入“今天”；核查日期以 Asia/Shanghai 当日为准。 */
 function syncPricingAuditUnlocked(workspace, options = {}) {
   const root = path.resolve(workspace);
-  const auditDir = path.join(root, "audit");
+  const auditDir = path.join(root, "data/audit");
   if (!!options.incremental !== !!options.input) throw new Error("增量同步必须同时提供 --incremental 和 --input");
   const now = options.now || new Date();
   if (!(now instanceof Date) || !Number.isFinite(now.getTime())) throw new Error("同步时间无效");
@@ -241,14 +241,14 @@ function syncPricingAuditUnlocked(workspace, options = {}) {
     [dataFile, Buffer.from(source)],
     [path.join(auditDir, `pricing-${suffix}.json`), Buffer.from(JSON.stringify(ledger, null, 2) + "\n")],
     [path.join(auditDir, `pricing-${suffix}.csv`), Buffer.from("\uFEFF" + csv + "\r\n")],
-    [path.join(root, "data/change-history.json"), Buffer.from(JSON.stringify(history, null, 2) + "\n")],
+    [path.join(root, "data/audit/change-history.json"), Buffer.from(JSON.stringify(history, null, 2) + "\n")],
   ]), options);
   return { records: records.length, sources: sources.length, filesChanged, updated, checkedAt, historyChanges: history.changes.length };
 }
 
 /* 锁覆盖读取、校验与四份输出交换。只锁落盘仍会让另一批更新从旧快照覆盖新数据。 */
 function syncPricingAudit(workspace = path.join(__dirname, "..", ".."), options = {}) {
-  const root = path.resolve(workspace), auditDir = path.join(root, "audit");
+  const root = path.resolve(workspace), auditDir = path.join(root, "data/audit");
   fs.mkdirSync(auditDir, { recursive: true });
   const lock = path.join(auditDir, ".pricing.lock");
   return withFileLockSync(lock, () => syncPricingAuditUnlocked(root, options), {

@@ -56,7 +56,7 @@ function validateHistory(history) {
  * A field omitted by the old ledger serializer is not evidence of removal.
  * @param {string} root */
 function seededHistory(root) {
-  const file = path.join(root, "audit/pricing-verification-2026-10-04.json");
+  const file = path.join(root, "data/audit/pricing-verification-2026-10-04.json");
   const changes = [];
   if (fs.existsSync(file)) {
     const audit = JSON.parse(fs.readFileSync(file, "utf8"));
@@ -79,7 +79,7 @@ function seededHistory(root) {
 
 /** @param {string} root */
 function readHistory(root) {
-  const file = path.join(root, "data/change-history.json");
+  const file = path.join(root, "data/audit/change-history.json");
   return fs.existsSync(file) ? validateHistory(JSON.parse(fs.readFileSync(file, "utf8"))) : seededHistory(root);
 }
 

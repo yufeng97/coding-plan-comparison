@@ -9,20 +9,20 @@ const { buildMaintenance, parseArgs, rssOf } = require("../maintenance/build-mai
 const { seededHistory, canonical, changeOf, validateHistory } = require("../maintenance/history");
 const { rewindToFullAudit } = require("./full-audit-baseline");
 const workspace = path.resolve(__dirname, "../..");
-const outputs = ["data/change-history.json", "data/generated/maintenance.json", "data/generated/maintenance-data.js", "data/generated/changes.xml"];
+const outputs = ["data/audit/change-history.json", "data/generated/maintenance.json", "data/generated/maintenance-data.js", "data/generated/changes.xml"];
 
 function fixture(run) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "coding-plan-maintenance-test-"));
   try {
     /* 维护与核价回放使用生产候选校验，夹具保留完整 Vue/TypeScript 入口依赖。 */
     for (const file of ["index.html", "src", "data/sources", "data/generated", "types"]) fs.cpSync(path.join(workspace, file), path.join(root, file), { recursive: true });
-    fs.mkdirSync(path.join(root, "audit"));
-    fs.mkdirSync(path.join(root, "config"));
-    fs.copyFileSync(path.join(workspace, "audit/pricing-verification-2026-10-04.json"), path.join(root, "audit/pricing-verification-2026-10-04.json"));
+    fs.mkdirSync(path.join(root, "data/audit"));
+    fs.mkdirSync(path.join(root, "data/config"));
+    fs.copyFileSync(path.join(workspace, "data/audit/pricing-verification-2026-10-04.json"), path.join(root, "data/audit/pricing-verification-2026-10-04.json"));
     /* 用例按 10-04 全量台账的快照断言；增量核查后的仓库数据先回放到该基线。 */
     rewindToFullAudit(root, workspace);
     const snapshot = () => outputs.map((file) => fs.existsSync(path.join(root, file)) ? fs.readFileSync(path.join(root, file)).toString("base64") : null);
-    const calendar = (events) => fs.writeFileSync(path.join(root, "config/review-calendar.json"), JSON.stringify({ schemaVersion: 1, events }));
+    const calendar = (events) => fs.writeFileSync(path.join(root, "data/config/review-calendar.json"), JSON.stringify({ schemaVersion: 1, events }));
     // Maintenance outputs copied from data/generated must not affect the initial output snapshot.
     for (const generated of ["maintenance-data.js", "maintenance.json", "changes.xml", "feeds"]) fs.rmSync(path.join(root, "data/generated", generated), { recursive: true, force: true });
     run({ root, snapshot, calendar });
@@ -37,7 +37,7 @@ function test(name, run) { fixture(run); passed++; console.log("  ✓ " + name);
 
 test("10-04真实台账只生成22条可证差异，保持日期与稳定永久身份", ({ root }) => {
   const history = seededHistory(root);
-  const audit = JSON.parse(fs.readFileSync(path.join(root, "audit/pricing-verification-2026-10-04.json"), "utf8"));
+  const audit = JSON.parse(fs.readFileSync(path.join(root, "data/audit/pricing-verification-2026-10-04.json"), "utf8"));
   assert.equal(history.changes.length, 22);
   for (const change of history.changes) {
     assert.equal(change.checkedAt, "2026-10-04");
@@ -89,7 +89,7 @@ test("变更事实被改动不能沿用旧ID，JSON键顺序不影响身份，�
     assert.throws(() => validateHistory(altered), /哈希不一致/, "变更身份涵盖事实、名称、来源及确认日期");
   }
   buildMaintenance(root, { asOf: "2026-10-08" });
-  const file = path.join(root, "data/change-history.json");
+  const file = path.join(root, "data/audit/change-history.json");
   const altered = structuredClone(original);
   altered.changes[0].after[altered.changes[0].fields[0]] = "改动的事实";
   fs.writeFileSync(file, JSON.stringify(altered));
@@ -184,7 +184,7 @@ test("--check检测data事实/history/calendar变化与丢失产物，不改任�
   assert.throws(() => buildMaintenance(root, { check: true }), /产物过期/);
   assert.deepEqual(snapshot(), before);
   buildMaintenance(root, { asOf: "2026-10-08" });
-  const historyFile = path.join(root, "data/change-history.json");
+  const historyFile = path.join(root, "data/audit/change-history.json");
   const history = JSON.parse(fs.readFileSync(historyFile, "utf8"));
   history.changes.pop();
   fs.writeFileSync(historyFile, JSON.stringify(history));

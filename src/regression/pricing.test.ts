@@ -7,7 +7,7 @@ import { test } from "vitest";
 import type { PriceCheckKind } from "@app/runtime";
 import { openPage, type Page } from "../test/page";
 
-const inventory = JSON.parse(fs.readFileSync(path.resolve("audit/pricing-inventory.json"), "utf8")) as { PLANS: Plan[] };
+const inventory = JSON.parse(fs.readFileSync(path.resolve("data/audit/pricing-inventory.json"), "utf8")) as { PLANS: Plan[] };
 const near = (actual: number | null | undefined, expected: number) => assert.ok(Math.abs((actual ?? NaN) - expected) < 1e-9, `${actual} ≠ ${expected}`);
 const plan = (page: Page, id: string) => page.runtime.findPlanReference(id) as Plan;
 type Runtime = Page["runtime"];
