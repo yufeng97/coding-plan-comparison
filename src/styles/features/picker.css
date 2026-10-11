@@ -5,6 +5,7 @@
 .picker-after .workload-check { margin-bottom: 0; }
 .picker-after .chart-note { margin: 0; }
 
+.picker-rules { margin-top: 6px; }
 .picker-rules p + p { margin-top: 6px; }
 .qc-payment-summary { margin-top: 8px; color: var(--muted); font-size: 12px; line-height: 1.6; }
 #pickerBillingNote { grid-column: 1 / -1; margin: 0; line-height: 1.6; }
