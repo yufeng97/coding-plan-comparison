@@ -211,10 +211,9 @@ test("构建期 Vue 预渲染生成真实卡片与价格表，只有根容器标
 });
 
 test.each(["/index.html", "/index.html?budget=500&tall=1#table"])("真实 Vue 启动按链接 %s 重绘并清理首屏标记", async (url) => {
-  const page = await openPage({ url, override() {
+  const page = await openPage({ url, prepare() {
     document.documentElement.classList.add("has-query");
     document.getElementById("app")!.setAttribute("data-prerendered", "");
-    return {};
   } });
   assert.equal(document.querySelectorAll("[data-prerendered]").length, 0);
   assert.equal(document.documentElement.classList.contains("has-query"), false);

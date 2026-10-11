@@ -16,7 +16,7 @@ function publicFixture(): PublicBenchmarkSnapshot {
   return { schemaVersion: 1, checkedAt: "2026-10-10", benchmarks: [protocol, { ...protocol, id: "hle-fixture", family: "HLE", name: "Fixture HLE", version: "no-tools", scope: "20项fixture" }], scores: [score, { ...score, id: "fixture-b", model: "Fixture Model B", score: 80, costUSD: 0 }, { ...score, id: "fixture-c", model: "Fixture Model C", score: 60, reasoning: null, agent: null, tokens: 100, steps: 0 }, { ...score, id: "fixture-hle", benchmarkId: "hle-fixture", model: "Fixture Other Protocol", score: 99 }] };
 }
 async function fixturePage() {
-  const page = await openPage({ url: "/#benchmarks", override(app) { app.benchmarkData().public = publicFixture(); return {}; } });
+  const page = await openPage({ url: "/#benchmarks", prepare(app) { app.benchmarkData().public = publicFixture(); } });
   Object.assign(page.runtime.publicBenchmarkState, { id: "deepswe-1-1", search: "" });
   await page.settle();
   return page;

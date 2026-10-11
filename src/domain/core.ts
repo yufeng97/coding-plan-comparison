@@ -1,5 +1,6 @@
 import { RATE_USD_CNY, META, MODEL_ROLES, isRetiredPlan, isOneTimePlan, isRenewalOnly, isFourWeekPlan, isSoldOut, offerable, isRelay, findPlanReference, resolvedField, hasOwnClient, mainlandAccessOf, METRICS_RAW, ESTIMATES, PRICE_CHECKS, priceCheckOf, isPriceConfirmed } from '../generated/catalog';
 import { toCNY } from './metrics';
+import { hasIncludedModelQuota } from '../generated/catalog';
 
 export type Billing = "M" | "Y";
 
@@ -12,6 +13,9 @@ export type PriceCheckKind = "plan" | "api" | "payg";
 
 /** 可查核价记录的对象：套餐按永久 ID，API 与按量参照按「厂商|型号」。 */
 export type PriceSubject = { id?: string; vendor?: string; model?: string };
+
+/** 首屏后按需下载的辅助数据：维护记录与公开评测。 */
+export type OptionalDataKind = "maintenance" | "benchmark";
 
 export const CAT_LABEL: Record<PlanCategory, string> = { official: "模型官方订阅", tool: "第三方工具订阅", cloud: "云厂商/API 套餐", team: "团队 / 企业档" };
 
@@ -328,3 +332,22 @@ export function planLabel(p: Pick<Plan, "vendor" | "plan">) {
 export function cpmTier(v: number | null | undefined) {
     return v == null ? "na" : v <= 0.3 ? "lo" : v <= 1 ? "mid" : "hi";
 }
+
+/* 套餐标题与模型清单：标题去掉与厂商末段重复的前缀；模型清单把「按量」的末段与包含部分分开。 */
+export function planTitle(p: Pick<Plan, "vendor" | "plan">) {
+    const parts = String(p.vendor || "").split(/\s+/).filter(Boolean);
+    const last = parts[parts.length - 1];
+    if (last && String(p.plan || "").startsWith(last))
+        return parts.slice(0, -1).concat(p.plan).join(" ");
+    return `${p.vendor} ${p.plan}`;
+}
+
+export function splitModelAccess(text: string | null | undefined) {
+    const parts = String(text || "").split(/[；;]/);
+    if (parts.length >= 2 && /按(?:\s*M\s*token|牌价|量)/.test(parts[parts.length - 1]!)) {
+        return { included: parts.slice(0, -1).join("；"), metered: parts[parts.length - 1]! };
+    }
+    return { included: String(text || ""), metered: "" };
+}
+
+export function freeKind(p: Plan) { return hasIncludedModelQuota(p) ? "included" : "byok"; }

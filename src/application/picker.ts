@@ -1,12 +1,47 @@
 import { PLANS } from '../generated/catalog';
 import { personalState, tableState, metricsState, rankState, pickerState } from '../state/app';
-import { renderPersonalChart, renderRankChart } from '../browser/charts';
+import { renderPersonalChart } from '../browser/charts/personal';
+import { renderRankChart } from '../browser/charts/rank';
 import { renderTable, renderMetricsTable } from './tables';
-import type { PickerState } from '../domain/view-types';
+import type { PickerState } from '../state/app';
 import { updateAppState } from '../browser/url-state';
 
-import { pickerAbilityCache, planProfile, cheaperTiers } from '../state/recommendations';
-import { renderCostCalculator } from './service';
+import { pickerAbilityCache } from '../domain/picker/ability';
+import { planProfile } from '../domain/picker/profile';
+import { cheaperTiers } from '../state/picker';
+import { renderCostCalculator } from './calculator';
+import { fmtCNY, REGION_LABEL } from '../domain/core';
+
+/* 选购条件的文字说明：价格图、额度表、数据表与排行应用条件时显示，费用计算器也沿用工具标签。 */
+export const PICKER_TOOL_LABELS: Record<string, string> = { any: "不限工具", claude: "Claude Code", codex: "Codex", cursor: "Cursor", own: "自家客户端" };
+
+const SCOPE_BILLING_LABELS: Record<string, string> = { M: "月付标价", A: "自动续费", Y: "年付折月" };
+
+export function pickerScopeText() {
+    const budget = pickerState.budget === "any" ? "不限预算" : pickerState.budget === "0" ? "免费" : "月均预算 ≤" + fmtCNY(Number(pickerState.budget));
+    const billing = SCOPE_BILLING_LABELS[pickerState.billing] || "月付标价";
+    return `${budget} · ${REGION_LABEL[pickerState.region as keyof typeof REGION_LABEL] || "不限地区"} · ${PICKER_TOOL_LABELS[pickerState.tool] || "不限工具"} · ${billing}`;
+}
+
+/** 在价格图、额度表、数据表与排行上应用或取消「帮我选」的付款与预算条件。 */
+export function applyPickerScope(name: string) {
+    const scopes: Record<string, { state: { fromPicker: boolean }; render: () => void }> = {
+        personal: { state: personalState, render: renderPersonalChart },
+        metrics: { state: metricsState, render: renderMetricsTable },
+        table: { state: tableState, render: renderTable },
+        rank: { state: rankState, render: renderRankChart },
+    };
+    const scope = scopes[name];
+    if (!scope)
+        return;
+    updateAppState(() => {
+        scope.state.fromPicker = !scope.state.fromPicker;
+        if (name === "table") {
+            tableState.sortKey = tableState.fromPicker ? "selectedMonthly" : "priceM";
+            tableState.sortDir = 1;
+        }
+    }, scope.render);
+}
 
 export function refreshPickerScopes() {
     if (personalState.fromPicker)

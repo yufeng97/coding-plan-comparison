@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import * as app from "@app/runtime";
+import { REGION_LABEL } from "@domain/core";
+import { apiChartLabel } from "@browser/charts/api";
 import { apiRows } from "./chart-models";
-import ChartLegend from "../../components/charts/ChartLegend.vue";
-import CostCalculator from "./CostCalculator.vue";
+import ChartLegend from "../../components/ChartLegend.vue";
+import CostCalculator from "../calculator/CostCalculator.vue";
 import PriceCheck from "../../components/PriceCheck.vue";
-import { useChartLifecycle } from "../../components/charts/chart-lifecycle";
+import { useChartLifecycle } from "../../composables/chart-lifecycle";
 useChartLifecycle("chartApi", "chartPower");
 const rows = computed(apiRows);
-const regionLabel = (region: string) => app.REGION_LABEL[region as keyof typeof app.REGION_LABEL] || "—";
+const regionLabel = (region: string) => REGION_LABEL[region as keyof typeof REGION_LABEL] || "—";
 const priceLegend = [{ name: "输入 / 1M tokens", color: "#6366f1" }, { name: "输出 / 1M tokens", color: "#f472b6" }];
 const powerLegend = [{ name: "国际模型", color: "#22d3ee" }, { name: "国内模型", color: "#34d399" }];
 </script>
@@ -24,7 +25,7 @@ const powerLegend = [{ name: "国际模型", color: "#22d3ee" }, { name: "国内
       <caption class="sr-only">统一折算美元的每百万 tokens 价格和 $10 输出购买力</caption>
       <thead><tr><th scope="col">厂商 / 模型</th><th scope="col">地区</th><th scope="col">输入 / 1M</th><th scope="col">输出 / 1M</th><th scope="col">$10 输出 tokens</th><th scope="col">来源</th></tr></thead>
       <tbody id="apiDetailBody"><tr v-for="api in rows" :key="api.vendor + api.model">
-        <th scope="row">{{ app.apiChartLabel(api) }}</th><td>{{ regionLabel(api.region) }}</td><td>${{ Number(api.input.toFixed(4)) }}</td><td>${{ Number(api.output.toFixed(4)) }}</td><td>{{ api.output > 0 ? Number((10 / api.output).toFixed(1)) + "M" : "—" }}</td>
+        <th scope="row">{{ apiChartLabel(api) }}</th><td>{{ regionLabel(api.region) }}</td><td>${{ Number(api.input.toFixed(4)) }}</td><td>${{ Number(api.output.toFixed(4)) }}</td><td>{{ api.output > 0 ? Number((10 / api.output).toFixed(1)) + "M" : "—" }}</td>
         <td><PriceCheck :plan="api" kind="api" /></td>
       </tr></tbody>
     </table></div>

@@ -1,11 +1,9 @@
-import type { ThemeMode } from '../domain/view-types';
-import { themeView } from '../state/theme';
+import { themeView, type ThemeMode } from '../state/app';
 
-import { refreshPalette } from './chart-host';
+import { refreshPalette } from './charts/host';
 import { qsa } from './dom';
 
 /* ---------- 明暗主题切换（暗 → 亮 → 跟随系统 循环） ---------- */
-export type { ThemeMode } from '../domain/view-types';
 
 const THEME_KEY = "cp-theme";
 

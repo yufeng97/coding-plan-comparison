@@ -1,8 +1,7 @@
 import { byId } from './dom';
 
 /* 辅助视图的数据脚本在访问时下载。它们是生成的经典脚本（构建时按内容哈希另存），维护脚本直接读取同一文件。 */
-export type { OptionalDataKind, OptionalViewKind } from '../domain/optional-data-types';
-import type { OptionalDataKind } from '../domain/optional-data-types';
+import type { OptionalDataKind } from '../domain/core';
 
 export const optionalDataLoads: Partial<Record<OptionalDataKind, Promise<void>>> = {};
 

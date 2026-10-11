@@ -1,17 +1,20 @@
 <script setup lang="ts">
 /* 贡献者工具：本地任务框架的验收记录、任务说明与测评方法。公开模型榜单另见 PublicBenchmarks.vue。 */
 import { computed } from "vue";
-import * as legacy from "@app/runtime";
-import { targetValue } from "../../components/dom";
-import { fromData } from "../../components/optional-data";
+import { benchmarkFilter } from "@state/maintenance";
+import { benchmarkData } from "@browser/maintenance-data";
+import { optionalDataLoaded } from "@browser/optional-data";
+import { benchmarkFilterOptions, benchmarkRuns, benchmarkRunView, benchmarkText, optionalPendingText } from "@app/maintenance";
+import { targetValue } from "@browser/dom";
+import { fromData } from "../../composables/optional-data";
 
-const filter = legacy.benchmarkFilter;
-const loaded = fromData("benchmark", () => legacy.optionalDataLoaded("benchmark"));
-const data = fromData("benchmark", () => legacy.benchmarkData());
-const choices = fromData("benchmark", () => ({ tool: legacy.benchmarkFilterOptions("tool"), model: legacy.benchmarkFilterOptions("model") }));
-const runs = fromData("benchmark", () => legacy.benchmarkRuns().map((run) => ({ id: run.id, ...legacy.benchmarkRunView(run) })));
+const filter = benchmarkFilter;
+const loaded = fromData("benchmark", () => optionalDataLoaded("benchmark"));
+const data = fromData("benchmark", () => benchmarkData());
+const choices = fromData("benchmark", () => ({ tool: benchmarkFilterOptions("tool"), model: benchmarkFilterOptions("model") }));
+const runs = fromData("benchmark", () => benchmarkRuns().map((run) => ({ id: run.id, ...benchmarkRunView(run) })));
 const tasks = computed(() => data.value.tasks.filter((task) => filter.task === "all" || task.id === filter.task));
-const emptyText = computed(() => !loaded.value ? legacy.optionalPendingText("贡献者任务与记录")
+const emptyText = computed(() => !loaded.value ? optionalPendingText("贡献者任务与记录")
   : data.value.runs.length ? "当前筛选没有贡献者记录。" : "尚未收录贡献者任务记录。这里的验收工具用于复现提交的单份解答，未测量的数据不填充分数。");
 
 function choose(key: "task" | "tool" | "model", value: string) {
@@ -62,12 +65,12 @@ function choose(key: "task" | "tool" | "model", value: string) {
     <details v-for="task in tasks" :key="task.id" class="method-box">
       <summary>{{ task.title }}</summary>
       <p>{{ task.description }}</p>
-      <p><strong>验收条件：</strong>{{ legacy.benchmarkText(task.acceptance) }}</p>
+      <p><strong>验收条件：</strong>{{ benchmarkText(task.acceptance) }}</p>
       <p>任务标识：<code>{{ task.id }}</code></p>
     </details>
   </div>
   <details class="method-box"><summary>测评方法与记录导入说明</summary>
-    <p id="benchmarkMethodology">{{ legacy.benchmarkText(data.methodology) }}</p>
+    <p id="benchmarkMethodology">{{ benchmarkText(data.methodology) }}</p>
     <p>贡献记录包含 taskId、model、tool、measuredAt、cost、currency、costBasis、generationSeconds、durationSeconds、passed、repeats、evidence 与 environment。evidence 须为可公开的 HTTPS 证据；costBasis 为 api-receipt 时填写实际账单，included-subscription 或 unknown 时 cost=null。</p>
     <p>请在本地任务框架运行同一解答的验收，保存原始提示、解答与日志，再将记录交由维护者核对导入。本站不会在浏览器上传文件或自动发布结果。</p>
     <a href="#contribute">复制或下载测评贡献模板 ↓</a>

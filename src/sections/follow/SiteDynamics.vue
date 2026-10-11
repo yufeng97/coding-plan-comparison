@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { DYNAMICS, dynamicStatus, dynamicText } from '@app/runtime';
+import { DYNAMICS } from '@generated/catalog';
+import { dynamicStatus, dynamicText } from '@domain/table-format';
 const sorted = DYNAMICS.slice().sort((a, b) => b.date.localeCompare(a.date));
 const announcements = sorted.filter(row => !row.checked);
 const checks = sorted.filter(row => row.checked);

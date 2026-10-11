@@ -468,10 +468,10 @@ function validateData(options = {}) {
   /* ---- Vue/TypeScript 入口及公共资源引用 ---- */
   const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
   /* Audited input and explicit application modules must be present. */
-  for (const f of ["data/sources/data.js", "src/main.ts", "src/App.vue", "src/generated/catalog.ts", "src/application/runtime.ts", "src/application/startup.ts"]) {
+  for (const f of ["data/sources/data.js", "src/main.ts", "src/App.vue", "src/generated/catalog.ts", "src/application/startup.ts"]) {
     check(fs.existsSync(path.join(root, f)), `文件不存在: ${f}`);
   }
-  /* ECharts 精简包在构建时生成（入口 src/charts/echarts.ts，由构建与工具回归检查），这里只确认页面保留加载入口。 */
+  /* ECharts 精简包在构建时生成（入口 src/entries/echarts.ts，由构建与工具回归检查），这里只确认页面保留加载入口。 */
   check(html.includes('src="libs/echarts.js"'), "index.html 缺少 ECharts 精简包的加载入口（chartLibraryTemplate）");
   for (const f of ["src/styles/index.css", "src/assets/fonts/fonts.css"]) {
     check(html.includes(f), `index.html 未引用: ${f}`);

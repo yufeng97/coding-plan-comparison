@@ -2,6 +2,15 @@
 
 > 按数据核查和代码修复批次记录。
 
+## 2026-10-11：前端源码整理——拆除统一出口、拆分大模块、按功能分区
+
+- 生产代码不再经统一出口 `@app/runtime` 导入：42 个组件、区块与入口改为按需从具体模块导入（新增 `@generated` 别名）；原汇总出口移到 `src/test/runtime.ts`，只供测试使用。架构检查改为八层单向依赖（业务规则 → 共享状态 → 浏览器适配 → 应用协调 → 组合式函数 → 通用组件 → 页面区块 → 布局），并禁止单独打包的入口依赖应用模块、生产代码引用测试目录。
+- 拆分大文件：「帮我选」规则（47 KB）按是否依赖选购条件拆成 `domain/picker/` 下的付款口径、套餐画像、文字说明、能力评分与规则工厂，状态绑定改名为 `state/picker.ts`；图表模块按图表拆进 `browser/charts/`，排行的纯规则与绑定条件的筛选分别移到 `domain/rank.ts` 与 `state/rank.ts`；启动代码拆成启动、章节导航、历史恢复、图表懒加载与页面小部件；`service.ts` 按职责拆成费用计算、操作栏与完整权益入口，选购范围文字并入 `application/picker.ts`。
+- `App.vue` 只排列页面骨架：页头、页脚移到 `src/layouts/`，首屏移到 `sections/site/SiteHero.vue`，额度表方法论移到 `sections/pricing/MetricsMethodology.vue`。`sections/pricing/` 拆出 `compare/`（并排对比）与 `calculator/`（费用计算与用量反查），对应测试随组件移动。
+- 组合式函数移到 `src/composables/`，单独打包的经典脚本入口（首帧主题、加载提示、ECharts 精简包）移到 `src/entries/`；只有一个函数的小文件并入相邻模块。类型与实现放在一起：删除 `domain` 里的四个类型文件和重复定义的 `OptionalDataKind`，界面状态类型移到 `state/app.ts`，应用专用全局声明移到 `types/globals.d.ts`。未被调用的完整权益关闭钩子一并删除。
+- 整页测试改为启动前 `prepare` 数据、按模块 `mock` 替换函数；架构检查补充新规则的回归，业务规则在 Node 中可运行的检查覆盖 `domain/picker/` 子目录。页面 DOM、发布产物文件清单与对外行为不变。
+- 验证：typecheck、架构检查（101 个模块）、语法、数据、维护与评测一致性检查通过；14 个 Node 工具套件与 24 个 TS / Vue 测试文件的 354 项测试全部通过；build:site 生成 92 个公共文件；Chromium、Firefox、WebKit 共 330 项浏览器回归全部通过（同时覆盖上一步的数据目录调整）。
+
 ## 2026-10-11：数据目录收拢——核价证据、测评任务与工具配置移入 `data/`
 
 - `audit/` 移到 `data/audit/`（核价库存、官网证据与 JSON/CSV 台账，以及被忽略的资讯、评测采集与截图工作目录），`benchmarks/` 移到 `data/benchmarks/`，`config/` 移到 `data/config/`；变更历史 `data/change-history.json` 与核价台账同放在 `data/audit/`。根目录只留工程入口、源码、工具与文档。

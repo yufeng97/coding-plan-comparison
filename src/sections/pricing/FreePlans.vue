@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import * as app from "@app/runtime";
-const state = app.freeState;
+import { isFreeCodingEntry, META, PLANS, resolvedField } from "@generated/catalog";
+import { freeKind, planPriceLabel, REGION_LABEL, safeLink, trunc } from "@domain/core";
+import { freeState } from "@state/charts";
+const state = freeState;
 const regions = [["all", "全部地区"], ["cn", "国内"], ["intl", "国际"]];
 const kinds = [["all", "全部类型"], ["included", "含免费推理"], ["byok", "平台免费，推理另计"]];
-const all = computed(() => app.PLANS.filter(app.isFreeCodingEntry));
+const all = computed(() => PLANS.filter(isFreeCodingEntry));
 const rows = computed(() => all.value.filter((p) => (state.region === "all" || p.region === state.region)
-  && (state.kind === "all" || app.freeKind(p) === state.kind)));
+  && (state.kind === "all" || freeKind(p) === state.kind)));
 </script>
 <template>
   <div class="controls free-controls">
@@ -21,11 +23,11 @@ const rows = computed(() => all.value.filter((p) => (state.region === "all" || p
   <div class="free-grid" id="freeGrid">
     <p v-if="!rows.length" class="chart-empty">没有符合条件的免费入口，可以切换地区或类型。</p>
     <div v-for="plan in rows" :key="plan.id" class="free-card">
-      <div class="fc-head"><span class="fc-vendor">{{ plan.vendor }}</span><span class="fc-region">{{ app.REGION_LABEL[plan.region] || "" }}</span></div>
-      <div class="fc-plan">{{ plan.plan }}</div><div class="fc-cost">{{ app.planPriceLabel(plan) }}</div>
-      <div class="fc-quota"><b>✓</b> {{ app.resolvedField(plan, "quota") }}</div>
-      <div class="fc-tools">支持：{{ app.trunc(app.resolvedField(plan, "tools"), 100) }}</div>
-      <div class="fc-footer"><a v-if="app.safeLink(plan.url)" class="fc-link" :href="app.safeLink(plan.url)" target="_blank" rel="noopener">官网来源 ↗</a><small class="checked-date">数据截至 {{ app.META.updated }}</small></div>
+      <div class="fc-head"><span class="fc-vendor">{{ plan.vendor }}</span><span class="fc-region">{{ REGION_LABEL[plan.region] || "" }}</span></div>
+      <div class="fc-plan">{{ plan.plan }}</div><div class="fc-cost">{{ planPriceLabel(plan) }}</div>
+      <div class="fc-quota"><b>✓</b> {{ resolvedField(plan, "quota") }}</div>
+      <div class="fc-tools">支持：{{ trunc(resolvedField(plan, "tools"), 100) }}</div>
+      <div class="fc-footer"><a v-if="safeLink(plan.url)" class="fc-link" :href="safeLink(plan.url)" target="_blank" rel="noopener">官网来源 ↗</a><small class="checked-date">数据截至 {{ META.updated }}</small></div>
     </div>
   </div>
 </template>

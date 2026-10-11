@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { PriceCheckKind } from "@app/runtime";
+import type { PriceCheckKind } from "../test/runtime";
 import { openPage, type Page } from "../test/page";
 
 const inventory = JSON.parse(fs.readFileSync(path.resolve("data/audit/pricing-inventory.json"), "utf8")) as { PLANS: Plan[] };
@@ -61,11 +61,10 @@ test("历史套餐保留原价，稳定 ID 不受更名影响", async () => {
 });
 
 test("Cursor 印度套餐保留 ₹649 原价、汇率依据与跨币种排序", async () => {
-  const page = await openPage({ url: "/?pcat=all&pregion=all&plimit=all#s1", override(app) {
+  const page = await openPage({ url: "/?pcat=all&pregion=all&plimit=all#s1", prepare(app) {
     const p = { ...app.findPlanReference("plan-0097"), id: "pricing-test-usd", vendor: "跨币种测试", plan: "USD 8", purchaseCountries: [], priceM: 8, cur: "USD" } as Plan;
     app.PLANS.push(p);
     app.PRICE_CHECKS.rows["plan:" + p.id] = { status: "verified", checkedAt: "2026-10-04", sourceIds: [], reason: "仅内存测试" };
-    return {};
   } });
   const app = page.runtime, p = plan(page, "plan-0097");
   assert.equal(p.priceM, 649);
@@ -93,11 +92,10 @@ test("Cursor 印度套餐保留 ₹649 原价、汇率依据与跨币种排序",
 
 test("待核每席位价格退出团队图，历史金额通过完整表开关保留", async () => {
   let id = "";
-  const page = await openPage({ url: "/#s2", override(app) {
+  const page = await openPage({ url: "/#s2", prepare(app) {
     const p = app.PLANS.find((p: Plan) => p.seat && p.priceM! > 0 && !app.isRetiredPlan(p))!;
     id = p.id;
     pending(app, p, "plan", "席位价格本次待核");
-    return {};
   } });
   assert.equal(page.charts.get("chartTeam")!.option.series[0].data.some((d: { _p: Plan }) => d._p.id === id), false);
   assert.equal(page.runtime.computeTableRows().some((p: Plan) => p.id === id), false);
@@ -107,7 +105,7 @@ test("待核每席位价格退出团队图，历史金额通过完整表开关�
 });
 
 test("待核个人价格退出推荐与价格图，完整表、搜索入口与导出保留日期来源", async () => {
-  const page = await openPage({ url: "/?budget=any&region=all#s1", override(app) { pending(app, app.findPlanReference("plan-0098")!, "plan", "官网本次无法确认"); return {}; } });
+  const page = await openPage({ url: "/?budget=any&region=all#s1", prepare(app) { pending(app, app.findPlanReference("plan-0098")!, "plan", "官网本次无法确认"); } });
   const app = page.runtime, p = plan(page, "plan-0098");
   assert.equal(app.computeTableRows().includes(p), false);
   assert.equal(app.recommendablePlan(p), false);
@@ -137,9 +135,8 @@ test("待核个人价格退出推荐与价格图，完整表、搜索入口与�
 });
 
 test("待核官方与推算额度退出 tokens、排行与默认额度表，明细保留历史范围说明", async () => {
-  const page = await openPage({ url: "/?rank=all#s3", override(app) {
+  const page = await openPage({ url: "/?rank=all#s3", prepare(app) {
     for (const id of ["plan-0031", "plan-0002"]) pending(app, app.findPlanReference(id)!);
-    return {};
   } });
   const app = page.runtime;
   const tokens = page.charts.get("chartTokens")!.option.series.flatMap((s: { data: { _r: { label: string } }[] }) => s.data).filter(Boolean);
@@ -155,7 +152,7 @@ test("待核官方与推算额度退出 tokens、排行与默认额度表，明�
 });
 
 test("待核 API 保留带日期来源的明细，退出价格与购买力图", async () => {
-  const page = await openPage({ url: "/#s4", override(app) { pending(app, app.API_PRICES[0]!, "api"); return {}; } });
+  const page = await openPage({ url: "/#s4", prepare(app) { pending(app, app.API_PRICES[0]!, "api"); } });
   const app = page.runtime, p = app.API_PRICES[0]!;
   assert.equal(page.charts.get("chartPower")!.option.series.flatMap((s: { data: { a: ApiPrice }[] }) => s.data).filter(Boolean).some((d: { a: ApiPrice }) => d.a.vendor === p.vendor && d.a.model === p.model), false);
   assert.equal(page.charts.get("chartApi")!.option.series[0].data.length, app.API_PRICES.filter((a: ApiPrice) => app.isPriceConfirmed(a, "api")).length);
@@ -167,7 +164,7 @@ test("待核 API 保留带日期来源的明细，退出价格与购买力图", 
 });
 
 test("待核 PAYG 按 vendor/model 映射，明细按历史牌价降低置信", async () => {
-  const page = await openPage({ override(app) { pending(app, app.PAYG_REFERENCES[0]!, "payg"); return {}; } });
+  const page = await openPage({ prepare(app) { pending(app, app.PAYG_REFERENCES[0]!, "payg"); } });
   const app = page.runtime;
   Object.assign(app.metricsState, { tier: "all", offer: "all", model: app.PAYG_REFERENCES[0]!.model });
   await page.settle();
@@ -177,9 +174,8 @@ test("待核 PAYG 按 vendor/model 映射，明细按历史牌价降低置信", 
 });
 
 test("免费入口排除待核状态，对比不将历史价格突出为最低价", async () => {
-  const page = await openPage({ override(app) {
+  const page = await openPage({ prepare(app) {
     for (const id of ["plan-0096", "plan-0098"]) pending(app, app.findPlanReference(id)!);
-    return {};
   } });
   const app = page.runtime;
   assert.equal(app.isFreeCodingEntry(plan(page, "plan-0096")), false);

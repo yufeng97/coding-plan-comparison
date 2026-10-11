@@ -4,7 +4,7 @@
 import { useMount } from "../test/setup";
 import { beforeEach, expect, test } from "vitest";
 import { nextTick } from "vue";
-import * as app from "@app/runtime";
+import * as app from "../test/runtime";
 import PickerRecommendations from "../sections/picker/PickerRecommendations.vue";
 
 const recommendations = useMount(PickerRecommendations);

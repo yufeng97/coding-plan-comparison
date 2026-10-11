@@ -2,18 +2,20 @@
 /* 帮助补全与纠错：按贡献类型生成证据模板，复制、下载或预填到项目 Issues。不自动上传任何内容。
  * 模板随「我的关注」里选中的套餐和贡献者工具里选中的任务更新。 */
 import { computed, ref } from "vue";
-import * as legacy from "@app/runtime";
-import { targetValue } from "../../components/dom";
+import { dataRevision } from "@state/maintenance";
+import { copyTextToClipboard, downloadTextFile } from "@browser/interaction";
+import { contributionIssueUrl, contributionTemplate, loadViewData } from "@app/maintenance";
+import { targetValue } from "@browser/dom";
 import OptionalDataStatus from "../../components/OptionalDataStatus.vue";
 
 const TYPES = [["correction", "套餐纠错与更新"], ["vendor", "收录新厂商 / 套餐"], ["benchmark", "真实任务测评"]] as const;
 type ContributionType = (typeof TYPES)[number][0];
 const type = ref<ContributionType>("correction");
 const template = computed(() => {
-  void legacy.dataRevision.benchmark;
-  return legacy.contributionTemplate(type.value);
+  void dataRevision.benchmark;
+  return contributionTemplate(type.value);
 });
-const issueUrl = computed(() => legacy.contributionIssueUrl(type.value, template.value));
+const issueUrl = computed(() => contributionIssueUrl(type.value, template.value));
 const feedback = ref("");
 const preview = ref<HTMLTextAreaElement | null>(null);
 
@@ -22,15 +24,15 @@ function chooseType(value: string) {
   if (!known) return;
   type.value = known[0];
   /* 测评模板要用评测任务，数据按需下载，状态与重试显示在下方状态行 */
-  if (value === "benchmark") legacy.loadViewData("benchmark");
+  if (value === "benchmark") loadViewData("benchmark");
 }
 async function copyTemplate() {
-  const ok = await legacy.copyTextToClipboard(template.value);
+  const ok = await copyTextToClipboard(template.value);
   feedback.value = ok ? "证据模板已复制；请补全真实来源后提交。" : "未能访问剪贴板，请选择下面的模板手动复制，或下载文件。";
   if (!ok && preview.value) { preview.value.focus(); preview.value.select(); }
 }
 function downloadTemplate() {
-  legacy.downloadTextFile(template.value, `coding-plan-${type.value}-evidence.md`, "text/markdown;charset=utf-8");
+  downloadTextFile(template.value, `coding-plan-${type.value}-evidence.md`, "text/markdown;charset=utf-8");
   feedback.value = "已生成本地证据模板文件；请补全后交给维护者，文件没有上传。";
 }
 </script>

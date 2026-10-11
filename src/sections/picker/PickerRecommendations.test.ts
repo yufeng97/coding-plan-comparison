@@ -1,8 +1,8 @@
-import { findPlanReference, PLANS } from '../../generated/catalog';
+import { findPlanReference, PLANS } from '@generated/catalog';
 import { useMount } from "../../test/setup";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { flushPromises } from "@vue/test-utils";
-import * as runtime from "@app/runtime";
+import * as runtime from "../../test/runtime";
 import PickerRecommendations from "./PickerRecommendations.vue";
 import PickerControls from "./PickerControls.vue";
 
@@ -25,7 +25,7 @@ beforeEach(() => {
   runtime.rankState.fromPicker = false;
   runtime.pickerAbilityCache.clear();
 });
-afterEach(() => { runtime.serviceViewHooks.showDetails = undefined; });
+afterEach(() => { runtime.planDetailsView.show = undefined; });
 
 test.each([
   { budget: "200", region: "cn", tool: "any", task: "both", billing: "M", priority: "quota" },
@@ -111,7 +111,7 @@ test("shared payment modes open the disclosure initially and preserve a manual c
 
 test("native card and workload buttons call the shared actions with their current plan", async () => {
   const showDetails = vi.fn();
-  runtime.serviceViewHooks.showDetails = showDetails;
+  runtime.planDetailsView.show = showDetails;
   runtime.pickerState.budget = "100";
   const wrapper = await recommendations.render();
   const button = wrapper.get<HTMLButtonElement>("#quickGrid > .quick-card [data-view-plan]");

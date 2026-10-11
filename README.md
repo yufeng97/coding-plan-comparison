@@ -62,7 +62,7 @@ npm run test:browser # 构建后用 Chromium / Firefox / WebKit 运行 tests/e2e
 npm run build:site   # Vite + Vue SSR 生成发布产物 .site-build/
 ```
 
-前端使用 Vue 3 + Vite + TypeScript：`src/App.vue` 组织整页，`src/sections/` 按推荐、价格、评测、关注和贡献分组，通用组件放在 `src/components/`。`src/domain/` 保存无浏览器依赖的业务规则，`src/state/` 管共享状态，`src/browser/` 封装 DOM、主题、URL、存储与资源加载，`src/application/` 协调跨功能动作与页面启动；组件从 `@app/runtime` 使用应用服务。生产模块无循环依赖，`check:architecture` 与 CI 防止分层倒退。源码、Vue 模板与测试统一使用严格 TypeScript，审计数据的结构类型由 `types/catalog.d.ts` 共用。说明见 [架构与发布](docs/architecture.md#前端结构与迁移)。
+前端使用 Vue 3 + Vite + TypeScript：`src/App.vue` 排列整页，页头页脚在 `src/layouts/`，`src/sections/` 按帮我选、价格、对比、费用计算、评测、关注、贡献和站点说明分组，跨区块复用的组件与组合式函数在 `src/components/`、`src/composables/`。`src/domain/` 保存无浏览器依赖的业务规则，`src/state/` 管共享状态与绑定状态的选择器，`src/browser/` 封装 DOM、URL、存储、图表与资源加载，`src/application/` 协调跨功能动作与页面启动，单独打包的经典脚本入口在 `src/entries/`。组件按需从具体模块导入，`check:architecture` 与 CI 检查分层方向、循环依赖和测试代码隔离。源码、Vue 模板与测试统一使用严格 TypeScript，审计数据的结构类型由 `types/catalog.d.ts` 共用。说明见 [架构与发布](docs/architecture.md#前端结构与迁移)。
 
 `data/sources/` 是人工维护的审计数据，脚本生成的文件（目录、按需数据、维护快照与 RSS）分别在 `src/generated/` 与 `data/generated/`，随源数据提交；`catalog:check` 防止两份内容漂移。公式和数据测试直接导入 TypeScript 模块，整页回归挂载真实 `App.vue`，浏览器回归使用真实发布产物。旧页面 VM、HTML 渲染夹具和浏览器业务全局 getter 已删除。
 

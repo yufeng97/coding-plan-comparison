@@ -1,9 +1,94 @@
+import { API_PRICES, CALC_DEFAULT_API, isPriceConfirmed } from '../generated/catalog';
 import type { MetricRow } from './core';
 import { provenance } from './provenance';
-import type { WorkloadApi, WorkloadState, WorkloadResult, CostScenarioResult, UsageSummary, UsageCalculatorValues } from './service-types';
-import { validCalcValue } from './workload-settings';
 import { toCNY } from './metrics';
 import { fmtCNY } from './core';
+
+/** 费用计算器的输入：保留字符串，未改完的输入先校验再进入共享状态。 */
+export interface WorkloadState {
+  model: string;
+  requests: string;
+  tokens: string;
+  days: string;
+  input: string;
+  cache: string;
+  cachePrice: string;
+  budget: string;
+  scenario?: string;
+}
+
+export interface WorkloadApi {
+  cur: string;
+  inUSD?: number;
+  outUSD?: number;
+  inCNY?: number;
+  outCNY?: number;
+  apiCache?: number;
+}
+
+export interface WorkloadResult {
+  monthlyM: number;
+  blended: number;
+  costNative: number;
+  costCNY: number;
+  noCacheCNY: number;
+  monthlyBudgetM: number | null;
+  cachePrice: number;
+  cacheBasis: "custom" | "official" | "none";
+}
+
+export interface CostScenarioResult extends WorkloadResult {
+  id: string;
+  label: string;
+  input: string;
+  cache: string;
+  lowCNY: number;
+  highCNY: number;
+}
+
+export interface UsageSummary {
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheWrite: number;
+  total: number;
+  activeDays: number;
+  spanDays: number;
+  months: number;
+  inputShare: number;
+  cacheRate: number;
+}
+
+export type UsageCalculatorValues = Pick<WorkloadState, "requests" | "tokens" | "days" | "input" | "cache">;
+
+/** 费用计算器的共享状态：每个输入都有值。 */
+export type CalcState = Required<WorkloadState>;
+
+export const CALC_MODELS = new Set(API_PRICES.filter((a) => isPriceConfirmed(a, "api")).map((a) => a.vendor + "|" + a.model));
+
+/* 默认模型按 data.js 的固定身份取；万一被移出已确认价格，才退回第一项（校验器会先报错）。 */
+export const CALC_DEFAULT_MODEL = (() => {
+    const pinned = CALC_DEFAULT_API.vendor + "|" + CALC_DEFAULT_API.model;
+    return CALC_MODELS.has(pinned) ? pinned : [...CALC_MODELS][0] || "";
+})();
+
+type CalcNumberKey = Exclude<keyof CalcState, "model" | "scenario">;
+
+/** 数值输入的 [最小值, 最大值, 是否整数]。 */
+export const CALC_LIMITS: Record<CalcNumberKey, [number, number, boolean]> = { requests: [0, 100000, true], tokens: [1, 10000000, true], days: [1, 31, true], input: [0, 100, false], cache: [0, 100, false], cachePrice: [0, 1000000, false], budget: [0, 1000000000, false] };
+
+export function validCalcValue(key: string, value: string) {
+    if (key === "model")
+        return CALC_MODELS.has(value);
+    if (key === "scenario")
+        return ["conservative", "typical", "optimistic"].includes(value);
+    if (key === "cachePrice" && value === "")
+        return true;
+    if (!Object.hasOwn(CALC_LIMITS, key) || !/^\d+(?:\.\d+)?$/.test(String(value)))
+        return false;
+    const n = Number(value), [min, max, integer] = CALC_LIMITS[key as CalcNumberKey];
+    return Number.isFinite(n) && n >= min && n <= max && (!integer || Number.isInteger(n));
+}
 
 const WORKLOAD_FIELDS = ['model', 'requests', 'tokens', 'days', 'input', 'cache', 'cachePrice', 'budget'] as const;
 

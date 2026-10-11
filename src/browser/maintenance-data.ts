@@ -1,4 +1,4 @@
-import type { FollowState } from '../domain/model-types';
+import type { FollowState } from '../state/maintenance';
 
 /* ============ 数据可信、关注变更、真实任务测评与贡献 ============ */
 
@@ -48,4 +48,9 @@ export function writeStoredFollowState(value: FollowState) {
     catch (e) {
         throw new Error("本机关注存储不可用；本页操作已生效，关闭后不会保留。");
     }
+}
+
+/** 关注同步链接：只含套餐 ID，打开后由用户确认合并。 */
+export function buildFollowSyncUrl(planIds: string[]) {
+    return location.href.split(/[?#]/)[0] + "?follow=" + planIds.join(",") + "#updates";
 }

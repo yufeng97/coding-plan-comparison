@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { themeView, applyTheme, rerenderCharts } from '@app/runtime';
+import { themeView } from '@state/app';
+import { applyTheme } from '@browser/theme-control';
+import { rerenderCharts } from '@app/chart-lifecycle';
 const label = computed(() => {
   const name = themeView.mode === 'dark' ? '暗色' : themeView.mode === 'light' ? '亮色' : '跟随系统';
   const next = themeView.mode === 'dark' ? '亮色' : themeView.mode === 'light' ? '跟随系统' : '暗色';

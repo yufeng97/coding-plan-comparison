@@ -13,7 +13,7 @@
   "include": [
     "data/sources/**/*.js",
     "data/generated/**/*.js",
-    "types/**/*.d.ts"
+    "types/catalog.d.ts"
   ],
   "exclude": [
     "node_modules",

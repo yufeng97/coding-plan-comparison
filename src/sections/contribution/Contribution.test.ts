@@ -2,7 +2,7 @@
 import { focusedId, loadBenchmarks, unloadOptionalData, useMount } from "../../test/setup";
 import { beforeEach, expect, test, vi } from "vitest";
 import { flushPromises } from "@vue/test-utils";
-import * as legacy from "@app/runtime";
+import * as legacy from "../../test/runtime";
 import Contribution from "./Contribution.vue";
 
 const view = useMount(Contribution);

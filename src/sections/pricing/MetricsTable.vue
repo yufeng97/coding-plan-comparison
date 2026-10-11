@@ -1,43 +1,47 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import * as runtime from "@app/runtime";
-import { targetValue } from "../../components/dom";
+import { displayModelName, METRICS_ALL } from "@domain/core";
+import { metricsState, pickerState } from "@state/app";
+import { focusTableControl } from "@browser/interaction";
+import { updateAppState } from "@browser/url-state";
+import { applyPickerScope, pickerScopeText } from "@app/picker";
+import { METRICS_COLUMNS, type MetricsCellContext, type MetricsTableRow, metricsTableRows, paygReferenceRows, registerTableView } from "@app/tables";
+import { targetValue } from "@browser/dom";
 import MetricsCell from "../../components/MetricsCell.vue";
 import SortHeader from "../../components/SortHeader.vue";
-import type { MetricsCellContext, MetricsTableRow } from "@app/runtime";
-const state = runtime.metricsState;
+const state = metricsState;
 const modelSelect = ref<HTMLSelectElement | null>(null);
 const pageSize = ref(typeof window === "undefined" || window.innerWidth >= 768 ? 20 : 5);
 const visibleLimit = ref(pageSize.value);
 const compact = ref(true);
 const revision = ref(0);
-const columns = runtime.METRICS_COLUMNS;
-const results = computed(() => { revision.value; return runtime.metricsTableRows(); });
+const columns = METRICS_COLUMNS;
+const results = computed(() => { revision.value; return metricsTableRows(); });
 const rows = computed(() => results.value.shownRows);
 const visibleRows = computed(() => rows.value.slice(0, visibleLimit.value));
-const models = [...new Set<string>([...runtime.METRICS_ALL.map((model: { model: string }) => model.model), ...runtime.paygReferenceRows().map((row: { m: { model: string } }) => row.m.model)])].sort((a, b) => runtime.displayModelName(a).localeCompare(runtime.displayModelName(b), "zh"));
+const models = [...new Set<string>([...METRICS_ALL.map((model: { model: string }) => model.model), ...paygReferenceRows().map((row: { m: { model: string } }) => row.m.model)])].sort((a, b) => displayModelName(a).localeCompare(displayModelName(b), "zh"));
 const sortColumn = computed(() => columns.find((column: { sortKey?: string }) => column.sortKey === state.sortKey));
 const sortDescription = computed(() => `${sortColumn.value?.label || '当前列'}${state.sortDir === 1 ? '从低到高' : '从高到低'}`);
 const sortHint = computed(() => `排序：${sortDescription.value}${compact.value && sortColumn.value?.cls?.split(' ').includes('col-more') ? '（明细列，展开查看）' : ''}`);
 const isDefault = computed(() => !state.fromPicker && state.model === "all" && state.ver === "all" && state.tier === "flagship" && state.offer === "current" && state.sortKey === "cpm" && state.sortDir === 1);
-const scopeText = computed(() => state.fromPicker ? `已应用选购条件：${runtime.pickerScopeText()}。套餐按所选支付方式重算；取消选购条件可查看 API 参照。继续叠加本区筛选。` : "当前仅使用本区筛选，尚未应用选购条件。应用后会叠加预算、地区、工具与支付方式。");
-watch(() => JSON.stringify([state, pageSize.value, state.fromPicker ? runtime.pickerState : null]), () => { visibleLimit.value = pageSize.value; }, { flush: "sync" });
-function change(action: () => void) { runtime.updateAppState(action); }
+const scopeText = computed(() => state.fromPicker ? `已应用选购条件：${pickerScopeText()}。套餐按所选支付方式重算；取消选购条件可查看 API 参照。继续叠加本区筛选。` : "当前仅使用本区筛选，尚未应用选购条件。应用后会叠加预算、地区、工具与支付方式。");
+watch(() => JSON.stringify([state, pageSize.value, state.fromPicker ? pickerState : null]), () => { visibleLimit.value = pageSize.value; }, { flush: "sync" });
+function change(action: () => void) { updateAppState(action); }
 function sort(key: string, direction = 1) { change(() => { state.sortDir = state.sortKey === key ? -state.sortDir : direction; state.sortKey = key; }); }
-function reset() { Object.assign(state, { model: "all", ver: "all", tier: "flagship", offer: "current", sortKey: "cpm", sortDir: 1, fromPicker: false }); runtime.focusTableControl(modelSelect.value); }
+function reset() { Object.assign(state, { model: "all", ver: "all", tier: "flagship", offer: "current", sortKey: "cpm", sortDir: 1, fromPicker: false }); focusTableControl(modelSelect.value); }
 function populateModels() { if (state.model !== "all" && !models.includes(state.model)) state.model = "all"; }
 async function more() {
   const previous = visibleRows.value.length;
   visibleLimit.value += pageSize.value;
   await nextTick();
   const row = document.querySelectorAll<HTMLElement>("#metricsBody tr")[previous];
-  if (row) { row.tabIndex = -1; runtime.focusTableControl(row); } else runtime.focusTableControl(document.getElementById("metricsMoreBtn"));
+  if (row) { row.tabIndex = -1; focusTableControl(row); } else focusTableControl(document.getElementById("metricsMoreBtn"));
 }
 /* 列配置的 title / tdClass 只读额度行、换算结果与是否按量。 */
 function context(row: MetricsTableRow): MetricsCellContext {
   return { m: row.m, c: row.c, isPayg: row.payg };
 }
-const release = runtime.registerTableView("metrics", { render: () => { revision.value++; }, more, reset, models: populateModels });
+const release = registerTableView("metrics", { render: () => { revision.value++; }, more, reset, models: populateModels });
 const resize = () => { pageSize.value = window.innerWidth < 768 ? 5 : 20; };
 onMounted(() => { populateModels(); window.addEventListener("resize", resize, { passive: true }); });
 onBeforeUnmount(() => { release(); window.removeEventListener("resize", resize); });
@@ -45,7 +49,7 @@ onBeforeUnmount(() => { release(); window.removeEventListener("resize", resize);
 
 <template>
   <div class="controls controls-table">
-    <select id="metricsModel" ref="modelSelect" class="select" aria-label="按模型筛选额度表" :value="state.model" @change.stop="change(() => { state.model = targetValue($event); })"><option value="all">全部模型</option><option v-for="model in models" :key="model" :value="model">{{ runtime.displayModelName(model) }}</option></select>
+    <select id="metricsModel" ref="modelSelect" class="select" aria-label="按模型筛选额度表" :value="state.model" @change.stop="change(() => { state.model = targetValue($event); })"><option value="all">全部模型</option><option v-for="model in models" :key="model" :value="model">{{ displayModelName(model) }}</option></select>
     <select id="metricsVer" class="select" aria-label="按版本筛选额度表" :value="state.ver" @change.stop="change(() => { state.ver = targetValue($event); })"><option value="all">全部版本</option><option value="V3">V3（新版积分制）</option><option value="V2">V2（老用户续费）</option></select>
     <select id="metricsTier" class="select" aria-label="额度表模型档" :value="state.tier" @change.stop="change(() => { state.tier = targetValue($event); })"><option value="flagship">只看旗舰</option><option value="all">含轻量模型</option></select>
     <select id="metricsOffer" class="select" aria-label="额度表购买资格" :value="state.offer" @change.stop="change(() => { state.offer = targetValue($event); })"><option value="current">新用户可购买</option><option value="all">含历史与续费档</option></select>
@@ -53,7 +57,7 @@ onBeforeUnmount(() => { release(); window.removeEventListener("resize", resize);
     <span id="metricsSortHint" class="table-sort-hint" role="status" aria-live="polite">{{ sortHint }}</span>
     <button id="metricsResetBtn" type="button" class="chip" :disabled="isDefault" @click.stop="change(reset)">清除筛选</button>
     <button id="metricsToggle" type="button" class="chip" :class="{ active: !compact }" :aria-expanded="!compact" aria-controls="metricsTable" @click.stop="compact = !compact">{{ compact ? "展开 5 小时 / 每周明细" : "收起明细" }}</button>
-    <button type="button" class="chip" data-apply-picker="metrics" :class="{ active: state.fromPicker }" :aria-pressed="state.fromPicker" :disabled="runtime.pickerState.budget === '0' && !state.fromPicker" :title="runtime.pickerState.budget === '0' && !state.fromPicker ? '选购预算为「免费」：这里只列付费档，免费档见「免费 Coding 入口」' : ''" @click.stop="runtime.applyPickerScope('metrics')">{{ state.fromPicker ? "取消选购条件" : "应用当前选购条件" }}</button>
+    <button type="button" class="chip" data-apply-picker="metrics" :class="{ active: state.fromPicker }" :aria-pressed="state.fromPicker" :disabled="pickerState.budget === '0' && !state.fromPicker" :title="pickerState.budget === '0' && !state.fromPicker ? '选购预算为「免费」：这里只列付费档，免费档见「免费 Coding 入口」' : ''" @click.stop="applyPickerScope('metrics')">{{ state.fromPicker ? "取消选购条件" : "应用当前选购条件" }}</button>
   </div>
   <p id="metricsScope" class="maintenance-meta">{{ scopeText }}</p>
   <div class="table-wrap metrics-wrap" tabindex="0" role="region" aria-label="额度对比表，可横向滚动">
@@ -61,7 +65,7 @@ onBeforeUnmount(() => { release(); window.removeEventListener("resize", resize);
       <thead><tr><template v-for="column in columns" :key="column.id"><SortHeader v-if="column.sortKey" :class="column.cls" :label="column.label" :sort-key="column.sortKey" :current-key="state.sortKey" :direction="state.sortDir" :first-direction="column.asc ? 1 : -1" @sort="sort" /><th v-else scope="col" :class="column.cls">{{ column.label }}</th></template></tr></thead>
       <tbody id="metricsBody">
         <tr v-for="(row, index) in visibleRows" :key="`${row.m.vendor}|${row.m.plan}|${row.m.model}|${row.m.ver}|${row.payg}|${index}`" :class="{ 'est-row': row.m.isEst, 'payg-row': row.payg }"><td v-for="column in columns" :key="column.id" :data-column="column.id" :data-label="column.label" :class="`${column.cls || ''}${column.tdClass ? column.tdClass(context(row)) : ''}`" :title="column.title ? column.title(context(row)) : undefined"><MetricsCell :column="column.id" :row="row" /></td></tr>
-        <tr v-if="!rows.length"><td :colspan="columns.length" class="table-empty"><template v-if="state.fromPicker && runtime.pickerState.budget === '0'"><b>选购预算为「免费」，额度表只列付费套餐</b><p>免费档的额度见<a href="#free">免费 Coding 入口</a>；取消选购条件可查看全部额度。</p><button type="button" class="chip" data-apply-picker="metrics" @click.stop="runtime.applyPickerScope('metrics')">取消选购条件</button></template><template v-else><b>当前模型与版本没有可展示的额度</b><p>可以{{ state.fromPicker ? "调整「帮我选」条件、" : "" }}调整模型、版本或购买范围；查看轻量模型时选择「全部模型档」。</p><button id="metricsEmptyResetBtn" type="button" class="chip" data-reset-metrics @click.stop="change(reset)">清除筛选</button></template></td></tr>
+        <tr v-if="!rows.length"><td :colspan="columns.length" class="table-empty"><template v-if="state.fromPicker && pickerState.budget === '0'"><b>选购预算为「免费」，额度表只列付费套餐</b><p>免费档的额度见<a href="#free">免费 Coding 入口</a>；取消选购条件可查看全部额度。</p><button type="button" class="chip" data-apply-picker="metrics" @click.stop="applyPickerScope('metrics')">取消选购条件</button></template><template v-else><b>当前模型与版本没有可展示的额度</b><p>可以{{ state.fromPicker ? "调整「帮我选」条件、" : "" }}调整模型、版本或购买范围；查看轻量模型时选择「全部模型档」。</p><button id="metricsEmptyResetBtn" type="button" class="chip" data-reset-metrics @click.stop="change(reset)">清除筛选</button></template></td></tr>
       </tbody>
     </table>
   </div>

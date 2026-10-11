@@ -23,7 +23,7 @@ export default defineConfig({
   /* public/ 通过受白名单保护的开发中间件与 build:site 发布，禁止 Vite 无差别复制文件。 */
   publicDir: false,
   optimizeDeps: { entries: ['index.html'] },
-  resolve: { alias: { "@domain": path.join(root, "src/domain"), "@app": path.join(root, "src/application"), "@state": path.join(root, "src/state"), "@browser": path.join(root, "src/browser") } },
+  resolve: { alias: { "@domain": path.join(root, "src/domain"), "@app": path.join(root, "src/application"), "@state": path.join(root, "src/state"), "@browser": path.join(root, "src/browser"), "@generated": path.join(root, "src/generated") } },
   plugins: [
     publicSourcesOnly({ root }),
     publicAssets({ root }),
@@ -32,9 +32,9 @@ export default defineConfig({
     vue({ features: { optionsAPI: false } }),
     /* ECharts 精简包在构建时由 npm 包生成，仓库里不再保存打包后的文件 */
     classicScripts({ root, generated: {
-      "libs/echarts.js": "src/charts/echarts.ts",
-      "js/theme-init.js": "src/browser/theme.ts",
-      "js/app-loader.js": "src/browser/loader.ts",
+      "libs/echarts.js": "src/entries/echarts.ts",
+      "js/theme-init.js": "src/entries/theme-init.ts",
+      "js/app-loader.js": "src/entries/app-loader.ts",
     }, sources: {
       "js/maintenance-data.js": "data/generated/maintenance-data.js",
       "js/benchmark-data.js": "data/generated/benchmark-data.js",

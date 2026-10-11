@@ -1,10 +1,10 @@
 <script setup lang="ts">
 /* 官方证据链接，只认 https。 */
 import { computed } from "vue";
-import * as legacy from "@app/runtime";
+import { maintenanceSourceUrls } from "@app/maintenance";
 
 const props = defineProps<{ urls?: unknown[] | null }>();
-const links = computed(() => legacy.maintenanceSourceUrls(props.urls ?? []));
+const links = computed(() => maintenanceSourceUrls(props.urls ?? []));
 </script>
 
 <template>

@@ -5,7 +5,7 @@
 ## ECharts（构建时生成，不在本目录）
 
 - 发布产物里的 `libs/echarts-<hash>.js` 由构建从 npm 包 `echarts`（版本见 package.json）生成，**按需精简**：只含 BarChart + Grid / Tooltip / Legend / Title / AxisPointer 组件与 CanvasRenderer，产物带上游许可证注释。仓库不再保存打包后的文件，依赖更新随下次构建生效。
-- 入口在 `src/charts/echarts.ts`；页面用到新的图表类型或组件时，先在入口里注册。
+- 入口在 `src/entries/echarts.ts`；页面用到新的图表类型或组件时，先在入口里注册。
 - **构建与页面加载**：`scripts/build/vite-assets.mjs` 从 npm 生成并按内容哈希命名；地址保留在 `index.html` 的 `chartLibraryTemplate` 中，首屏不执行。接近图表或导航到相关章节时由 `src/application/runtime.ts` 的加载器插入脚本，Vue 图表组件负责绘制与销毁；失败可局部重试，文字明细先行显示。Vue 服务端渲染不下载或运行 ECharts。
 
 ## fonts/（Manrope + IBM Plex Mono 子集）

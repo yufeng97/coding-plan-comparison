@@ -25,12 +25,16 @@
       ],
       "@browser/*": [
         "src/browser/*"
+      ],
+      "@generated/*": [
+        "src/generated/*"
       ]
     }
   },
   "include": [
     "src/**/*.ts",
-    "src/**/*.vue"
+    "src/**/*.vue",
+    "types/globals.d.ts"
   ],
   "exclude": [
     "src/**/*.test.ts",

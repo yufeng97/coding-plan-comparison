@@ -1,6 +1,6 @@
 import { isFreeCodingEntry, isRelay, resolvedField, PLANS, BENCHMARK_SUMMARY } from '../generated/catalog';
 import { displayModelName, escRe, metricOfferOk, cnyOf } from './core';
-import { splitModelAccess } from './model-access';
+import { splitModelAccess } from './core';
 
 /** 只接受 https 来源链接；其他协议（含 javascript:）一律视为未公布。 */
 export function publicBenchmarkSourceUrl(url: unknown) {

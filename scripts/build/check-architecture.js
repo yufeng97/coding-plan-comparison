@@ -1,10 +1,10 @@
 "use strict";
-/* Keep production module dependencies acyclic and the domain independent of browser/application state. */
+/* Keep production module dependencies acyclic, layered from domain rules up to views, and free of test-only code. */
 const fs = require("node:fs");
 const path = require("node:path");
 const ts = require("typescript");
 
-/** @typedef {{ target: string, runtime: boolean }} Dependency */
+/** @typedef {{ target: string, runtime: boolean, test?: boolean }} Dependency 依赖目标；test 表示目标在测试目录（生产代码不应引用） */
 /** @param {string} directory @returns {string[]} */
 function sourceFiles(directory) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -42,6 +42,8 @@ function moduleGraph(root) {
         }
       }
       if (!base) return; // External packages are outside the application graph.
+      /* 测试目录不在生产模块图里；生产代码引用测试支撑（如测试用的业务汇总出口）单独报告。 */
+      if (/[\\/]src[\\/](?:test|regression)(?:[\\/]|$)/.test(base)) { dependencies.push({ target: base, runtime, test: true }); return; }
       const target = [base, base + ".ts", base + ".vue", path.join(base, "index.ts")].find((candidate) => known.has(candidate));
       if (target) dependencies.push({ target, runtime });
     };
@@ -66,6 +68,21 @@ function moduleGraph(root) {
   return graph;
 }
 
+/* 每层不得依赖的目录：业务规则 → 共享状态 → 浏览器适配 → 应用协调 → 组合式函数 → 通用组件 → 页面区块 → 布局，
+   只允许向左依赖；独立构建的经典脚本入口不依赖任何应用模块。 */
+const VIEWS = "composables|components|sections|layouts";
+/** @type {[string, RegExp, string][]} */
+const LAYER_RULES = [
+  ["src/domain/", new RegExp(`^src/(?:application|browser|state|${VIEWS})/`), "业务规则依赖了上层模块"],
+  ["src/state/", new RegExp(`^src/(?:application|browser|${VIEWS})/`), "共享状态依赖了应用或浏览器模块"],
+  ["src/browser/", new RegExp(`^src/(?:application|${VIEWS})/`), "浏览器适配依赖了应用协调层或视图"],
+  ["src/application/", new RegExp(`^src/(?:${VIEWS})/`), "应用协调层依赖了视图"],
+  ["src/composables/", /^src\/(?:components|sections|layouts)\//, "组合式函数依赖了组件"],
+  ["src/components/", /^src\/(?:sections|layouts)\//, "通用组件依赖了页面区块或布局"],
+  ["src/sections/", /^src\/layouts\//, "页面区块依赖了布局"],
+  ["src/entries/", /^src\//, "独立构建入口依赖了应用模块"],
+];
+
 /** @param {string} root @returns {{ modules: number, errors: string[] }} */
 function checkArchitecture(root) {
   const graph = moduleGraph(root);
@@ -74,11 +91,10 @@ function checkArchitecture(root) {
   const errors = [];
   for (const [file, dependencies] of graph) {
     const from = relative(file);
-    for (const { target } of dependencies) {
+    for (const { target, test } of dependencies) {
       const to = relative(target);
-      if (from.startsWith("src/domain/") && /^src\/(?:application|browser|state)\//.test(to)) errors.push(`业务规则依赖了上层模块：${from} → ${to}`);
-      if (from.startsWith("src/state/") && /^src\/(?:application|browser)\//.test(to)) errors.push(`共享状态依赖了应用或浏览器模块：${from} → ${to}`);
-      if (from.startsWith("src/browser/") && to.startsWith("src/application/")) errors.push(`浏览器适配依赖了应用协调层：${from} → ${to}`);
+      if (test) { errors.push(`生产模块引用了测试代码：${from} → ${to}`); continue; }
+      for (const [layer, forbidden, message] of LAYER_RULES) if (from.startsWith(layer) && forbidden.test(to)) errors.push(`${message}：${from} → ${to}`);
     }
   }
   /** @type {Set<string>} */
@@ -107,7 +123,7 @@ if (require.main === module) {
   if (result.errors.length) {
     console.error(result.errors.join("\n"));
     process.exitCode = 1;
-  } else console.log(`✅ ${result.modules} 个前端模块无循环依赖，业务与状态层边界通过`);
+  } else console.log(`✅ ${result.modules} 个前端模块无循环依赖，分层边界与测试隔离检查通过`);
 }
 
 module.exports = { checkArchitecture, moduleGraph };

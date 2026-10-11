@@ -52,16 +52,40 @@ fixture({
   "src/components/B.vue": '<script setup lang="ts">import A from "./A.vue";</script><template><A /></template>',
 }, (root) => assert.ok(checkArchitecture(root).errors.some((error) => error.includes("循环依赖"))));
 
+fixture({
+  "src/application/actions.ts": "export { default as Card } from '../components/Card.vue';",
+  "src/components/Card.vue": '<script setup lang="ts"></script><template><p /></template>',
+}, (root) => assert.ok(checkArchitecture(root).errors.some((error) => error.includes("应用协调层依赖了视图"))));
+
+fixture({
+  "src/components/Card.vue": '<script setup lang="ts">import Section from "../sections/pricing/Section.vue";</script><template><Section /></template>',
+  "src/sections/pricing/Section.vue": '<script setup lang="ts"></script><template><p /></template>',
+}, (root) => assert.ok(checkArchitecture(root).errors.some((error) => error.includes("通用组件依赖了页面区块"))));
+
+fixture({
+  "src/entries/theme-init.ts": "import { themeView } from '../state/app'; void themeView;",
+  "src/state/app.ts": "export const themeView = {};",
+}, (root) => assert.ok(checkArchitecture(root).errors.some((error) => error.includes("独立构建入口依赖了应用模块"))));
+
+fixture({
+  "src/sections/View.vue": '<script setup lang="ts">import * as app from "../test/runtime"; void app;</script><template><p /></template>',
+  "src/test/runtime.ts": "export const ready = true;",
+}, (root) => assert.ok(checkArchitecture(root).errors.some((error) => error.includes("生产模块引用了测试代码"))));
+
 const repositoryRoot = path.resolve(__dirname, "../..");
 const domainRoot = path.join(repositoryRoot, "src/domain");
-const domainFiles = fs.readdirSync(domainRoot).filter((file) => file.endsWith(".ts") && !/\.(?:test|d)\.ts$/.test(file));
+/** @param {string} dir @returns {string[]} 业务规则目录下的全部模块（含子目录），相对 src/domain。 */
+const listDomain = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => entry.isDirectory()
+  ? listDomain(path.join(dir, entry.name)).map((file) => entry.name + "/" + file)
+  : entry.name.endsWith(".ts") && !/\.(?:test|d)\.ts$/.test(entry.name) ? [entry.name] : []);
+const domainFiles = listDomain(domainRoot);
 const domainEntry = domainFiles.map((file, index) => `import * as module${index} from ${JSON.stringify(path.join(domainRoot, file).split(path.sep).join("/"))}; export { module${index} };`).join("\n");
 fixture({ "src/entry.ts": domainEntry }, (root) => {
   const output = path.join(root, "domain.cjs");
   require("esbuild").buildSync({ entryPoints: [path.join(root, "src/entry.ts")], outfile: output, bundle: true, platform: "node", format: "cjs", logLevel: "silent" });
   // All domain modules must import and compute successfully in Node, with no DOM/browser shims.
   const modules = require(output);
-  const recommendations = modules["module" + domainFiles.indexOf("recommendations.ts")];
+  const recommendations = modules["module" + domainFiles.indexOf("picker/rules.ts")];
   const settings = { budget: "0", region: "all", tool: "any", task: "both", billing: "M", priority: "quota" };
   const rules = recommendations.createPickerRules(settings);
   const otherRules = recommendations.createPickerRules({ ...settings });

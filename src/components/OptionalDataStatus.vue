@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { loadViewData, optionalViewState, type OptionalViewKind } from "@app/runtime";
+import type { OptionalDataKind } from "@domain/core";
+import { optionalViewState } from "@state/maintenance";
+import { loadViewData } from "@app/maintenance";
 
-const props = defineProps<{ id: string; kind: OptionalViewKind; hidden?: boolean }>();
+const props = defineProps<{ id: string; kind: OptionalDataKind; hidden?: boolean }>();
 const status = computed(() => optionalViewState[props.kind]);
 </script>
 

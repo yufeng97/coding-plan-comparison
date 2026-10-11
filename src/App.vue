@@ -1,7 +1,13 @@
 <script setup lang="ts">
-import { META, RATE_USD_CNY, PRICE_CHECKS, rankPaymentLabel } from '@app/runtime';
+/* 整页骨架：页头、首屏、选购与比较章节、辅助资料（评测、关注、贡献、来源）、对比与完整权益窗口和页脚。
+ * 章节内容由 src/sections/ 的组件渲染；保留原 ID、class 与 ARIA，分享链接的锚点不变。 */
+import { rankPaymentLabel } from './state/rank';
+import AppHeader from './layouts/AppHeader.vue';
+import AppFooter from './layouts/AppFooter.vue';
+import SiteHero from './sections/site/SiteHero.vue';
 import PickerControls from './sections/picker/PickerControls.vue';
 import PickerRecommendations from './sections/picker/PickerRecommendations.vue';
+import ServiceActions from './sections/picker/ServiceActions.vue';
 import PersonalPrices from './sections/pricing/PersonalPrices.vue';
 import FreePlans from './sections/pricing/FreePlans.vue';
 import RankChart from './sections/pricing/RankChart.vue';
@@ -10,54 +16,24 @@ import TeamPrices from './sections/pricing/TeamPrices.vue';
 import ApiPrices from './sections/pricing/ApiPrices.vue';
 import PlanTable from './sections/pricing/PlanTable.vue';
 import MetricsTable from './sections/pricing/MetricsTable.vue';
-import ComparePlans from './sections/pricing/ComparePlans.vue';
+import MetricsMethodology from './sections/pricing/MetricsMethodology.vue';
 import PlanDetails from './sections/pricing/PlanDetails.vue';
+import ComparePlans from './sections/compare/ComparePlans.vue';
 import PublicBenchmarks from './sections/benchmarks/PublicBenchmarks.vue';
 import ContributorBenchmarks from './sections/benchmarks/ContributorBenchmarks.vue';
 import FollowUpdates from './sections/follow/FollowUpdates.vue';
-import Contribution from './sections/contribution/Contribution.vue';
-import SiteStats from './sections/site/SiteStats.vue';
 import SiteDynamics from './sections/follow/SiteDynamics.vue';
+import Contribution from './sections/contribution/Contribution.vue';
 import SiteSources from './sections/site/SiteSources.vue';
-import ThemeButton from './components/ThemeButton.vue';
-import ServiceActions from './sections/picker/ServiceActions.vue';
 import OptionalDataStatus from './components/OptionalDataStatus.vue';
-const entries = Object.values(PRICE_CHECKS.rows);
-const pending = entries.filter((row) => row.status === 'unverified').length;
-const retired = entries.filter((row) => row.status === 'retired').length;
-const auditSummary = `价格逐条核查：${PRICE_CHECKS.checkedAt} · ${entries.length} 条记录，${entries.length - pending - retired} 条已确认（含询价），${pending} 条待核实，${retired} 条停售。待核实历史价仅保留作参考，不参与推荐与排行。`;
 </script>
 <template>
-<div class="scroll-progress" aria-hidden="true"><span id="scrollBar"></span></div>
-
-<header class="topbar">
-  <div class="topbar-inner">
-    <a class="brand" href="#top"><span class="brand-mark">&lt;/&gt;</span> Coding Plan <em>比价中心</em></a>
-    <nav class="primary-nav" aria-label="主要内容">
-      <a href="#quick" data-site-view="compare" aria-current="page">选套餐</a>
-      <a href="#benchmarks" data-site-view="benchmarks">模型评测</a>
-      <a href="#updates" data-site-view="updates">我的关注</a>
-    </nav>
-    <ThemeButton />
-  </div>
-</header>
+<app-header></app-header>
 
 <main id="top">
 
   <!-- ======== Hero ======== -->
-  <section class="hero">
-    <div class="hero-inner">
-      <span class="prompt-mark" aria-hidden="true">&gt;_</span>
-      <h1>Coding Plan 比价中心</h1>
-      <p class="hero-meta">数据版本 <strong id="heroDate">{{ META.updated }}</strong></p>
-      <details class="hero-details" id="heroDetails">
-        <summary>数据覆盖与核价信息</summary>
-        <p class="hero-meta">参考汇率 USD/CNY <span id="rateText">{{ RATE_USD_CNY }}</span></p>
-        <p class="hero-meta" id="priceAuditSummary">{{ auditSummary }}</p>
-        <site-stats></site-stats>
-      </details>
-    </div>
-  </section>
+  <site-hero></site-hero>
 
   <!-- ======== 01 帮我选 ======== -->
   <section class="section" id="quick" style="padding-top:36px">
@@ -68,8 +44,7 @@ const auditSummary = `价格逐条核查：${PRICE_CHECKS.checkedAt} · ${entrie
     <picker-controls></picker-controls>
     <ServiceActions />
     <picker-recommendations></picker-recommendations>
-    
-    
+
     <details class="section-menu" id="sectionMenu">
       <summary>更多比较：价格、免费入口、完整数据与进阶分析</summary>
       <nav class="topnav" aria-label="页面章节">
@@ -119,18 +94,7 @@ const auditSummary = `价格逐条核查：${PRICE_CHECKS.checkedAt} · ${entrie
     <div class="section-head">
       <h2><span class="sec-no">06</span>额度深度对比<span class="sec-tag">进阶</span></h2>
       <p>默认只看月费、主要模型、每月大约能用多少、每百万 tokens 成本和置信度。5 小时窗口、每周明细和推算方法可以展开。DeepSeek、GLM、Kimi、MiniMax、Qwen 的官方 API 按量价也在表里，按同一套假设折成每百万成本，点「每M tokens」会和套餐一起按价格排。</p>
-    </div><metrics-table></metrics-table><details class="method-box">
-      <summary>📐 方法论：官方没公布用量时，这些「≈估」行是怎么推算出来的？（6 种方法 + 3 个坑）</summary>
-      <ol>
-        <li><b>本地日志实测</b>（置信中高）—— Claude Code / Codex 的本地 JSONL 日志记录了每次请求的 input / output / cache tokens；用 <code>ccusage</code> 等工具持续跑任务直到触发限额，累计即为实际配额。社区实测结果：Claude Pro ≈ 10–45 prompts/5h、Max 20x ≈ 200–900 prompts/5h。</li>
-        <li><b>官方倍率 + 锚点</b>（置信中）—— 厂商不公布绝对值但公布相对倍率（Max = 5× Pro、Pro 20x = 20× Plus）。只需实测一档作锚点，全系列按倍率换算。</li>
-        <li><b>Credits 公式逆向</b>（置信高）—— 智谱公开积分公式 (输入×6.9 + 缓存×1.7 + 输出×24)/10000，已知 credits、输入输出比与缓存率即可精确解出 tokens（官方自己的"每周 48–104M 估算"就是这么来的）；美元制额度（OpenCode Go、Command Code）用 模型单价 直接换算。</li>
-        <li><b>仪表差值</b>（置信中）—— Cursor 显示用量百分比、Copilot 显示 credits 计数、Devin 显示配额条。发送几个已知大小的请求，记录仪表增量，拟合出 100% 对应的总量。</li>
-        <li><b>社区众包</b>（置信中）—— coding-plan.org、ccusage 聚合统计、Reddit 实测帖；多人取中位数可削掉个体任务差异。</li>
-        <li><b>商业毛利反推</b>（置信低）—— 订阅厂商通常给用户 3–10 倍于月费的 API 价值：tokens ≈ 月费 × (3–10) ÷ 模型混合单价。Kimi Code Plan、Google AI Pro、Devin 等采用此法。</li>
-      </ol>
-      <p>⚠️ <b>三个坑</b>：① 高峰期动态限流——同账号不同天实测可差 2–3 倍，所以估算给区间不给单值；② 缓存命中率因任务而异（95% 是官方乐观值，碎片化任务可能只有 80%）；③ 故意快速触发限流可能违反 ToS / 触发风控，实测需克制。表中「≈估」行的倍率按区间保守下限计算，每 M 成本取中值。</p>
-    </details></section>
+    </div><metrics-table></metrics-table><metrics-methodology></metrics-methodology></section>
 
   <!-- ======== 07 每周可用 tokens 对比（进阶） ======== -->
   <section class="section" id="s3">
@@ -160,7 +124,7 @@ const auditSummary = `价格逐条核查：${PRICE_CHECKS.checkedAt} · ${entrie
       <p>这里只放来源写明了发生日、而且会影响购买的变化。只有核对日、没有公告日的记录收在下面，不当成厂商公告。</p>
     </div>
     <site-dynamics></site-dynamics>
-    
+
   </section>
 
   <section class="section" id="benchmarks" hidden>
@@ -203,20 +167,8 @@ const auditSummary = `价格逐条核查：${PRICE_CHECKS.checkedAt} · ${entrie
 
 <compare-plans></compare-plans>
 
-
-
-
 <plan-details></plan-details>
 
-
-<footer class="footer">
-  <nav class="view-tabs" aria-label="资料与反馈">
-    <a class="view-tab" href="#sources" data-site-view="sources">来源说明</a>
-    <a class="view-tab" href="#contribute" data-site-view="contribute">提交纠错</a>
-  </nav>
-  <p>Coding Plan 全球比价中心 · 数据调研与核实日期 <span id="footDate">{{ META.updated }}</span> · 仅供参考，以各厂商官方页面为准 · 纯静态页面：无统计、无跟踪，主题、常用条件与关注记录仅存于本机</p>
-  <p class="footer-mirror">访问地址：<a href="https://coding-plan-comparison-tau.vercel.app/" rel="noopener">主站（Vercel）</a> · <a href="https://yufeng97.github.io/coding-plan-comparison/" rel="noopener">备用（GitHub Pages）</a>，两处内容相同，一处打不开或较慢时可换另一处；分享链接的筛选条件在两处都有效。</p>
-</footer>
-
+<app-footer></app-footer>
 
 </template>

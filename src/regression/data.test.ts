@@ -6,7 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { test, vi } from "vitest";
-import type { MetricsInput } from "@domain/model-types";
+import type { MetricsInput } from "@domain/metrics";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const dataSource = fs.readFileSync(path.join(root, "data/sources/data.js"), "utf8");
@@ -379,7 +379,7 @@ test("校验器提示已结束的限时活动与复制周额度，Vue 首页日�
   assert.doesNotMatch(result.output, /plan-0066（至/, "「截至」是时点说明，不是活动截止");
   assert.match(result.output, /相同周额度但额度原文不同.*plan-0031.*plan-0032/);
   assert.doesNotMatch(result.output, /#heroDate 的静态日期 .* 不一致/);
-  assert.match(fs.readFileSync(path.join(root, 'src/App.vue'), 'utf8'), /id="heroDate">\{\{ META\.updated \}\}/, '首页日期绑定审计版本，无静态日期漂移');
+  assert.match(fs.readFileSync(path.join(root, 'src/sections/site/SiteHero.vue'), 'utf8'), /id="heroDate">\{\{ META\.updated \}\}/, '首页日期绑定审计版本，无静态日期漂移');
 });
 
 test("核查说明改写去掉字段名与「库存」术语，保留真实商品库存的说法", async () => {

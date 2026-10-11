@@ -1,9 +1,9 @@
-import { isPersonalMonthly, PLANS, isPriceConfirmed } from '../../generated/catalog';
+import { isPersonalMonthly, PLANS, isPriceConfirmed } from '@generated/catalog';
 import { loadBenchmarks, pageGlobals, unloadOptionalData } from "../../test/setup";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import type { Component } from "vue";
-import * as app from "@app/runtime";
+import * as app from "../../test/runtime";
 import PersonalPrices from "./PersonalPrices.vue";
 import RankChart from "./RankChart.vue";
 import WeeklyTokens from "./WeeklyTokens.vue";

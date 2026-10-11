@@ -1,15 +1,16 @@
 import { RATE_INR_CNY, META, isOnSalePlan, isRelay, findPlanReference, resolvedField, PLANS, PAYG_REFERENCES, priceCheckOf, isPriceConfirmed, displayPriceReason } from '../generated/catalog';
 import { CAT_LABEL, REGION_LABEL, esc, planPriceLabel, priceUnit, priceCheckLabel, priceCheckSources, mainlandAccessText, RATE, queryHit, planSearchBlob, shortVendor, METRICS_ALL, metricOfferOk } from '../domain/core';
-import { annualPaymentText, priceLine, pickerFirstPaymentText, matchesPickerPurchase, pickerMonthlyCNY, pickerMetricInput } from '../state/recommendations';
+import { annualPaymentText } from '../domain/picker/payment';
+import { priceLine, pickerFirstPaymentText, matchesPickerPurchase, pickerMonthlyCNY, pickerMetricInput } from '../state/picker';
 import { tableState, cmpState, CMP_MAX, metricsState } from '../state/app';
-import type { TableState } from '../domain/view-types';
+import type { TableState } from '../state/app';
 import { toCNY, blendPrice, isFlagshipModelName, computeMetrics } from '../domain/metrics';
-import { personalViewHooks } from '../browser/charts';
+import { personalViewHooks } from '../browser/charts/personal';
 import { csvCell, rateClass } from '../domain/table-format';
 import { downloadCsvText, copyTextToClipboard } from '../browser/interaction';
 import { syncUrl } from '../browser/url-state';
 import type { MetricRow } from '../domain/core';
-import type { MetricsResult } from '../domain/model-types';
+import type { MetricsResult } from '../domain/metrics';
 
 /* ============ Coding Plan 比价中心 — 数据表 / 额度表 / 并排对比 ============ */
 

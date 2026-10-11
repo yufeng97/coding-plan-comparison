@@ -19,7 +19,7 @@ async function type(page: Page, id: string, value: string) {
 test("完整启动恢复 URL，debug 仅运行一次、保留筛选并清除退役country参数", async () => {
   const page = await openPage({
     url: "/index.html?debug=1&country=IN&region=intl&budget=500&tool=cursor&task=daily&plimit=all&cmp=Anthropic%7CClaude+Pro%3BAnthropic%7CClaude+Pro%3BAnthropic%7CClaude+Max+5x",
-    override: (original) => ({ auditProfiles: vi.fn(original.auditProfiles) }),
+    mock: { "@app/picker": (original) => ({ auditProfiles: vi.fn(original.auditProfiles) }) },
   });
   const app = page.runtime;
   page.healthy();
@@ -334,7 +334,7 @@ test("初始分享锚点等待图表时容许布局滚动，用户滚轮或PageU
   for (const action of ["layout", "wheel", "PageUp"]) {
     let ready = false, finish = () => {};
     const gate = new Promise<void>((resolve) => { finish = resolve; });
-    const page = await openPage({ override: () => ({ chartLibraryReady: () => ready, ensureChartLibrary: () => gate }) });
+    const page = await openPage({ mock: { "@browser/charts/host": () => ({ chartLibraryReady: () => ready, ensureChartLibrary: () => gate }) } });
     const before = page.timeline.filter((entry) => entry.startsWith("scroll:")).length;
     page.byId("s4").getBoundingClientRect = () => ({ top: 0 }) as DOMRect;
     page.runtime.navigateToSection("#s3b", false, false, true);
@@ -577,7 +577,7 @@ test("历史恢复保留的方案节点失焦到页面或锚点时补回焦点�
   let revealTablePlan: ((id: string) => boolean) | undefined;
   const page = await openPage({
     url: "/index.html#table",
-    override: (original) => ({ renderTable: () => renderTable(), revealTablePlan: (id: string) => (revealTablePlan ?? original.revealTablePlan)(id) }),
+    mock: { "@app/tables": (original) => ({ renderTable: () => renderTable(), revealTablePlan: (id: string) => (revealTablePlan ?? original.revealTablePlan)(id) }) },
   });
   /* 无搜索的默认分页可能不含该方案：每轮开始前展开到它所在的行。焦点留在其他控件时页面不会替用户展开。 */
   const showPlan = async () => {
@@ -610,7 +610,7 @@ test("历史恢复保留的方案节点失焦到页面或锚点时补回焦点�
 test("后退保留keyed方案节点且不触发focusin，前进清焦时仍找回同一方案", async () => {
   for (const destination of ["body", "table"]) {
     let renderTable: () => void = () => {};
-    const page = await openPage({ url: "/index.html?q=Anthropic#table", override: () => ({ renderTable: () => renderTable() }) });
+    const page = await openPage({ url: "/index.html?q=Anthropic#table", mock: { "@app/tables": () => ({ renderTable: () => renderTable() }) } });
     const button = planButton()!;
     button.focus();
     /* 保留实际节点和焦点：这次历史恢复不会产生新的 focusin。 */

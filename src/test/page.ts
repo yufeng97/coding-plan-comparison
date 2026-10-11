@@ -10,7 +10,13 @@ import { afterEach, vi } from "vitest";
 import { createApp, nextTick, type App as VueApp } from "vue";
 import { flushPromises } from "@vue/test-utils";
 
-type Runtime = typeof import("@app/runtime");
+type Runtime = typeof import("./runtime");
+/** 测试可替换导出的业务模块：启动代码与组件经这些模块导入时看到替换值，模块内部的直接调用不受影响。 */
+type MockableModules = {
+  "@app/picker": typeof import("@app/picker");
+  "@app/tables": typeof import("@app/tables");
+  "@browser/charts/host": typeof import("@browser/charts/host");
+};
 type Listener = [EventTarget, string, EventListenerOrEventListenerObject, boolean | AddEventListenerOptions | undefined];
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -93,8 +99,10 @@ export interface PageOptions {
   fontsReady?: Promise<unknown>;
   /** 提供 requestAnimationFrame（由 flushAnimationFrames 推进）；默认不提供，页面走同步分支。 */
   animationFrames?: boolean;
-  /** 替换业务模块的部分导出（启动代码与组件经模块导入时看到替换值；模块内部的直接调用不受影响）。 */
-  override?: (original: Runtime) => Partial<Runtime>;
+  /** 载入业务模块后、挂载与启动前调整数据或状态（如注入待核价格、补充套餐）。 */
+  prepare?: (runtime: Runtime) => void;
+  /** 按模块替换部分导出。 */
+  mock?: { [K in keyof MockableModules]?: (original: MockableModules[K]) => Partial<MockableModules[K]> };
 }
 
 /** 与浏览器一致的会话历史：push/replace 只改地址，前进后退同步派发 popstate，锚点不同再派发 hashchange。 */
@@ -299,13 +307,17 @@ export async function openPage(options: PageOptions = {}) {
     timeline.push("focus:" + (target.id || target.dataset.planId || target.tagName));
   });
 
-  const override = options.override;
-  if (override) vi.doMock("@app/runtime", async (importOriginal) => {
-    const original = await importOriginal<Runtime>();
-    /* 模板会探测导入对象的 Vue 内部标记；替身模块对未定义的名称会报错，这里显式给出并让 Vue 跳过代理。 */
-    return { ...original, ...override(original), __v_isRef: false, __v_skip: true, __v_isReactive: false, __v_isReadonly: false };
-  });
-  const runtime: Runtime = await import("@app/runtime");
+  const mocked = Object.keys(options.mock ?? {}) as (keyof MockableModules)[];
+  for (const id of mocked) {
+    const replace = options.mock![id] as (original: object) => object;
+    vi.doMock(id, async (importOriginal) => {
+      const original = await importOriginal<object>();
+      /* 模板会探测导入对象的 Vue 内部标记；替身模块对未定义的名称会报错，这里显式给出并让 Vue 跳过代理。 */
+      return { ...original, ...replace(original), __v_isRef: false, __v_skip: true, __v_isReactive: false, __v_isReadonly: false };
+    });
+  }
+  const runtime: Runtime = await import("./runtime");
+  options.prepare?.(runtime);
   const { startApplication } = await import("@app/startup");
   const { default: App } = await import("../App.vue");
   runtime.applyUrlState();
@@ -384,7 +396,7 @@ export async function openPage(options: PageOptions = {}) {
       const failures: unknown[] = [];
       const attempt = (step: () => void) => { try { step(); } catch (error) { failures.push(error); } };
       attempt(() => app.unmount());
-      if (override) attempt(() => vi.doUnmock("@app/runtime"));
+      for (const id of mocked) attempt(() => vi.doUnmock(id));
       attempt(stopListening);
       for (const restore of restores.reverse()) attempt(restore);
       for (const name of ["echarts", ...Object.values(OPTIONAL_DATA)]) delete dataGlobals[name];

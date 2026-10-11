@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { SOURCES, UNCERTAIN, RATE_USD_CNY, currentPriceSources, displayPriceReason, PLANS, API_PRICES, PAYG_REFERENCES, priceCheckOf } from '@app/runtime';
+import { API_PRICES, displayPriceReason, PAYG_REFERENCES, PLANS, priceCheckOf, RATE_USD_CNY, SOURCES, UNCERTAIN } from '@generated/catalog';
+import { currentPriceSources } from '@domain/table-format';
 import PriceCheck from '../../components/PriceCheck.vue';
 const priceSources = currentPriceSources();
 const pendingPrices = [...PLANS.map(p => ({ p, kind: 'plan' as const })), ...API_PRICES.map(p => ({ p, kind: 'api' as const })), ...PAYG_REFERENCES.map(p => ({ p, kind: 'payg' as const }))].filter(({ p, kind }) => priceCheckOf(p, kind)?.status === 'unverified');

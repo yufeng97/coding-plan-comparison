@@ -12,8 +12,8 @@ const { createServer } = await import('vite');
 const server = await createServer({ server: { middlewareMode: true }, appType: 'custom', logLevel: 'error' });
 try {
   const { default: App } = await server.ssrLoadModule('/src/App.vue');
-  const runtime = await server.ssrLoadModule('/src/application/runtime.ts');
-  runtime.refreshPalette();
+  const host = await server.ssrLoadModule('/src/browser/charts/host.ts');
+  host.refreshPalette();
   const { createSSRApp } = await import('vue');
   const { renderToString } = await import('@vue/server-renderer');
   const context = {};

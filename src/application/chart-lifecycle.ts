@@ -1,10 +1,14 @@
-import { renderPersonalChart, renderTeamChart, renderTokensChart, renderApiChart, renderRankChart } from '../browser/charts';
+import { renderPersonalChart } from '../browser/charts/personal';
+import { renderTeamChart } from '../browser/charts/team';
+import { renderTokensChart } from '../browser/charts/tokens';
+import { renderApiChart } from '../browser/charts/api';
+import { renderRankChart } from '../browser/charts/rank';
 import { renderPublicBenchmarkChart } from './maintenance';
-import { chartCache, markChartsForResize } from '../browser/chart-host';
+import { chartCache, markChartsForResize } from '../browser/charts/host';
 import { applyTheme, readThemeMode, themeMode } from '../browser/theme-control';
 import { initPageNavigation } from '../browser/page-navigation';
 
-import { resizeVisibleCharts as resizeBrowserCharts, bindChartResize as bindBrowserChartResize } from '../browser/chart-host';
+import { resizeVisibleCharts as resizeBrowserCharts, bindChartResize as bindBrowserChartResize } from '../browser/charts/host';
 /* 宽窄布局切换（如手机横竖屏）需要整图重绘：行高与标签位置都要变。 */
 const CHART_RENDERERS: Record<string, () => void> = { chartPersonal: renderPersonalChart, chartTeam: renderTeamChart, chartTokens: renderTokensChart,
     chartApi: renderApiChart, chartPower: renderApiChart, chartRank: renderRankChart };

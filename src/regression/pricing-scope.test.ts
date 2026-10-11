@@ -3,7 +3,7 @@
  * 全年金额冲突的数据校验见 data.test.ts。 */
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { RankRow } from "@app/runtime";
+import type { RankRow } from "../test/runtime";
 import { openPage, type Page } from "../test/page";
 
 const near = (actual: number | null | undefined, expected: number | null | undefined) => assert.ok(Math.abs((actual ?? NaN) - (expected ?? NaN)) < 1e-8, `${actual} != ${expected}`);

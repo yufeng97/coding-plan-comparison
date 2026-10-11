@@ -97,7 +97,7 @@ async function main() {
     assert.match(main, /App\.vue/);
     assert.doesNotMatch(main + config, /virtual:legacy|legacyApp/);
     const { build } = await import("esbuild");
-    const result = await build({ entryPoints: [path.join(root, "src/application/runtime.ts")], bundle: true, platform: "node", format: "cjs", external: ["vue"], write: false, logLevel: "silent" });
+    const result = await build({ entryPoints: [path.join(root, "src/test/runtime.ts")], bundle: true, platform: "node", format: "cjs", external: ["vue"], write: false, logLevel: "silent" });
     const code = result.outputFiles[0].text;
     assert.doesNotMatch(code, /virtual:legacy/);
     const module = { exports: {} };
@@ -133,7 +133,7 @@ async function main() {
   await test("ECharts 精简包由 npm 包构建：经典脚本执行后登记全局 echarts，版本与依赖一致", async () => {
     const { bundleEcharts } = await import("../build/vite-assets.mjs");
     const root = path.resolve(__dirname, "..", "..");
-    const code = (await bundleEcharts(root, "src/charts/echarts.ts")).toString("utf8");
+    const code = (await bundleEcharts(root, "src/entries/echarts.ts")).toString("utf8");
     assert.doesNotMatch(code, /^\s*(?:import|export)\s/m, "必须是经典脚本，页面按 <script> 插入");
     const sandbox = { console, setTimeout, clearTimeout, navigator: { userAgent: "node" } };
     sandbox.globalThis = sandbox; sandbox.window = sandbox; sandbox.self = sandbox;

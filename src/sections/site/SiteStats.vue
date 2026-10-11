@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { PLANS, API_PRICES, isFreeCodingEntry, isOnSalePlan, isPersonalMonthly, isPriceConfirmed, cnyOf, fmtCNY, planLabel } from '@app/runtime';
+import { API_PRICES, isFreeCodingEntry, isOnSalePlan, isPersonalMonthly, isPriceConfirmed, PLANS } from '@generated/catalog';
+import { cnyOf, fmtCNY, planLabel } from '@domain/core';
 interface Stat { icon: string; num: string | number; lbl: string; sub: string }
 const paid = PLANS.filter(plan => isPriceConfirmed(plan) && isPersonalMonthly(plan));
 const prices = paid.map(plan => cnyOf(plan, 'M') as number);

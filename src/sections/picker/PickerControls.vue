@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import * as L from "@app/runtime";
+import { PICKER_BILLING_LABELS } from "@domain/picker/payment";
+import { pickerState } from "@state/app";
+import { setPicker } from "@app/picker";
 
-type PickerKey = keyof typeof L.pickerState;
+type PickerKey = keyof typeof pickerState;
 type Row = { key: PickerKey; label: string; aria?: string; options: readonly (readonly [string, string])[] };
 const basic: Row[] = [
   { key: "budget", label: "预算", options: [["0", "免费"], ["100", "≤ ¥100"], ["200", "≤ ¥200"], ["500", "≤ ¥500"], ["any", "不限"]] },
@@ -14,14 +16,14 @@ const advanced: Row[] = [
   { key: "priority", label: "优先", aria: "推荐优先", options: [["quota", "额度"], ["ability", "模型能力"], ["price", "价格"]] },
 ];
 const billing = [["M", "月付标价"], ["A", "自动续费"], ["Y", "年付"]] as const;
-const state = L.pickerState;
+const state = pickerState;
 const paymentInitiallyOpen = state.billing !== "M";
 const selected = (key: string, value: string) => state[key as keyof typeof state] === value;
 function select(event: MouseEvent, key: PickerKey, value: string) {
   event.stopImmediatePropagation();
-  L.setPicker(key, value);
+  setPicker(key, value);
 }
-const paymentLabel = computed(() => "付款：" + L.PICKER_BILLING_LABELS[state.billing as keyof typeof L.PICKER_BILLING_LABELS] + (state.billing === "Y" ? "（按折月预算）" : ""));
+const paymentLabel = computed(() => "付款：" + PICKER_BILLING_LABELS[state.billing as keyof typeof PICKER_BILLING_LABELS] + (state.billing === "Y" ? "（按折月预算）" : ""));
 const billingNote = computed(() => state.billing === "Y" ? "预算按年付月均比较；首次一次支付全年，金额见卡片。" : state.billing === "A" ? "有单列连续包月价时按该价比较；未单列的普通月订阅按标价计作为上限。购买资格与续费规则见卡片。" : "按公开月价比较；部分月价附有连续包月或优惠条件，购买前请核对。");
 </script>
 

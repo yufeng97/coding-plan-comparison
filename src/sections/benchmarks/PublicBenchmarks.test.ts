@@ -2,7 +2,7 @@
 import { focusedId, loadBenchmarks, pageGlobals, sleep, unloadOptionalData, useMount } from "../../test/setup";
 import { beforeEach, expect, test, vi } from "vitest";
 import { flushPromises } from "@vue/test-utils";
-import * as legacy from "@app/runtime";
+import * as legacy from "../../test/runtime";
 import PublicBenchmarks from "./PublicBenchmarks.vue";
 
 const view = useMount(PublicBenchmarks, () => {

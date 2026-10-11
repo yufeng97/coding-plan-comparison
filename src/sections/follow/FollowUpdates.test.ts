@@ -1,9 +1,9 @@
-import { findPlanReference } from '../../generated/catalog';
+import { findPlanReference } from '@generated/catalog';
 /* 我的关注：关注与已读、关注同步、套餐历史、核查概况与逐条记录；整页状态流程见 src/regression/maintenance.test.ts。 */
 import { MAINTENANCE_DATA, focusedId, loadBenchmarks, loadMaintenance, unloadOptionalData, useMount } from "../../test/setup";
 import { beforeEach, expect, test, vi } from "vitest";
 import { flushPromises } from "@vue/test-utils";
-import * as legacy from "@app/runtime";
+import * as legacy from "../../test/runtime";
 import FollowUpdates from "./FollowUpdates.vue";
 import PlanDetails from "../pricing/PlanDetails.vue";
 

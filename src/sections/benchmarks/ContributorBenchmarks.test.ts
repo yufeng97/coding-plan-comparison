@@ -2,7 +2,7 @@
 import { BENCHMARK_DATA, loadBenchmarks, unloadOptionalData, useMount } from "../../test/setup";
 import { beforeEach, expect, test } from "vitest";
 import { flushPromises } from "@vue/test-utils";
-import * as legacy from "@app/runtime";
+import * as legacy from "../../test/runtime";
 import ContributorBenchmarks from "./ContributorBenchmarks.vue";
 
 const view = useMount(ContributorBenchmarks);

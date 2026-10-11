@@ -1,8 +1,10 @@
 import { findPlanReference } from '../generated/catalog';
-import { rankVendorValues } from '../domain/rank-candidates';
+import { rankVendorValues } from '../domain/rank';
 import { pickerState, personalState, tableState, metricsState, rankState, cmpState, calcState, PERSONAL_DEFAULT_LIMIT, APP_DEFAULTS, boundedSearch, MODEL_FILTER_VALUES, CMP_MAX } from '../state/app';
-import type { CalcState, StringField } from '../domain/view-types';
-import { validCalcValue } from '../domain/workload-settings';
+import { validCalcValue, type CalcState } from '../domain/workload';
+
+/** 对象中取值为字符串的字段名。 */
+type StringField<T> = { [K in keyof T]: T[K] extends string ? K : never }[keyof T];
 
 
 /* ============ Coding Plan 比价中心 — 状态与 URL ============ */

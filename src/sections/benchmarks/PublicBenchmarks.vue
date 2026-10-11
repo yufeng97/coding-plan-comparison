@@ -1,29 +1,37 @@
 <script setup lang="ts">
 /* 模型公开评测：筛选、协议说明、排名图表、成绩表与导出。
- * 状态（publicBenchmarkState / publicBenchmarkChartState）和计算函数在 domain/runtime，
+ * 状态（publicBenchmarkState / publicBenchmarkChartState）在 state/maintenance，筛选与导出在 application/maintenance，模型匹配在 domain/benchmarks，
  * 与推荐区共享计算；本组件负责渲染与交互。 */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import * as legacy from "@app/runtime";
-import { targetValue } from "../../components/dom";
-import { fromData } from "../../components/optional-data";
+import { publicBenchmarkConfiguration, publicBenchmarkDate, publicChartAxisName, publicChartFamily, publicCostText, publicModelDisplayName, publicModelPlans, publicNewerVersion, publicScoreText, publicUncertaintyLabel } from "@domain/benchmarks";
+import { esc } from "@domain/core";
+import { publicBenchmarkChartState, publicBenchmarkState } from "@state/maintenance";
+import { axisStyle, chartAxisLabel, chartCache, deferChartRender, makeChart, markChartsForResize, PAL, tipStyle } from "@browser/charts/host";
+import { downloadCsvText, downloadTextFile, focusTableControl } from "@browser/interaction";
+import { publicBenchmarkData } from "@browser/maintenance-data";
+import { optionalDataLoaded } from "@browser/optional-data";
+import { resizeVisibleCharts } from "@app/chart-lifecycle";
+import { optionalPendingText, publicBenchmarkChartRows, publicBenchmarkCsv, publicBenchmarkFamilies, publicBenchmarkFamilyLabel, publicBenchmarkHooks, publicBenchmarkLabels, publicBenchmarkRows, publicChartColors, renderPublicBenchmarkChart, selectedPublicBenchmark } from "@app/maintenance";
+import { targetValue } from "@browser/dom";
+import { fromData } from "../../composables/optional-data";
 import PlanLinks from "../../components/PlanLinks.vue";
 import SourceLink from "../../components/SourceLink.vue";
-import { useChartLifecycle } from "../../components/charts/chart-lifecycle";
+import { useChartLifecycle } from "../../composables/chart-lifecycle";
 useChartLifecycle("chartPublicBenchmark");
 
-const state = legacy.publicBenchmarkState;
-const chartState = legacy.publicBenchmarkChartState;
+const state = publicBenchmarkState;
+const chartState = publicBenchmarkChartState;
 const CHART_METRICS = [{ id: "score", label: "排名分数" }, { id: "cost", label: "每任务成本" }] as const;
 const CHART_LIMITS = ["10", "20", "all"];
 const SEARCH_DELAY = 150;
 
-const loaded = fromData("benchmark", () => legacy.optionalDataLoaded("benchmark"));
-const protocols = fromData("benchmark", () => legacy.publicBenchmarkData().benchmarks);
-const families = fromData("benchmark", () => legacy.publicBenchmarkFamilies());
-const familyProtocols = fromData("benchmark", () => legacy.publicBenchmarkLabels(protocols.value.filter((b) => b.family === state.family)));
-const selected = fromData("benchmark", () => legacy.selectedPublicBenchmark());
-const rows = fromData("benchmark", () => legacy.publicBenchmarkRows());
-const chartRows = fromData("benchmark", () => legacy.publicBenchmarkChartRows());
+const loaded = fromData("benchmark", () => optionalDataLoaded("benchmark"));
+const protocols = fromData("benchmark", () => publicBenchmarkData().benchmarks);
+const families = fromData("benchmark", () => publicBenchmarkFamilies());
+const familyProtocols = fromData("benchmark", () => publicBenchmarkLabels(protocols.value.filter((b) => b.family === state.family)));
+const selected = fromData("benchmark", () => selectedPublicBenchmark());
+const rows = fromData("benchmark", () => publicBenchmarkRows());
+const chartRows = fromData("benchmark", () => publicBenchmarkChartRows());
 
 /* 协议不在当前用途下时 selectedPublicBenchmark 会回退到该用途的默认协议；写回状态，下拉框与导出保持一致。 */
 watch(selected, (benchmark) => {
@@ -31,19 +39,19 @@ watch(selected, (benchmark) => {
 }, { immediate: true });
 
 const tableRows = computed(() => rows.value.map((r) => {
-  const plans = legacy.publicModelPlans(r.model);
+  const plans = publicModelPlans(r.model);
   const unit = selected.value ? selected.value.unit : "";
   return {
     ...r,
-    name: legacy.publicModelDisplayName(r.model),
+    name: publicModelDisplayName(r.model),
     configSummary: [r.reasoning ? "推理：" + r.reasoning : "推理未公布", r.agent ? "Agent：" + r.agent : "Agent 未公布"].join(" · "),
-    configuration: legacy.publicBenchmarkConfiguration(r),
+    configuration: publicBenchmarkConfiguration(r),
     plans,
-    newer: legacy.publicNewerVersion(r.model, plans),
-    scoreText: legacy.publicScoreText(r.score, unit),
-    uncertaintyLabel: legacy.publicUncertaintyLabel(r),
-    costText: legacy.publicCostText(r.costUSD),
-    checkedDate: legacy.publicBenchmarkDate(r.checkedAt),
+    newer: publicNewerVersion(r.model, plans),
+    scoreText: publicScoreText(r.score, unit),
+    uncertaintyLabel: publicUncertaintyLabel(r),
+    costText: publicCostText(r.costUSD),
+    checkedDate: publicBenchmarkDate(r.checkedAt),
   };
 }));
 const countText = computed(() => selected.value
@@ -76,7 +84,7 @@ function clearSearch() {
   searchTimer = undefined;
   searchText.value = "";
   state.search = "";
-  legacy.focusTableControl(searchInput.value);
+  focusTableControl(searchInput.value);
 }
 
 /* ---------- 图表 ---------- */
@@ -85,10 +93,10 @@ const hasCost = computed(() => rows.value.some((r) => r.costUSD != null));
 /* 当前协议没有成本数据时只能按分数作图。 */
 watch(hasCost, (value) => { if (!value) chartState.metric = "score"; }, { immediate: true });
 const costMetric = computed(() => chartState.metric === "cost");
-const chartFamilies = computed(() => chartRows.value.map((r) => legacy.publicChartFamily(r.model)));
+const chartFamilies = computed(() => chartRows.value.map((r) => publicChartFamily(r.model)));
 const legendFamilies = computed(() => [...new Set(chartFamilies.value)]);
 /* 颜色来自 CSS 变量，切换主题后由 renderChart 重读 */
-const familyColors = ref(legacy.publicChartColors());
+const familyColors = ref(publicChartColors());
 const chartHeight = computed(() => Math.max(240, chartRows.value.length * 34 + 74));
 const chartNote = computed(() => {
   const benchmark = selected.value;
@@ -101,7 +109,7 @@ const chartNote = computed(() => {
 const chartDescription = computed(() => {
   const benchmark = selected.value;
   if (!benchmark) return "模型评测排名";
-  const items = chartRows.value.map((r) => `第 ${r.rank} 名 ${legacy.publicModelDisplayName(r.model)}：${costMetric.value ? legacy.publicCostText(r.costUSD) : legacy.publicScoreText(r.score, benchmark.unit)}`);
+  const items = chartRows.value.map((r) => `第 ${r.rank} 名 ${publicModelDisplayName(r.model)}：${costMetric.value ? publicCostText(r.costUSD) : publicScoreText(r.score, benchmark.unit)}`);
   return `${benchmark.name}，${costMetric.value ? "评测每任务成本" : benchmark.metric}。${items.join("；")}`.slice(0, 240);
 });
 function chooseChartLimit(value: string) {
@@ -115,43 +123,42 @@ async function renderChart() {
   await nextTick(); /* 先让容器的显隐与高度跟上最新状态，ECharts 再按实际尺寸绘制 */
   const host = chartHost.value, benchmark = selected.value;
   if (!host || !benchmark || !rows.value.length) return;
-  familyColors.value = legacy.publicChartColors();
+  familyColors.value = publicChartColors();
   const section = host.closest<HTMLElement>(".section");
   if (section && section.hidden) return;
-  if (legacy.deferChartRender("chartPublicBenchmark", legacy.renderPublicBenchmarkChart)) return;
+  if (deferChartRender("chartPublicBenchmark", renderPublicBenchmarkChart)) return;
   const shown = chartRows.value, cost = costMetric.value, families = chartFamilies.value, colors = familyColors.value;
-  const labels = shown.map((r) => `#${r.rank} ${legacy.publicModelDisplayName(r.model)}${state.mode === "all" ? " · " + [r.reasoning, r.agent].filter(Boolean).join(" / ") : ""}`);
-  const { PAL, esc } = legacy;
-  legacy.makeChart("chartPublicBenchmark").setOption({
+  const labels = shown.map((r) => `#${r.rank} ${publicModelDisplayName(r.model)}${state.mode === "all" ? " · " + [r.reasoning, r.agent].filter(Boolean).join(" / ") : ""}`);
+  makeChart("chartPublicBenchmark").setOption({
     animation: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     grid: { left: 8, right: cost ? 78 : 64, top: 12, bottom: 46, containLabel: true },
     // Fixed positioning keeps wrapped tooltips out of WebKit's chart scroll extent.
-    tooltip: { ...legacy.tipStyle(host, true), extraCssText: "position: fixed; max-width: min(420px, calc(100vw - 24px)); box-sizing: border-box; white-space: normal; overflow-wrap: anywhere; z-index: 2000;", trigger: "item", formatter: (item: ChartItem) => {
+    tooltip: { ...tipStyle(host, true), extraCssText: "position: fixed; max-width: min(420px, calc(100vw - 24px)); box-sizing: border-box; white-space: normal; overflow-wrap: anywhere; z-index: 2000;", trigger: "item", formatter: (item: ChartItem) => {
       const r = shown[item.dataIndex]; if (!r) return "";
-      return `<b>#${r.rank} ${esc(legacy.publicModelDisplayName(r.model))}</b><br/>${esc(benchmark.name)} · ${esc(benchmark.metric)}：${esc(legacy.publicScoreText(r.score, benchmark.unit))}<br/>${esc(legacy.publicBenchmarkConfiguration(r))}<br/>每任务成本：${esc(legacy.publicCostText(r.costUSD))}<br/>${esc(r.uncertainty || "置信区间未公布")}`;
+      return `<b>#${r.rank} ${esc(publicModelDisplayName(r.model))}</b><br/>${esc(benchmark.name)} · ${esc(benchmark.metric)}：${esc(publicScoreText(r.score, benchmark.unit))}<br/>${esc(publicBenchmarkConfiguration(r))}<br/>每任务成本：${esc(publicCostText(r.costUSD))}<br/>${esc(r.uncertainty || "置信区间未公布")}`;
     } },
-    xAxis: { type: "value", min: 0, ...(!cost && benchmark.unit === "%" ? { max: 100 } : {}), name: cost ? "USD / 任务" : benchmark.metric + "（" + benchmark.unit + "）", nameLocation: "middle", nameGap: 28, nameTextStyle: { color: PAL.dim, fontSize: 11 }, ...legacy.axisStyle() },
-    yAxis: { type: "category", inverse: true, data: labels, axisTick: { show: false }, axisLine: { lineStyle: { color: PAL.axisLine } }, axisLabel: { ...legacy.chartAxisLabel(host, 12), lineHeight: 14, formatter: (label: string) => legacy.publicChartAxisName(label, host.getBoundingClientRect().width < 480) } },
+    xAxis: { type: "value", min: 0, ...(!cost && benchmark.unit === "%" ? { max: 100 } : {}), name: cost ? "USD / 任务" : benchmark.metric + "（" + benchmark.unit + "）", nameLocation: "middle", nameGap: 28, nameTextStyle: { color: PAL.dim, fontSize: 11 }, ...axisStyle() },
+    yAxis: { type: "category", inverse: true, data: labels, axisTick: { show: false }, axisLine: { lineStyle: { color: PAL.axisLine } }, axisLabel: { ...chartAxisLabel(host, 12), lineHeight: 14, formatter: (label: string) => publicChartAxisName(label, host.getBoundingClientRect().width < 480) } },
     series: [{ type: "bar", data: shown.map((r) => cost ? r.costUSD : r.score), barWidth: 17,
       itemStyle: { color: cost ? PAL.gold : (item: ChartItem) => colors[families[item.dataIndex].id], borderRadius: [0, 3, 3, 0] },
-      label: { show: true, position: "right", color: PAL.text, fontSize: 11, formatter: (item: ChartItem) => cost ? legacy.publicCostText(item.value) : legacy.publicScoreText(item.value, benchmark.unit) } }],
+      label: { show: true, position: "right", color: PAL.text, fontSize: 11, formatter: (item: ChartItem) => cost ? publicCostText(item.value) : publicScoreText(item.value, benchmark.unit) } }],
   }, true);
-  legacy.markChartsForResize(["chartPublicBenchmark"]);
-  legacy.resizeVisibleCharts();
+  markChartsForResize(["chartPublicBenchmark"]);
+  resizeVisibleCharts();
 }
 /* 导航、主题和尺寸变化通过共享绘图入口通知组件。 */
 watch([chartRows, costMetric, () => state.mode], renderChart);
 function hideTooltip() {
-  const chart = legacy.chartCache.chartPublicBenchmark;
+  const chart = chartCache.chartPublicBenchmark;
   if (chart) chart.dispatchAction({ type: "hideTip" });
 }
 onMounted(() => {
-  legacy.publicBenchmarkHooks.renderChart = renderChart;
+  publicBenchmarkHooks.renderChart = renderChart;
   window.addEventListener("scroll", hideTooltip, { capture: true, passive: true });
   window.addEventListener("resize", hideTooltip, { passive: true });
 });
 onBeforeUnmount(() => {
-  legacy.publicBenchmarkHooks.renderChart = null;
+  publicBenchmarkHooks.renderChart = null;
   window.removeEventListener("scroll", hideTooltip, { capture: true });
   window.removeEventListener("resize", hideTooltip);
   clearTimeout(searchTimer);
@@ -162,13 +169,13 @@ const feedback = ref("");
 function downloadCsv() {
   const benchmark = selected.value;
   if (!benchmark || !rows.value.length) return;
-  legacy.downloadCsvText(legacy.publicBenchmarkCsv(), `coding-plan-benchmark-${benchmark.id}.csv`);
+  downloadCsvText(publicBenchmarkCsv(), `coding-plan-benchmark-${benchmark.id}.csv`);
   feedback.value = `已导出当前协议的 ${rows.value.length} 条筛选结果，配置、来源与费用口径已保留。`;
 }
 function downloadJson() {
-  const data = legacy.publicBenchmarkData();
+  const data = publicBenchmarkData();
   if (!data.benchmarks.length) return;
-  legacy.downloadTextFile(JSON.stringify(data, null, 2) + "\n", "coding-plan-public-benchmarks.json", "application/json;charset=utf-8");
+  downloadTextFile(JSON.stringify(data, null, 2) + "\n", "coding-plan-public-benchmarks.json", "application/json;charset=utf-8");
   feedback.value = "已导出全部公开评测协议与原始成绩；未包含本机关注或投稿资料。";
 }
 </script>
@@ -176,10 +183,10 @@ function downloadJson() {
 <template>
   <div class="public-benchmark-controls">
     <label class="maintenance-select" for="publicBenchmarkFamily">评测用途<select id="publicBenchmarkFamily" :value="state.family" @change="chooseFamily(targetValue($event))">
-      <option v-for="family in families" :key="family" :value="family">{{ legacy.publicBenchmarkFamilyLabel(family) }}</option>
+      <option v-for="family in families" :key="family" :value="family">{{ publicBenchmarkFamilyLabel(family) }}</option>
     </select></label>
     <label class="maintenance-select" for="publicBenchmarkSelect">版本与评测协议<select id="publicBenchmarkSelect" :value="selected?.id" @change="chooseProtocol(targetValue($event))">
-      <optgroup :label="legacy.publicBenchmarkFamilyLabel(state.family || '评测协议')">
+      <optgroup :label="publicBenchmarkFamilyLabel(state.family || '评测协议')">
         <option v-for="[protocol, label] in familyProtocols" :key="protocol.id" :value="protocol.id">{{ label }}</option>
       </optgroup>
     </select></label>
@@ -202,11 +209,11 @@ function downloadJson() {
         <dl class="public-benchmark-meta">
           <div><dt>版本与协议</dt><dd>{{ selected.version }} · <code>{{ selected.id }}</code></dd></div>
           <div><dt>评测配置</dt><dd>{{ selected.configuration }}</dd></div>
-          <div><dt>官方标注日期与核查</dt><dd>官方标注 {{ legacy.publicBenchmarkDate(selected.sourceUpdatedAt) }} · 本站核查 {{ legacy.publicBenchmarkDate(selected.checkedAt) }} · <SourceLink :url="selected.sourceUrl" label="原始评测" /></dd></div>
+          <div><dt>官方标注日期与核查</dt><dd>官方标注 {{ publicBenchmarkDate(selected.sourceUpdatedAt) }} · 本站核查 {{ publicBenchmarkDate(selected.checkedAt) }} · <SourceLink :url="selected.sourceUrl" label="原始评测" /></dd></div>
         </dl>
       </details>
     </template>
-    <p v-else>{{ loaded ? "公开评测数据暂不可用。" : legacy.optionalPendingText("公开评测协议与成绩") }}</p>
+    <p v-else>{{ loaded ? "公开评测数据暂不可用。" : optionalPendingText("公开评测协议与成绩") }}</p>
   </div>
   <p id="publicBenchmarkModeNote" class="maintenance-meta">{{ modeNote }}</p>
   <p id="publicBenchmarkCount" class="maintenance-meta" role="status" aria-live="polite">{{ countText }}</p>

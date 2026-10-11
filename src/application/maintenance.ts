@@ -3,14 +3,14 @@ import { publicBenchmarkData, maintenanceData, benchmarkData, readFollowImport, 
 import { publicBenchmarkState, publicBenchmarkChartState, followState, followView, maintenanceView, benchmarkFilter, dataRevision, optionalViewState } from '../state/maintenance';
 import { publicBenchmarkDate, PUBLIC_CHART_FAMILIES } from '../domain/benchmarks';
 import { queryHit, foldSearch, shortVendor } from '../domain/core';
-import { PAL } from '../browser/chart-host';
+import { PAL } from '../browser/charts/host';
 import { csvCell } from '../domain/table-format';
-import type { FollowState } from '../domain/model-types';
+import type { FollowState } from '../state/maintenance';
 import { optionalDataLoaded, ensureOptionalData } from '../browser/optional-data';
-import { planTitle } from '../domain/model-access';
+import { planTitle } from '../domain/core';
 import { copyTextToClipboard, downloadTextFile } from '../browser/interaction';
-import type { OptionalDataKind, OptionalViewKind } from '../browser/optional-data';
-import { buildFollowSyncUrl } from '../browser/follow-links';
+import type { OptionalDataKind } from '../domain/core';
+import { buildFollowSyncUrl } from '../browser/maintenance-data';
 
 /** 公开评测组件挂载后登记图表重绘，供懒加载、主题与尺寸变化时调用。 */
 export const publicBenchmarkHooks: { renderChart: (() => void) | null } = { renderChart: null };
@@ -346,7 +346,7 @@ export function refreshOptionalViews(kind: OptionalDataKind) {
     }
 }
 
-export function loadViewData(kind: OptionalViewKind) {
+export function loadViewData(kind: OptionalDataKind) {
     const status = optionalViewState[kind];
     Object.assign(status, { message: optionalDataLoaded(kind) ? "" : "正在加载本标签的数据…", failed: false, loading: !optionalDataLoaded(kind) });
     return ensureOptionalData(kind).then(() => {
