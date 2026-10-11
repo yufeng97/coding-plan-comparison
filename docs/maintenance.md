@@ -182,4 +182,6 @@ npm run catalog:build
 
 `npm run maintenance:build` 除 `data/generated/changes.xml` 外，还为每个在库厂商生成 `data/generated/feeds/<slug>.xml`（发布链接仍为 `feeds/<slug>.xml`）：slug 由厂商名的 ASCII 片段加 SHA-256 前 8 位组成，映射写入维护摘要的 `feeds` 字段，页面「我的关注」只为已关注套餐的厂商列出订阅链接。条目描述使用中文字段名，链接打开数据表并搜索该档（含中转站与待核价格）。厂商改名或移除后，检查模式报告多余文件，生成模式在写入成功后清理。
 
+同一命令还生成首屏摘要 `data/generated/maintenance-summary.js`（套餐变更 ID，约 1.5 KB），编入类型化目录：导航「我的关注」据此显示已关注套餐的未读变更数，不必下载完整维护数据。摘要变化后需再运行 `npm run catalog:build`。
+
 关注与已读记录仍只存在浏览器本机。「复制关注同步链接」生成 `?follow=plan-…#updates`，只包含永久套餐 ID；在另一台设备打开后由用户确认合并，启动时地址栏会去掉该参数。

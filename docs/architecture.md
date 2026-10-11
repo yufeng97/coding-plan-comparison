@@ -34,13 +34,13 @@
 | `src/browser/` | 浏览器适配：DOM、URL 状态、本机存储、剪贴板与下载、按需数据、主题与章节高亮；`charts/` 按图表分文件，`host` 管理 ECharts 实例、配色与尺寸 |
 | `src/application/` | 跨功能动作与页面启动：数据表、额度表与对比，推荐范围，费用计算，操作栏（复制链接与常用条件），关注与评测，完整权益入口；启动拆为 `startup`、`section-navigation`、`history-restore`、`lazy-charts` 与 `page-widgets` |
 | `src/entries/` | 单独打包的经典脚本入口：首帧主题（`theme-init`）、主入口加载失败提示（`app-loader`）与 ECharts 精简包（`echarts`，仅柱状图 + Grid/Tooltip/Legend/Title/AxisPointer，构建时由 npm 包生成 `libs/echarts-<hash>.js`）；保留失败重试与 CSP 外链约定 |
-| `src/generated/catalog.ts` / `scripts/build/catalog-types.mjs` | 从审计数据、首屏评测摘要与公开项目配置确定性生成的类型化目录；生成文件提交，`catalog:check` 发现输入漂移时失败 |
+| `src/generated/catalog.ts` / `scripts/build/catalog-types.mjs` | 从审计数据、首屏评测与维护摘要和公开项目配置确定性生成的类型化目录；生成文件提交，`catalog:check` 发现输入漂移时失败 |
 | `types/catalog.d.ts` / `globals.d.ts` | 审计数据的结构类型（套餐、额度行、核价、评测与维护快照），数据文件的 checkJs 与应用共用同一份；`globals.d.ts` 只供应用程序：按需数据常量与 ECharts 精简包（下载前为 `undefined`）及 `window` 扩展 |
 | `src/styles/index.css` | 按层叠顺序导入：主题变量（`theme`）→ 元素基础（`base`）→ 页面骨架（`layout`：页头、导航、章节、页脚、加载失败提示）→ 跨区块组件（`components`：筛选控件、数据表外框与表头、分类标签、方法论折叠、对比与关注按钮、状态提示）→ 各功能（`features/`：图表、帮我选、价格与数据表、费用计算、对比、站点说明、关注、评测）→ 需要压过功能样式的窄屏调整（`responsive`）；`--cat-*` 是图表/图例/标签的单一色源 |
 | `src/assets/fonts/` | Manrope、IBM Plex Mono 本地子集；39 个字体声明共用 21 份内容去重资产 |
 | `src/test/` / `src/regression/` | 测试支撑与整页回归：`test/runtime.ts` 汇总业务模块供测试读取状态、调用函数（生产代码禁止引用）；`test/page.ts` 挂载真实 `App.vue` 并按生产顺序启动，只替换浏览器边界（历史、计时器、ECharts、存储、剪贴板、下载及按需数据），可在启动前准备数据（`prepare`）或按模块替换导出（`mock`） |
 | `data/sources/data.js` / `project-data.js` | 人工维护的审计数据与公开项目配置；订阅永久 ID、引用权益与项目入口在此维护，生成 TS 目录后进入应用 |
-| `data/generated/` | 维护与评测脚本生成、随源数据提交的文件（`.gitattributes` 标为生成文件）：按需加载的 `maintenance-data.js` / `benchmark-data.js`、首屏评测摘要 `benchmark-summary.js`、维护快照 `maintenance.json`，以及全站与分厂商变更 RSS `changes.xml` / `feeds/`（发布 URL 保持 `changes.xml` 与 `feeds/`） |
+| `data/generated/` | 维护与评测脚本生成、随源数据提交的文件（`.gitattributes` 标为生成文件）：按需加载的 `maintenance-data.js` / `benchmark-data.js`、首屏评测摘要 `benchmark-summary.js`、首屏维护摘要 `maintenance-summary.js`（导航未读提醒用的套餐变更 ID）、维护快照 `maintenance.json`，以及全站与分厂商变更 RSS `changes.xml` / `feeds/`（发布 URL 保持 `changes.xml` 与 `feeds/`） |
 | `data/audit/` | 258 条价格的原始库存、分组官网证据、JSON/CSV 合并台账与已确认变更历史 `change-history.json`；资讯、评测采集与截图的本地工作目录也在此（不纳入版本库）；不复制到公共部署产物 |
 | `data/config/news-sources.json` / `review-calendar.json` | 官方监测、开放发现与有来源的复核日历 |
 | `scripts/benchmarks/` / `data/benchmarks/` | 官方公开评测 adapter、带哈希证据的采集/审核、public-results.json 快照、固定任务验收与公共测评构建 |
@@ -62,7 +62,7 @@
 - **共享状态**：`src/state/` 集中使用 Vue `reactive`；保存目录对象引用的 `cmpState` 用 `shallowReactive`，替换选择数组时保持原套餐对象身份。推荐、表格、关注与完整权益窗口读取同一份状态，Vue 拥有这些容器的 DOM。
 - **按需数据与图表**：维护和评测仍按经典数据资产下载。`refreshOptionalViews` 递增 `dataRevision.maintenance` / `dataRevision.benchmark`，组件据此重算；图表加载、主题与尺寸变化通过组件登记的重绘钩子处理，卸载时释放图表资源。
 - **类型边界**：`src/` 全部代码在同一份严格配置下检查：`tsconfig.app.json` 覆盖业务模块、组件与模板（不含 Node 类型），`tsconfig.vitest.json` 继承它并加入测试与 Node 类型。数据结构只在 `types/catalog.d.ts` 声明一次，应用专用的全局声明在 `types/globals.d.ts`（数据文件的检查不引入它，避免与按需数据脚本里的同名常量冲突）；价格、额度等可缺省的值按 `number | null` 处理，付款报价按 `available` 区分有价与未列价两种形态，额度表行按 `payg` 区分套餐额度与按量参照。按需数据与 ECharts 全局在下载前不存在，类型为 `| undefined`，使用前先判断。生产源不使用 `any`、`@ts-nocheck` 或 `@ts-ignore`；测试替身 `FakeChart` 记录的 ECharts 配置是唯一保留 `any` 的地方，便于断言读取任意层级。
-- **审计目录**：`catalog:build` 从 `data/sources/data.js`、`data/sources/project-data.js` 与生成的首屏评测摘要 `data/generated/benchmark-summary.js` 确定性生成 `catalog.ts`，保留正则、资格函数与永久 ID。类型只来自数据文件里的 JSDoc（`@type`、`@param`、`@returns`），如 `Plan[]`、`PriceChecks`、`BenchmarkSummary`；顶层函数的参数缺少注解时生成失败。生成文件应随维护输入一同提交；`catalog:check` 只检查漂移，不改仓库。维护输入变化后先重建目录再提交。
+- **审计目录**：`catalog:build` 从 `data/sources/data.js`、`data/sources/project-data.js` 与生成的首屏评测摘要 `data/generated/benchmark-summary.js`、首屏维护摘要 `data/generated/maintenance-summary.js` 确定性生成 `catalog.ts`，保留正则、资格函数与永久 ID。类型只来自数据文件里的 JSDoc（`@type`、`@param`、`@returns`），如 `Plan[]`、`PriceChecks`、`BenchmarkSummary`；顶层函数的参数缺少注解时生成失败。生成文件应随维护输入一同提交；`catalog:check` 只检查漂移，不改仓库。维护输入变化后先重建目录再提交。
 - **关注与对比按钮**：推荐、数据表、完整权益和关注列表复用 Vue 按钮组件，直接从共享状态计算选中、禁用与 ARIA；统一服务处理套餐身份与关注变更。旧同步函数不改写 Vue 所有的节点。
 - **样式归属**：全局样式按 `src/styles/index.css` 的层叠顺序组织，功能样式只覆盖本功能的元素，多个区块共用的类（如 `.table-wrap`、`.method-box`、`.cmp-add`）放在 `components.css`。功能需要改共享组件的外观时写在功能文件里，它加载在组件之后；共享组件的窄屏尺寸若要压过功能样式（如推荐卡复用的对比按钮），放在最后加载的 `responsive.css`。新组件独用的样式写在组件的 `<style scoped>` 里：构建把它并入同一份样式表，预渲染与挂载后的元素都带 `data-v-*` 属性；作用域选择器多一个属性选择器，优先级高于同名的全局类。只有多个组件共用的类才放进全局样式表。
 - **静态首屏**：`render-vue.mjs` 在隔离进程里通过 Vite 加载同一个 App，调用 Vue `renderToString`；happy-dom 仅提供浏览器 API 边界。SSR 不运行启动、图表下载或用户存储恢复。浏览器按 URL 与本机状态重新挂载；静态输出不插入关闭窗口的 Teleport 节点，避免重复 ID。

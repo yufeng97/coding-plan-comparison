@@ -1,4 +1,4 @@
-import { META, PLANS, API_PRICES, PAYG_REFERENCES, PRICE_CHECKS, PUBLIC_PROJECT } from '../generated/catalog';
+import { META, PLANS, API_PRICES, PAYG_REFERENCES, PRICE_CHECKS, PUBLIC_PROJECT, MAINTENANCE_SUMMARY } from '../generated/catalog';
 import { publicBenchmarkData, maintenanceData, benchmarkData, readFollowImport, readStoredFollowState, writeStoredFollowState } from '../browser/maintenance-data';
 import { publicBenchmarkState, publicBenchmarkChartState, followState, followView, maintenanceView, benchmarkFilter, dataRevision, optionalViewState } from '../state/maintenance';
 import { publicBenchmarkDate, PUBLIC_CHART_FAMILIES } from '../domain/benchmarks';
@@ -148,6 +148,14 @@ export function followedChanges() {
 
 export function unreadFollowedChanges() {
     return followedChanges().filter((c) => !followState.readChangeIds.includes(c.changeId));
+}
+
+/* 导航上的未读数：完整维护数据未下载时用首屏摘要里的变更 ID，口径与关注页一致。 */
+export function followUnreadCount() {
+    if (optionalDataLoaded("maintenance"))
+        return unreadFollowedChanges().length;
+    const changes = MAINTENANCE_SUMMARY.schemaVersion === 1 ? MAINTENANCE_SUMMARY.changes : [];
+    return changes.filter((c) => followState.planIds.includes(c.id) && !followState.readChangeIds.includes(c.changeId)).length;
 }
 
 export function followFeedback(text: string) {

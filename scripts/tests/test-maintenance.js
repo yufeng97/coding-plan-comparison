@@ -9,7 +9,7 @@ const { buildMaintenance, parseArgs, rssOf } = require("../maintenance/build-mai
 const { seededHistory, canonical, changeOf, validateHistory } = require("../maintenance/history");
 const { rewindToFullAudit } = require("./full-audit-baseline");
 const workspace = path.resolve(__dirname, "../..");
-const outputs = ["data/audit/change-history.json", "data/generated/maintenance.json", "data/generated/maintenance-data.js", "data/generated/changes.xml"];
+const outputs = ["data/audit/change-history.json", "data/generated/maintenance.json", "data/generated/maintenance-data.js", "data/generated/maintenance-summary.js", "data/generated/changes.xml"];
 
 function fixture(run) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "coding-plan-maintenance-test-"));
@@ -24,7 +24,7 @@ function fixture(run) {
     const snapshot = () => outputs.map((file) => fs.existsSync(path.join(root, file)) ? fs.readFileSync(path.join(root, file)).toString("base64") : null);
     const calendar = (events) => fs.writeFileSync(path.join(root, "data/config/review-calendar.json"), JSON.stringify({ schemaVersion: 1, events }));
     // Maintenance outputs copied from data/generated must not affect the initial output snapshot.
-    for (const generated of ["maintenance-data.js", "maintenance.json", "changes.xml", "feeds"]) fs.rmSync(path.join(root, "data/generated", generated), { recursive: true, force: true });
+    for (const generated of ["maintenance-data.js", "maintenance-summary.js", "maintenance.json", "changes.xml", "feeds"]) fs.rmSync(path.join(root, "data/generated", generated), { recursive: true, force: true });
     run({ root, snapshot, calendar });
   } finally {
     if (path.dirname(root) !== fs.realpathSync(os.tmpdir()) || !path.basename(root).startsWith("coding-plan-maintenance-test-")) throw new Error("拒绝清理未知维护测试目录");

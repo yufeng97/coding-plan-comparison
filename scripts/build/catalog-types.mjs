@@ -7,7 +7,7 @@ import ts from "typescript";
 import { assertPublicSource } from "./vite-assets.mjs";
 
 export const CATALOG_FILE = "src/generated/catalog.ts";
-export const CATALOG_INPUTS = ["data/sources/data.js", "data/generated/benchmark-summary.js", "data/sources/project-data.js"];
+export const CATALOG_INPUTS = ["data/sources/data.js", "data/generated/benchmark-summary.js", "data/generated/maintenance-summary.js", "data/sources/project-data.js"];
 const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
 function typeNode(text) {
   const source = ts.createSourceFile("catalog-type.ts", `type CatalogType = ${text};`, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);

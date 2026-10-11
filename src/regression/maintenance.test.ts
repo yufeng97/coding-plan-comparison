@@ -386,3 +386,35 @@ test("超时后在旧请求返回前重试，迟到脚本与重试脚本都执�
     assert.doesNotThrow(() => vm.runInContext(source, context), file);
   }
 });
+
+test("导航「我的关注」用首屏摘要显示未读数，不下载完整维护数据；标为已读或取消关注后清除", async () => {
+  let page = await openPage();
+  const summary = page.runtime.MAINTENANCE_SUMMARY;
+  const id = summary.changes[0]!.id, expected = summary.changes.filter((c) => c.id === id).length;
+  const storage = { "cp-followed-plans-v1": JSON.stringify({ planIds: [id], readChangeIds: [] }) };
+  assert.equal(page.byId("followNavBadge").hidden, true, "没有关注时不显示");
+  page = await openPage({ lazyData: true, storage });
+  const badge = page.byId("followNavBadge");
+  assert.deepEqual(page.scriptLoads, [], "首屏不下载完整维护数据");
+  assert.equal(badge.hidden, false);
+  assert.equal(badge.querySelector('[aria-hidden="true"]')!.textContent, String(expected));
+  assert.equal(badge.querySelector(".sr-only")!.textContent, `，${expected} 条未读变更`);
+  page.runtime.navigateToSection("#updates");
+  await page.settle();
+  await page.finishDataLoads();
+  assert.equal(page.runtime.optionalDataLoaded("maintenance"), true);
+  assert.equal(badge.hidden, false, "完整数据加载后口径不变");
+  assert.equal(badge.querySelector('[aria-hidden="true"]')!.textContent, String(expected));
+  page.fire(page.byId("markFollowReadBtn"), "click");
+  await page.settle();
+  assert.equal(badge.hidden, true);
+  assert.equal(badge.textContent, "");
+  page.healthy();
+
+  page = await openPage({ storage });
+  assert.equal(page.byId("followNavBadge").hidden, false);
+  page.runtime.toggleFollowPlan(id);
+  await page.settle();
+  assert.equal(page.byId("followNavBadge").hidden, true, "取消关注后不再提醒");
+  page.healthy();
+});

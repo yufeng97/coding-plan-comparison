@@ -66,7 +66,7 @@ npm run build:site   # Vite + Vue SSR 生成发布产物 .site-build/
 
 `data/sources/` 是人工维护的审计数据，脚本生成的文件（目录、按需数据、维护快照与 RSS）分别在 `src/generated/` 与 `data/generated/`，随源数据提交；`catalog:check` 防止两份内容漂移。公式和数据测试直接导入 TypeScript 模块，整页回归挂载真实 `App.vue`，浏览器回归使用真实发布产物。旧页面 VM、HTML 渲染夹具和浏览器业务全局 getter 已删除。
 
-修改数据后运行 `npm run catalog:build` 与 `npm run maintenance:build`（维护摘要、变更 RSS 与分厂商订阅）；评测摘要变化后也需重新生成目录。详细流程见 [数据维护手册](docs/maintenance.md)。
+修改数据后先运行 `npm run maintenance:build`（维护摘要、变更 RSS、分厂商订阅与导航未读提醒的首屏摘要），再运行 `npm run catalog:build`；评测摘要变化后也需重新生成目录。详细流程见 [数据维护手册](docs/maintenance.md)。
 
 样式从 `src/styles/index.css` 按层叠顺序导入主题、基础、页面骨架、跨区块组件、各功能与窄屏调整，组件独用的样式写在各自的 `<style scoped>`，字体在 `src/assets/fonts/`，固定 URL 的分享图在 `public/`，生成的 RSS 在 `data/generated/`。编辑器经根目录 `tsconfig.json` 为业务代码、测试、数据与工具脚本选用各自的类型配置。`npm run dev` 启动前显式生成目录，开发服务器监听审计输入与经典脚本依赖的变化，刷新时使用最新资源。测试命令只检查已提交目录是否一致；加载 Vite 配置不会修改源码。
 

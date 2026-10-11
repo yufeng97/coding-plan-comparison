@@ -1,6 +1,10 @@
 <script setup lang="ts">
-/* 页头：滚动进度条、品牌、主要视图导航（选套餐 / 模型评测 / 我的关注）与主题按钮。 */
+/* 页头：滚动进度条、品牌、主要视图导航（选套餐 / 模型评测 / 我的关注）与主题按钮。
+   关注的套餐有未读变更时，「我的关注」显示数量；完整维护数据到达后按同一口径重算。 */
+import { followUnreadCount } from '@app/maintenance';
+import { fromData } from '../composables/optional-data';
 import ThemeButton from '../components/ThemeButton.vue';
+const unread = fromData("maintenance", followUnreadCount);
 </script>
 <template>
 <div class="scroll-progress" aria-hidden="true"><span id="scrollBar"></span></div>
@@ -11,7 +15,7 @@ import ThemeButton from '../components/ThemeButton.vue';
     <nav class="primary-nav" aria-label="主要内容">
       <a href="#quick" data-site-view="compare" aria-current="page">选套餐</a>
       <a href="#benchmarks" data-site-view="benchmarks">模型评测</a>
-      <a href="#updates" data-site-view="updates">我的关注</a>
+      <a href="#updates" data-site-view="updates">我的关注<span id="followNavBadge" class="nav-badge" :hidden="!unread"><template v-if="unread"><span aria-hidden="true">{{ unread > 99 ? "99+" : unread }}</span><span class="sr-only">，{{ unread }} 条未读变更</span></template></span></a>
     </nav>
     <ThemeButton />
   </div>

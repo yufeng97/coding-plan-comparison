@@ -237,15 +237,17 @@ async function main() {
     const { catalogSource, writeCatalog, CATALOG_FILE } = await import("../build/catalog-types.mjs");
     write("data/sources/data.js", 'const RATE_USD_CNY = 6.71;\n/** @type {Plan[]} */\nconst PLANS = [{id:"stable-id",plan:"fixture",quota:"shared"}];\n/** @type {ModelRole[]} */\nconst MODEL_ROLES = [{re:/glm-5/i}];\n/** @type {PriceChecks} */\nconst PRICE_CHECKS = {checkedAt:"2026-10-10",sources:{},rows:{}};\n/** @param {Plan} p @param {PlanTextField} key @param {Set<Plan>} [seen] @returns {string} */\nfunction resolvedField(p,key,seen) { return p[key]; }');
     write("data/generated/benchmark-summary.js", '/** @type {BenchmarkSummary} */\nconst BENCHMARK_SUMMARY = {schemaVersion:1,checkedAt:"2026-10-10",protocols:[]};');
+    write("data/generated/maintenance-summary.js", '/** @type {MaintenanceSummary} */\nconst MAINTENANCE_SUMMARY = {schemaVersion:1,changes:[]};');
     write("data/sources/project-data.js", 'const PUBLIC_PROJECT = Object.freeze({siteUrl:"https://example.com/"});');
     const source = catalogSource(root);
     assert.equal(source, catalogSource(root));
     assert.match(source, /PLANS: Plan\[\]/);
     assert.match(source, /BENCHMARK_SUMMARY: BenchmarkSummary/);
+    assert.match(source, /MAINTENANCE_SUMMARY: MaintenanceSummary/);
     assert.match(source, /MODEL_ROLES: ModelRole\[\]/);
     assert.match(source, /PRICE_CHECKS: PriceChecks/);
     assert.match(source, /function resolvedField\(p: Plan, key: PlanTextField, seen\?: Set<Plan>\): string/);
-    assert.match(source, /export \{ RATE_USD_CNY, PLANS, MODEL_ROLES, PRICE_CHECKS, resolvedField, BENCHMARK_SUMMARY, PUBLIC_PROJECT \};/);
+    assert.match(source, /export \{ RATE_USD_CNY, PLANS, MODEL_ROLES, PRICE_CHECKS, resolvedField, BENCHMARK_SUMMARY, MAINTENANCE_SUMMARY, PUBLIC_PROJECT \};/);
     const ts = require("typescript");
     const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
     const module = { exports: {} };
@@ -292,6 +294,7 @@ async function main() {
     const { watchCatalog, writeCatalog, CATALOG_FILE } = await import("../build/catalog-types.mjs");
     write("data/sources/data.js", "const PLANS = [];");
     write("data/generated/benchmark-summary.js", "const BENCHMARK_SUMMARY = {};");
+    write("data/generated/maintenance-summary.js", "const MAINTENANCE_SUMMARY = {};");
     write("data/sources/project-data.js", 'const PUBLIC_PROJECT = {siteUrl:"https://before.example.com/"};');
     const plugin = watchCatalog({ root });
     const generated = path.join(root, CATALOG_FILE);
