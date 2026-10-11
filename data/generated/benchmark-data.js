@@ -1,5 +1,5 @@
-/* 自动生成：npm run benchmark:build */
-const BENCHMARKS = {
+/* 自动生成：npm run benchmark:build。按需数据用 var：超时后重试时迟到的旧请求也可能执行，重复执行只覆盖同一份数据。 */
+var BENCHMARKS = {
   "schemaVersion": 1,
   "tasks": [
     {

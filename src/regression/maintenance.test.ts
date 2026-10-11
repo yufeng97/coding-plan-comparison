@@ -2,6 +2,9 @@
 /* 关注、维护、贡献者工具与按需数据的整页回归，原 test-app-maintenance.js。
  * 公开榜单并列/搜索/最佳配置/CSV 缺值与任务记录转义也有对应组件用例。 */
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import vm from "node:vm";
 import { test, vi } from "vitest";
 import { openPage } from "../test/page";
 
@@ -358,4 +361,28 @@ test("模型族稳定取色，窄屏简称保留版本，推荐证据只关联�
   assert.equal(app.planCodingBenchmarks(app.findPlanReference("plan-0002"), app.MODEL_ROLES.find((r: { id: string }) => r.id === "claude-opus")).some((r) => /Haiku/i.test(r.row.model)), false);
   assert.ok(app.planCodingBenchmarks(app.findPlanReference("plan-0159"), app.MODEL_ROLES.find((r: { id: string }) => r.id === "glm-5")).every((r) => /GLM/i.test(r.row.model)));
   page.healthy();
+});
+
+test("超时后在旧请求返回前重试，迟到脚本与重试脚本都执行也不报重复声明", async () => {
+  for (const [hash, kind, file] of [["#updates", "maintenance", "js/maintenance-data.js"], ["#benchmarks", "benchmark", "js/benchmark-data.js"]] as const) {
+    const page = await openPage({ lazyData: true, url: "/" + hash });
+    const status = page.byId(kind + "DataStatus");
+    assert.deepEqual(page.scriptLoads, [file]);
+    await page.flushTimers();
+    assert.match(status.textContent!, /数据下载超时，请重试/);
+    page.fire(query(`#${kind}DataStatus [data-retry-data]`), "click");
+    await page.settle();
+    assert.deepEqual(page.scriptLoads, [file, file], "卡住的旧请求不能阻止重试发出新请求");
+    await page.finishDataLoads();
+    assert.equal(page.runtime.optionalDataLoaded(kind), true);
+    assert.equal(status.textContent, "");
+    page.healthy();
+  }
+  /* 浏览器里已发出的旧脚本仍会执行：生成的数据脚本在同一全局环境执行两次，只覆盖同一份数据。 */
+  for (const file of ["maintenance-data.js", "benchmark-data.js"]) {
+    const source = fs.readFileSync(path.resolve("data/generated", file), "utf8");
+    const context = vm.createContext({});
+    vm.runInContext(source, context);
+    assert.doesNotThrow(() => vm.runInContext(source, context), file);
+  }
 });

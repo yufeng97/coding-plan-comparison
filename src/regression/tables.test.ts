@@ -628,3 +628,25 @@ test("额度表空态的模型档提示与下拉选项文字一致", async () =>
   assert.doesNotMatch(text, /全部模型档/);
   page.healthy();
 });
+
+test("完整权益窗口只在有选购口径时列出相应行，来源与核价来源可直接点击", async () => {
+  const page = await openPage();
+  const app = page.runtime;
+  app.showPlanDetails("plan-0002");
+  await page.settle();
+  const field = (label: string) => Array.from(page.byId("planDetailsBody").querySelectorAll(".plan-detail-fields > div"))
+    .find((row) => row.querySelector("dt")?.textContent === label)?.querySelector("dd") ?? null;
+  assert.equal(field("选购支付口径"), null, "未应用选购条件时不列空行");
+  assert.equal(field("选购首次付款"), null);
+  const source = field("来源")!.querySelector("a")!;
+  assert.match(source.getAttribute("href")!, /^https:\/\//);
+  assert.equal(source.textContent, "官网页面 ↗");
+  assert.equal(source.getAttribute("target"), "_blank");
+  assert.equal(source.getAttribute("rel"), "noopener");
+  assert.match(field("价格核查来源")!.querySelector("a")!.getAttribute("href")!, /^https:\/\//);
+  app.tableState.fromPicker = true;
+  await page.settle();
+  assert.match(field("选购支付口径")!.textContent!, /^[^—]/);
+  assert.deepEqual(app.linkList(["javascript:alert(1)"], "x"), [], "非 http(s) 地址不生成链接");
+  page.healthy();
+});

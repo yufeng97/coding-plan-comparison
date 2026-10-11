@@ -14,7 +14,9 @@ watch(() => followView.feedback, message => { if (dialog.value?.open) followFeed
 const plan = computed(() => findPlanReference(planId.value));
 const fields = computed(() => {
   const current = plan.value;
-  return current ? PLAN_COLUMNS.filter((column) => column.markdown !== false).map((column) => ({ label: column.label, value: column.value(current) || "—" })) : [];
+  /* 选购口径行只在应用选购条件后有值，空值不列；网址列显示为链接。 */
+  return current ? PLAN_COLUMNS.filter((column) => column.markdown !== false && !(column.pickerOnly && !column.value(current)))
+    .map((column) => ({ label: column.label, value: column.value(current) || "—", links: column.detailLinks?.(current) ?? null })) : [];
 });
 let returnFocus: HTMLElement | null = null;
 let openRequest = 0;
@@ -90,7 +92,7 @@ onBeforeUnmount(() => { finishClose(); planDetailsView.show = undefined; });
   <div id="planDetailsBackdrop" ref="backdrop" class="cmp-fallback-backdrop" hidden aria-hidden="true" @click="close"></div>
   <dialog id="planDetailsModal" ref="dialog" class="cmp-modal plan-details-modal" tabindex="-1" aria-labelledby="planDetailsTitle" @close="finishClose" @cancel.prevent="close" @keydown="keydown">
     <div class="cmp-head"><h3 id="planDetailsTitle">{{ plan ? planTitle(plan) : "完整套餐权益" }}</h3><button type="button" class="chip" id="planDetailsCloseBtn" @click="close">关闭 ✕</button></div>
-    <div id="planDetailsBody" v-if="plan"><dl class="plan-detail-fields"><div v-for="field in fields" :key="field.label"><dt>{{ field.label }}</dt><dd>{{ field.value }}</dd></div></dl>
+    <div id="planDetailsBody" v-if="plan"><dl class="plan-detail-fields"><div v-for="field in fields" :key="field.label"><dt>{{ field.label }}</dt><dd v-if="field.links && field.links.length"><template v-for="(link, index) in field.links" :key="link.href + index"><template v-if="index"> · </template><a :href="link.href" target="_blank" rel="noopener">{{ link.text }}</a></template></dd><dd v-else-if="field.links">—</dd><dd v-else>{{ field.value }}</dd></div></dl>
       <div class="maintenance-plan-actions"><WatchButton :plan="plan" /><a v-if="safeLink(plan.url)" :href="safeLink(plan.url)" target="_blank" rel="noopener">官网购买与权益规则 ↗</a></div>
       <p id="planFollowFeedback" class="table-feedback" role="status" aria-live="polite">{{ followFeedback }}</p><PlanHistory :key="plan.id" :plan-id="plan.id" />
     </div>

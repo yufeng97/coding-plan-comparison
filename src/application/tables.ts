@@ -1,5 +1,5 @@
 import { RATE_INR_CNY, META, isOnSalePlan, isRelay, findPlanReference, resolvedField, PLANS, PAYG_REFERENCES, priceCheckOf, isPriceConfirmed, displayPriceReason } from '../generated/catalog';
-import { CAT_LABEL, REGION_LABEL, esc, planPriceLabel, priceUnit, priceCheckLabel, priceCheckSources, mainlandAccessText, RATE, queryHit, planSearchBlob, shortVendor, METRICS_ALL, metricOfferOk } from '../domain/core';
+import { CAT_LABEL, REGION_LABEL, esc, planPriceLabel, priceUnit, priceCheckLabel, priceCheckSources, mainlandAccessText, RATE, queryHit, planSearchBlob, shortVendor, METRICS_ALL, metricOfferOk, safeLink } from '../domain/core';
 import { annualPaymentText } from '../domain/picker/payment';
 import { priceLine, pickerFirstPaymentText, matchesPickerPurchase, pickerMonthlyCNY, pickerMetricInput } from '../state/picker';
 import { tableState, cmpState, CMP_MAX, metricsState } from '../state/app';
@@ -66,6 +66,18 @@ export interface PlanColumn {
     value: (p: Plan) => string | number;
     markdownValue?: (p: Plan) => string;
     tdClass?: (p: Plan) => string;
+    /** 仅在应用选购条件后有值；完整权益窗口跳过空值行，导出保留固定列。 */
+    pickerOnly?: boolean;
+    /** 完整权益窗口把这一列的网址显示为链接。 */
+    detailLinks?: (p: Plan) => DetailLink[];
+}
+
+export interface DetailLink { href: string; text: string; }
+
+/* 完整权益窗口里的网址列显示为可点击链接；非 http(s) 地址不生成链接。 */
+export function linkList(urls: readonly (string | undefined)[], label: string): DetailLink[] {
+    const links = urls.map(safeLink).filter(Boolean);
+    return links.map((href, i) => ({ href, text: `${label}${links.length > 1 ? i + 1 : ""} ↗` }));
 }
 
 /* 数据表与两种导出的列定义同源；单位及更新元数据只在导出里单列。 */
@@ -79,17 +91,18 @@ export const PLAN_COLUMNS: PlanColumn[] = [
     { id: "priceY", label: "年付折月", cls: "td-price", value: (p) => p.priceY == null ? "" : planPriceLabel(p, "Y"),
         markdownValue: (p) => p.priceY == null ? "—" : planPriceLabel(p, "Y") },
     { id: "annualTotal", label: "年付全年金额", table: false, value: annualPaymentText },
-    { id: "selectedPayment", label: "选购支付口径", table: false, value: (p) => tableState.fromPicker ? priceLine(p) : "" },
-    { id: "selectedFirstPayment", label: "选购首次付款", table: false, value: (p) => tableState.fromPicker ? pickerFirstPaymentText(p) : "" },
+    { id: "selectedPayment", label: "选购支付口径", table: false, pickerOnly: true, value: (p) => tableState.fromPicker ? priceLine(p) : "" },
+    { id: "selectedFirstPayment", label: "选购首次付款", table: false, pickerOnly: true, value: (p) => tableState.fromPicker ? pickerFirstPaymentText(p) : "" },
     { id: "quota", label: "额度（官方口径）", cls: "td-quota", value: (p) => resolvedField(p, "quota") },
     { id: "models", label: "模型", cls: "td-models col-opt", value: (p) => resolvedField(p, "models") },
     { id: "tools", label: "支持工具", cls: "col-opt", value: (p) => resolvedField(p, "tools") },
     { id: "note", label: "备注", cls: "td-note col-opt", value: (p) => resolvedField(p, "note"),
         markdownValue: (p) => resolvedField(p, "note") || "—" },
-    { id: "url", label: "来源", cls: "td-trust", value: (p) => p.url || "" },
+    { id: "url", label: "来源", cls: "td-trust", value: (p) => p.url || "", detailLinks: (p) => linkList([p.url], "官网页面") },
     { id: "priceStatus", label: "价格核实状态", table: false, value: (p) => priceCheckLabel(p) },
     { id: "priceCheckedAt", label: "价格核查日期", table: false, value: (p) => priceCheckOf(p)?.checkedAt || "" },
-    { id: "priceSources", label: "价格核查来源", table: false, value: (p) => priceCheckSources(p).join(" ; ") },
+    { id: "priceSources", label: "价格核查来源", table: false, value: (p) => priceCheckSources(p).join(" ; "),
+        detailLinks: (p) => linkList(priceCheckSources(p), "核价来源") },
     { id: "priceCheckReason", label: "价格核查说明", table: false, value: (p) => displayPriceReason(priceCheckOf(p)?.reason || "") },
     { id: "mainland", label: "中国大陆可用性", table: false, value: mainlandAccessText },
     { id: "updated", label: "数据更新日期", table: false, markdown: false, value: () => META.updated },
