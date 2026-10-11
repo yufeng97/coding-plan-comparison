@@ -11,10 +11,12 @@ const { deployment, deploySite, resolveDeploymentToken } = require("../build/dep
 async function fixture(fn) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "coding-plan-tools-test-"));
   const write = (rel, content) => { const file = path.join(root, rel); fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, content); };
-  write("index.html", '<link rel="stylesheet" href="libs/fonts/fonts.css"><script src="js/extra.js"></script>');
-  write("libs/fonts/fonts.css", '@font-face {src:url("gf-0.woff2")}');
-  write("libs/fonts/gf-0.woff2", "wOF2old0");
+  write("index.html", '<link rel="stylesheet" href="src/assets/fonts/fonts.css"><script src="js/extra.js"></script>');
+  write("src/assets/fonts/fonts.css", '@font-face {src:url("gf-0.woff2")}');
+  write("src/assets/fonts/gf-0.woff2", "wOF2old0");
   write("js/extra.js", '"use strict";');
+  write("src/browser/extra.js", '"use strict";');
+  fs.mkdirSync(path.join(root, "data/sources"), { recursive: true });
   write("vercel.json", '{"framework":null,"outputDirectory":"."}');
   write(".vercel/project.json", '{"projectId":"prj_fixture","orgId":"team_fixture","projectName":"fixture"}');
   try { await fn(root, write); }
@@ -48,8 +50,8 @@ async function test(name, fn) { await fn(); passed++; console.log("  ✓ " + nam
 
 async function main() {
   await test("RSS、分享图与分厂商订阅随站发布，隐藏文件与白名单外的构建产物被拒绝", () => fixture(async (root, write) => {
-    write("changes.xml", '<rss version="2.0"><channel><title>Changes</title></channel></rss>');
-    write("img/og-card.png", "png"); write("img/.DS_Store", "x"); write("feeds/vendor.xml", "<rss/>");
+    write("public/changes.xml", '<rss version="2.0"><channel><title>Changes</title></channel></rss>');
+    write("public/img/og-card.png", "png"); write("public/img/.DS_Store", "x"); write("public/feeds/vendor.xml", "<rss/>");
     const site = await stage(root);
     for (const rel of ["changes.xml", "img/og-card.png", "feeds/vendor.xml", "vercel.json", "index.html", "js/extra.js"]) assert.ok(site.files.includes(rel), rel);
     assert.equal(site.files.includes("img/.DS_Store"), false);
@@ -60,10 +62,10 @@ async function main() {
     assert.equal(fs.readdirSync(root).some((name) => /^\.site-(stage|backup)-/.test(name)), false);
   }));
   await test("附带目录里经链接指向私有或隐藏位置的内容不得发布", () => fixture(async (root, write) => {
-    for (const rel of [".private", "scripts", "img/.hidden"]) {
+    for (const rel of [".private", "scripts", "public/img/.hidden"]) {
       write(rel + "/secret.txt", "PRIVATE_SECRET_MARKER");
       /* 目录 junction（Windows 无需特权）：附带目录只发布直属文件，链接目录整体跳过 */
-      const junction = path.join(root, "img", "alias");
+      const junction = path.join(root, "public/img", "alias");
       fs.mkdirSync(path.dirname(junction), { recursive: true });
       fs.symlinkSync(path.join(root, rel), junction, process.platform === "win32" ? "junction" : "dir");
       try {
@@ -71,7 +73,7 @@ async function main() {
         assert.equal(site.files.some((file) => file.includes("alias") || file.includes("secret")), false);
       } finally { fs.unlinkSync(junction); }
       /* 文件符号链接：真实路径不在白名单时拒绝。Windows 未开启开发者模式时不能创建，跳过这一半 */
-      const link = path.join(root, "img", "secret.txt");
+      const link = path.join(root, "public/img", "secret.txt");
       try { fs.symlinkSync(path.join(root, rel, "secret.txt"), link, "file"); }
       catch (error) { if (error && error.code === "EPERM") continue; throw error; }
       try { await assert.rejects(stage(root), /白名单|隐藏目录/); }
@@ -93,7 +95,7 @@ async function main() {
     assert.match(main, /App\.vue/);
     assert.doesNotMatch(main + config, /virtual:legacy|legacyApp/);
     const { build } = await import("esbuild");
-    const result = await build({ entryPoints: [path.join(root, "src/domain/runtime.ts")], bundle: true, platform: "node", format: "cjs", external: ["vue"], write: false, logLevel: "silent" });
+    const result = await build({ entryPoints: [path.join(root, "src/application/runtime.ts")], bundle: true, platform: "node", format: "cjs", external: ["vue"], write: false, logLevel: "silent" });
     const code = result.outputFiles[0].text;
     assert.doesNotMatch(code, /virtual:legacy/);
     const module = { exports: {} };
@@ -112,15 +114,15 @@ async function main() {
   await test("构建只读入公共源目录，经 junction 指向私有目录的模块和资源被拒绝", () => fixture(async (root, write) => {
     const { assertPublicSource, publicSourcesOnly } = await import("../build/vite-assets.mjs");
     write("audit/secret.js", "PRIVATE_SECRET_MARKER");
-    assert.doesNotThrow(() => assertPublicSource(root, path.join(root, "js/extra.js")));
+    assert.doesNotThrow(() => assertPublicSource(root, path.join(root, "src/browser/extra.js")));
     assert.throws(() => assertPublicSource(root, path.join(root, "audit/secret.js")), /公共目录以外/);
-    const link = path.join(root, "libs", "alias");
+    const link = path.join(root, "src/assets", "alias");
     fs.symlinkSync(path.join(root, "audit"), link, process.platform === "win32" ? "junction" : "dir");
     try {
       const guard = publicSourcesOnly({ root });
       assert.throws(() => guard.load(path.join(link, "secret.js") + "?import"), /公共目录以外.*audit/);
       assert.equal(guard.load("\0vite-generated-module"), null);
-      const bundle = { font: { type: "asset", originalFileNames: ["libs/alias/secret.js"] }, ok: { type: "asset", originalFileNames: ["libs/fonts/gf-0.woff2"] } };
+      const bundle = { font: { type: "asset", originalFileNames: ["src/assets/alias/secret.js"] }, ok: { type: "asset", originalFileNames: ["src/assets/fonts/gf-0.woff2"] } };
       assert.throws(() => guard.generateBundle({}, bundle), /公共目录以外/);
       delete bundle.font;
       assert.doesNotThrow(() => guard.generateBundle({}, bundle));
@@ -137,11 +139,99 @@ async function main() {
     assert.equal(sandbox.echarts.version, require("echarts/package.json").version);
     assert.equal(typeof sandbox.echarts.init, "function");
   });
+  await test("开发经典脚本缓存跟随入口及间接依赖内容更新，失败生成可在修复后重试", () => fixture(async (root, write) => {
+    const { createServer } = await import("vite");
+    const { classicScripts } = await import("../build/vite-assets.mjs");
+    write("src/domain/message.ts", 'export const message = "one";');
+    write("src/browser/entry.ts", 'import { message } from "../domain/message"; globalThis.fixtureMessage = message;');
+    const plugin = classicScripts({ root, generated: { "js/theme-init.js": "src/browser/entry.ts" } });
+    const server = await createServer({ root, configFile: false, plugins: [plugin], server: { host: "127.0.0.1", port: 0 }, logLevel: "silent" });
+    try {
+      await server.listen();
+      const address = server.httpServer.address();
+      assert.ok(address && typeof address !== "string");
+      const url = `http://127.0.0.1:${address.port}/js/theme-init.js`;
+      const load = async () => {
+        const response = await fetch(url);
+        assert.equal(response.status, 200);
+        assert.equal(response.headers.get("cache-control"), "no-store");
+        const sandbox = {};
+        require("node:vm").runInNewContext(await response.text(), sandbox);
+        return sandbox;
+      };
+      assert.equal((await load()).fixtureMessage, "one");
+      /* 保留相同长度与 mtime，仍须依据依赖内容而不是时间戳失效。 */
+      const dependency = path.join(root, "src/domain/message.ts"), stamp = fs.statSync(dependency);
+      write("src/domain/message.ts", 'export const message = "two";');
+      fs.utimesSync(dependency, stamp.atime, stamp.mtime);
+      assert.equal((await load()).fixtureMessage, "two");
+      write("src/browser/entry.ts", 'import { message } from "../domain/message"; globalThis.fixtureMessage = message + "!";');
+      assert.equal((await load()).fixtureMessage, "two!");
+      write("src/domain/message.ts", "export const message = ;");
+      assert.equal((await fetch(url)).status, 500);
+      write("src/domain/message.ts", 'export const message = "fixed";');
+      assert.equal((await load()).fixtureMessage, "fixed!");
+    } finally { await server.close(); }
+  }));
+  await test("public 开发 URL 保持分享图及 RSS 地址，阻止私有链接与源码目录 URL", () => fixture(async (root, write) => {
+    const { createServer } = await import("vite");
+    const { publicAssets } = await import("../build/vite-assets.mjs");
+    write("public/img/og-card.png", "public image");
+    write("public/changes.xml", "<rss/>");
+    write("audit/secret.txt", "PRIVATE_SECRET_MARKER");
+    const server = await createServer({ root, configFile: false, publicDir: false, plugins: [publicAssets({ root })], server: { host: "127.0.0.1", port: 0 }, logLevel: "silent" });
+    try {
+      await server.listen();
+      const address = server.httpServer.address();
+      assert.ok(address && typeof address !== "string");
+      const base = `http://127.0.0.1:${address.port}`;
+      assert.equal(await (await fetch(base + "/img/og-card.png")).text(), "public image");
+      assert.equal(await (await fetch(base + "/changes.xml")).text(), "<rss/>");
+      assert.equal((await fetch(base + "/public/img/og-card.png")).status, 403);
+      assert.equal((await fetch(base + "/audit/secret.txt")).status, 403);
+      assert.equal((await fetch(base + "/@fs/" + path.join(root, "audit/secret.txt").split(path.sep).join("/"))).status, 403);
+      const alias = path.join(root, "public/img/alias");
+      fs.symlinkSync(path.join(root, "audit"), alias, process.platform === "win32" ? "junction" : "dir");
+      try { assert.equal((await fetch(base + "/img/alias/secret.txt")).status, 403); }
+      finally { fs.unlinkSync(alias); }
+    } finally { await server.close(); }
+  }));
+  await test("生成中的依赖变化不会把旧字节登记为新缓存，watcher 延迟时也重新生成", async () => {
+    const { classicScripts } = await import("../build/vite-assets.mjs");
+    const { EventEmitter } = require("node:events");
+    const crypto = require("node:crypto");
+    for (const emitChange of [true, false]) await fixture(async (root, write) => {
+      write("src/browser/pending.ts", "before");
+      const dependency = path.join(root, "src/browser/pending.ts");
+      let startedResolve = () => {}, resumeResolve = () => {}, builds = 0, middleware;
+      const started = new Promise((resolve) => { startedResolve = () => resolve(undefined); });
+      const resume = new Promise((resolve) => { resumeResolve = () => resolve(undefined); });
+      /* 可控构建屏障：先捕获实际输入，再由测试保存新内容，不依赖计时或文件监听到达顺序。 */
+      const bundle = async () => {
+        const bytes = fs.readFileSync(dependency);
+        const digest = crypto.createHash("sha256").update(dependency).update(bytes).digest("hex");
+        if (++builds === 1) { startedResolve(); await resume; }
+        return { bytes, dependencies: [dependency], digest };
+      };
+      const watcher = Object.assign(new EventEmitter(), { add() {} });
+      const plugin = classicScripts({ root, generated: { "js/pending.js": "src/browser/pending.ts" }, bundle });
+      plugin.configureServer({ watcher, ws: { send() {} }, middlewares: { use(handler) { middleware = handler; } } });
+      const request = () => new Promise((resolve, reject) => middleware({ url: "/js/pending.js" }, { setHeader() {}, end(bytes) { resolve(bytes.toString()); } }, reject));
+      const result = request();
+      await started;
+      write("src/browser/pending.ts", "after");
+      if (emitChange) watcher.emit("change", dependency);
+      resumeResolve();
+      assert.equal(await result, "after");
+      assert.equal(await request(), "after");
+      assert.equal(builds, 2, "必须丢弃生成期间过期的结果，稳定后复用缓存");
+    });
+  });
   await test("审计输入确定性生成类型化目录，保留永久 ID、正则、共享字段与评测摘要，顶层函数参数须写明类型", () => fixture(async (root, write) => {
     const { catalogSource, writeCatalog, CATALOG_FILE } = await import("../build/catalog-types.mjs");
-    write("js/data.js", 'const RATE_USD_CNY = 6.71;\n/** @type {Plan[]} */\nconst PLANS = [{id:"stable-id",plan:"fixture",quota:"shared"}];\n/** @type {ModelRole[]} */\nconst MODEL_ROLES = [{re:/glm-5/i}];\n/** @type {PriceChecks} */\nconst PRICE_CHECKS = {checkedAt:"2026-10-10",sources:{},rows:{}};\n/** @param {Plan} p @param {PlanTextField} key @param {Set<Plan>} [seen] @returns {string} */\nfunction resolvedField(p,key,seen) { return p[key]; }');
-    write("js/benchmark-summary.js", '/** @type {BenchmarkSummary} */\nconst BENCHMARK_SUMMARY = {schemaVersion:1,checkedAt:"2026-10-10",protocols:[]};');
-    write("js/project-data.js", 'const PUBLIC_PROJECT = Object.freeze({siteUrl:"https://example.com/"});');
+    write("data/sources/data.js", 'const RATE_USD_CNY = 6.71;\n/** @type {Plan[]} */\nconst PLANS = [{id:"stable-id",plan:"fixture",quota:"shared"}];\n/** @type {ModelRole[]} */\nconst MODEL_ROLES = [{re:/glm-5/i}];\n/** @type {PriceChecks} */\nconst PRICE_CHECKS = {checkedAt:"2026-10-10",sources:{},rows:{}};\n/** @param {Plan} p @param {PlanTextField} key @param {Set<Plan>} [seen] @returns {string} */\nfunction resolvedField(p,key,seen) { return p[key]; }');
+    write("data/sources/benchmark-summary.js", '/** @type {BenchmarkSummary} */\nconst BENCHMARK_SUMMARY = {schemaVersion:1,checkedAt:"2026-10-10",protocols:[]};');
+    write("data/sources/project-data.js", 'const PUBLIC_PROJECT = Object.freeze({siteUrl:"https://example.com/"});');
     const source = catalogSource(root);
     assert.equal(source, catalogSource(root));
     assert.match(source, /PLANS: Plan\[\]/);
@@ -161,14 +251,14 @@ async function main() {
     assert.equal(writeCatalog(root).changed, false);
     assert.equal(writeCatalog(root, { check: true }).changed, false);
     const file = path.join(root, CATALOG_FILE), before = fs.readFileSync(file, "utf8");
-    write("js/project-data.js", 'const PUBLIC_PROJECT = Object.freeze({siteUrl:"https://changed.example.com/"});');
+    write("data/sources/project-data.js", 'const PUBLIC_PROJECT = Object.freeze({siteUrl:"https://changed.example.com/"});');
     assert.throws(() => writeCatalog(root, { check: true }), /已过期/);
     assert.equal(fs.readFileSync(file, "utf8"), before, "检查模式不改仓库");
-    write("js/project-data.js", "const PLANS = [];");
+    write("data/sources/project-data.js", "const PLANS = [];");
     assert.throws(() => catalogSource(root), /PLANS.*重复声明/);
-    write("js/project-data.js", 'const PUBLIC_PROJECT = Object.freeze({siteUrl:"https://example.com/"});');
-    write("js/data.js", "const PLANS = []; function untyped(p) { return p; }");
-    assert.throws(() => catalogSource(root), /js\/data\.js:1 函数 untyped 的参数 p 缺少 JSDoc 类型/);
+    write("data/sources/project-data.js", 'const PUBLIC_PROJECT = Object.freeze({siteUrl:"https://example.com/"});');
+    write("data/sources/data.js", "const PLANS = []; function untyped(p) { return p; }");
+    assert.throws(() => catalogSource(root), /data\/sources\/data\.js:1 函数 untyped 的参数 p 缺少 JSDoc 类型/);
     const real = path.resolve(__dirname, "..", "..");
     assert.equal(fs.readFileSync(path.join(real, CATALOG_FILE), "utf8"), catalogSource(real));
   }));
@@ -186,20 +276,37 @@ async function main() {
   await test("目录生成不经公共路径链接读入私有审计内容", () => fixture(async (root, write) => {
     const { catalogSource } = await import("../build/catalog-types.mjs");
     write("audit/private/data.js", "const PRIVATE_SECRET_MARKER = 'must-not-publish';");
-    const input = path.join(root, "js"), backup = path.join(root, "js-original");
+    const input = path.join(root, "data/sources"), backup = path.join(root, "data/sources-original");
     fs.renameSync(input, backup);
     fs.symlinkSync(path.join(root, "audit/private"), input, process.platform === "win32" ? "junction" : "dir");
     try { assert.throws(() => catalogSource(root), /公共目录以外.*audit/); }
     finally { fs.unlinkSync(input); fs.renameSync(backup, input); }
   }));
+  await test("开发目录插件加载时不写源码，已登记输入热更新后重建类型目录", () => fixture(async (root, write) => {
+    const { watchCatalog, writeCatalog, CATALOG_FILE } = await import("../build/catalog-types.mjs");
+    write("data/sources/data.js", "const PLANS = [];");
+    write("data/sources/benchmark-summary.js", "const BENCHMARK_SUMMARY = {};");
+    write("data/sources/project-data.js", 'const PUBLIC_PROJECT = {siteUrl:"https://before.example.com/"};');
+    const plugin = watchCatalog({ root });
+    const generated = path.join(root, CATALOG_FILE);
+    assert.equal(fs.existsSync(generated), false, "创建开发配置不应生成或改写已提交文件");
+    writeCatalog(root);
+    const before = fs.readFileSync(generated, "utf8");
+    write("data/sources/project-data.js", 'const PUBLIC_PROJECT = {siteUrl:"https://after.example.com/"};');
+    plugin.hotUpdate({ file: path.join(root, "src/App.vue") });
+    assert.equal(fs.readFileSync(generated, "utf8"), before, "其他源文件不能触发目录重建");
+    plugin.hotUpdate({ file: path.join(root, "data/sources/project-data.js") });
+    assert.match(fs.readFileSync(generated, "utf8"), /https:\/\/after\.example\.com\//);
+    assert.equal(writeCatalog(root, { check: true }).changed, false);
+  }));
   await test("字体第二个下载失败保留整组旧字体与 CSS", () => fixture(async (root) => {
-    const dir = path.join(root, "libs/fonts"), before = snapshot(dir);
+    const dir = path.join(root, "src/assets/fonts"), before = snapshot(dir);
     await assert.rejects(updateFonts({ dir, fetcher: async (url) => { if (url.endsWith("/b")) throw new Error("503 fixture"); return fetchFonts(url); } }), /503/);
     assert.deepEqual(snapshot(dir), before);
     assert.deepEqual(fs.readdirSync(path.dirname(dir)), ["fonts"]);
   }));
   await test("字体成功整组替换、清理旧子集，并使用内容哈希名称", () => fixture(async (root) => {
-    const dir = path.join(root, "libs/fonts");
+    const dir = path.join(root, "src/assets/fonts");
     const result = await updateFonts({ dir, fetcher: fetchFonts });
     assert.equal(result.count, 2);
     const files = fs.readdirSync(dir);
@@ -208,7 +315,7 @@ async function main() {
     assert.doesNotMatch(fs.readFileSync(path.join(dir, "fonts.css"), "utf8"), /https:/);
   }));
   await test("不同字体URL返回同一字节时只保存一份内容哈希资产", () => fixture(async (root) => {
-    const dir = path.join(root, "libs/fonts");
+    const dir = path.join(root, "src/assets/fonts");
     const result = await updateFonts({ dir, fetcher: async (url) => url.includes("googleapis") ? fontCss : Buffer.from("wOF2same-font") });
     assert.equal(result.count, 1);
     assert.equal(result.sources, 2);
@@ -218,7 +325,7 @@ async function main() {
     assert.deepEqual(refs, [files[0], files[0]]);
   }));
   await test("字体 CSS 只接受 fonts.gstatic.com 的 HTTPS 字体，外部主机/HTTP/@import 在下载前拒绝", () => fixture(async (root) => {
-    const dir = path.join(root, "libs/fonts"), before = snapshot(dir);
+    const dir = path.join(root, "src/assets/fonts"), before = snapshot(dir);
     for (const css of ["a{src:url(https://evil.example/a.woff2)}", 'a{src:url("http://fonts.gstatic.com/s/a")}', "a{src:url('https://fonts.gstatic.com.evil.example/a')}",
       "a{src:url(https://user@fonts.gstatic.com/s/a)}", "a{src:url(https://fonts.gstatic.com:8443/s/a)}", "a{src:url(/local/a.woff2)}",
       "@import url(https://fonts.gstatic.com/s/x.css);a{src:url(https://fonts.gstatic.com/s/a)}", "a{src:url(https://fonts.gstatic.com/s/a)}b{src:url(https://fonts.googleapis.com/s/b)}"]) {
@@ -234,20 +341,20 @@ async function main() {
     for (const url of ["https://evil.example/font.woff2", "http://fonts.gstatic.com/s/a", "https://fonts.gstatic.com.evil.example/s/a"]) await assert.rejects(fontGet(url), /Google Fonts/, url);
   }));
   await test("字体 CSS 为空或响应非 WOFF2 拒绝替换旧目录", () => fixture(async (root) => {
-    const dir = path.join(root, "libs/fonts"), before = snapshot(dir);
+    const dir = path.join(root, "src/assets/fonts"), before = snapshot(dir);
     await assert.rejects(updateFonts({ dir, fetcher: async () => Buffer.from("no fonts") }), /不含字体/);
     await assert.rejects(updateFonts({ dir, fetcher: async (url) => url.includes("googleapis") ? fontCss : Buffer.from("not a font") }), /不是 WOFF2/);
     assert.deepEqual(snapshot(dir), before);
   }));
   await test("字体目录切换失败回滚，不留半组新文件", () => fixture(async (root) => {
-    const dir = path.join(root, "libs/fonts"), before = snapshot(dir);
+    const dir = path.join(root, "src/assets/fonts"), before = snapshot(dir);
     let calls = 0;
     await assert.rejects(updateFonts({ dir, fetcher: fetchFonts, rename: (from, to) => { if (++calls === 2) throw new Error("swap fixture"); fs.renameSync(from, to); } }), /swap/);
     assert.deepEqual(snapshot(dir), before);
     assert.deepEqual(fs.readdirSync(path.dirname(dir)), ["fonts"]);
   }));
   await test("字体切换和回滚均失败时保留完整旧备份并报告可恢复路径", () => fixture(async (root) => {
-    const dir = path.join(root, "libs/fonts"), parent = path.dirname(dir), before = snapshot(dir);
+    const dir = path.join(root, "src/assets/fonts"), parent = path.dirname(dir), before = snapshot(dir);
     const swapError = new Error("font swap fixture"), restoreError = new Error("font restore fixture");
     let calls = 0;
     await assert.rejects(updateFonts({ dir, fetcher: fetchFonts, rename: (from, to) => {

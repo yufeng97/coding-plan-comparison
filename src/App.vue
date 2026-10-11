@@ -1,27 +1,27 @@
 <script setup lang="ts">
-import { META, RATE_USD_CNY, PRICE_CHECKS, rankPaymentLabel } from '@domain/runtime';
-import PickerControls from './sections/PickerControls.vue';
-import PickerRecommendations from './sections/PickerRecommendations.vue';
-import PersonalPrices from './sections/PersonalPrices.vue';
-import FreePlans from './sections/FreePlans.vue';
-import RankChart from './sections/RankChart.vue';
-import WeeklyTokens from './sections/WeeklyTokens.vue';
-import TeamPrices from './sections/TeamPrices.vue';
-import ApiPrices from './sections/ApiPrices.vue';
-import PlanTable from './sections/PlanTable.vue';
-import MetricsTable from './sections/MetricsTable.vue';
-import ComparePlans from './sections/ComparePlans.vue';
-import PlanDetails from './sections/PlanDetails.vue';
-import PublicBenchmarks from './sections/PublicBenchmarks.vue';
-import ContributorBenchmarks from './sections/ContributorBenchmarks.vue';
-import FollowUpdates from './sections/FollowUpdates.vue';
-import Contribution from './sections/Contribution.vue';
-import SiteStats from './sections/SiteStats.vue';
-import SiteDynamics from './sections/SiteDynamics.vue';
-import SiteSources from './sections/SiteSources.vue';
-import ThemeButton from './sections/ThemeButton.vue';
-import ServiceActions from './sections/ServiceActions.vue';
-import OptionalDataStatus from './sections/OptionalDataStatus.vue';
+import { META, RATE_USD_CNY, PRICE_CHECKS, rankPaymentLabel } from '@app/runtime';
+import PickerControls from './sections/picker/PickerControls.vue';
+import PickerRecommendations from './sections/picker/PickerRecommendations.vue';
+import PersonalPrices from './sections/pricing/PersonalPrices.vue';
+import FreePlans from './sections/pricing/FreePlans.vue';
+import RankChart from './sections/pricing/RankChart.vue';
+import WeeklyTokens from './sections/pricing/WeeklyTokens.vue';
+import TeamPrices from './sections/pricing/TeamPrices.vue';
+import ApiPrices from './sections/pricing/ApiPrices.vue';
+import PlanTable from './sections/pricing/PlanTable.vue';
+import MetricsTable from './sections/pricing/MetricsTable.vue';
+import ComparePlans from './sections/pricing/ComparePlans.vue';
+import PlanDetails from './sections/pricing/PlanDetails.vue';
+import PublicBenchmarks from './sections/benchmarks/PublicBenchmarks.vue';
+import ContributorBenchmarks from './sections/benchmarks/ContributorBenchmarks.vue';
+import FollowUpdates from './sections/follow/FollowUpdates.vue';
+import Contribution from './sections/contribution/Contribution.vue';
+import SiteStats from './sections/site/SiteStats.vue';
+import SiteDynamics from './sections/follow/SiteDynamics.vue';
+import SiteSources from './sections/site/SiteSources.vue';
+import ThemeButton from './components/ThemeButton.vue';
+import ServiceActions from './sections/picker/ServiceActions.vue';
+import OptionalDataStatus from './components/OptionalDataStatus.vue';
 const entries = Object.values(PRICE_CHECKS.rows);
 const pending = entries.filter((row) => row.status === 'unverified').length;
 const retired = entries.filter((row) => row.status === 'retired').length;
@@ -167,14 +167,14 @@ const auditSummary = `价格逐条核查：${PRICE_CHECKS.checkedAt} · ${entrie
     <div class="section-head"><h2><span class="sec-no">11</span>模型公开评测</h2><p>查看公开来源的模型分数、评测配置与范围。每个版本和协议独立展示，不合成跨榜总分。</p></div>
     <OptionalDataStatus id="benchmarkDataStatus" kind="benchmark" />
     <div class="maintenance-panel public-benchmark-panel">
-      <!-- 由 src/sections/PublicBenchmarks.vue 渲染：筛选、协议说明、图表、成绩表与导出。 -->
+      <!-- 由 src/sections/benchmarks/PublicBenchmarks.vue 渲染：筛选、协议说明、图表、成绩表与导出。 -->
       <div id="publicBenchmarkApp" data-v-app=""><public-benchmarks></public-benchmarks></div>
       <p class="maintenance-meta">分数显示到 1 位小数，成本显示到 2 位；导出保留原始精度。区间沿用来源，接近的分数不代表可靠领先；未公布的区间不补算。套餐链接只匹配模型列表明确列出该版本的在售档位，不保证订阅能使用评测的推理与 Agent 配置。原始模型 ID 与完整区间在「配置与评测说明」中。</p>
     </div>
     <details class="method-box public-benchmark-guide"><summary>这些榜单适合回答什么问题？</summary><p>DeepSWE 与 CursorBench 聚焦代码任务，但各自的任务集、Agent、评分与版本不同，应在同一协议内比较。OSWorld 是图形界面操作任务，关注桌面与应用交互；HLE 是综合学术题目，关注知识与推理。GUI 或学术分数不能直接当成编程任务表现。</p><p>请同时查看版本、样本范围、是否使用工具及推理配置。分数说明来源中的评测条件，不保证你的具体任务、工具或套餐能获得同样结果。</p></details>
     <details class="method-box" id="contributorBenchmarkTools"><summary>贡献者工具：任务验收与记录提交（可选）</summary>
     <p class="maintenance-meta">下面的本地任务框架用于检查提交解答；公开模型榜单来自上方所列来源，二者分别记录。</p>
-    <!-- 由 src/sections/ContributorBenchmarks.vue 渲染：筛选、贡献者记录、任务与测评方法。 -->
+    <!-- 由 src/sections/benchmarks/ContributorBenchmarks.vue 渲染：筛选、贡献者记录、任务与测评方法。 -->
     <div id="contributorBenchmarksApp" data-v-app=""><contributor-benchmarks></contributor-benchmarks></div>
     </details>
   </section>
@@ -182,14 +182,14 @@ const auditSummary = `价格逐条核查：${PRICE_CHECKS.checkedAt} · ${entrie
   <section class="section" id="updates" hidden>
     <div class="section-head"><h2><span class="sec-no">12</span>我的关注与套餐变更</h2><p>查看关注套餐的已确认变更，核对价格来源与复查安排。<a href="changes.xml">订阅全部变更 RSS ↗</a>；关注套餐后可单独订阅对应厂商。</p></div>
     <OptionalDataStatus id="maintenanceDataStatus" kind="maintenance" />
-    <!-- 由 src/sections/FollowUpdates.vue 渲染：关注与已读、套餐历史、到期复查、核查概况与下载、逐条维护状态。 -->
+    <!-- 由 src/sections/follow/FollowUpdates.vue 渲染：关注与已读、套餐历史、到期复查、核查概况与下载、逐条维护状态。 -->
     <div id="updatesApp" data-v-app=""><follow-updates></follow-updates></div>
     <p class="maintenance-meta">核查快照与已确认变更由维护脚本整理。变价候选、资讯与到期提示需复核；没有证据时不自动更新官方价格。</p>
   </section>
 
   <section class="section" id="contribute" hidden>
     <div class="section-head"><h2><span class="sec-no">13</span>帮助补全与纠错</h2><p>提交新厂商、官方变更证据或可复现测评，帮助其他人做选择。</p></div>
-    <!-- 由 src/sections/Contribution.vue 渲染：贡献类型、证据模板、复制下载与 Issues 链接。 -->
+    <!-- 由 src/sections/contribution/Contribution.vue 渲染：贡献类型、证据模板、复制下载与 Issues 链接。 -->
     <div class="maintenance-panel" id="contributionApp" data-v-app=""><contribution></contribution></div>
   </section>
 

@@ -1,0 +1,50 @@
+/* ---------- 动态时间线 ---------- */
+.dynamics-list { list-style: none; margin-bottom: 20px; display: grid; gap: 8px; }
+.dynamics-list li {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 12px 16px; font-size: 13.5px; color: var(--text); display: flex; gap: 14px;
+  align-items: flex-start;
+}
+.dyn-date {
+  flex-shrink: 0; height: fit-content; white-space: nowrap;
+  font: 600 11px var(--mono); color: var(--muted);
+  border: 1px solid var(--line-strong); padding: 2px 7px; border-radius: 5px; margin-top: 1px;
+}
+.dyn-date.is-checked { color: var(--faint); border-style: dashed; }
+.dyn-body { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.dyn-src { display: inline-block; margin-left: 8px; font: 600 11.5px var(--mono); color: var(--muted); white-space: nowrap; }
+.dyn-src:hover { color: var(--accent); }
+
+/* ---------- 方法论折叠 ---------- */
+.method-box {
+  margin-top: 14px; margin-bottom: 10px;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 14px 20px; background: var(--panel);
+}
+.method-box summary { cursor: pointer; color: var(--ink); font-size: 13.5px; font-weight: 700; user-select: none; }
+.method-box summary:hover { color: var(--brand-button); }
+html[data-theme="dark"] .method-box summary:hover { color: var(--brand); }
+.method-box ol { margin: 14px 0 8px 22px; display: grid; gap: 10px; font-size: 13px; color: var(--muted); line-height: 1.7; }
+.method-box b { color: var(--ink); }
+.method-box code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; font-size: 11.5px; font-family: var(--mono); }
+.method-box p { font-size: 12.5px; color: var(--faint); margin-top: 10px; line-height: 1.7; }
+
+/* ---------- 来源 ---------- */
+.source-card {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-l);
+  padding: 20px; font-size: 13px; color: var(--muted); margin-bottom: 10px;
+}
+.source-card h3 { color: var(--ink); font-size: 14.5px; margin-bottom: 12px; font-weight: 700; }
+#sourceList .method-box ul { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
+#sourceList .method-box li { overflow-wrap: anywhere; }
+.source-group { margin-bottom: 12px; }
+.source-group summary { cursor: pointer; color: var(--ink); font-weight: 600; padding: 8px 0; }
+.source-group b { color: var(--ink); font-size: 13px; }
+.source-group ul { list-style: none; margin-top: 6px; padding-left: 4px; }
+.source-group li { padding: 2px 0; word-break: break-all; }
+.source-group a { font-size: 12px; color: var(--muted); }
+.source-group a:hover { color: var(--accent); }
+.uncertain-list { list-style: none; display: grid; gap: 8px; }
+.uncertain-list li { padding-left: 18px; position: relative; }
+.uncertain-list li::before { content: ""; position: absolute; left: 4px; top: 9px; width: 5px; height: 5px; border-radius: 50%; background: var(--gold); }
+

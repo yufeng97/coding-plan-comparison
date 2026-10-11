@@ -4,12 +4,16 @@
   "version": "1.0.0",
   "description": "国内外 AI Coding Plan（编程订阅计划）价格与 token 额度可视化对比",
   "scripts": {
+    "predev": "npm run catalog:build",
     "dev": "vite",
     "serve": "node scripts/build/stage-site.js && node scripts/server/serve.js .site-build",
     "validate": "node scripts/build/validate-data.js",
+    "pretest": "npm run catalog:check",
     "test": "node scripts/tests/run.js",
     "check": "node scripts/build/check-syntax.js",
-    "typecheck": "npm run catalog:check && tsc -p jsconfig.json && tsc -p jsconfig.node.json && vue-tsc -p tsconfig.app.json && vue-tsc -p tsconfig.vitest.json",
+    "typecheck": "npm run catalog:check && npm run check:architecture && tsc -p jsconfig.json && tsc -p jsconfig.node.json && vue-tsc -p tsconfig.app.json && vue-tsc -p tsconfig.vitest.json",
+    "check:architecture": "node scripts/build/check-architecture.js",
+    "test:architecture": "node scripts/tests/test-architecture.js",
     "catalog:build": "node scripts/build/catalog-types.mjs",
     "catalog:check": "node scripts/build/catalog-types.mjs --check",
     "test:tools": "node scripts/tests/test-tools.js",
@@ -30,6 +34,7 @@
     "vendor:fonts": "node scripts/build/vendor-fonts.js",
     "build:site": "node scripts/build/stage-site.js",
     "deploy": "node scripts/build/deploy-site.js",
+    "pretest:unit": "npm run catalog:check",
     "test:unit": "vitest run"
   },
   "devDependencies": {

@@ -1,6 +1,6 @@
 "use strict";
 /* 浏览器回归共用：只经 DOM、地址栏、本机存储与 ECharts 的公共 API 读取页面，不依赖页面模块的内部名称。
- * 期望数据在 Node 里直接执行审计输入 js/data.js 取得（与页面同一份源文件）。 */
+ * 期望数据在 Node 里直接执行审计输入 data/sources/data.js 取得（与页面同一份源文件）。 */
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
@@ -16,11 +16,11 @@ function readScript(file, names) {
   return context.exported;
 }
 
-/** js/data.js 的顶层数据与共享资格函数。 */
-const catalog = readScript("js/data.js", ["PLANS", "META", "API_PRICES", "PRICE_CHECKS", "isFreeCodingEntry", "hasIncludedModelQuota", "isOnSalePlan", "findPlanReference"]);
+/** data/sources/data.js 的顶层数据与共享资格函数。 */
+const catalog = readScript("data/sources/data.js", ["PLANS", "META", "API_PRICES", "PRICE_CHECKS", "isFreeCodingEntry", "hasIncludedModelQuota", "isOnSalePlan", "findPlanReference"]);
 /** 按需加载的维护与评测数据。 */
-const { MAINTENANCE } = readScript("js/maintenance-data.js", ["MAINTENANCE"]);
-const { BENCHMARKS } = readScript("js/benchmark-data.js", ["BENCHMARKS"]);
+const { MAINTENANCE } = readScript("data/generated/maintenance-data.js", ["MAINTENANCE"]);
+const { BENCHMARKS } = readScript("data/generated/benchmark-data.js", ["BENCHMARKS"]);
 
 /** 本机存储键：已发布的约定，改名会让访问者的关注和预设丢失。 */
 const STORAGE_KEYS = { follow: "cp-followed-plans-v1", preset: "cp-filter-preset-v1", theme: "cp-theme" };

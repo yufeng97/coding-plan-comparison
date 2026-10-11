@@ -1,3 +1,4 @@
+
 /* 数据表、额度表、导出与并排对比。原 scripts/tests/test-app-tables.js（页面虚拟 DOM + 经典表格渲染），现用真实 App。
  * Vue 按永久 ID 保留行与按钮节点，原来「重绘替换旧节点」的断言改为检查焦点与状态仍落在同一方案上。 */
 import assert from "node:assert/strict";
@@ -395,7 +396,7 @@ test("年付表格、比较和导出优先保留官方全年金额及席位单�
   app.cmpState.items = [exact, seat];
   app.openCmpModal();
   await page.settle();
-  const { default: PlanPrice } = await import("../sections/PlanPrice.vue");
+  const { default: PlanPrice } = await import("../components/PlanPrice.vue");
   const annualCell = (p: Plan) => {
     const wrapper = mount(PlanPrice, { props: { plan: p, annual: true } });
     const text = wrapper.text();

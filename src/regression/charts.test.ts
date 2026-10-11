@@ -1,3 +1,4 @@
+
 /* 图表：懒加载与导航顺序、图例、主题配色与响应式。原 scripts/tests/test-app-charts.js，现用真实 App。
  * happy-dom 没有布局：元素尺寸为 0，宽度按页面的回退规则（视口宽度 − 72）计算；需要可见尺寸的用例单独给出。
  * 真实画布尺寸与像素见 charts.browser.spec.js。 */

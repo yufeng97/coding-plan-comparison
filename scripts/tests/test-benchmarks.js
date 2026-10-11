@@ -72,16 +72,16 @@ try {
   }
   fs.writeFileSync(path.join(workspace,"benchmarks/results.json"),JSON.stringify({schemaVersion:1,runs:[]}));
   build(workspace);
-  const publicFile=path.join(workspace,"js/benchmark-data.js");
+  const publicFile=path.join(workspace,"data/generated/benchmark-data.js");
   fs.writeFileSync(publicFile,"stale-public-data");
   assert.throws(()=>build(workspace,{check:true}),/过期/);
   assert.equal(fs.readFileSync(publicFile,"utf8"),"stale-public-data","检查模式必须只读");
   build(workspace);
   assert.doesNotThrow(()=>build(workspace,{check:true}));
-  const summaryFile=path.join(workspace,"js/benchmark-summary.js");
+  const summaryFile=path.join(workspace,"data/sources/benchmark-summary.js");
   assert.match(fs.readFileSync(summaryFile,"utf8"),/\nconst BENCHMARK_SUMMARY = \{"schemaVersion":1,/);
   fs.writeFileSync(summaryFile,"stale-summary");
-  assert.throws(()=>build(workspace,{check:true}),/过期（js\/benchmark-summary\.js）/);
+  assert.throws(()=>build(workspace,{check:true}),/过期（data\/sources\/benchmark-summary\.js）/);
   assert.equal(fs.readFileSync(summaryFile,"utf8"),"stale-summary","检查模式必须只读");
   build(workspace);
   assert.doesNotThrow(()=>build(workspace,{check:true}));

@@ -16,6 +16,15 @@
     "paths": {
       "@domain/*": [
         "src/domain/*"
+      ],
+      "@app/*": [
+        "src/application/*"
+      ],
+      "@state/*": [
+        "src/state/*"
+      ],
+      "@browser/*": [
+        "src/browser/*"
       ]
     }
   },

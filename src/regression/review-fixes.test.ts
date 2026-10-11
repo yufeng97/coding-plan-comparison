@@ -1,3 +1,4 @@
+
 /* 2026-10 审查回归：真实 Vue 整页、生产构建与数据校验接口，原 test-review-fixes.js。 */
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -9,7 +10,7 @@ import { openPage, type Page } from "../test/page";
 
 const root = path.resolve(".");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const dataSource = fs.readFileSync(path.join(root, "js/data.js"), "utf8");
+const dataSource = fs.readFileSync(path.join(root, "data/sources/data.js"), "utf8");
 const requireTool = createRequire(import.meta.url);
 const { validateData } = requireTool("../../scripts/build/validate-data.js") as { validateData(options: { workspace: string; source: string }): { errors: string[]; warns: string[] } };
 const validate = (source: string) => validateData({ workspace: root, source });
@@ -57,7 +58,7 @@ test("单模块入口加载，主题同步先于样式，加载提示先于入�
   assert.match(loader.attrs, /\bdefer\b/);
   assert.ok(loader.at < html.indexOf("</head>"));
   assert.ok(fs.existsSync(path.join(root, "src/App.vue")));
-  assert.ok(fs.existsSync(path.join(root, "src/domain/startup.ts")));
+  assert.ok(fs.existsSync(path.join(root, "src/application/startup.ts")));
 });
 
 test("API 明细单一渲染来源，图表加载前后名称一致", async () => {
@@ -229,15 +230,15 @@ test("发布静态文件白名单含分享图与订阅，跳过隐藏文件", ()
   assert.ok(path.basename(directory).startsWith("cp-extras-"));
   try {
     fs.writeFileSync(path.join(directory, "index.html"), "<!doctype html>");
-    fs.mkdirSync(path.join(directory, "img"));
-    fs.mkdirSync(path.join(directory, "feeds"));
-    fs.writeFileSync(path.join(directory, "img", "og-card.png"), "png");
-    fs.writeFileSync(path.join(directory, "img", ".DS_Store"), "x");
-    fs.writeFileSync(path.join(directory, "feeds", "vendor-test.xml"), "<rss/>");
-    assert.deepEqual(publicExtras(directory).map((file) => path.relative(directory, file).split(path.sep).join("/")), ["img/og-card.png", "feeds/vendor-test.xml"]);
+    fs.mkdirSync(path.join(directory, "public", "img"), { recursive: true });
+    fs.mkdirSync(path.join(directory, "public", "feeds"));
+    fs.writeFileSync(path.join(directory, "public", "img", "og-card.png"), "png");
+    fs.writeFileSync(path.join(directory, "public", "img", ".DS_Store"), "x");
+    fs.writeFileSync(path.join(directory, "public", "feeds", "vendor-test.xml"), "<rss/>");
+    assert.deepEqual(publicExtras(directory).map((file) => path.relative(path.join(directory, "public"), file).split(path.sep).join("/")), ["img/og-card.png", "feeds/vendor-test.xml"]);
   } finally { fs.rmSync(directory, { recursive: true, force: true }); }
   assert.match(html, /<meta property="og:image" content="https:\/\/[^"]+\/img\/og-card\.png">/);
-  assert.ok(fs.existsSync(path.join(root, "img", "og-card.png")));
+  assert.ok(fs.existsSync(path.join(root, "public", "img", "og-card.png")));
   assert.match(html, /<link rel="canonical" href="https:\/\/[^"]+\/">/);
 });
 
@@ -271,12 +272,12 @@ test("每个在库厂商有确定变更订阅，条目链接对应档位并用�
   assert.deepEqual(maintenance.feeds!.map((feed) => feed.vendor), vendors);
   for (const feed of maintenance.feeds!) {
     assert.equal(feed.path, "feeds/" + vendorFeedSlug(feed.vendor) + ".xml");
-    const xml = fs.readFileSync(path.join(root, feed.path), "utf8");
+    const xml = fs.readFileSync(path.join(root, "public", feed.path), "utf8");
     assert.equal((xml.match(/<item>/g) || []).length, feed.changes, feed.vendor);
   }
   const busy = maintenance.feeds!.find((feed) => feed.changes > 0)!;
-  assert.match(fs.readFileSync(path.join(root, busy.path), "utf8"), /\?q=[^<]+&amp;tall=1#table/);
-  assert.doesNotMatch(fs.readFileSync(path.join(root, "changes.xml"), "utf8"), /<description>[^<]*\bprice[MY]：/);
+  assert.match(fs.readFileSync(path.join(root, "public", busy.path), "utf8"), /\?q=[^<]+&amp;tall=1#table/);
+  assert.doesNotMatch(fs.readFileSync(path.join(root, "public", "changes.xml"), "utf8"), /<description>[^<]*\bprice[MY]：/);
   page.healthy();
 });
 

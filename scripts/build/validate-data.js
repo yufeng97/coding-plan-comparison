@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /* ============================================================
  * 数据校验：node scripts/build/validate-data.js
- * 校验 js/data.js 的结构、类型与引用一致性。
+ * 校验 data/sources/data.js 的结构、类型与引用一致性。
  * 退出码：0 = 通过（可有警告）；1 = 存在错误。
  * 每日巡检任务在修改 data.js 后必须运行本脚本，
- * 失败时应从 js/data.js.bak 恢复。
+ * 失败时应从 data/sources/data.js.bak 恢复。
  * ============================================================ */
 const vm = require("vm");
 const fs = require("fs");
@@ -37,10 +37,10 @@ function validateData(options = {}) {
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
   vm.runInContext(
-    (options.source ?? fs.readFileSync(path.join(root, "js/data.js"), "utf8")) +
+    (options.source ?? fs.readFileSync(path.join(root, "data/sources/data.js"), "utf8")) +
       "\n;globalThis.__D={RATE_USD_CNY,RATE_INR_CNY,META,PRICE_CHECKS,PLANS,METRICS_RAW,ESTIMATES,PLAN_TOKENS,DYNAMICS,API_PRICES,PAYG_REFERENCES,SOURCES,UNCERTAIN,MODEL_ROLES,matchModelRoles,isRetiredPlan,isFreeCodingEntry,isOnSalePlan,isPersonalMonthly,resolvedField,hasOwnClient,offerable,findPlanReference,displayPriceReason,INTERNAL_TEXT_RE,isRelay,CALC_DEFAULT_API,MAINLAND_ACCESS};",
     sandbox,
-    { filename: "js/data.js" }
+    { filename: "data/sources/data.js" }
   );
   const { RATE_USD_CNY, RATE_INR_CNY, META, PRICE_CHECKS, PLANS, METRICS_RAW, ESTIMATES, PLAN_TOKENS, DYNAMICS, API_PRICES, PAYG_REFERENCES, SOURCES, UNCERTAIN, MODEL_ROLES, matchModelRoles, isRetiredPlan, isFreeCodingEntry, isOnSalePlan, isPersonalMonthly, resolvedField, hasOwnClient, offerable, findPlanReference, displayPriceReason, INTERNAL_TEXT_RE, isRelay, CALC_DEFAULT_API, MAINLAND_ACCESS } = sandbox.__D;
 
@@ -140,7 +140,7 @@ function validateData(options = {}) {
     }
   }
 
-  /* isRetiredPlan / isFreeCodingEntry 定义在 js/data.js 中（同一份代码，VM 沙箱直接复用）。
+  /* isRetiredPlan / isFreeCodingEntry 定义在 data/sources/data.js 中（同一份代码，VM 沙箱直接复用）。
      每日巡检改完 data.js 后必须跑本脚本。 */
   const NOT_CODING_FREE = [
     ["Lovable", "Free"],
@@ -468,12 +468,12 @@ function validateData(options = {}) {
   /* ---- Vue/TypeScript 入口及公共资源引用 ---- */
   const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
   /* Audited input and explicit application modules must be present. */
-  for (const f of ["js/data.js", "src/main.ts", "src/App.vue", "src/domain/catalog.ts", "src/domain/runtime.ts", "src/domain/startup.ts"]) {
+  for (const f of ["data/sources/data.js", "src/main.ts", "src/App.vue", "src/generated/catalog.ts", "src/application/runtime.ts", "src/application/startup.ts"]) {
     check(fs.existsSync(path.join(root, f)), `文件不存在: ${f}`);
   }
   /* ECharts 精简包在构建时生成（入口 src/charts/echarts.ts，由构建与工具回归检查），这里只确认页面保留加载入口。 */
   check(html.includes('src="libs/echarts.js"'), "index.html 缺少 ECharts 精简包的加载入口（chartLibraryTemplate）");
-  for (const f of ["css/style.css", "libs/fonts/fonts.css"]) {
+  for (const f of ["src/styles/index.css", "src/assets/fonts/fonts.css"]) {
     check(html.includes(f), `index.html 未引用: ${f}`);
     check(fs.existsSync(path.join(root, f)), `文件不存在: ${f}`);
   }
@@ -486,7 +486,7 @@ function validateData(options = {}) {
     let rel = "";
     try { rel = decodeURIComponent((ogImage[1].match(/^https:\/\/[^/]+\/([^?#]*)/) || [])[1] || ""); } catch { rel = ""; }
     /* 只警告：核价同步在不含 img/ 的临时工作区校验候选数据，分享图缺失不应阻断数据同步；发布前的回归测试会检查文件。 */
-    warn(!!rel && /^img\//.test(rel) && fs.existsSync(path.join(root, rel)), `og:image 指向的文件不存在或不在 img/ 目录：${ogImage[1]}`);
+    warn(!!rel && /^img\//.test(rel) && fs.existsSync(path.join(root, "public", rel)), `og:image 指向的文件不存在或不在 public/img/ 目录：${ogImage[1]}`);
   }
   /* 标题里的年月同样是静态文字，搜索结果与分享卡片会直接显示。 */
   const titleMonth = html.match(/<title>[^<]*?(\d{4})年(\d{1,2})月[^<]*<\/title>/);

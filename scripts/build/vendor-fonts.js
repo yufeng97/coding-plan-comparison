@@ -53,7 +53,7 @@ function get(url, headers = {}, redirects = 0) {
 
 /** @param {{dir?:string,fetcher?:typeof get,rename?:typeof fs.renameSync}} options */
 async function updateFonts(options = {}) {
-  const dir = path.resolve(options.dir || path.join(__dirname, "..", "..", "libs", "fonts"));
+  const dir = path.resolve(options.dir || path.join(__dirname, "..", "..", "src", "assets", "fonts"));
   const parent = path.dirname(dir);
   if (dir === parent || !path.basename(dir)) throw new Error("字体目录不能是磁盘根目录");
   fs.mkdirSync(parent, { recursive: true });

@@ -1,9 +1,10 @@
+
 /* 逐行核价、原币与历史价格的整页边界，原 scripts/tests/test-pricing.js。 */
 import fs from "node:fs";
 import path from "node:path";
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { PriceCheckKind } from "@domain/runtime";
+import type { PriceCheckKind } from "@app/runtime";
 import { openPage, type Page } from "../test/page";
 
 const inventory = JSON.parse(fs.readFileSync(path.resolve("audit/pricing-inventory.json"), "utf8")) as { PLANS: Plan[] };

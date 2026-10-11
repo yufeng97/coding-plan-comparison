@@ -6,7 +6,7 @@ import vm from "node:vm";
 import { afterEach, vi } from "vitest";
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import type { Component } from "vue";
-import * as legacy from "@domain/runtime";
+import * as legacy from "@app/runtime";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 /** 读取生成的按需数据经典脚本，返回其中的常量（经 JSON 转成当前环境的普通对象）。 */
@@ -14,8 +14,8 @@ function readClassicData<T>(file: string, name: string): T {
   const source = fs.readFileSync(path.join(root, file), "utf8");
   return JSON.parse(JSON.stringify(vm.runInNewContext(`${source}\n;${name};`)));
 }
-export const MAINTENANCE_DATA = readClassicData<MaintenanceSnapshot>("js/maintenance-data.js", "MAINTENANCE");
-export const BENCHMARK_DATA = readClassicData<BenchmarkSnapshot>("js/benchmark-data.js", "BENCHMARKS");
+export const MAINTENANCE_DATA = readClassicData<MaintenanceSnapshot>("data/generated/maintenance-data.js", "MAINTENANCE");
+export const BENCHMARK_DATA = readClassicData<BenchmarkSnapshot>("data/generated/benchmark-data.js", "BENCHMARKS");
 
 /** 页面里经典脚本声明的全局（按需数据、ECharts）；测试直接放到全局对象上。 */
 export const pageGlobals = globalThis as unknown as { MAINTENANCE?: MaintenanceSnapshot; BENCHMARKS?: BenchmarkSnapshot; echarts?: unknown };

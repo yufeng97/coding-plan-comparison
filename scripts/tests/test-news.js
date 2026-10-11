@@ -25,7 +25,7 @@ async function test(name, fn) { await fn(); passed++; console.log("  ✓ " + nam
 async function fixture(fn) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "coding-plan-news-test-"));
   const write = (relative, value) => { const file = path.join(root, relative); fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, value); };
-  write("js/data.js", 'const PLANS=[{id:"plan-existing",vendor:"Existing",url:"https://existing.example.com/pricing"}]; const API_PRICES=[{vendor:"API Only",source:"https://api-only.example.com/pricing"}]; const PAYG_REFERENCES=[{vendor:"Payg Only",url:"https://payg-only.example.com/pricing"}];');
+  write("data/sources/data.js", 'const PLANS=[{id:"plan-existing",vendor:"Existing",url:"https://existing.example.com/pricing"}]; const API_PRICES=[{vendor:"API Only",source:"https://api-only.example.com/pricing"}]; const PAYG_REFERENCES=[{vendor:"Payg Only",url:"https://payg-only.example.com/pricing"}];');
   write("config/news-sources.json", JSON.stringify(config(source())));
   try { await fn(root, write); }
   finally {
@@ -192,12 +192,12 @@ async function tests() {
   });
   await test("本地VM发现PLANS/API_PRICES/PAYG_REFERENCES厂商，导入缩短摘要且不修改data.js", () => fixture(async (root, write) => {
     assert.equal(readKnownVendors(root).length, 3);
-    const data = fs.readFileSync(path.join(root, "js/data.js"));
+    const data = fs.readFileSync(path.join(root, "data/sources/data.js"));
     write("import.json", JSON.stringify([{ title: "Fresh code assistant", url: "https://api-only.example.com/news", summary: "x".repeat(800) }, { title: "Unknown coding plan", url: "https://new.example.com/import", publishedAt: "bad-date" }]));
     const report = await runCollection({ workspace: root, now: NOW, resolver, fetcher: async () => new Response(rss()), importPath: "import.json" });
     assert.equal(report.status, "ok"); assert.equal(report.candidates.length, 2); assert.equal(report.stats.knownVendor, 1); assert.equal(report.stats.vendorReviewCandidates, 1);
     assert.equal(report.candidates.find((value) => value.url.includes("api-only")).summary.length, 360);
-    assert.deepEqual(fs.readFileSync(path.join(root, "js/data.js")), data);
+    assert.deepEqual(fs.readFileSync(path.join(root, "data/sources/data.js")), data);
     assert.equal(JSON.parse(fs.readFileSync(path.join(root, "audit/news/latest.json"), "utf8")).checkedAt, NOW.toISOString());
     assert.equal(JSON.parse(fs.readFileSync(path.join(root, "audit/news/state.json"), "utf8")).schemaVersion, 1);
   }));
@@ -206,7 +206,7 @@ async function tests() {
     const code = await main(["--import", "import.json"], { workspace: root, now: NOW, resolver, fetcher: async () => new Response("down", { status: 503 }) });
     assert.equal(code, 1);
     const report = JSON.parse(fs.readFileSync(path.join(root, "audit/news/latest.json"), "utf8")); assert.equal(report.status, "failed"); assert.equal(report.candidates.length, 1); assert.equal(report.errors.length, 2);
-    const data = fs.readFileSync(path.join(root, "js/data.js")); assert.match(data.toString(), /^const PLANS=/);
+    const data = fs.readFileSync(path.join(root, "data/sources/data.js")); assert.match(data.toString(), /^const PLANS=/);
   }));
   await test("损坏缓存保留原始文件且报告输入错误，不假装重建缓存成功", () => fixture(async (root, write) => {
     write("audit/news/state.json", "broken state");
@@ -222,16 +222,16 @@ async function tests() {
     assert.deepEqual(fs.readdirSync(path.dirname(reportFile)).sort(), ["latest.json", "state.json"]);
   }));
   await test("首次创建报告后缓存替换失败删除新报告，危险output不能覆盖数据/配置/导入/链接", () => fixture(async (root, write) => {
-    const stateFile = path.join(root, "audit/news/state.json"), data = fs.readFileSync(path.join(root, "js/data.js"));
+    const stateFile = path.join(root, "audit/news/state.json"), data = fs.readFileSync(path.join(root, "data/sources/data.js"));
     await assert.rejects(runCollection({ workspace: root, now: NOW, resolver, fetcher: async () => new Response(rss()), rename: (from, to) => { if (to === stateFile) throw new Error("injected new failure"); fs.renameSync(from, to); } }), /injected/);
     assert.deepEqual(fs.readdirSync(path.dirname(stateFile)), []);
-    const forbidden = ["js/data.js", "config/news-sources.json", "README.md", "audit/else.json", "audit/news/../../js/data.js", "audit/news/state.json"];
+    const forbidden = ["data/sources/data.js", "config/news-sources.json", "README.md", "audit/else.json", "audit/news/../../data/sources/data.js", "audit/news/state.json"];
     for (const outputPath of forbidden) await assert.rejects(runCollection({ workspace: root, outputPath }), /输出/);
     write("audit/news/input.json", "[]"); await assert.rejects(runCollection({ workspace: root, outputPath: "audit/news/input.json", importPath: "audit/news/input.json" }), /输入/);
     fs.mkdirSync(path.join(root, "elsewhere")); fs.symlinkSync(path.join(root, "elsewhere"), path.join(root, "audit/news/linked"), "junction");
     await assert.rejects(runCollection({ workspace: root, outputPath: "audit/news/linked/report.json" }), /符号链接/);
     fs.unlinkSync(path.join(root, "audit/news/linked"));
-    assert.deepEqual(fs.readFileSync(path.join(root, "js/data.js")), data);
+    assert.deepEqual(fs.readFileSync(path.join(root, "data/sources/data.js")), data);
   }));
   await test("CLI选项校验和--help保持只读", async () => {
     assert.deepEqual(parseArguments(["--days", "7", "--config", "custom.json", "--output", "audit/news/custom.json"]), { days: 7, configPath: "custom.json", outputPath: "audit/news/custom.json" });
@@ -440,27 +440,27 @@ async function tests() {
   }));
   await test("人工review更新队列+报告回滚/幂等，不改data；triage只导出JSON候选", () => fixture(async (root) => {
     await runCollection({ workspace: root, now: OCT8, resolver, fetcher: async () => new Response(rss(itemXML("Existing coding plan launch", "https://existing.example.com/a"))) });
-    const dir = path.join(root, "audit/news"), data = fs.readFileSync(path.join(root, "js/data.js")), inbox = JSON.parse(fs.readFileSync(path.join(dir, "inbox.json"), "utf8"));
+    const dir = path.join(root, "audit/news"), data = fs.readFileSync(path.join(root, "data/sources/data.js")), inbox = JSON.parse(fs.readFileSync(path.join(dir, "inbox.json"), "utf8"));
     const options = { command: "review", workspace: root, now: OCT8, id: inbox.items[0].id, status: "accepted", reason: "已有计划官方依据已核对", evidenceUrls: ["https://existing.example.com/pricing"], planIds: ["plan-existing"] };
     const original = fs.readFileSync(path.join(dir, "inbox.json")), report = fs.readFileSync(path.join(dir, "latest.json"));
     await assert.rejects(runReview({ ...options, rename: (from, to) => { if (to === path.join(dir, "latest.json") && path.basename(from) === "next") throw new Error("injected review failure"); fs.renameSync(from, to); } }), /injected/);
     assert.deepEqual(fs.readFileSync(path.join(dir, "inbox.json")), original); assert.deepEqual(fs.readFileSync(path.join(dir, "latest.json")), report);
     await runReview(options); const reviewed = fs.readFileSync(path.join(dir, "inbox.json")); await runReview(options); assert.deepEqual(fs.readFileSync(path.join(dir, "inbox.json")), reviewed);
     const exported = await runReview({ command: "triage", workspace: root, status: "accepted", now: OCT8, outputPath: "audit/news/triage.json" }); assert.ok("candidates" in exported); assert.equal(exported.candidates.length, 1); assert.equal(exported.candidates[0].status, "accepted");
-    assert.deepEqual(fs.readFileSync(path.join(root, "js/data.js")), data); assert.deepEqual(fs.readFileSync(path.join(dir, "inbox.json")), reviewed);
-    await assert.rejects(runReview({ command: "triage", workspace: root, outputPath: "js/data.js" }), /输出/);
+    assert.deepEqual(fs.readFileSync(path.join(root, "data/sources/data.js")), data); assert.deepEqual(fs.readFileSync(path.join(dir, "inbox.json")), reviewed);
+    await assert.rejects(runReview({ command: "triage", workspace: root, outputPath: "data/sources/data.js" }), /输出/);
     assert.equal(reviewArguments(["review", "--id", "abc", "--status", "deferred", "--reason", "later"]).command, "review");
     assert.throws(() => reviewArguments(["review", "--id", "abc"])); assert.throws(() => reviewArguments(["list", "--evidence", "https://new.example.com"]));
   }));
   await test("list/triage读取正式动态，checked核查与通用定价证据不消除待发布候选", () => fixture(async (root, write) => {
     const url = "https://existing.example.com/events/launch";
     await runCollection({ workspace: root, now: OCT8, resolver, fetcher: async () => new Response(rss(itemXML("Existing coding plan launch", url))) });
-    const inboxFile = path.join(root, "audit/news/inbox.json"), dataFile = path.join(root, "js/data.js");
+    const inboxFile = path.join(root, "audit/news/inbox.json"), dataFile = path.join(root, "data/sources/data.js");
     const inbox = JSON.parse(fs.readFileSync(inboxFile, "utf8")), base = fs.readFileSync(dataFile, "utf8");
     await runReview({ command: "review", workspace: root, now: OCT8, id: inbox.items[0].id, status: "accepted", reason: "官方事件值得入库",
       evidenceUrls: ["https://existing.example.com/pricing"], planIds: ["plan-existing"] });
     const savedInbox = fs.readFileSync(inboxFile);
-    write("js/data.js", base + "\nconst DYNAMICS = " + JSON.stringify([{ url, checked: true }, { url: "https://existing.example.com/pricing" }]) + ";");
+    write("data/sources/data.js", base + "\nconst DYNAMICS = " + JSON.stringify([{ url, checked: true }, { url: "https://existing.example.com/pricing" }]) + ";");
     const checkedData = fs.readFileSync(dataFile);
     const pending = await runReview({ command: "list", workspace: root, status: "pending", now: OCT8 });
     assert.ok("candidates" in pending);
@@ -468,7 +468,7 @@ async function tests() {
     assert.equal(pending.awaitingPublication[0].publication, "awaiting-publication");
     assert.deepEqual(pending.awaitingPublication[0].evidencePublicationMatches, ["https://existing.example.com/pricing"]);
     assert.deepEqual(fs.readFileSync(dataFile), checkedData); assert.deepEqual(fs.readFileSync(inboxFile), savedInbox);
-    write("js/data.js", base + "\nconst DYNAMICS = " + JSON.stringify([{ url: url + "?utm_source=official#article" }]) + ";");
+    write("data/sources/data.js", base + "\nconst DYNAMICS = " + JSON.stringify([{ url: url + "?utm_source=official#article" }]) + ";");
     const formalData = fs.readFileSync(dataFile);
     const published = await runReview({ command: "triage", workspace: root, status: "accepted", now: OCT8 });
     assert.ok("candidates" in published);

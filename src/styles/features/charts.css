@@ -1,0 +1,25 @@
+/* ---------- 图表卡 ---------- */
+.chart-card {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-l);
+  padding: 16px 12px 6px; margin-bottom: 10px; min-width: 0;
+}
+.chart { width: 100%; min-height: 420px; overflow: visible; }
+.chart-empty { padding: 54px 24px; text-align: center; color: var(--muted); line-height: 1.8; }
+.chart-fixed { height: 480px; }
+.chart-note { color: var(--faint); font-size: 12.5px; margin: 8px 6px 20px; line-height: 1.7; }
+.chart-note a { color: var(--accent); }
+button.linkish {
+  background: none; border: 0; padding: 0; color: var(--accent-2);
+  font: inherit; cursor: pointer; text-decoration: underline;
+}
+.grid-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 980px) { .grid-2 { grid-template-columns: minmax(0, 1fr); } }
+
+.card-text { padding: 20px; font-size: 13.5px; color: var(--muted); }
+.card-text h3 { color: var(--ink); font-size: 15px; margin-bottom: 10px; font-weight: 700; }
+.card-text .hl { color: var(--ink); font-weight: 700; }
+.card-text p { margin-bottom: 10px; }
+.mini-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12.5px; }
+.mini-table td { padding: 6px 8px; border-bottom: 1px dashed var(--line); }
+.mini-table td:last-child { text-align: right; color: var(--ink); font-weight: 600; font-family: var(--mono); }
+

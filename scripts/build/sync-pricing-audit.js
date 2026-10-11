@@ -90,7 +90,7 @@ function syncPricingAuditUnlocked(workspace, options = {}) {
     if (entry.checkedAt != null && !isISODate(entry.checkedAt)) throw new Error("来源核查日期非法");
     if (entry.checkedAt != null) notFuture(entry.checkedAt, "来源 " + entry.id + " 的核查日期");
   }
-  const dataFile = path.join(root, "js/data.js");
+  const dataFile = path.join(root, "data/sources/data.js");
   let source = fs.readFileSync(dataFile, "utf8");
   const data = loadData(source);
   const priorHistory = readHistory(root);

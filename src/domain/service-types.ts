@@ -1,3 +1,5 @@
+
+
 /** Inputs remain strings so an incomplete edit can be validated before entering shared state. */
 export interface WorkloadState {
   model: string;
@@ -10,6 +12,7 @@ export interface WorkloadState {
   budget: string;
   scenario?: string;
 }
+
 export interface WorkloadApi {
   cur: string;
   inUSD?: number;
@@ -18,6 +21,7 @@ export interface WorkloadApi {
   outCNY?: number;
   apiCache?: number;
 }
+
 export interface WorkloadResult {
   monthlyM: number;
   blended: number;
@@ -28,6 +32,7 @@ export interface WorkloadResult {
   cachePrice: number;
   cacheBasis: "custom" | "official" | "none";
 }
+
 export interface CostScenarioResult extends WorkloadResult {
   id: string;
   label: string;
@@ -36,6 +41,7 @@ export interface CostScenarioResult extends WorkloadResult {
   lowCNY: number;
   highCNY: number;
 }
+
 export interface UsageSummary {
   input: number;
   output: number;
@@ -48,4 +54,5 @@ export interface UsageSummary {
   inputShare: number;
   cacheRate: number;
 }
+
 export type UsageCalculatorValues = Pick<WorkloadState, "requests" | "tokens" | "days" | "input" | "cache">;

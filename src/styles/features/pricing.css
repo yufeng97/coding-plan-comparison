@@ -1,0 +1,120 @@
+/* ---------- 免费入口 ---------- */
+.free-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 12px; margin-bottom: 20px; }
+.free-card {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 16px 18px; transition: border-color .18s; min-width: 0; overflow-wrap: anywhere; display: flex; flex-direction: column;
+}
+.free-card:hover { border-color: var(--line-strong); }
+.free-card .fc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.free-card .fc-vendor { font-size: 14.5px; font-weight: 800; color: var(--ink); }
+.free-card .fc-plan { font: 600 12px var(--mono); color: var(--muted); }
+.free-card .fc-region { font: 600 10.5px var(--mono); padding: 2px 7px; border-radius: 5px; border: 1px solid var(--line-strong); color: var(--faint); }
+.free-card .fc-quota { margin-top: 9px; font-size: 13px; color: var(--text); line-height: 1.6; }
+.free-card .fc-quota b { color: var(--green); }
+.free-card .fc-tools { margin-top: 5px; font-size: 12px; color: var(--faint); }
+.free-card .fc-link { display: inline-block; margin-top: 9px; font: 600 11.5px var(--mono); color: var(--muted); }
+.free-card .fc-link:hover { color: var(--accent); }
+.fc-footer { margin-top: auto; padding-top: 10px; display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 12px; }
+.fc-footer .fc-link { margin-top: 0; }
+.fc-footer .checked-date { margin-left: 0; }
+
+/* ---------- 数据表 ---------- */
+.table-wrap {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-l);
+  overflow: auto; max-height: 780px; margin-bottom: 10px;
+}
+/* 长表保留真实 DOM 和读屏内容；远离视口时暂缓单元格布局。
+   两张默认长表均达到 780px 上限，浏览器进入阅读区后缓存实际高度。 */
+#table .table-wrap, .metrics-wrap { content-visibility: auto; contain-intrinsic-size: auto 780px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+/* 默认 8 列可在小桌面容器内放下；展开模型/工具/备注后保留横向滚动。 */
+#planTable { min-width: 900px; }
+#planTable.show-all-cols { min-width: 1080px; }
+.card-text .mini-table, .mini-table { min-width: 0; }
+thead th {
+  position: sticky; top: 0; z-index: 5;
+  background: var(--panel-2); color: var(--muted); text-align: left;
+  padding: 9px 12px; font-weight: 700; font-size: 11.5px; white-space: nowrap;
+  border-bottom: 1px solid var(--line-strong);
+}
+thead th.sortable { cursor: pointer; user-select: none; }
+thead th.sortable:hover { color: var(--ink); }
+thead th.sortable:focus-visible { outline: 2px solid var(--accent-2); outline-offset: -2px; border-radius: 4px; }
+thead th.sort-active { color: var(--brand-button); }
+html[data-theme="dark"] thead th.sort-active { color: var(--brand); }
+tbody td {
+  padding: 9px 12px; border-bottom: 1px solid var(--row-border);
+  vertical-align: top; color: var(--text);
+}
+tbody tr:hover td { background: var(--row-hover); }
+td.td-vendor { color: var(--ink); font-weight: 700; white-space: nowrap; }
+td.td-plan { color: var(--ink); white-space: normal; }
+td.td-price { color: var(--gold); font-weight: 700; white-space: nowrap; font-family: var(--mono); font-size: 12.5px; }
+td.td-price .sub { color: var(--faint); font-weight: 400; }
+.td-quota { min-width: 260px; max-width: 380px; }
+.td-models, .td-note { min-width: 160px; max-width: 260px; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 5px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.tag-official { background: var(--cat-official-soft); color: var(--cat-official-text); }
+.tag-tool { background: var(--cat-tool-soft); color: var(--cat-tool-text); }
+.tag-cloud { background: var(--cat-cloud-soft); color: var(--cat-cloud-text); }
+.tag-team { background: var(--cat-team-soft); color: var(--cat-team-text); }
+.region-cn { color: var(--muted); white-space: nowrap; }
+.region-intl { color: var(--faint); white-space: nowrap; }
+
+/* 额度深度对比表 */
+#metricsTable { min-width: 1100px; font-size: 12.5px; }
+#metricsTable.is-compact { min-width: 760px; }
+#metricsTable.is-compact .col-more { display: none; }
+#metricsTable th, #metricsTable td { padding: 8px 10px; white-space: nowrap; }
+#metricsTable .sticky-col {
+  position: sticky; left: 0; z-index: 5;
+  background: var(--panel-2); min-width: 140px; text-align: left;
+}
+#metricsTable thead .sticky-col { z-index: 6; }
+#metricsTable tbody td:first-child {
+  position: sticky; left: 0; background: var(--panel); z-index: 3;
+  font-weight: 700; color: var(--ink); width: 180px; max-width: 180px;
+  white-space: normal; overflow-wrap: anywhere;
+}
+.payg-row td { background: var(--surface); }
+#metricsTable tbody tr.payg-row td:first-child,
+#metricsTable tbody tr.est-row td:first-child { background: linear-gradient(var(--surface), var(--surface)), var(--panel); }
+#metricsTable tbody tr.payg-row td:first-child { box-shadow: inset 3px 0 0 var(--accent-2); }
+/* 首列覆盖横滚内容：透明行色必须叠在不透明面板上，悬停也保留底层。 */
+#metricsTable tbody tr:hover td:first-child { background: linear-gradient(var(--row-hover), var(--row-hover)), var(--panel); }
+.metrics-vendor { color: var(--ink); }
+.metrics-plan { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.table-sort-hint { color: var(--muted); font-size: 12px; }
+.tps-cell { color: var(--faint); font-size: 11.5px; font-family: var(--mono); }
+.model-cell { color: var(--accent-2); font-size: 11.5px; }
+#metricsTable td.model-cell { min-width: 140px; max-width: 240px; white-space: normal; overflow-wrap: anywhere; }
+.model-price { display: block; max-width: 220px; margin-top: 2px; color: var(--faint); font-size: 10.5px; line-height: 1.5; white-space: normal; }
+.model-price > span { white-space: nowrap; }
+.model-reference-note { color: var(--faint); font-size: 10px; }
+.tok-cell { color: var(--muted); font-weight: 600; font-family: var(--mono); font-size: 12px; }
+.val-cell { color: var(--gold); font-weight: 600; font-family: var(--mono); font-size: 12px; }
+.rate-cell { font-weight: 700; font-size: 12.5px; font-family: var(--mono); }
+.rate-hi { color: var(--green); }
+.rate-mid { color: var(--gold); }
+.rate-lo { color: var(--red); }
+.ver-tag { display: inline-block; padding: 1px 7px; border-radius: 5px; font-size: 10.5px; font-weight: 700; font-family: var(--mono); }
+.ver-v3 { background: var(--cat-tool-soft); color: var(--cat-tool-text); }
+.ver-v2 { background: var(--cat-cloud-soft); color: var(--cat-cloud-text); }
+.ver-na { background: var(--ver-na-bg); color: var(--faint); }
+
+/* 估算行与依据列 */
+.est-row td { background: var(--surface); }
+.est-row:hover td { background: var(--row-hover); }
+.est-badge {
+  display: inline-block; padding: 1px 5px; border-radius: 4px; font-size: 10px;
+  font-family: var(--mono); background: var(--ver-na-bg); color: var(--faint); vertical-align: 1px;
+}
+.prov-cell { font-size: 11px; color: var(--faint); }
+.conf {
+  display: inline-block; padding: 1px 6px; border-radius: 4px;
+  font-size: 10px; margin-right: 5px; font-weight: 700; font-family: var(--mono);
+}
+.conf-hi { background: var(--cat-tool-soft); color: var(--cat-tool-text); }
+.conf-mid { background: var(--cat-cloud-soft); color: var(--gold); }
+.conf-lo { background: rgba(217,59,54,.09); color: var(--red); }
+

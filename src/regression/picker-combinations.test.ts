@@ -1,10 +1,11 @@
+
 /* 「帮我选」四维条件全组合：候选资格、预算、工具与地区；主计划、替代、升级与补充的约束；卡片结构不变量。
  * 原 scripts/tests/test-app-picker.js 的 225 组断言，卡片改为检查真实 Vue 组件的渲染结果。 */
 import { useMount } from "../test/setup";
 import { beforeEach, expect, test } from "vitest";
 import { nextTick } from "vue";
-import * as app from "@domain/runtime";
-import PickerRecommendations from "../sections/PickerRecommendations.vue";
+import * as app from "@app/runtime";
+import PickerRecommendations from "../sections/picker/PickerRecommendations.vue";
 
 const recommendations = useMount(PickerRecommendations);
 beforeEach(() => {

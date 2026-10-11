@@ -1,3 +1,4 @@
+
 /* 付款方式：自动续费、年付、首次付款与「应用选购条件」的范围。原 scripts/tests/test-app-payments.js，现用真实 App。
  * 自动续费金额的数据校验见 scripts/tests/test-data-regressions.js。 */
 import assert from "node:assert/strict";
@@ -14,7 +15,7 @@ const plan = (page: Page, id: string) => {
 };
 /** 推荐卡与详情里的付款说明（完整版）。 */
 async function paymentText(p: Plan) {
-  const { paymentSummary } = await import("../sections/picker-view");
+  const { paymentSummary } = await import("../sections/picker/picker-view");
   return paymentSummary(p).join("\n");
 }
 
@@ -248,7 +249,7 @@ test("TRAE Pro 单月购买、自动续费与年付按各自价格参与预算�
   assert.equal(app.withinBudget(trae), false, "$15 超过 ¥100");
   app.pickerState.billing = "A";
   assert.equal(app.withinBudget(trae), true, "$10 连续续费在 ¥100 内");
-  const { default: PlanPrice } = await import("../sections/PlanPrice.vue");
+  const { default: PlanPrice } = await import("../components/PlanPrice.vue");
   const cell = mount(PlanPrice, { props: { plan: trae } });
   assert.match(cell.text(), /连续包月价；单月一次购买 \$15/);
   cell.unmount();

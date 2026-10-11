@@ -4,6 +4,7 @@ const { spawnSync } = require("node:child_process");
 const path = require("node:path");
 
 const suite = [
+  "test-architecture.js",
   "test-server.js",
   "test-file-lock.js",
   "test-tools.js",
@@ -11,7 +12,7 @@ const suite = [
   "test-news.js",
   "test-news-blog.js",
   "test-news-blog-collection.js",
-  "../maintenance/test-maintenance.js",
+  "test-maintenance.js",
   "test-benchmarks.js",
   "test-public-benchmarks.js",
   "test-benchmark-deepswe-cursor.js",

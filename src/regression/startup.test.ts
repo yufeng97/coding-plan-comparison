@@ -1,3 +1,4 @@
+
 /* 启动、URL 状态恢复与历史导航。原 scripts/tests/test-app-history.js（页面虚拟 DOM），现用真实 App 与 Vue 渲染。
  * Vue 按永久 ID 保留表格行，历史恢复不再重建节点；这里核对焦点仍落在同一方案上。真实浏览器的焦点与滚动时序另见 ui.browser.spec.js。 */
 import assert from "node:assert/strict";

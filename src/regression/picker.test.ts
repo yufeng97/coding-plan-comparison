@@ -1,3 +1,4 @@
+
 /* 「帮我选」推荐引擎与推荐卡。原 scripts/tests/test-app-picker.js（页面虚拟 DOM + 经典卡片渲染），
  * 现用真实 App：推荐区由 Vue 渲染，指定档位的卡片用 picker-view 的卡片模型挂载真实 PickerCard。
  * 225 组四维组合见 picker-combinations.test.ts。 */
@@ -5,17 +6,17 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { mount } from "@vue/test-utils";
 import { openPage, type Page } from "../test/page";
-import type { PickerCardModel, PickerProfile } from "../sections/picker-view";
+import type { PickerCardModel, PickerProfile } from "../sections/picker/picker-view";
 
 type Runtime = Page["runtime"];
 type Profile = ReturnType<Runtime["planProfile"]>;
 
 /** 本次页面的卡片模型构造器（与页面同一份业务模块）。 */
-const pickerView = () => import("../sections/picker-view");
+const pickerView = () => import("../sections/picker/picker-view");
 /** 用真实 PickerCard 渲染一张卡片模型，返回卡片根节点。 */
 async function renderCard(model: PickerCardModel | null) {
   assert.ok(model, "应生成卡片");
-  const { default: PickerCard } = await import("../sections/PickerCard.vue");
+  const { default: PickerCard } = await import("../sections/picker/PickerCard.vue");
   const wrapper = mount(PickerCard, { props: { model } });
   await Promise.resolve();
   const element = wrapper.element as HTMLElement;
@@ -23,7 +24,7 @@ async function renderCard(model: PickerCardModel | null) {
 }
 /** 额度表 5h 列的显示文字（真实 MetricsCell）。 */
 async function fiveHourCell(m: unknown, c: unknown) {
-  const { default: MetricsCell } = await import("../sections/MetricsCell.vue");
+  const { default: MetricsCell } = await import("../components/MetricsCell.vue");
   const wrapper = mount(MetricsCell, { props: { column: "t5h", row: { m, c, payg: false } as never } });
   const text = wrapper.text();
   wrapper.unmount();

@@ -2,11 +2,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
-import { classicScripts, publicSourcesOnly, bundleEcharts } from "./scripts/build/vite-assets.mjs";
-import { writeCatalog } from "./scripts/build/catalog-types.mjs";
+import { classicScripts, publicSourcesOnly, publicAssets } from "./scripts/build/vite-assets.mjs";
+import { watchCatalog } from "./scripts/build/catalog-types.mjs";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
-writeCatalog(root);
 
 /* 产物沿用原来的目录：js/、css/、libs/fonts/，与本地服务器和部署白名单一致。 */
 function assetFileName(asset) {
@@ -20,19 +19,24 @@ export default defineConfig({
   root,
   /* 相对路径：同一份产物既能放在域名根（Vercel），也能放在项目子目录（GitHub Pages）。 */
   base: "./",
-  /* img/、feeds/、changes.xml 与 vercel.json 由 build:site 复制，不经 Vite 的 public 目录。 */
+  /* public/ 通过受白名单保护的开发中间件与 build:site 发布，禁止 Vite 无差别复制文件。 */
   publicDir: false,
   optimizeDeps: { entries: ['index.html'] },
-  resolve: { alias: { "@domain": path.join(root, "src/domain") } },
+  resolve: { alias: { "@domain": path.join(root, "src/domain"), "@app": path.join(root, "src/application"), "@state": path.join(root, "src/state"), "@browser": path.join(root, "src/browser") } },
   plugins: [
     publicSourcesOnly({ root }),
+    publicAssets({ root }),
+    watchCatalog({ root }),
     /* 组件都用 <script setup>，关掉 Options API 支持，运行时更小 */
     vue({ features: { optionsAPI: false } }),
     /* ECharts 精简包在构建时由 npm 包生成，仓库里不再保存打包后的文件 */
     classicScripts({ root, generated: {
-      "libs/echarts.js": () => bundleEcharts(root, "src/charts/echarts.ts"),
-      "js/theme-init.js": () => bundleEcharts(root, "src/browser/theme.ts"),
-      "js/app-loader.js": () => bundleEcharts(root, "src/browser/loader.ts"),
+      "libs/echarts.js": "src/charts/echarts.ts",
+      "js/theme-init.js": "src/browser/theme.ts",
+      "js/app-loader.js": "src/browser/loader.ts",
+    }, sources: {
+      "js/maintenance-data.js": "data/generated/maintenance-data.js",
+      "js/benchmark-data.js": "data/generated/benchmark-data.js",
     } }),
   ],
   server: {

@@ -64,7 +64,7 @@ function hasZone(text) {
 /** Execute only the repository's trusted local data source, never source responses or imported content.
  * @returns {KnownVendor[]} */
 function readKnownVendors(workspace) {
-  const source = fs.readFileSync(path.join(workspace, "js", "data.js"), "utf8");
+  const source = fs.readFileSync(path.join(workspace, "data", "sources", "data.js"), "utf8");
   const plans = vm.runInNewContext(source + "\n;[...(typeof PLANS !== 'undefined' ? PLANS : []), ...(typeof API_PRICES !== 'undefined' ? API_PRICES : []), ...(typeof PAYG_REFERENCES !== 'undefined' ? PAYG_REFERENCES : [])]", {}, { timeout: 2000 });
   const vendors = new Map();
   for (const plan of plans) {
@@ -78,7 +78,7 @@ function readKnownVendors(workspace) {
 
 /** @returns {Array<{id:string,vendor:string,url:string}>} */
 function readPlanReferences(workspace) {
-  const source = fs.readFileSync(path.join(workspace, "js", "data.js"), "utf8");
+  const source = fs.readFileSync(path.join(workspace, "data", "sources", "data.js"), "utf8");
   return vm.runInNewContext(source + "\n;PLANS.map(p => ({id:p.id,vendor:p.vendor,url:p.url || ''}))", {}, { timeout: 2000 });
 }
 

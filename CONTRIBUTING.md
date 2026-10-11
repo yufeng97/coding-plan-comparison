@@ -1,6 +1,6 @@
 # 贡献与维护
 
-网站提供“新增厂商 / 纠错 / 测评”模板，可复制或下载，也可使用 `.github/ISSUE_TEMPLATE/` 表单；项目的真实 Issue 根地址配置在 `js/project-data.js` 的 `githubIssuesBase`。
+网站提供“新增厂商 / 纠错 / 测评”模板，可复制或下载，也可使用 `.github/ISSUE_TEMPLATE/` 表单；项目的真实 Issue 根地址配置在 `data/sources/project-data.js` 的 `githubIssuesBase`。
 
 ## 发现与审核
 
@@ -61,7 +61,7 @@ npm run build:site
 
 ## 新套餐
 
-查阅 `js/data.js` 同类记录和 `validate-data.js` 完整 schema。给新套餐分配从未使用过的永久 `plan-*` ID，增量记录使用 `new` 提交完整 Plan（含 id/vendor/plan/cat/region/cur/priceM/priceY/seat/quota/url 等字段），其值和身份必须与记录一致。禁止复用已发布或历史记录的 ID；没有证据的额度或价格不要推算为官方数据。
+查阅 `data/sources/data.js` 同类记录和 `validate-data.js` 完整 schema。给新套餐分配从未使用过的永久 `plan-*` ID，增量记录使用 `new` 提交完整 Plan（含 id/vendor/plan/cat/region/cur/priceM/priceY/seat/quota/url 等字段），其值和身份必须与记录一致。禁止复用已发布或历史记录的 ID；没有证据的额度或价格不要推算为官方数据。
 
 另补来源目录、动态（如有事件）、官方监测 URL，以及有证据的模型/工具资格；只有有依据的额度才添加 METRICS_RAW/ESTIMATES。增量同步只处理价格与套餐事实，不会代填这些目录。执行校验、相关浏览器测试后再发布。
 

@@ -11,7 +11,7 @@ const FULL_AUDIT_INPUTS = ["pricing-root.json", "pricing-relays.json", "pricing-
 
 function rewindToFullAudit(root, workspace) {
   const checkedAt = JSON.parse(fs.readFileSync(path.join(workspace, "audit", FULL_AUDIT_INPUTS[0]), "utf8")).checkedAt;
-  const dataFile = path.join(root, "js/data.js");
+  const dataFile = path.join(root, "data/sources/data.js");
   const source = fs.readFileSync(dataFile, "utf8");
   const start = source.indexOf("const PRICE_CHECKS = ");
   const end = source.indexOf("\nfunction priceCheckOf", start);

@@ -25,19 +25,20 @@ function assertPublicFile(root, file) {
 const EXTRA_FILES = ["changes.xml"];
 const EXTRA_DIRS = ["img", "feeds"];
 function publicExtras(root) {
+  const publicRoot = path.join(root, "public");
   const extras = [];
   for (const rel of EXTRA_FILES) {
-    const file = path.join(root, rel);
-    if (fs.existsSync(file)) { assertPublicFile(root, file); extras.push(file); }
+    const file = path.join(publicRoot, rel);
+    if (fs.existsSync(file)) { assertPublicFile(publicRoot, file); extras.push(file); }
   }
   for (const dir of EXTRA_DIRS) {
-    const base = path.join(root, dir);
+    const base = path.join(publicRoot, dir);
     if (!fs.existsSync(base) || !fs.statSync(base).isDirectory()) continue;
     for (const entry of fs.readdirSync(base, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
       if (entry.name.startsWith(".")) continue;
       const file = path.join(base, entry.name);
       if (!fs.statSync(file).isFile()) continue;
-      assertPublicFile(root, file);
+      assertPublicFile(publicRoot, file);
       extras.push(file);
     }
   }
@@ -54,6 +55,8 @@ function listFiles(dir, base = dir) {
 
 /** @param {string} outDir @param {string} root */
 async function viteBuild(outDir, root) {
+  const { writeCatalog } = await import("./catalog-types.mjs");
+  writeCatalog(root);
   const { build } = await import("vite");
   await build({ root, configFile: path.join(root, "vite.config.mjs"), logLevel: "warn", build: { outDir, emptyOutDir: true } });
 }
@@ -83,7 +86,7 @@ async function stageSite(workspace = repositoryRoot, options = {}) {
       if (!publicSiteFile(rel) || hiddenSegment(rel)) throw new Error(`构建产物不在公共白名单：${rel}`);
     }
     for (const file of extras) {
-      const next = path.join(stage, path.relative(root, file));
+      const next = path.join(stage, path.relative(path.join(root, "public"), file));
       fs.mkdirSync(path.dirname(next), { recursive: true });
       fs.copyFileSync(file, next);
     }

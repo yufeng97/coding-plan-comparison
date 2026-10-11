@@ -1,3 +1,5 @@
+
+
 /** 额度换算的入参：额度行（METRICS_RAW / ESTIMATES）加上经 ref 解析出的套餐价格。数量单位为百万 tokens。 */
 export interface MetricsInput {
   /** 官方或估算的每周 tokens 下限、上限。 */
@@ -18,6 +20,7 @@ export interface MetricsInput {
   /** 月费与币种。 */
   priceM?: number | null; cur?: string;
 }
+
 /** 额度换算结果。tokens 为百万，价值与套餐同币种，倍率 = 额度价值 ÷ 该时段分摊月费。 */
 export interface MetricsResult {
   /** 5 小时窗口、每周、每月 tokens 的下限与上限，以及月中值。 */
@@ -32,9 +35,11 @@ export interface MetricsResult {
   r5h: number | null; rwk: number | null; rmo: number | null;
   r5hHi?: number | null; rwkHi?: number | null; rmoHi?: number | null;
 }
+
 export interface ChartPalette {
   text: string; dim: string; catLabel: string; faint: string; gold: string; green: string;
   red: string; info: string; axisLine: string; splitLine: string; tipBg: string;
   tipBorder: string; tipText: string;
 }
+
 export interface FollowState { version: number; planIds: string[]; readChangeIds: string[]; }

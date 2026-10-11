@@ -10,7 +10,7 @@ import { afterEach, vi } from "vitest";
 import { createApp, nextTick, type App as VueApp } from "vue";
 import { flushPromises } from "@vue/test-utils";
 
-type Runtime = typeof import("@domain/runtime");
+type Runtime = typeof import("@app/runtime");
 type Listener = [EventTarget, string, EventListenerOrEventListenerObject, boolean | AddEventListenerOptions | undefined];
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -27,7 +27,7 @@ function readOptionalData(src: string) {
   const name = OPTIONAL_DATA[src]!;
   let json = optionalDataJson.get(src);
   if (json === undefined) {
-    const source = fs.readFileSync(path.join(root, src), "utf8");
+    const source = fs.readFileSync(path.join(root, src.replace(/^js\//, "data/generated/")), "utf8");
     json = JSON.stringify(vm.runInNewContext(`${source}\n;${name};`));
     optionalDataJson.set(src, json);
   }
@@ -300,13 +300,13 @@ export async function openPage(options: PageOptions = {}) {
   });
 
   const override = options.override;
-  if (override) vi.doMock("@domain/runtime", async (importOriginal) => {
+  if (override) vi.doMock("@app/runtime", async (importOriginal) => {
     const original = await importOriginal<Runtime>();
     /* 模板会探测导入对象的 Vue 内部标记；替身模块对未定义的名称会报错，这里显式给出并让 Vue 跳过代理。 */
     return { ...original, ...override(original), __v_isRef: false, __v_skip: true, __v_isReactive: false, __v_isReadonly: false };
   });
-  const runtime: Runtime = await import("@domain/runtime");
-  const { startApplication } = await import("@domain/startup");
+  const runtime: Runtime = await import("@app/runtime");
+  const { startApplication } = await import("@app/startup");
   const { default: App } = await import("../App.vue");
   runtime.applyUrlState();
   runtime.loadFollowState();
@@ -384,7 +384,7 @@ export async function openPage(options: PageOptions = {}) {
       const failures: unknown[] = [];
       const attempt = (step: () => void) => { try { step(); } catch (error) { failures.push(error); } };
       attempt(() => app.unmount());
-      if (override) attempt(() => vi.doUnmock("@domain/runtime"));
+      if (override) attempt(() => vi.doUnmock("@app/runtime"));
       attempt(stopListening);
       for (const restore of restores.reverse()) attempt(restore);
       for (const name of ["echarts", ...Object.values(OPTIONAL_DATA)]) delete dataGlobals[name];

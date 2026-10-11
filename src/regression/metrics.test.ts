@@ -3,8 +3,8 @@
 import assert from "node:assert";
 import { describe, test, vi } from "vitest";
 import { blendPrice, computeMetrics, fmtTok, isFlagshipModelName, periodRates, windowTokens } from "@domain/metrics";
-import { PLANS, hasOwnClient, isOnSalePlan, isPersonalMonthly, matchModelRoles, offerable, resolvedField } from "@domain/catalog";
-import { auditProfiles } from "@domain/runtime";
+import { PLANS, hasOwnClient, isOnSalePlan, isPersonalMonthly, matchModelRoles, offerable, resolvedField } from "../generated/catalog";
+import { auditProfiles } from "@app/runtime";
 
 /** 缺失值必须让数值断言失败，不能被隐式转换为 0。 */
 const near = (a: number | null | undefined, b: number | null | undefined, eps = 1e-6) =>

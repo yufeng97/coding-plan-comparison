@@ -1,8 +1,9 @@
+
 /* 「应用选购条件」对排行、价格表与个人图的局部重算，以及年价与搜索长度边界。原 scripts/tests/test-app-pricing-scope.js，现用真实 App。
  * 全年金额冲突的数据校验见 data.test.ts。 */
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { RankRow } from "@domain/runtime";
+import type { RankRow } from "@app/runtime";
 import { openPage, type Page } from "../test/page";
 
 const near = (actual: number | null | undefined, expected: number | null | undefined) => assert.ok(Math.abs((actual ?? NaN) - (expected ?? NaN)) < 1e-8, `${actual} != ${expected}`);

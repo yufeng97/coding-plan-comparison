@@ -6,8 +6,8 @@ import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import { assertPublicSource } from "./vite-assets.mjs";
 
-export const CATALOG_FILE = "src/domain/catalog.ts";
-export const CATALOG_INPUTS = ["js/data.js", "js/benchmark-summary.js", "js/project-data.js"];
+export const CATALOG_FILE = "src/generated/catalog.ts";
+export const CATALOG_INPUTS = ["data/sources/data.js", "data/sources/benchmark-summary.js", "data/sources/project-data.js"];
 const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
 function typeNode(text) {
   const source = ts.createSourceFile("catalog-type.ts", `type CatalogType = ${text};`, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
@@ -17,7 +17,7 @@ function typeNode(text) {
   synthesize(type);
   return type;
 }
-/** 数据文件里的 JSDoc 类型（结构类型见 js/globals.d.ts）原样转成 TypeScript 注解。 */
+/** 数据文件里的 JSDoc 类型（结构类型见 types/catalog.d.ts）原样转成 TypeScript 注解。 */
 function jsDocType(node, source) {
   const type = ts.getJSDocType(node);
   return type ? typeNode(type.getText(source)) : undefined;
@@ -93,6 +93,19 @@ export function writeCatalog(root, options = {}) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, next);
   return { file, changed: true };
+}
+
+/** 开发入口由 predev 显式生成；后续只在已登记输入变化时更新，配置加载与 SSR 本身不写源码。 */
+export function watchCatalog({ root }) {
+  const inputs = new Set(CATALOG_INPUTS.map((file) => path.resolve(root, file)));
+  return {
+    name: "coding-plan:watch-catalog",
+    apply: "serve",
+    hotUpdate(context) {
+      if (!inputs.has(path.resolve(context.file))) return;
+      writeCatalog(root);
+    },
+  };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

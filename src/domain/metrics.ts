@@ -1,5 +1,6 @@
-import { RATE_USD_CNY, RATE_INR_CNY, matchModelRoles } from './catalog';
+import { RATE_USD_CNY, RATE_INR_CNY, matchModelRoles } from '../generated/catalog';
 import type { MetricsInput, MetricsResult } from './model-types';
+
 /* ============================================================
  * 额度换算纯计算模块（无 DOM 依赖）
  * 浏览器业务模块与公式回归使用同一实现，数据来自生成的审计目录。
@@ -7,13 +8,18 @@ import type { MetricsInput, MetricsResult } from './model-types';
 /* 换算假设：每月 4.33 周、每周 5 个 5h 窗口、输入/输出 80/20、缓存命中率 95%、
    请求数制计划按约 20K tokens/请求折算。 */
 export const WEEKS_PER_MONTH = 4.33;
+
 export const SLOTS_PER_WEEK = 5;
+
 export const API_MIX_IN = 0.8, API_MIX_OUT = 0.2;
+
 export const CACHE_HIT_RATE = 0.95;
+
 export const TOKENS_PER_REQ = 20000;
 
 /** 5 小时·周·月的 tokens 区间（百万）。 */
 export interface WindowTokens { fLow: number; fHigh: number; wkLowM: number; wkHighM: number; moLow: number; moHigh: number; }
+
 /** 各时段的额度倍率。 */
 export interface PeriodRates { r5h: number; rwk: number; rmo: number; }
 
@@ -23,6 +29,7 @@ export function blendPrice(m: Pick<MetricsInput, "apiIn" | "apiOut" | "apiCache"
     const value = API_MIX_IN * effIn + API_MIX_OUT * (m.apiOut ?? NaN);
     return m.apiCur && m.apiCur !== m.cur ? fromCNY(toCNY(value, m.apiCur), m.cur) : value;
 }
+
 /** 原币金额折算人民币；未知币种得到 NaN。 */
 export function toCNY(v: number, cur: string | undefined) {
     if (cur === "USD")
@@ -31,6 +38,7 @@ export function toCNY(v: number, cur: string | undefined) {
         return v * RATE_INR_CNY;
     return cur === "CNY" ? v : NaN;
 }
+
 export function fromCNY(v: number, cur: string | undefined) {
     if (cur === "USD")
         return v / RATE_USD_CNY;
@@ -38,6 +46,7 @@ export function fromCNY(v: number, cur: string | undefined) {
         return v / RATE_INR_CNY;
     return cur === "CNY" ? v : NaN;
 }
+
 /* 百万 tokens 的人类可读格式：207.84 → "208M"，2047 → "2.0B" */
 export function fmtTok(m: number | null | undefined) {
     if (m == null || !Number.isFinite(m) || m < 0)
@@ -47,6 +56,7 @@ export function fmtTok(m: number | null | undefined) {
     const digits = m < 1 ? 2 : m < 10 ? 1 : 0;
     return Number(m.toFixed(digits)) + "M";
 }
+
 /**
  * 各时段的额度倍率。分母是该时段分摊到的月费：
  * 5h = 月费/(4.33×5)，周 = 月费/4.33，月 = 月费。
@@ -61,7 +71,9 @@ export function periodRates(val5hCNY: number, valWkCNY: number, valMoCNY: number
         rmo: valMoCNY / priceCNY,
     };
 }
+
 const positive = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v) && v > 0;
+
 /**
  * 把额度口径（每周 tokens / 请求数 / 5h 请求数）展开成 5h·周·月 tokens。
  * 口径冲突时以更具体的窗口为锚（有周用周，其次月，最后 5h×5）。
@@ -104,8 +116,10 @@ export function windowTokens(m: MetricsInput | null | undefined): WindowTokens |
     const mo = moCap != null ? moCap : wkM * WEEKS_PER_MONTH;
     return { fLow: f, fHigh: f, wkLowM: wkM, wkHighM: wkM, moLow: mo, moHigh: mo };
 }
+
 /* computeMetrics 是纯函数且在排行图/额度表/帮我选里被反复调用，按入参对象做一层缓存 */
 export const METRICS_COMPUTED = new WeakMap<MetricsInput, MetricsResult | null>();
+
 /** 口径不完整、数值非法或月费非正时返回 null。 */
 export function computeMetrics(m: MetricsInput | null | undefined): MetricsResult | null {
     if (!m || typeof m !== "object")
@@ -128,6 +142,7 @@ export function computeMetrics(m: MetricsInput | null | undefined): MetricsResul
     METRICS_COMPUTED.set(m, valid);
     return valid;
 }
+
 export function computeMetricsUncached(m: MetricsInput): MetricsResult | null {
     const priceM = m.priceM ?? NaN;
     if (!Number.isFinite(priceM) || !(priceM > 0) || !Number.isFinite(toCNY(priceM, m.cur)) || (m.apiCur && !Number.isFinite(toCNY(1, m.apiCur))))
@@ -202,11 +217,13 @@ export function computeMetricsUncached(m: MetricsInput): MetricsResult | null {
         r5hHi: hi.r5h, rwkHi: hi.rwk, rmoHi: hi.rmo,
     };
 }
+
 /* 性价比排行的「旗舰」筛选只排除轻量模型，与「帮我选」的复杂任务角色共用 data.js 的 MODEL_ROLES 正则，不再另维护一套。
    有意的口径差异只在 RANK_MAIN_EXTRA：Sonnet 与仍在售的上一代主力（Kimi K2.x、GPT-5.x）在「帮我选」里不当复杂任务首选，
    但不是轻量模型，排行里与旗舰一起比较。多模型字段按分隔符拆开，任一命中即算；
    Flash/Haiku/Luna/Nano/mini 等轻量名显式排除（\bmini\b 不误伤 MiniMax）。 */
 export const RANK_MAIN_EXTRA = /sonnet|kimi[\s-]*k2(?:\.\d+)?|gpt-5(?:\.\d+)?/i;
+
 export function isFlagshipModelName(name: string | null | undefined) {
     return String(name || "").split(/[、,，/|；;]+/).some((part) => {
         const t = part.trim();

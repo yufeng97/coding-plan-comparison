@@ -25,39 +25,43 @@
 |---|---|
 | `index.html` | HTML 外壳、`#app` 挂载点与 Vite 入口（`src/main.ts`）；主题引导、加载提示、按需数据与 ECharts 保留逻辑入口地址 |
 | `src/main.ts` / `src/App.vue` | 恢复 URL 与本机状态 → 挂载整页 Vue 组件 → 启动导航、按需加载及共享服务；App 模板供浏览器与 Vue SSR 共用 |
-| `src/sections/` | 全部原生 Vue 区块：推荐与控件、价格及额度图、免费入口、数据表、并排对比、完整权益、费用计算、评测、关注、贡献和来源；共用按钮及单元格组件保留原 ID、class、ARIA。`*.test.ts` 用 Vitest + happy-dom，`src/test/setup.ts` 提供真实按需数据 |
-| `src/domain/core.ts` … `maintenance.ts` / `startup.ts` | 业务模块，按职责拆分并互相显式导入：`core`（格式化、套餐标签、按需数据、ECharts 加载与主题）、`state`（共享状态与 URL 编解码）、`charts`（图表配置）、`picker`（推荐与付款口径）、`tables`（数据表、额度表、导出与并排对比）、`service`（费用计算、预设与用量导入）、`maintenance`（关注、维护与评测数据），`startup` 负责章节导航、历史恢复、图表懒加载与页面启动（经 `runtime` 导入业务入口，页面测试可替换其中的导出）。`runtime.ts` 汇总导出，组件与测试从 `@domain/runtime` 导入 |
+| `src/sections/` | 按 `picker`、`pricing`、`benchmarks`、`follow`、`contribution` 与 `site` 分组的页面区块；组件测试就近放置，保留原 ID、class、ARIA |
+| `src/components/` | 通用链接、按钮、徽章、价格与额度单元、可选数据状态，以及图表生命周期辅助代码 |
+| `src/domain/` | 不依赖浏览器、应用协调或共享状态的业务规则：价格与数据索引、额度、推荐规则、评测模型匹配、置信度、用量计算及类型；推荐规则接收显式状态参数 |
+| `src/state/` | Vue 共享状态及绑定状态的选择器；只依赖业务规则和生成目录，不依赖 DOM 或应用动作 |
+| `src/browser/` | DOM、主题、图表、按需数据、URL、存储、剪贴板与下载等浏览器适配；提前执行的主题与加载提示脚本也在此 |
+| `src/application/` | 跨功能动作、组件服务注册与页面启动；`runtime.ts` 汇总应用公开接口，组件与整页测试从 `@app/runtime` 导入 |
 | `src/domain/metrics.ts` / `model-types.ts` | 额度换算纯计算与业务类型（`computeMetrics`、`blendPrice`、旗舰判定等）；无 DOM，测试与校验器共用。排行「旗舰」复用目录中的 `MODEL_ROLES` |
-| `src/domain/catalog.ts` / `scripts/build/catalog-types.mjs` | 从审计数据、首屏评测摘要与公开项目配置确定性生成的类型化目录；生成文件提交，`catalog:check` 发现输入漂移时失败 |
-| `js/globals.d.ts` / `src/types.d.ts` | 审计数据的结构类型（套餐、额度行、核价、评测与维护快照），数据文件的 checkJs 与应用共用同一份；`src/types.d.ts` 只声明应用专用全局：按需数据常量与 ECharts 精简包（下载前为 `undefined`）及 `window` 扩展 |
+| `src/generated/catalog.ts` / `scripts/build/catalog-types.mjs` | 从审计数据、首屏评测摘要与公开项目配置确定性生成的类型化目录；生成文件提交，`catalog:check` 发现输入漂移时失败 |
+| `types/catalog.d.ts` / `src/types.d.ts` | 审计数据的结构类型（套餐、额度行、核价、评测与维护快照），数据文件的 checkJs 与应用共用同一份；`src/types.d.ts` 只声明应用专用全局：按需数据常量与 ECharts 精简包（下载前为 `undefined`）及 `window` 扩展 |
 | `src/browser/theme.ts` / `loader.ts` | 首帧主题与主入口加载失败提示；构建为先于应用入口执行的经典脚本，保留失败重试与 CSP 外链约定 |
-| `css/style.css` | 样式（亮色默认；支持暗色与跟随系统；`--cat-*` 类别色变量是图表/图例/标签的单一色源） |
-| `js/data.js` / `benchmark-summary.js` / `project-data.js` | 刻意保留的审计及维护输入；订阅永久 ID、引用权益、首屏评测摘要和公开项目配置在此维护，生成 TS 目录后进入应用 |
+| `src/styles/index.css` | 固定顺序导入主题、基础、布局、控件、功能与响应式样式；`--cat-*` 是图表/图例/标签的单一色源，拆分保持原级联顺序 |
+| `data/sources/data.js` / `benchmark-summary.js` / `project-data.js` | 刻意保留的审计及维护输入；订阅永久 ID、引用权益、首屏评测摘要和公开项目配置在此维护，生成 TS 目录后进入应用 |
 | `src/charts/echarts.ts` | ECharts 按需精简包入口（仅柱状图 + Grid/Tooltip/Legend/Title/AxisPointer）；构建时由 npm 包生成 `libs/echarts-<hash>.js`，版本跟随 package.json |
-| `libs/fonts/` | Manrope、IBM Plex Mono 本地子集；39 个字体声明共用 21 份内容去重资产 |
+| `src/assets/fonts/` | Manrope、IBM Plex Mono 本地子集；39 个字体声明共用 21 份内容去重资产 |
 | `scripts/lib/paths.js` / `atomic-swap.js` | 共享的「路径是否在根内 / 封锁段」判断、目录级原子交换（暂存→备份→切换→回滚）与逐文件替换回滚 |
 | `scripts/build/` | 构建与校验工具：vite-assets（公共源白名单、经典资源哈希与 ECharts 生成）、catalog-types、vendor-fonts、stage-site、prerender、render-vue、deploy-site、check-syntax、validate-data、sync-pricing-audit |
 | `src/regression/` / `src/test/page.ts` | 公式及数据直接导入 TS 模块；用户流程挂载真实 `App.vue` 并按生产顺序启动。测试只替换浏览器边界：历史、计时器、ECharts、存储、剪贴板、下载及按需数据；无旧页面外壳或渲染器 |
-| `img/` | 分享卡片图（og:image），由 build:site 随站发布 |
-| `feeds/` | `npm run maintenance:build` 生成的分厂商变更 RSS |
+| `public/img/` | 分享卡片图（og:image），发布 URL 保持 `img/` |
+| `public/feeds/` / `public/changes.xml` | 生成的分厂商 RSS 与全站变更 RSS，发布 URL 保持 `feeds/` 与 `changes.xml` |
 | `scripts/server/serve.js` | 发布产物预览服务器（`serve.js .site-build`；只监听 127.0.0.1，只读站点目录内的白名单文件并拒绝隐藏路径） |
 | `scripts/news/collect-news.js` | 联网采集资讯候选与页面变化；保留缓存和来源错误，不改正式数据 |
 | `config/news-sources.json` / `review-calendar.json` | 官方监测、开放发现与有来源的复核日历 |
-| `js/maintenance-data.js` / `benchmark-data.js` | 维护和评测生成的公共数据，按需加载；状态与计算在 TS 业务模块，展示在 Vue 组件 |
+| `data/generated/maintenance-data.js` / `benchmark-data.js` | 维护和评测生成的公共数据，按需加载；状态与计算在 TS 业务模块，展示在 Vue 组件 |
 | `scripts/maintenance/` / `data/` | 维护摘要、真实变更历史、RSS 构建与回归 |
 | `scripts/benchmarks/` / `benchmarks/` | 官方公开评测 adapter、带哈希证据的采集/审核、public-results.json 快照、固定任务验收与公共测评构建 |
-| `scripts/tests/` | 13 个 Node 工具套件：HTTP 服务、文件锁、构建、核价同步、资讯、维护及评测。Chromium、Firefox、WebKit 用例在 `scripts/tests/browser/`，通过 DOM、地址、存储和 ECharts 公共 API 检查发布产物；TypeScript 公式、数据、整页与组件测试在 `src/**/*.test.ts`，由 `npm test` 一并运行 |
+| `scripts/tests/` | Node 工具、架构约束及维护回归；Chromium、Firefox、WebKit 用例在 `scripts/tests/browser/`，通过 DOM、地址、存储和 ECharts 公共 API 检查发布产物；TS 公式、数据、整页与就近组件测试由 `npm test` 一并运行 |
 | `audit/` | 258 条价格的原始库存、分组官网证据与 JSON/CSV 合并台账；不复制到公共部署产物 |
 
 ## 前端结构与迁移
 
 经典页面逻辑到 Vue 3 + Vite + TypeScript 的迁移已经完成。整页由单一 `App.vue` 组织，各区块使用原生 Vue 模板，不用 `v-html` 包装原渲染器。经典业务脚本、合并清单、虚拟模块与 `src/legacy.d.ts` 已移除；审计数据和维护工具保留原有编辑格式。
 
-- **模块与启动**：共享逻辑从 `@domain/runtime` 导入，只导入模块不会执行页面启动。`main.ts` 先恢复 URL、关注等本机状态，再挂载组件并调用 `startApplication`。启动与业务之间的导航回调用显式钩子连接，不依赖经典脚本全局作用域。
-- **共享状态**：业务模块直接使用 Vue `reactive`；保存目录对象引用的 `cmpState` 用 `shallowReactive`，替换选择数组时保持原套餐对象身份。推荐、表格、关注与完整权益窗口读取同一份状态，Vue 拥有这些容器的 DOM。
+- **依赖方向与启动**：业务规则只依赖类型、生成目录与其他规则；状态层依赖业务规则；浏览器适配使用规则与状态；应用层协调这些能力，组件从 `@app/runtime` 导入服务。`check:architecture` 检查包括 Vue script 在内的生产模块，拒绝运行时循环依赖与下层反向导入。`main.ts` 显式初始化协调能力，恢复 URL 与关注，再挂载组件和启动导航；模块导入不读取浏览器 URL。
+- **共享状态**：`src/state/` 集中使用 Vue `reactive`；保存目录对象引用的 `cmpState` 用 `shallowReactive`，替换选择数组时保持原套餐对象身份。推荐、表格、关注与完整权益窗口读取同一份状态，Vue 拥有这些容器的 DOM。
 - **按需数据与图表**：维护和评测仍按经典数据资产下载。`refreshOptionalViews` 递增 `dataRevision.maintenance` / `dataRevision.benchmark`，组件据此重算；图表加载、主题与尺寸变化通过组件登记的重绘钩子处理，卸载时释放图表资源。
-- **类型边界**：`src/` 全部代码在同一份严格配置下检查：`tsconfig.app.json` 覆盖业务模块、组件与模板（不含 Node 类型），`tsconfig.vitest.json` 继承它并加入测试与 Node 类型。数据结构只在 `js/globals.d.ts` 声明一次；价格、额度等可缺省的值按 `number | null` 处理，付款报价按 `available` 区分有价与未列价两种形态，额度表行按 `payg` 区分套餐额度与按量参照。按需数据与 ECharts 全局在下载前不存在，类型为 `| undefined`，使用前先判断。生产源不使用 `any`、`@ts-nocheck` 或 `@ts-ignore`；测试替身 `FakeChart` 记录的 ECharts 配置是唯一保留 `any` 的地方，便于断言读取任意层级。
-- **审计目录**：`catalog:build` 从 `js/data.js`、`benchmark-summary.js`、`project-data.js` 确定性生成 `catalog.ts`，保留正则、资格函数与永久 ID。类型只来自数据文件里的 JSDoc（`@type`、`@param`、`@returns`），如 `Plan[]`、`PriceChecks`、`BenchmarkSummary`；顶层函数的参数缺少注解时生成失败。生成文件应随维护输入一同提交；`catalog:check` 只检查漂移，不改仓库。维护输入变化后先重建目录再提交。
+- **类型边界**：`src/` 全部代码在同一份严格配置下检查：`tsconfig.app.json` 覆盖业务模块、组件与模板（不含 Node 类型），`tsconfig.vitest.json` 继承它并加入测试与 Node 类型。数据结构只在 `types/catalog.d.ts` 声明一次；价格、额度等可缺省的值按 `number | null` 处理，付款报价按 `available` 区分有价与未列价两种形态，额度表行按 `payg` 区分套餐额度与按量参照。按需数据与 ECharts 全局在下载前不存在，类型为 `| undefined`，使用前先判断。生产源不使用 `any`、`@ts-nocheck` 或 `@ts-ignore`；测试替身 `FakeChart` 记录的 ECharts 配置是唯一保留 `any` 的地方，便于断言读取任意层级。
+- **审计目录**：`catalog:build` 从 `data/sources/data.js`、`benchmark-summary.js`、`project-data.js` 确定性生成 `catalog.ts`，保留正则、资格函数与永久 ID。类型只来自数据文件里的 JSDoc（`@type`、`@param`、`@returns`），如 `Plan[]`、`PriceChecks`、`BenchmarkSummary`；顶层函数的参数缺少注解时生成失败。生成文件应随维护输入一同提交；`catalog:check` 只检查漂移，不改仓库。维护输入变化后先重建目录再提交。
 - **关注与对比按钮**：推荐、数据表、完整权益和关注列表复用 Vue 按钮组件，直接从共享状态计算选中、禁用与 ARIA；统一服务处理套餐身份与关注变更。旧同步函数不改写 Vue 所有的节点。
 - **静态首屏**：`render-vue.mjs` 在隔离进程里通过 Vite 加载同一个 App，调用 Vue `renderToString`；happy-dom 仅提供浏览器 API 边界。SSR 不运行启动、图表下载或用户存储恢复。浏览器按 URL 与本机状态重新挂载；静态输出不插入关闭窗口的 Teleport 节点，避免重复 ID。
 - **回归边界**：Vitest 直接导入 TS 计算；整页测试重新载入业务模块、挂载真实 App 并启动，不维护另一套 HTML。每次结束卸载组件并清理事件、计时器与浏览器替身。真实浏览器负责布局、焦点时序、滚动与 ECharts 绘制；断言只经 DOM、地址、存储及第三方公共 API 观察页面。业务全局 getter、TS 转经典脚本适配器和旧 HTML 渲染夹具已删除。
@@ -81,16 +85,17 @@
 - **厂商名规范**：同一厂商在 `PLANS`、`API_PRICES`、`PAYG_REFERENCES`、指标行中使用同一 `vendor` 字符串（同一厂商的不同产品线各用专名，如 腾讯云 CodeBuddy / 腾讯云 TokenHub / 腾讯云（LKEAP 知识引擎））；图表缩写由 `VENDOR_SHORT` 承担，校验器会对同厂商同型号的牌价做币种与数值交叉校验。
 - **单一数据源**：类别色走 CSS 变量 `--cat-*`（JS 的 `refreshCategoryColors()` 在主题切换时重读）；数据表正文、CSV 与 Markdown 共享 `PLAN_COLUMNS`，各渠道按配置选列；额度表的列定义只在 `METRICS_COLUMNS` 一处。已有继承权益均通过 `fieldRefs` 的永久 ID 明确目标，新增继承也填写目标 ID，追加权益保留且循环引用安全中止。解析器保留旧文本名称及「同上」相邻位置的兼容能力，不用它们建立新数据引用。
 - **推荐元数据**：`windowPeriod` 与 `quotaSharing` 分别描述重置周期与模型额度是否共享，缺省表示未知；`codingSurface`、`includedModelQuota`、`modelAccess` 与 `purchaseCountries` 分别描述编程入口、是否包含推理、自备模型和国家限定资格。`modelBaseRef` 通过计划引用继承模型，`modelIncludes`/`modelExcludes` 显式补充和排除模型，`ownClient` 明确自家编程入口；校验器检查字段类型、引用及混合继承环。填有依据的事实，未知情况不靠条数或文案猜测。月 credits 及无 5h 上限的套餐不生成虚假的 5h 额度，官方与估算的重复周额度按稳定引用去重。
-- **资源版本与发布范围**：Vite 按内容哈希命名入口、样式与字体；仍按经典脚本加载的主题引导、加载提示、按需数据和 ECharts 由 `classic-scripts` 插件同样按内容哈希另存，不再需要 `?v=` 版本号。构建只读入 `index.html`、`src/`、`js/`、`css/`、`libs/`、`img/` 与 `node_modules/` 内的文件，词法路径和真实路径（展开 junction、符号链接后）都要满足，私有或隐藏目录不会经链接进入产物。`.gitattributes` 固定文本检出为 LF。
-- **开发环境与校验**：Node.js 22.12+（Vite 8 的要求），首次运行 `npm ci`。开发依赖固定版本并提交 lockfile。`npm run typecheck` 先检查生成目录与审计输入一致，再以 checkJs 检查数据与工具脚本，随后以严格模式检查业务模块、Vue 组件及模板（`tsconfig.app.json`，不含 Node 类型）和 TS 公式、数据、整页与组件测试（`tsconfig.vitest.json`）。公式测试直接导入生产模块；整页回归使用真实 Vue 渲染，测试文件同样纳入严格类型检查。`npm run validate` 检查数据结构、引用、有限数字、日期和价格区间；同一套规则可校验内存候选源码。`npm test` 执行 13 个 Node 工具套件和 TS / Vue 回归，包含额度公式、真实数据、真实 Vue 用户流程、HTTP 服务、审计无效输入/幂等/失败回滚、资讯与字体工具、目录生成漂移、Vue SSR 和公共产物回归。`npm run test:browser` 先生成发布产物，再对 Chromium、Firefox、WebKit 运行真实浏览器用例，覆盖图表、历史导航、服务功能及桌面/手机布局。CI 在 Linux 与 Windows 安装三种浏览器并执行各项检查，浏览器缓存键包含 lockfile 哈希；失败保留截图，首次重试才录制 trace（[Playwright 官方建议](https://playwright.dev/docs/trace-viewer#tracing-on-ci)）。本地需要追踪时显式加 `--trace on`。
+- **资源版本与发布范围**：Vite 按内容哈希命名入口、样式与字体；主题引导、加载提示、按需数据和 ECharts 由经典资源插件按内容哈希另存。可进入构建的源文件仅限入口、应用源码、明确登记的公开数据文件、公共图片/RSS 与 npm 依赖，`data/` 中的维护台账不会因整目录放行而进入产物。词法路径和真实路径都须满足白名单。`publicDir` 保持关闭，开发中间件与发布构建按白名单映射 `public/`，发布 URL 保持 `img/`、`feeds/` 和 `changes.xml`。`.gitattributes` 固定文本为 LF。
+- **开发环境与校验**：Node.js 22.12+（Vite 8 的要求），首次运行 `npm ci`。开发依赖固定版本并提交 lockfile。`npm run typecheck` 先检查生成目录与审计输入一致及模块分层，再以 checkJs 检查数据与工具脚本，随后以严格模式检查业务模块、Vue 组件及模板（`tsconfig.app.json`，不含 Node 类型）和 TS 公式、数据、整页与组件测试（`tsconfig.vitest.json`）。公式测试直接导入生产模块；整页回归使用真实 Vue 渲染，测试文件同样纳入严格类型检查。`npm run validate` 检查数据结构、引用、有限数字、日期和价格区间；同一套规则可校验内存候选源码。`npm test` 执行 14 个 Node 工具套件（含架构约束）和 TS / Vue 回归，包含额度公式、真实数据、真实 Vue 用户流程、HTTP 服务、审计无效输入/幂等/失败回滚、资讯与字体工具、目录生成漂移、Vue SSR 和公共产物回归。`npm run test:browser` 先生成发布产物，再对 Chromium、Firefox、WebKit 运行真实浏览器用例，覆盖图表、历史导航、服务功能及桌面/手机布局。CI 在 Linux 与 Windows 安装三种浏览器并执行各项检查，浏览器缓存键包含 lockfile 哈希；失败保留截图，首次重试才录制 trace（[Playwright 官方建议](https://playwright.dev/docs/trace-viewer#tracing-on-ci)）。本地需要追踪时显式加 `--trace on`。
+- **开发资源更新**：`predev` 显式生成类型化目录；开发插件监听已登记的数据输入并更新目录。经典脚本通过 esbuild 依赖信息和内容指纹检查缓存，入口或依赖变化后失效并刷新。加载 Vite/Vitest 配置不写生产源码；测试生命周期执行 `catalog:check`，数据变更须先运行 `catalog:build`。
 - **ECharts 精简包**：入口 `src/charts/echarts.ts` 只注册页面用到的图表与组件，构建时用 esbuild 打成经典脚本；新增图表类型或组件时在入口里注册。仍按经典脚本加载是为了失败可重试：Chromium 会缓存失败的动态 `import()`，同一地址重试不会再请求。
-- **第三方产物出处**：`libs/README.md` 记录版本与来源。`npm run vendor:fonts` 将所有字体下载到暂存目录，检查 WOFF2 后按 SHA-256 内容去重并整组替换；失败保留或恢复旧目录。相同字节只存一份，CSS 保留各字重和 unicode-range 映射；成功替换时清理旧子集；构建时 Vite 按内容哈希重新命名。当前字体离线去重由 39 个文件降为 21 个，452,796 → 227,880 字节，减少约 49.7%。
+- **第三方产物出处**：`src/assets/README.md` 记录版本与来源。`npm run vendor:fonts` 将所有字体下载到暂存目录，检查 WOFF2 后按 SHA-256 内容去重并整组替换；失败保留或恢复旧目录。相同字节只存一份，CSS 保留各字重和 unicode-range 映射；成功替换时清理旧子集；构建时 Vite 按内容哈希重新命名。当前字体离线去重由 39 个文件降为 21 个，452,796 → 227,880 字节，减少约 49.7%。
 - **目录交换失败**：对临时占用错误 `EPERM/EBUSY/EACCES`，每次目录改名最多尝试 5 次，等待合计不超过 375ms；其他错误直接失败。切换与恢复都失败时保留旧目录备份并报告路径，不在调用方清理中删除恢复依据。
 - **调试**：给 URL 加 `?debug=1` 会在控制台跑「帮我选」的 headline 断言（`auditProfiles`），正常访问不执行。
 
 ## 生成产物与部署
 
-`npm run build:site` 先从审计输入同步类型化目录，用 Vite 将 TS/Vue 应用构建到暂存目录，再用 Vue 服务端渲染同一个 `App.vue`，把默认条件下的推荐、价格表、免费入口、动态和 API 明细写入发布用 `index.html` 的 `#app`（标记 `data-prerendered`）。搜索引擎、链接预览和脚本执行前的访问者可直接阅读；浏览器先恢复当前 URL 与本机状态，再挂载 Vue 接管页面并移除静态标记。带筛选参数的链接在接管前隐藏默认首屏，避免先展示不匹配的推荐。SSR 使用隔离进程和浏览器边界替身，不执行图表加载或页面启动。随后附带已确认变化 RSS `changes.xml`、分享卡片图 `img/`、分厂商 RSS `feeds/` 与 `vercel.json`，最后整目录原子替换 `.site-build/`；任一步失败都保留原来的产物。产物只允许公共白名单内的文件，测试夹具、工具、依赖、项目凭据及历史 `.vercel/output` 都不会进入。直接用 `vercel` 命令部署仓库根目录得到的是未构建的源码，页面无法运行，请用下面的 `npm run deploy`；`.vercelignore` 仍保证工具与说明文档不会被公开。
+`npm run build:site` 先从审计输入同步类型化目录，用 Vite 将 TS/Vue 应用构建到暂存目录，再用 Vue 服务端渲染同一个 `App.vue`，把默认条件下的推荐、价格表、免费入口、动态和 API 明细写入发布用 `index.html` 的 `#app`（标记 `data-prerendered`）。搜索引擎、链接预览和脚本执行前的访问者可直接阅读；浏览器先恢复当前 URL 与本机状态，再挂载 Vue 接管页面并移除静态标记。带筛选参数的链接在接管前隐藏默认首屏，避免先展示不匹配的推荐。SSR 使用隔离进程和浏览器边界替身，不执行图表加载或页面启动。随后从 `public/` 附带已确认变化 RSS、分享卡片图与分厂商 RSS 与 `vercel.json`，最后整目录原子替换 `.site-build/`；任一步失败都保留原来的产物。产物只允许公共白名单内的文件，测试夹具、工具、依赖、项目凭据及历史 `.vercel/output` 都不会进入。直接用 `vercel` 命令部署仓库根目录得到的是未构建的源码，页面无法运行，请用下面的 `npm run deploy`；`.vercelignore` 仍保证工具与说明文档不会被公开。
 
 ```bash
 npm run build:site

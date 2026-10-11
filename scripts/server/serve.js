@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* 本地静态服务器：只监听 127.0.0.1，只读项目根目录内的公共站点文件（入口、RSS 与 css/js/libs），
+/* 本地静态服务器：只监听 127.0.0.1，只读发布目录内的公共站点文件（入口、RSS 与 css/js/libs），
  * 并只接受指向本机监听端口的 Host，防止 DNS 重绑定页面借浏览器读取审计、凭据等项目文件。 */
 const http = require("http");
 const fs = require("fs");
@@ -7,7 +7,8 @@ const path = require("path");
 const crypto = require("crypto");
 const { insideRoot, blockedSegment, publicSiteFile, hiddenSegment } = require("../lib/paths");
 
-const root = path.resolve(__dirname, "..", "..");
+const repositoryRoot = path.resolve(__dirname, "..", "..");
+const root = path.join(repositoryRoot, ".site-build");
 const host = "127.0.0.1";
 const port = Number(process.env.PORT) || 8123;
 const types = {
@@ -94,9 +95,9 @@ function createServer(options = {}) {
 
 if (require.main === module) {
   /* node scripts/server/serve.js .site-build 预览构建产物（npm run serve 与浏览器测试即用此方式）；开发时用 npm run dev。 */
-  const siteRoot = process.argv[2] ? path.resolve(root, process.argv[2]) : undefined;
+  const siteRoot = process.argv[2] ? path.resolve(repositoryRoot, process.argv[2]) : undefined;
   createServer({ root: siteRoot }).listen(port, host, () => {
-    console.log("http://" + host + ":" + port + (siteRoot ? "（" + path.relative(root, siteRoot) + "）" : ""));
+    console.log("http://" + host + ":" + port + (siteRoot ? "（" + path.relative(repositoryRoot, siteRoot) + "）" : ""));
   });
 }
 

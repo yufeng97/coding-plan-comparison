@@ -1,3 +1,4 @@
+
 /* 数据语义与审计校验回归：直接载入生产 TypeScript 模块；候选源码经校验器的 source 参数在内存验证。 */
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -8,7 +9,7 @@ import { test, vi } from "vitest";
 import type { MetricsInput } from "@domain/model-types";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const dataSource = fs.readFileSync(path.join(root, "js/data.js"), "utf8");
+const dataSource = fs.readFileSync(path.join(root, "data/sources/data.js"), "utf8");
 interface ValidationOptions { now?: string | number | Date; }
 interface ValidationReport { errors: string[]; warns: string[]; notes: string[]; summary: string; }
 const { validateData } = createRequire(import.meta.url)("../../scripts/build/validate-data.js") as {
@@ -16,7 +17,7 @@ const { validateData } = createRequire(import.meta.url)("../../scripts/build/val
 };
 async function load() {
   vi.resetModules();
-  const catalog = await import("@domain/catalog");
+  const catalog = await import("../generated/catalog");
   const metrics = await import("@domain/metrics");
   return { ...catalog, ...metrics };
 }

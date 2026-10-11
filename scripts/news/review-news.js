@@ -89,7 +89,7 @@ const WORKFLOW = ["accepted 仅确认候选值得进入人工数据核验，不�
 
 /** @returns {Set<string>} */
 function readPublishedURLs(workspace) {
-  const source = fs.readFileSync(path.join(workspace, "js", "data.js"), "utf8");
+  const source = fs.readFileSync(path.join(workspace, "data", "sources", "data.js"), "utf8");
   const dynamics = /** @type {Array<{url:string,checked?:boolean}>} */ (vm.runInNewContext(source + "\n;typeof DYNAMICS !== 'undefined' ? DYNAMICS : []", {}, { timeout: 2000 }));
   return new Set(dynamics.filter((item) => item && item.checked !== true && typeof item.url === "string").map((item) => normalizeURL(item.url)));
 }

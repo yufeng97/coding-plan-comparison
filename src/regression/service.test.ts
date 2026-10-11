@@ -1,3 +1,4 @@
+
 /* 原 test-app-service.js 的整页交互；纯费用公式与非法数值矩阵见 workload.test.ts。 */
 import assert from "node:assert/strict";
 import { test } from "vitest";

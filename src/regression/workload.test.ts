@@ -1,6 +1,7 @@
+
 /* 工作量费用计算：缓存折扣、币种、边界与非法输入、费用情景。原 scripts/tests/test-app-service.js 的计算部分。 */
 import { describe, expect, test } from "vitest";
-import * as app from "@domain/runtime";
+import * as app from "@app/runtime";
 
 const near = (actual: number | null | undefined, expected: number) => expect(Math.abs((actual ?? NaN) - expected)).toBeLessThan(1e-8);
 const usdApi = { cur: "USD", inUSD: 2, outUSD: 10, cacheUSD: 0.2 };

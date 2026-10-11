@@ -46,9 +46,16 @@ function shortAlias(dir, stem, extension, target) {
 }
 
 async function main() {
-  const server = createServer();
+  /* 服务器检验发布目录协议；源码目录现为 src/data/public，不能作为静态站点根。 */
+  const release = fs.mkdtempSync(path.join(os.tmpdir(), "coding-plan-server-test-"));
+  for (const [rel, bytes] of [["index.html", "<!doctype html>"], ["css/index-test.css", "body{}"], ["changes.xml", "<rss/>"], ["js/index-test.js", '"use strict";'], ["libs/fonts/test.woff2", "wOF2test"]]) {
+    const file = path.join(release, rel);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, bytes);
+  }
+  const server = createServer({ root: release });
   const port = await listen(server);
-  const temporary = [], links = [];
+  const temporary = [release], links = [];
   let fixtureServer = null;
   try {
     const page = await request(port, "/");
@@ -67,11 +74,11 @@ async function main() {
     assert.equal(head.body.length, 0);
     console.log("  ✓ ETag 条件请求与 HEAD");
 
-    const css = await request(port, "/css/style.css?v=test");
+    const css = await request(port, "/css/index-test.css?v=test");
     assert.equal(css.status, 200);
     assert.match(css.headers["content-type"], /^text\/css/);
     assert.equal((await request(port, "/js/missing-server-test-file.js")).status, 404);
-    for (const urlPath of ["/index.html", "/changes.xml", "/js/data.js", "/libs/fonts/fonts.css"]) assert.equal((await request(port, urlPath)).status, 200, urlPath);
+    for (const urlPath of ["/index.html", "/changes.xml", "/js/index-test.js", "/libs/fonts/test.woff2"]) assert.equal((await request(port, urlPath)).status, 200, urlPath);
     console.log("  ✓ 资源类型、查询参数与缺失文件");
 
     for (const value of ["evil.example:" + port, "evil.example", "127.0.0.1", "127.0.0.1:" + (port === 65535 ? 1 : port + 1), "[::1]:" + port, "localhost.:" + port, "127.0.0.1:" + port + ".evil.example", "127.0.0.1:" + port + "@evil.example"]) {
