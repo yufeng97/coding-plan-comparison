@@ -32,7 +32,7 @@ export function internationalNotice(p: Plan): PickerNotice {
   const lead = access ? (access.status === "unsupported" ? "官方支持地区不含中国大陆；" : "在中国大陆部分模型不可用；") : "";
   return { kind: "avoid", text: lead + "需要外币或国际账号支付。" };
 }
-function mainCard(main: PickerProfile, pool: PickerProfile[]) {
+export function mainCard(main: PickerProfile, pool: PickerProfile[]) {
   const p = main.p;
   const daily = state.task === "daily" && main.loose.length > 0;
   const role = daily || !main.headline ? main.loose[0] : main.headline;
@@ -71,7 +71,7 @@ function mainCard(main: PickerProfile, pool: PickerProfile[]) {
   if (p.region === "intl" && state.region !== "cn") result.notices.push(internationalNotice(p));
   return result;
 }
-function dailyCard(main: PickerProfile, pool: PickerProfile[]) {
+export function dailyCard(main: PickerProfile, pool: PickerProfile[]) {
   if (state.task !== "both" || main.internalDaily.length || (main.loose.length && !main.shared)) return null;
   const supplement = L.pickSupplement(main, pool);
   if (!supplement.chosen) return null;
@@ -84,7 +84,7 @@ function dailyCard(main: PickerProfile, pool: PickerProfile[]) {
   lines.push(line("两档合计月费", `约 ${L.fmtCNY(total)}（按页面汇率折算）`));
   return card(1, "可选日常补充", p, [`日常可用 ${names(p, roles)}`, L.isFreeCodingEntry(p) ? "独立免费入口，无需额外月费" : "可选的另一份订阅，用量不占主计划额度", `两档合计约 ${L.fmtCNY(total)}/月，在当前预算内`], lines);
 }
-function upgradeCard(main: PickerProfile) {
+export function upgradeCard(main: PickerProfile) {
   const next = L.nextTier(main) as PickerProfile | null;
   if (!next) return null;
   const cap = L.upgradeBudgetCeiling();
@@ -92,7 +92,7 @@ function upgradeCard(main: PickerProfile) {
   const role = state.task === "daily" || !main.headline ? next.loose[0] : next.headline;
   return card(2, "同厂商升级参考", next.p, [over ? `高于当前预算${Number.isFinite(cap) ? `，在下一档 ≤${L.fmtCNY(cap)} 内` : ""}` : "月费仍在当前预算内", role ? `可使用 ${L.roleDisplayName(next.p, role)}，主要比较额度差异` : "同厂商更高档位，可对照额度规则", "这是升级替代方案，无需与主计划同时购买"], [line("多出来的是", L.unlockText(main, next))]);
 }
-function ownCard(main: PickerProfile | null) {
+export function ownCard(main: PickerProfile | null) {
   const vendor = ownVendors[state.tool];
   if (!vendor || main?.p.vendor === vendor) return null;
   const picked = L.ownVendorPlan(vendor);

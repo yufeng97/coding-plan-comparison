@@ -3,6 +3,8 @@ import { computed } from "vue";
 import * as app from "@domain/runtime";
 import { weeklyRows } from "./chart-models";
 import ChartLegend from "./ChartLegend.vue";
+import { useChartLifecycle } from "./chart-lifecycle";
+useChartLifecycle("chartTokens");
 const rows = computed(weeklyRows);
 const legend = [{ name: app.TOKEN_OFFICIAL_SERIES, color: app.TOKEN_OFFICIAL_COLOR }, { name: app.TOKEN_EST_SERIES, color: app.TOKEN_EST_COLOR }];
 function per100(midM: number, priceCNY: number) { return priceCNY > 0 ? (midM / priceCNY * 100).toFixed(1) + "M" : "—"; }

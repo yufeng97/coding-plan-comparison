@@ -33,7 +33,7 @@ for (const width of [375, 1280]) {
     await expect(page.locator('#quickGrid > .quick-card:has([data-plan-id="plan-0004"])')).toHaveCount(0);
     await expect(page).toHaveURL((url) => url.searchParams.get("budget") === "500"
       && url.searchParams.get("tool") === "claude" && (url.searchParams.get("region") || "cn") === "cn");
-    expect(await page.evaluate("pickerState.region")).toBe("cn");
+    await expect(page.locator('#picker [data-pick="region"] [data-value="cn"]')).toHaveAttribute("aria-pressed", "true");
     await page.reload();
     await expect(page.locator('#quickGrid > .quick-card:has([data-plan-id="plan-0002"]) .qc-value')).toContainText("$20");
   });

@@ -4,6 +4,8 @@ import * as app from "@domain/runtime";
 import { targetValue } from "./dom";
 import { excludedList, personalView } from "./chart-models";
 import PickerScope from "./PickerScope.vue";
+import { useChartLifecycle } from "./chart-lifecycle";
+useChartLifecycle("chartPersonal");
 const state = app.personalState;
 const categories = [["all", "全部类别"], ["official", "模型官方订阅"], ["tool", "第三方工具订阅"], ["cloud", "云厂商/API 套餐"]];
 const regions = [["all", "全部地区"], ["cn", "国内"], ["intl", "国际"]];
@@ -31,8 +33,8 @@ async function draw() {
   await nextTick(); app.renderPersonalChart();
 }
 watch([model, () => app.pickerState.billing], draw);
-onMounted(() => { app.personalViewHooks.cancelSearch = cancelSearch; });
-onBeforeUnmount(() => { clearTimeout(timer); app.personalViewHooks.cancelSearch = undefined; });
+onMounted(() => { app.personalViewHooks.cancelSearch = cancelSearch; app.personalViewHooks.hasPendingSearch = () => timer !== undefined; });
+onBeforeUnmount(() => { clearTimeout(timer); app.personalViewHooks.cancelSearch = undefined; app.personalViewHooks.hasPendingSearch = undefined; });
 function change(key: "cat" | "region" | "billing", value: string) { app.updateAppState(() => { state[key] = value; }); }
 function toggleAll() { app.updateAppState(() => { state.limit = state.limit == null ? app.PERSONAL_DEFAULT_LIMIT : null; }); }
 function showExcluded() {

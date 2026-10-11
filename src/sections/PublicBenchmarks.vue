@@ -8,6 +8,8 @@ import { targetValue } from "./dom";
 import { fromData } from "./optional-data";
 import PlanLinks from "./PlanLinks.vue";
 import SourceLink from "./SourceLink.vue";
+import { useChartLifecycle } from "./chart-lifecycle";
+useChartLifecycle("chartPublicBenchmark");
 
 const state = legacy.publicBenchmarkState;
 const chartState = legacy.publicBenchmarkChartState;

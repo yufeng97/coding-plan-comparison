@@ -1,5 +1,6 @@
 "use strict";
 const { test, expect } = require("@playwright/test");
+const { waitForApp, waitForData } = require("./helpers");
 
 const sharedQuery = "?budget=any&tool=claude&task=hard&rscope=credits&cmp=plan-0159%3Bplan-0002&cmodel=%E6%99%BA%E8%B0%B1+BigModel%7CGLM-5.3";
 
@@ -8,15 +9,15 @@ for (const width of [375, 1280]) {
     test(`${width}px ${chart} 悬浮后切换模型评测和关注，页脚后不残留滚动空白`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto("/" + sharedQuery + "#" + section);
-      await page.waitForFunction(() => window["codingPlanReady"] === true);
+      await waitForApp(page);
       await page.locator("#cmpCloseBtn").click();
-      await page.waitForFunction(id => !!window["chartCache"]?.[id], chart);
-      await page.evaluate(id => window["chartCache"][id].dispatchAction({ type: "showTip", seriesIndex: 0, dataIndex: 0 }), chart);
+      await page.waitForFunction(id => !!window["echarts"]?.getInstanceByDom(document.getElementById(id)), chart);
+      await page.evaluate(id => window["echarts"].getInstanceByDom(document.getElementById(id)).dispatchAction({ type: "showTip", seriesIndex: 0, dataIndex: 0 }), chart);
       await expect.poll(() => page.locator('div[style*="z-index: 2000"]').count()).toBeGreaterThan(0);
 
       for (const [view, data] of [["benchmarks", "benchmark"], ["updates", "maintenance"]]) {
         await page.locator(`[data-site-view="${view}"]`).click();
-        await page.waitForFunction((kind) => window["optionalDataLoaded"](kind), data);
+        await waitForData(page, /** @type {"benchmark" | "maintenance"} */ (data));
         await expect(page.locator(`#${view}`)).toBeVisible();
         await expect.poll(() => page.evaluate(() => {
           const footerBottom = document.querySelector("footer").getBoundingClientRect().bottom + window.scrollY;
@@ -32,7 +33,8 @@ for (const width of [375, 1280]) {
   test(`${width}px 我的关注先展示关注内容，核查统计按需展开`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/#updates");
-    await page.waitForFunction(() => window["codingPlanReady"] === true && window["optionalDataLoaded"]("maintenance"));
+    await waitForApp(page);
+    await waitForData(page, "maintenance");
 
     await expect(page.locator("#followedPlans")).toBeVisible();
     await expect(page.locator("#maintenanceSummary")).toBeHidden();

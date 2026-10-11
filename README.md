@@ -55,15 +55,15 @@ npm run catalog:build # 修改审计数据后重新生成 src/domain/catalog.ts
 npm run catalog:check # 只检查生成的目录与审计输入一致，不改文件
 npm run typecheck    # 数据目录一致性、TS 业务模块、严格 Vue/模板/组件测试及工具类型检查
 npm run validate     # 数据结构、引用、来源与日期
-npm test             # 25 个 Node 回归套件 + Vue 组件测试
-npm run test:unit    # 只跑 Vue 组件测试（Vitest）
+npm test             # 13 个 Node 工具套件 + TypeScript / Vue 回归
+npm run test:unit    # 公式、数据、真实 Vue 整页和组件测试（Vitest）
 npm run test:browser # 构建后用 Chromium / Firefox / WebKit 做真实浏览器回归
 npm run build:site   # Vite + Vue SSR 生成发布产物 .site-build/
 ```
 
 前端已完成 Vue 3 + Vite + TypeScript 迁移：`src/App.vue` 组织整页，`src/sections/` 负责原生组件渲染与交互，`src/domain/` 保存共享状态、推荐、额度计算、URL 与导出逻辑。所有页面业务代码使用显式 ES 模块，旧的经典脚本合并插件与虚拟模块类型声明已经删除。Vue 组件、模板和测试使用严格 TypeScript；业务模块由单独的 TypeScript 配置检查，保留原有空值与非严格推断语义，未声称全仓严格化。说明见 [架构与发布](docs/architecture.md#前端结构与迁移)。
 
-`js/data.js` 等审计与维护输入仍是数据的编辑源，构建生成并提交 `src/domain/catalog.ts`；`catalog:check` 防止两份内容漂移。旧 HTML 渲染器仅保留在测试夹具中，生产渲染使用 Vue。浏览器回归使用真实发布产物，Node 回归通过测试适配器执行当前 TypeScript 业务逻辑。
+`js/data.js` 等审计与维护输入仍是数据的编辑源，构建生成并提交 `src/domain/catalog.ts`；`catalog:check` 防止两份内容漂移。公式和数据测试直接导入 TypeScript 模块，整页回归挂载真实 `App.vue`，浏览器回归使用真实发布产物。旧页面 VM、HTML 渲染夹具和浏览器业务全局 getter 已删除。
 
 修改数据后运行 `npm run catalog:build` 与 `npm run maintenance:build`（维护摘要、变更 RSS 与分厂商订阅）；评测摘要变化后也需重新生成目录。详细流程见 [数据维护手册](docs/maintenance.md)。
 

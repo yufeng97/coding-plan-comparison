@@ -10,6 +10,7 @@ export interface MetricsResult {
   moLow: number | null; moHigh: number | null; moMidM: number | null;
   blend: number | null; priceCNY: number; costPerM: number | null;
   val5h: number | null; valWk: number | null; valMo: number | null;
+  val5hHi?: number | null; valWkHi?: number | null; valMoHi?: number | null;
   r5h: number | null; rwk: number | null; rmo: number | null;
   r5hHi?: number | null; rwkHi?: number | null; rmoHi?: number | null;
 }

@@ -331,6 +331,19 @@ function chartRenderer(id: any) {
 const chartCache: Record<string, any> = {};
 let chartLibraryPromise = null;
 const queuedChartRenders = new Map();
+/* A queued render belongs to one host lifetime. A replacement component must not
+ * inherit the callbacks of a host that unmounted while the library downloaded. */
+const queuedChartRequests = new Map<string, { host: HTMLElement }>();
+export function releaseChart(id: string) {
+    queuedChartRenders.delete(id);
+    queuedChartRequests.delete(id);
+    if (chartCache[id]) {
+        chartCache[id].dispose();
+        delete chartCache[id];
+    }
+    pendingChartResizes.delete(id);
+    chartNarrowMode.delete(id);
+}
 function chartLibraryReady() { return typeof echarts !== "undefined" && typeof echarts.init === "function"; }
 function ensureChartLibrary() {
     if (chartLibraryReady())
@@ -383,23 +396,28 @@ function showChartError(id: any, err: any) {
     console.error("[chart] " + id, err);
 }
 function deferChartRender(id: any, render: any) {
+    const el = byId(id) as HTMLElement | null;
+    if (!el)
+        return true;
     if (chartLibraryReady())
         return false;
-    const scheduled = queuedChartRenders.has(id);
+    const scheduled = queuedChartRequests.has(id);
     queuedChartRenders.set(id, render);
-    const el = byId(id);
-    if (el) {
-        el.setAttribute("aria-busy", "true");
-        el.innerHTML = '<p class="chart-loading" role="status">正在加载图表…</p>';
-    }
-    if (!scheduled)
+    el.setAttribute("aria-busy", "true");
+    el.innerHTML = '<p class="chart-loading" role="status">正在加载图表…</p>';
+    if (!scheduled) {
+        const request = { host: el };
+        queuedChartRequests.set(id, request);
         ensureChartLibrary().then(() => {
+            if (queuedChartRequests.get(id) !== request)
+                return;
+            queuedChartRequests.delete(id);
             const latest = queuedChartRenders.get(id);
             queuedChartRenders.delete(id);
-            if (el) {
-                el.removeAttribute("aria-busy");
-                el.innerHTML = "";
-            }
+            if (!el.isConnected || byId(id) !== el)
+                return;
+            el.removeAttribute("aria-busy");
+            el.innerHTML = "";
             try {
                 if (latest)
                     latest();
@@ -409,7 +427,15 @@ function deferChartRender(id: any, render: any) {
             catch (err) {
                 showChartError(id, err);
             }
-        }, (err: any) => { queuedChartRenders.delete(id); showChartError(id, err); });
+        }, (err: any) => {
+            if (queuedChartRequests.get(id) !== request)
+                return;
+            queuedChartRequests.delete(id);
+            queuedChartRenders.delete(id);
+            if (el.isConnected && byId(id) === el)
+                showChartError(id, err);
+        });
+    }
     return true;
 }
 function makeChart(id: any) {
@@ -2909,7 +2935,10 @@ function dynamicStatus(d: any, today: string = chinaCalendarDay()) {
         return { key: "ended", label: "已结束 · " + endDate };
     return { key: "", label: "" };
 }
-function dynItem(d: any, today: string = chinaCalendarDay()) { return d.text; }
+/** 动态正文：尚未发生的退役写成「计划于 …」，其余照原文。 */
+function dynamicText(d: any, today: string = chinaCalendarDay()) {
+    return dynamicStatus(d, today).key === "upcoming" ? String(d.text).replace(/于 (\d{4}-\d{2}-\d{2}) 退役/, "计划于 $1 退役") : d.text;
+}
 function renderMisc() {  }
 /* ---------- 额度深度对比表 ---------- */
 /* Quota constants and formulas are imported from ./metrics. */
@@ -3935,7 +3964,11 @@ function bindMaintenanceEvents() {
 "use strict";
 let personalSearchTimer = null, tableSearchTimer = null;
 function cancelPersonalSearch() { clearTimeout(personalSearchTimer); personalSearchTimer = null; personalViewHooks.cancelSearch?.(); }
-function cancelTableSearch() { clearTimeout(tableSearchTimer); tableSearchTimer = null; }
+function cancelTableSearch() { clearTimeout(tableSearchTimer); tableSearchTimer = null; tableViews.plan?.cancelSearch?.(); }
+export function hasPendingSearch() {
+    return personalSearchTimer != null || tableSearchTimer != null
+        || !!personalViewHooks.hasPendingSearch?.() || !!tableViews.plan?.hasPendingSearch?.();
+}
 /* 用户操作持久化一次；图表重绘不写 URL。 */
 function onState(target: any, type: any, handler: any) {
     target.addEventListener(type, (event: any) => updateAppState(() => handler(event)));
@@ -3962,10 +3995,10 @@ function bindSortableHeader(th: any, state: any, render: any, firstDir: number =
 function bindEvents() { /* Vue components bind their controls directly. */ }
 function bindMetricsEvents(){}
 
-export { WEEKS_PER_MONTH, SLOTS_PER_WEEK, API_MIX_IN, API_MIX_OUT, CACHE_HIT_RATE, TOKENS_PER_REQ, blendPrice, toCNY, fromCNY, fmtTok, periodRates, windowTokens, METRICS_COMPUTED, computeMetrics, computeMetricsUncached, RANK_MAIN_EXTRA, isFlagshipModelName, CAT_LABEL, REGION_LABEL, CAT_COLOR, RELAY_COLOR, refreshCategoryColors, VENDOR_SHORT, RATE, MODEL_ROLES_ASOF, resolvePlan, appState, esc, safeHref, optionalDataLoads, optionalDataLoaded, ensureOptionalData, planBadges, mainlandAccessText, metricOfferOk, adoptMetric, METRICS_ALL, shortVendor, fmtCNY, trunc, ICON_SVG, icon, byId, qsa, qs, evtTarget, setChipPressed, describeChart, priceOf, cnyOf, priceText, currencySymbol, priceCheckLabel, priceCheckSources, priceUnit, planPriceLabel, NARROW_CHART_WIDTH, chartNarrowMode, chartHostWidth, isNarrowChart, chartRowHeight, chartAxisLabel, chartRenderer, chartCache, chartLibraryPromise, queuedChartRenders, chartLibraryReady, ensureChartLibrary, showChartError, deferChartRender, makeChart, resizeTimer, pendingChartResizes, CHART_AXIS_FONT_SIZE, resizeVisibleCharts, markChartsForResize, bindChartResize, PAL, refreshPalette, axisStyle, tipStyle, displayModelName, foldSearch, escRe, SEARCH_VENDOR_ALIASES, planSearchBlob, queryHit, THEME_KEY, themeMode, readThemeMode, applyTheme, rerenderCharts, headerHeight, navigationInitialized, syncHeaderHeight, updateActiveNav, initPageNavigation, initTheme, planLabel, cpmTier, renderStats, DEBUG_MODE, PERSONAL_DEFAULT_LIMIT, SEARCH_MAX_LENGTH, boundedSearch, CMP_MAX, personalState, rankState, pickerState, tableState, cmpState, metricsState, CALC_MODELS, CALC_DEFAULT_MODEL, calcState, CALC_LIMITS, validCalcValue, APP_DEFAULTS, MODEL_FILTER_VALUES, URL_RESTORING, setUrlRestoring, stateUpdateDepth, updateAppState, URL_KEYS, URL_DEFAULTS, URL_VALID, applyUrlState, appQueryString, syncUrl, syncControlsFromState, chartHeight, chartLogAxis, weeklyTokenRange, metricChartLabel, personalChartPrice, resetPersonalFilters, bindChartLegend, renderLegend, personalTooltip, renderPersonalChart, renderTeamChart, TOKEN_OFFICIAL_COLOR, TOKEN_EST_COLOR, TOKEN_OFFICIAL_SERIES, TOKEN_EST_SERIES, renderTokensChart, apiChartLabel, renderApiChart, freeState, freeKind, renderFree, rankScopeOk, rankIsEstimate, syncRankChips, rankVendorLabel, populateRankVendor, rankCostCache, rankPaymentLabel, rankRowPaymentLabel, rankCandidateRows, rankRows, RANK_CHART_LIMIT, rankChartRows, RANK_ESTIMATE_DIVIDER, renderRankDetails, renderRankChart, renderApiDetails, BUDGET_EPS, PICKER_BILLING_LABELS, renewsAtListPrice, pickerPaymentQuote, PICKER_UNKNOWN_PRICE, pickerMonthlyCNY, pickerFirstPaymentText, pickerAnnualExact, pickerAnnualNative, matchesPickerPurchase, pickerPlanForMetric, pickerMetricInput, refreshPickerScopes, TOOL_OWN_VENDOR, pickerToolRelationship, metricMatchesPlan, hasCodingSurface, recommendablePlan, matchesTool, planTitle, priceLine, bandRank, catRank, multiplier, splitModelAccess, modelTextForRoles, modelRoleAccess, quotaWindowPeriod, quotaSharing, oneSharedWindow, roleUseText, roleDisplayName, quotaLabel, metricForRole, tokenEvidence, knownTokens, tokenEvidenceText, planProfile, windowStats, betterWindow, tokSpan, fullUseCostRange, fullUseCostRangeText, windowSentence, withinBudget, eligibleProfiles, representatives, betterDailyTier, PICKER_PRIORITY_LABELS, pickerPriority, pickerAbilityCache, abilityHit, abilityValue, cheaperThen, hardMainOrder, hardRepresentatives, chooseHardMain, priceDecidedMain, dailyRepresentatives, dailyOrder, dailyMainOrder, chooseDailyMain, chooseMain, rankedCandidates, candidateRole, abilityText, quotaEvidenceText, pickerSummaryText, cheaperTiers, peerNote, upgradeBudgetCeiling, nextTier, unlockText, dailyEntries, dailyRoleBit, dailyQuotaSignal, hasSeparateDaily, pickSupplement, sameWindowText, meteredText, pickerMoney, annualPaymentText, benchmarkRankingNote, ownVendorPlan, windowNoteShort, setPicker, syncPickerChips, pickerEmptyReason, pickerChoiceReason, alternativeProfiles, renderPicker, auditProfiles, tableViews, registerTableView, focusTableControl, tableFeedback, syncSortHeader, planMonthlyPriceCell, planAnnualPriceCell, PLAN_COLUMNS, PLAN_TABLE_COLUMNS, responsivePageSize, tableVisibleLimit, tableViewFingerprint, tableExtraHidden, tableFilteredPlans, computeTableRows, tableFingerprint, syncTablePriceSort, renderTable, syncTableExtraToggle, showMoreTableRows, revealTablePlan, resetTableFilters, tableExportName, csvCell, tableRowsCsv, downloadCsvText, downloadTextFile, exportTableCsv, tableRowsMarkdown, copyTextToClipboard, copyTableMarkdown, flashBtn, cmpReturnFocus, cmpNeedsFocusRestore, cmpBackgroundState, isCmpModalOpen, cmpFocusableElements, modalFocusableElements, setCmpBackgroundInert, finishCmpModalClose, restoreCmpFocus, cmpAdd, cmpRemove, cmpClear, renderCmpBar, syncTableCmpButtons, cmpFeedback, exportCmpCsv, copyCmpMarkdown, renderCmpModal, openCmpModal, closeCmpModal, currentPriceSources, chinaCalendarDay, dynamicEndDate, dynamicStatus, dynItem, renderMisc, resetMetricsFilters, METRICS_COLUMNS, renderMetricsHead, METRICS_SORT_GET, fTokCell, fmtRate, fmtVal, rateClass, fmtCpm, fmtUnit, listPriceHint, cpmColor, provenance, paygReferenceRows, METRICS_NOTE_LEGEND, metricsTierOk, metricsVisibleLimit, metricsViewFingerprint, metricsTableRows, renderMetricsTable, showMoreMetricsRows, renderMetricsSortHint, populateModelFilter, PRESET_KEY, COST_CONTROLS, SERVICE_TOOL_LABELS, COST_PRESETS, COST_SCENARIOS, serviceFeedback, readPreset, syncPresetButtons, syncServiceControls, syncCostChips, pickerScopeText, syncPickerScopeControls, applyPickerScope, costModelKey, quotaUsesRequestTokenAssumption, setCostInputs, recommendedApi, openWorkloadCalculator, copyPickerSummary, shareCurrentResults, savePreset, restorePreset, clearPreset, officialCachePrice, calculateWorkload, calculateCostScenarios, syncCachePriceHint, fmtCalcCNY, fmtCalcNative, renderCostCalculator, planDetailsReturnFocus, planDetailsBackground, closePlanDetails, finishPlanDetailsClose, showPlanDetails, metricApiCNYPerM, usageCoverageRows, USAGE_IMPORT_MAX, parseUsageExport, usageToCalculator, importUsageText, bindUsageImport, bindServiceEvents, FOLLOW_KEY, followState, readFollowImport, followView, maintenanceView, benchmarkFilter, dataRevision, publicBenchmarkState, publicBenchmarkChartState, publicBenchmarkHooks, renderPublicBenchmarks, renderPublicBenchmarkChart, maintenanceData, benchmarkData, optionalPendingText, publicBenchmarkData, selectedPublicBenchmark, defaultPublicBenchmarkForFamily, publicBenchmarkFamilyLabel, PUBLIC_BENCHMARK_FAMILY_ORDER, publicBenchmarkFamilies, publicBenchmarkLabels, publicBenchmarkRows, publicBenchmarkSourceUrl, publicScoreText, publicCostText, publicModelDisplayName, publicPatternCache, publicModelExactPattern, publicModelClauseIncludes, publicModelIncluded, PUBLIC_MODEL_MAKERS, publicModelMakers, publicPlanEligible, publicModelPlans, publicNewerVersion, publicPlanLink, planCodingBenchmarks, ABILITY_PROTOCOL_ID, planProtocolScore, publicUncertaintyLabel, publicBenchmarkDate, publicBenchmarkConfiguration, publicBenchmarkChartRows, PUBLIC_CHART_FAMILIES, publicChartFamily, publicChartColors, publicChartAxisName, publicBenchmarkCsv, cleanFollowState, loadFollowState, persistFollowState, isPlanFollowed, followedPlans, followedChanges, unreadFollowedChanges, followFeedback, toggleFollowPlan, markFollowedChangesRead, maintenanceSourceUrls, changeValue, CHANGE_FIELD_LABELS, changeKindLabel, changeFields, planChanges, PLAN_HISTORY_EMPTY, planHistorySummary, followSyncUrl, copyFollowLink, followImportPlans, applyFollowImport, followFeeds, maintenanceStatusLabel, maintenancePlanStatus, maintenanceRecords, todayLocalIso, dueReviews, benchmarkFilterOptions, benchmarkText, benchmarkRunView, benchmarkRuns, normalizeBenchmarkFilter, CONTRIBUTION_TITLES, contributionTemplate, contributionIssueUrl, downloadPublicData, refreshOptionalViews, loadViewData, bindMaintenanceEvents, personalSearchTimer, tableSearchTimer, cancelPersonalSearch, cancelTableSearch, onState, bindSortableHeader, bindEvents, bindMetricsEvents };
+export { WEEKS_PER_MONTH, SLOTS_PER_WEEK, API_MIX_IN, API_MIX_OUT, CACHE_HIT_RATE, TOKENS_PER_REQ, blendPrice, toCNY, fromCNY, fmtTok, periodRates, windowTokens, METRICS_COMPUTED, computeMetrics, computeMetricsUncached, RANK_MAIN_EXTRA, isFlagshipModelName, CAT_LABEL, REGION_LABEL, CAT_COLOR, RELAY_COLOR, refreshCategoryColors, VENDOR_SHORT, RATE, MODEL_ROLES_ASOF, resolvePlan, appState, esc, safeHref, optionalDataLoads, optionalDataLoaded, ensureOptionalData, planBadges, mainlandAccessText, metricOfferOk, adoptMetric, METRICS_ALL, shortVendor, fmtCNY, trunc, ICON_SVG, icon, byId, qsa, qs, evtTarget, setChipPressed, describeChart, priceOf, cnyOf, priceText, currencySymbol, priceCheckLabel, priceCheckSources, priceUnit, planPriceLabel, NARROW_CHART_WIDTH, chartNarrowMode, chartHostWidth, isNarrowChart, chartRowHeight, chartAxisLabel, chartRenderer, chartCache, chartLibraryPromise, queuedChartRenders, chartLibraryReady, ensureChartLibrary, showChartError, deferChartRender, makeChart, resizeTimer, pendingChartResizes, CHART_AXIS_FONT_SIZE, resizeVisibleCharts, markChartsForResize, bindChartResize, PAL, refreshPalette, axisStyle, tipStyle, displayModelName, foldSearch, escRe, SEARCH_VENDOR_ALIASES, planSearchBlob, queryHit, THEME_KEY, themeMode, readThemeMode, applyTheme, rerenderCharts, headerHeight, navigationInitialized, syncHeaderHeight, updateActiveNav, initPageNavigation, initTheme, planLabel, cpmTier, renderStats, DEBUG_MODE, PERSONAL_DEFAULT_LIMIT, SEARCH_MAX_LENGTH, boundedSearch, CMP_MAX, personalState, rankState, pickerState, tableState, cmpState, metricsState, CALC_MODELS, CALC_DEFAULT_MODEL, calcState, CALC_LIMITS, validCalcValue, APP_DEFAULTS, MODEL_FILTER_VALUES, URL_RESTORING, setUrlRestoring, stateUpdateDepth, updateAppState, URL_KEYS, URL_DEFAULTS, URL_VALID, applyUrlState, appQueryString, syncUrl, syncControlsFromState, chartHeight, chartLogAxis, weeklyTokenRange, metricChartLabel, personalChartPrice, resetPersonalFilters, bindChartLegend, renderLegend, personalTooltip, renderPersonalChart, renderTeamChart, TOKEN_OFFICIAL_COLOR, TOKEN_EST_COLOR, TOKEN_OFFICIAL_SERIES, TOKEN_EST_SERIES, renderTokensChart, apiChartLabel, renderApiChart, freeState, freeKind, renderFree, rankScopeOk, rankIsEstimate, syncRankChips, rankVendorLabel, populateRankVendor, rankCostCache, rankPaymentLabel, rankRowPaymentLabel, rankCandidateRows, rankRows, RANK_CHART_LIMIT, rankChartRows, RANK_ESTIMATE_DIVIDER, renderRankDetails, renderRankChart, renderApiDetails, BUDGET_EPS, PICKER_BILLING_LABELS, renewsAtListPrice, pickerPaymentQuote, PICKER_UNKNOWN_PRICE, pickerMonthlyCNY, pickerFirstPaymentText, pickerAnnualExact, pickerAnnualNative, matchesPickerPurchase, pickerPlanForMetric, pickerMetricInput, refreshPickerScopes, TOOL_OWN_VENDOR, pickerToolRelationship, metricMatchesPlan, hasCodingSurface, recommendablePlan, matchesTool, planTitle, priceLine, bandRank, catRank, multiplier, splitModelAccess, modelTextForRoles, modelRoleAccess, quotaWindowPeriod, quotaSharing, oneSharedWindow, roleUseText, roleDisplayName, quotaLabel, metricForRole, tokenEvidence, knownTokens, tokenEvidenceText, planProfile, windowStats, betterWindow, tokSpan, fullUseCostRange, fullUseCostRangeText, windowSentence, withinBudget, eligibleProfiles, representatives, betterDailyTier, PICKER_PRIORITY_LABELS, pickerPriority, pickerAbilityCache, abilityHit, abilityValue, cheaperThen, hardMainOrder, hardRepresentatives, chooseHardMain, priceDecidedMain, dailyRepresentatives, dailyOrder, dailyMainOrder, chooseDailyMain, chooseMain, rankedCandidates, candidateRole, abilityText, quotaEvidenceText, pickerSummaryText, cheaperTiers, peerNote, upgradeBudgetCeiling, nextTier, unlockText, dailyEntries, dailyRoleBit, dailyQuotaSignal, hasSeparateDaily, pickSupplement, sameWindowText, meteredText, pickerMoney, annualPaymentText, benchmarkRankingNote, ownVendorPlan, windowNoteShort, setPicker, syncPickerChips, pickerEmptyReason, pickerChoiceReason, alternativeProfiles, renderPicker, auditProfiles, tableViews, registerTableView, focusTableControl, tableFeedback, syncSortHeader, planMonthlyPriceCell, planAnnualPriceCell, PLAN_COLUMNS, PLAN_TABLE_COLUMNS, responsivePageSize, tableVisibleLimit, tableViewFingerprint, tableExtraHidden, tableFilteredPlans, computeTableRows, tableFingerprint, syncTablePriceSort, renderTable, syncTableExtraToggle, showMoreTableRows, revealTablePlan, resetTableFilters, tableExportName, csvCell, tableRowsCsv, downloadCsvText, downloadTextFile, exportTableCsv, tableRowsMarkdown, copyTextToClipboard, copyTableMarkdown, flashBtn, cmpReturnFocus, cmpNeedsFocusRestore, cmpBackgroundState, isCmpModalOpen, cmpFocusableElements, modalFocusableElements, setCmpBackgroundInert, finishCmpModalClose, restoreCmpFocus, cmpAdd, cmpRemove, cmpClear, renderCmpBar, syncTableCmpButtons, cmpFeedback, exportCmpCsv, copyCmpMarkdown, renderCmpModal, openCmpModal, closeCmpModal, currentPriceSources, chinaCalendarDay, dynamicEndDate, dynamicStatus, dynamicText, renderMisc, resetMetricsFilters, METRICS_COLUMNS, renderMetricsHead, METRICS_SORT_GET, fTokCell, fmtRate, fmtVal, rateClass, fmtCpm, fmtUnit, listPriceHint, cpmColor, provenance, paygReferenceRows, METRICS_NOTE_LEGEND, metricsTierOk, metricsVisibleLimit, metricsViewFingerprint, metricsTableRows, renderMetricsTable, showMoreMetricsRows, renderMetricsSortHint, populateModelFilter, PRESET_KEY, COST_CONTROLS, SERVICE_TOOL_LABELS, COST_PRESETS, COST_SCENARIOS, serviceFeedback, readPreset, syncPresetButtons, syncServiceControls, syncCostChips, pickerScopeText, syncPickerScopeControls, applyPickerScope, costModelKey, quotaUsesRequestTokenAssumption, setCostInputs, recommendedApi, openWorkloadCalculator, copyPickerSummary, shareCurrentResults, savePreset, restorePreset, clearPreset, officialCachePrice, calculateWorkload, calculateCostScenarios, syncCachePriceHint, fmtCalcCNY, fmtCalcNative, renderCostCalculator, planDetailsReturnFocus, planDetailsBackground, closePlanDetails, finishPlanDetailsClose, showPlanDetails, metricApiCNYPerM, usageCoverageRows, USAGE_IMPORT_MAX, parseUsageExport, usageToCalculator, importUsageText, bindUsageImport, bindServiceEvents, FOLLOW_KEY, followState, readFollowImport, followView, maintenanceView, benchmarkFilter, dataRevision, publicBenchmarkState, publicBenchmarkChartState, publicBenchmarkHooks, renderPublicBenchmarks, renderPublicBenchmarkChart, maintenanceData, benchmarkData, optionalPendingText, publicBenchmarkData, selectedPublicBenchmark, defaultPublicBenchmarkForFamily, publicBenchmarkFamilyLabel, PUBLIC_BENCHMARK_FAMILY_ORDER, publicBenchmarkFamilies, publicBenchmarkLabels, publicBenchmarkRows, publicBenchmarkSourceUrl, publicScoreText, publicCostText, publicModelDisplayName, publicPatternCache, publicModelExactPattern, publicModelClauseIncludes, publicModelIncluded, PUBLIC_MODEL_MAKERS, publicModelMakers, publicPlanEligible, publicModelPlans, publicNewerVersion, publicPlanLink, planCodingBenchmarks, ABILITY_PROTOCOL_ID, planProtocolScore, publicUncertaintyLabel, publicBenchmarkDate, publicBenchmarkConfiguration, publicBenchmarkChartRows, PUBLIC_CHART_FAMILIES, publicChartFamily, publicChartColors, publicChartAxisName, publicBenchmarkCsv, cleanFollowState, loadFollowState, persistFollowState, isPlanFollowed, followedPlans, followedChanges, unreadFollowedChanges, followFeedback, toggleFollowPlan, markFollowedChangesRead, maintenanceSourceUrls, changeValue, CHANGE_FIELD_LABELS, changeKindLabel, changeFields, planChanges, PLAN_HISTORY_EMPTY, planHistorySummary, followSyncUrl, copyFollowLink, followImportPlans, applyFollowImport, followFeeds, maintenanceStatusLabel, maintenancePlanStatus, maintenanceRecords, todayLocalIso, dueReviews, benchmarkFilterOptions, benchmarkText, benchmarkRunView, benchmarkRuns, normalizeBenchmarkFilter, CONTRIBUTION_TITLES, contributionTemplate, contributionIssueUrl, downloadPublicData, refreshOptionalViews, loadViewData, bindMaintenanceEvents, personalSearchTimer, tableSearchTimer, cancelPersonalSearch, cancelTableSearch, onState, bindSortableHeader, bindEvents, bindMetricsEvents };
 
 // Vue components own chart controls and service dialogs; ECharts owns only the canvas.
 export const chartLegendSelections = appState<Record<string, Record<string, boolean>>>({});
 export const serviceUiState = reactive({ feedback: '', presetSaved: false });
-export const personalViewHooks: { cancelSearch?: () => void } = {};
+export const personalViewHooks: { cancelSearch?: () => void; hasPendingSearch?: () => boolean } = {};
 export const serviceViewHooks: { renderCost?: () => void; importUsage?: (text: string) => void; showDetails?: (id: string, trigger?: HTMLElement | null) => void; closeDetails?: () => void; finishDetails?: () => void } = {};

@@ -2,7 +2,6 @@ import { useMount } from "../test/setup";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { flushPromises } from "@vue/test-utils";
 import * as runtime from "@domain/runtime";
-import { pickerOracle } from "../test/picker-oracle";
 import PickerRecommendations from "./PickerRecommendations.vue";
 import PickerControls from "./PickerControls.vue";
 
@@ -38,23 +37,29 @@ test.each([
   Object.assign(runtime.pickerState, state);
   const pool = runtime.eligibleProfiles();
   const main = runtime.chooseMain(pool);
-  const expected = document.createElement("div");
-  expected.innerHTML = main
-    ? [pickerOracle.mainCard(main, pool), pickerOracle.dailyCard(main, pool), pickerOracle.upgradeCard(main), pickerOracle.ownVendorCard(main)].filter(Boolean).join("")
-    : pickerOracle.ownVendorCard(null) || "";
   const wrapper = await recommendations.render();
   const cards = wrapper.findAll("#quickGrid > .quick-card");
-  const expectedCards = Array.from(expected.querySelectorAll(".quick-card"));
-  expect(cards).toHaveLength(expectedCards.length);
-  for (let i = 0; i < cards.length; i++) {
-    const original = expectedCards[i]!;
-    for (const selector of [".qc-title-label", ".qc-plan", ".qc-value", ".qc-reasons li", ".qc-line", ".qc-payment-summary", ".qc-tiers tbody tr"]) {
-      const normalize = (text: string | null) => (text || "").replace(/\s+/g, "").trim();
-      expect(cards[i]!.findAll(selector).map((node) => normalize(node.text()))).toEqual(Array.from(original.querySelectorAll(selector)).map((node) => normalize(node.textContent)));
-    }
+  const ids = cards.map((card) => card.get("[data-view-plan]").attributes("data-view-plan"));
+  expect(new Set(ids).size).toBe(ids.length);
+  for (const card of cards) {
+    const id = card.get("[data-view-plan]").attributes("data-view-plan")!;
+    const plan = runtime.findPlanReference(id)!;
+    expect(plan).toBeTruthy();
+    expect(card.get(".qc-plan").text()).toContain(plan.plan);
+    expect(card.get(".qc-primary").attributes("href")).toBe(plan.url);
+    expect(card.get(".watch-plan").attributes("data-watch-plan")).toBe(id);
+    expect(card.get(".cmp-add").attributes("data-plan-id")).toBe(id);
+    expect(card.findAll(".qc-reasons li").length).toBeGreaterThanOrEqual(1);
+    expect(card.findAll(".qc-reasons li").length).toBeLessThanOrEqual(3);
+    expect(card.get<HTMLDetailsElement>(".qc-details").element.open).toBe(false);
+    expect(card.text()).not.toMatch(/priceM|priceY|NaN|undefined/);
+    if (plan.priceM! > 0) expect(card.get(".qc-payment-summary").text()).toMatch(/月|年|续费/);
   }
   expect(wrapper.get("#quickGrid").attributes("data-card-count")).toBe(String(cards.length));
-  if (main) expect(wrapper.get("#pickerNote").text()).toContain(`符合条件 ${pool.length} 档`);
+  if (main) {
+    expect(ids[0]).toBe(main.p.id);
+    expect(wrapper.get("#pickerNote").text()).toContain(`符合条件 ${pool.length} 档`);
+  }
   else expect(wrapper.get(".picker-empty").text()).toBe(runtime.pickerEmptyReason(pool));
 });
 

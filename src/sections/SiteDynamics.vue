@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { DYNAMICS, dynamicStatus } from '@domain/runtime';
+import { DYNAMICS, dynamicStatus, dynamicText } from '@domain/runtime';
 const sorted = DYNAMICS.slice().sort((a, b) => b.date.localeCompare(a.date));
 const announcements = sorted.filter(row => !row.checked);
 const checks = sorted.filter(row => row.checked);
 function view(row: typeof DYNAMICS[number]) {
-  const status = dynamicStatus(row);
-  return { ...row, status, text: status.key === 'upcoming' ? row.text.replace(/于 (\d{4}-\d{2}-\d{2}) 退役/, '计划于 $1 退役') : row.text };
+  return { ...row, status: dynamicStatus(row), text: dynamicText(row) };
 }
 </script>
 <template>

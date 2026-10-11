@@ -44,7 +44,7 @@ jobs:
         run: |
           npm run maintenance:check
           npm run benchmark:check
-      - name: 额度换算、用户流程、Vue 组件与 HTTP 服务回归
+      - name: TS 额度公式、真实 Vue 用户流程与 Node 工具回归
         run: npm run test
       - name: 安装 Chromium、Firefox 与 WebKit
         run: npx playwright install --with-deps chromium firefox webkit

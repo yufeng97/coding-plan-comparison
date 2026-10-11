@@ -20,6 +20,7 @@ class FakeChart {
   dispatchAction(action: { type: string; name: string }) { this.actions.push(action); }
   on() {}
   off() {}
+  dispose() {}
 }
 const charts = new Map<string, FakeChart>();
 const free = useMount(FreePlans), personal = useMount(PersonalPrices), rank = useMount(RankChart), api = useMount(ApiPrices), details = useMount(PlanDetails);

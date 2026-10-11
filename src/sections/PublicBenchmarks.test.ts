@@ -1,4 +1,4 @@
-/* 公开评测组件：渲染、筛选、导出与图表。计算逻辑本身另在 scripts/tests/test-app-maintenance.js（页面虚拟 DOM）里测。 */
+/* 公开评测组件：渲染、筛选、导出与图表；整页计算与按需数据流程见 src/regression/maintenance.test.ts。 */
 import { focusedId, loadBenchmarks, pageGlobals, sleep, unloadOptionalData, useMount } from "../test/setup";
 import { beforeEach, expect, test, vi } from "vitest";
 import { flushPromises } from "@vue/test-utils";
@@ -48,6 +48,7 @@ class FakeChart {
   dispatchAction() {}
   on() {}
   off() {}
+  dispose() {}
 }
 const charts = new Map<string, FakeChart>();
 const downloads: { blob: Blob; filename?: string }[] = [];
@@ -170,7 +171,7 @@ test("CSV 带 BOM 并保留协议与缺失成本，JSON 只导出公共榜单", 
   await view.wrapper.get("#downloadPublicBenchmarkJsonBtn").trigger("click");
   expect(downloads.map((d) => d.filename)).toEqual(["coding-plan-benchmark-deepswe-1-1.csv", "coding-plan-public-benchmarks.json"]);
   const csv = await downloads[0].blob.text();
-  expect(csv.startsWith("﻿")).toBe(true);
+  expect(csv.startsWith("\uFEFF")).toBe(true);
   expect(csv).toContain('"80","%","",""');
   expect(csv).not.toContain("Other Protocol");
   expect(JSON.parse(await downloads[1].blob.text())).toEqual(data);

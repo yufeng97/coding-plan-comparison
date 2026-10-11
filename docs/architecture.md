@@ -30,7 +30,6 @@
 | `src/domain/metrics.ts` / `model-types.ts` | 额度换算纯计算与业务类型（`computeMetrics`、`blendPrice`、旗舰判定等）；无 DOM，测试与校验器共用。排行「旗舰」复用目录中的 `MODEL_ROLES` |
 | `src/domain/catalog.ts` / `scripts/build/catalog-types.mjs` | 从审计数据、首屏评测摘要与公开项目配置确定性生成的类型化目录；生成文件提交，`catalog:check` 发现输入漂移时失败 |
 | `src/types.d.ts` / `tsconfig.domain.json` | 数据与外部浏览器 API 类型，以及保留原空值推断语义的业务模块检查；生成 `.domain-types/`，严格 UI 检查经 `@domain/*` 读取声明，Vite 同名别名解析到实际 TS 源文件 |
-| `src/legacy-globals.ts` | 现有浏览器回归与调试使用的只读 getter；读取当前 TS 模块实时导出，浏览器自带的同名属性不覆盖 |
 | `src/browser/theme.ts` / `loader.ts` | 首帧主题与主入口加载失败提示；构建为先于应用入口执行的经典脚本，保留失败重试与 CSP 外链约定 |
 | `css/style.css` | 样式（亮色默认；支持暗色与跟随系统；`--cat-*` 类别色变量是图表/图例/标签的单一色源） |
 | `js/data.js` / `benchmark-summary.js` / `project-data.js` | 刻意保留的审计及维护输入；订阅永久 ID、引用权益、首屏评测摘要和公开项目配置在此维护，生成 TS 目录后进入应用 |
@@ -38,7 +37,7 @@
 | `libs/fonts/` | Manrope、IBM Plex Mono 本地子集；39 个字体声明共用 21 份内容去重资产 |
 | `scripts/lib/paths.js` / `atomic-swap.js` | 共享的「路径是否在根内 / 封锁段」判断、目录级原子交换（暂存→备份→切换→回滚）与逐文件替换回滚 |
 | `scripts/build/` | 构建与校验工具：vite-assets（公共源白名单、经典资源哈希与 ECharts 生成）、catalog-types、vendor-fonts、stage-site、prerender、render-vue、deploy-site、check-syntax、validate-data、sync-pricing-audit |
-| `scripts/lib/page-vm.js` / `scripts/tests/fixtures/` | 仅供 Node 回归的页面边界：适配器将当前 TypeScript 模块转为 VM 脚本，测试专用 HTML 渲染器与页面外壳提供旧断言的 DOM；夹具不参与生产构建，也不负责 SSR |
+| `src/regression/` / `src/test/page.ts` | 公式及数据直接导入 TS 模块；用户流程挂载真实 `App.vue` 并按生产顺序启动。测试只替换浏览器边界：历史、计时器、ECharts、存储、剪贴板、下载及按需数据；无旧页面外壳或渲染器 |
 | `img/` | 分享卡片图（og:image），由 build:site 随站发布 |
 | `feeds/` | `npm run maintenance:build` 生成的分厂商变更 RSS |
 | `scripts/server/serve.js` | 发布产物预览服务器（`serve.js .site-build`；只监听 127.0.0.1，只读站点目录内的白名单文件并拒绝隐藏路径） |
@@ -47,7 +46,7 @@
 | `js/maintenance-data.js` / `benchmark-data.js` | 维护和评测生成的公共数据，按需加载；状态与计算在 TS 业务模块，展示在 Vue 组件 |
 | `scripts/maintenance/` / `data/` | 维护摘要、真实变更历史、RSS 构建与回归 |
 | `scripts/benchmarks/` / `benchmarks/` | 官方公开评测 adapter、带哈希证据的采集/审核、public-results.json 快照、固定任务验收与公共测评构建 |
-| `scripts/tests/` | Node 回归套件：metrics / data-regressions / app-{history,picker,charts,tables,service} / server / tools / pricing / pricing-sync / news / runners；共享页面替身在 app-harness.js（`lazyData` 模式经页面加载器按需载入数据，可分别推进下载完成、失败与超时）；Chromium、Firefox、WebKit 用例在 scripts/tests/browser/，测试 `build:site` 生成的发布产物；Vue 组件测试在 `src/**/*.test.ts`，由 `npm test` 一并运行 |
+| `scripts/tests/` | 13 个 Node 工具套件：HTTP 服务、文件锁、构建、核价同步、资讯、维护及评测。Chromium、Firefox、WebKit 用例在 `scripts/tests/browser/`，通过 DOM、地址、存储和 ECharts 公共 API 检查发布产物；TypeScript 公式、数据、整页与组件测试在 `src/**/*.test.ts`，由 `npm test` 一并运行 |
 | `audit/` | 258 条价格的原始库存、分组官网证据与 JSON/CSV 合并台账；不复制到公共部署产物 |
 
 ## 前端结构与迁移
@@ -61,7 +60,7 @@
 - **审计目录**：`catalog:build` 从 `js/data.js`、`benchmark-summary.js`、`project-data.js` 确定性生成 `catalog.ts`，保留正则、资格函数、永久 ID 与明确的 `Plan[]`、核查及评测类型。生成文件应随维护输入一同提交；`catalog:check` 只检查漂移，不改仓库。维护输入变化后先重建目录再提交。
 - **关注与对比按钮**：推荐、数据表、完整权益和关注列表复用 Vue 按钮组件，直接从共享状态计算选中、禁用与 ARIA；统一服务处理套餐身份与关注变更。旧同步函数不改写 Vue 所有的节点。
 - **静态首屏**：`render-vue.mjs` 在隔离进程里通过 Vite 加载同一个 App，调用 Vue `renderToString`；happy-dom 仅提供浏览器 API 边界。SSR 不运行启动、图表下载或用户存储恢复。浏览器按 URL 与本机状态重新挂载；静态输出不插入关闭窗口的 Teleport 节点，避免重复 ID。
-- **回归边界**：Node VM 执行当前 TS 计算，旧 HTML 断言的渲染器只在 `scripts/tests/fixtures/`；Vue 组件测试与真实浏览器检查生产渲染及交互。`legacy-globals.ts` 的只读 getter 仅为既有浏览器断言和调试保留，生产组件使用模块导入。
+- **回归边界**：Vitest 直接导入 TS 计算；整页测试重新载入业务模块、挂载真实 App 并启动，不维护另一套 HTML。每次结束卸载组件并清理事件、计时器与浏览器替身。真实浏览器负责布局、焦点时序、滚动与 ECharts 绘制；断言只经 DOM、地址、存储及第三方公共 API 观察页面。业务全局 getter、TS 转经典脚本适配器和旧 HTML 渲染夹具已删除。
 - **不再支持 `file://` 直开**：入口是 ES 模块，浏览器不允许从 `file://` 加载。本地用 `npm run dev` 开发，`npm run serve` 预览发布产物。
 
 迁移完成项：
@@ -69,7 +68,8 @@
 - [x] 整页 Vue 组件、共享按钮、表格与图表区块。
 - [x] TypeScript 入口、业务模块、额度计算、浏览器预启动脚本与组件测试。
 - [x] 显式 ES 模块与审计目录生成检查，删除经典业务脚本合并及虚拟声明设施。
-- [x] Vue SSR 默认首屏、测试专用 VM 适配器、公共产物白名单。
+- [x] Vue SSR 默认首屏与公共产物白名单。
+- [x] TS 直接导入、真实 Vue 整页回归、三种浏览器测试，删除旧 VM 与全局调试桥接。
 
 本轮完整验证结果见[变更日志](../CHANGES.md)。
 
@@ -82,7 +82,7 @@
 - **单一数据源**：类别色走 CSS 变量 `--cat-*`（JS 的 `refreshCategoryColors()` 在主题切换时重读）；数据表正文、CSV 与 Markdown 共享 `PLAN_COLUMNS`，各渠道按配置选列；额度表的列定义只在 `METRICS_COLUMNS` 一处。已有继承权益均通过 `fieldRefs` 的永久 ID 明确目标，新增继承也填写目标 ID，追加权益保留且循环引用安全中止。解析器保留旧文本名称及「同上」相邻位置的兼容能力，不用它们建立新数据引用。
 - **推荐元数据**：`windowPeriod` 与 `quotaSharing` 分别描述重置周期与模型额度是否共享，缺省表示未知；`codingSurface`、`includedModelQuota`、`modelAccess` 与 `purchaseCountries` 分别描述编程入口、是否包含推理、自备模型和国家限定资格。`modelBaseRef` 通过计划引用继承模型，`modelIncludes`/`modelExcludes` 显式补充和排除模型，`ownClient` 明确自家编程入口；校验器检查字段类型、引用及混合继承环。填有依据的事实，未知情况不靠条数或文案猜测。月 credits 及无 5h 上限的套餐不生成虚假的 5h 额度，官方与估算的重复周额度按稳定引用去重。
 - **资源版本与发布范围**：Vite 按内容哈希命名入口、样式与字体；仍按经典脚本加载的主题引导、加载提示、按需数据和 ECharts 由 `classic-scripts` 插件同样按内容哈希另存，不再需要 `?v=` 版本号。构建只读入 `index.html`、`src/`、`js/`、`css/`、`libs/`、`img/` 与 `node_modules/` 内的文件，词法路径和真实路径（展开 junction、符号链接后）都要满足，私有或隐藏目录不会经链接进入产物。`.gitattributes` 固定文本检出为 LF。
-- **开发环境与校验**：Node.js 22.12+（Vite 8 的要求），首次运行 `npm ci`。开发依赖固定版本并提交 lockfile。`npm run typecheck` 先检查生成目录与审计输入一致，再检查 TS 业务模块并生成 `.domain-types/`，随后检查 Vue 组件及模板（`tsconfig.app.json`，严格模式且不含 Node 类型）、组件测试（`tsconfig.vitest.json`）和数据/工具脚本（checkJs）。业务模块使用单独的非严格配置保留已有推断语义；这仍是类型检查，不是跳过检查。测试专用经典渲染夹具由 VM 注入全局环境，通过运行回归验证，不纳入工具的独立 checkJs 程序。`npm run validate` 检查数据结构、引用、有限数字、日期和价格区间；同一套规则可校验内存候选源码。`npm test` 执行 25 个 Node 套件和 Vue 组件测试，包含额度公式、真实数据、VM 用户流程、HTTP 服务、审计无效输入/幂等/失败回滚、资讯与字体工具、目录生成漂移、Vue SSR 和公共产物回归。`npm run test:browser` 先生成发布产物，再对 Chromium、Firefox、WebKit 运行真实浏览器用例，覆盖图表、历史导航、服务功能及桌面/手机布局。CI 在 Linux 与 Windows 安装三种浏览器并执行各项检查，浏览器缓存键包含 lockfile 哈希；失败保留截图，首次重试才录制 trace（[Playwright 官方建议](https://playwright.dev/docs/trace-viewer#tracing-on-ci)）。本地需要追踪时显式加 `--trace on`。
+- **开发环境与校验**：Node.js 22.12+（Vite 8 的要求），首次运行 `npm ci`。开发依赖固定版本并提交 lockfile。`npm run typecheck` 先检查生成目录与审计输入一致，再检查 TS 业务模块并生成 `.domain-types/`，随后检查 Vue 组件及模板（`tsconfig.app.json`，严格模式且不含 Node 类型）、TS 公式、数据、整页与组件测试（`tsconfig.vitest.json`）和数据/工具脚本（checkJs）。业务模块使用单独的非严格配置保留已有推断语义；这仍是类型检查，不是跳过检查。公式测试直接导入生产模块；整页回归使用真实 Vue 渲染，测试文件同样纳入严格类型检查。`npm run validate` 检查数据结构、引用、有限数字、日期和价格区间；同一套规则可校验内存候选源码。`npm test` 执行 13 个 Node 工具套件和 TS / Vue 回归，包含额度公式、真实数据、真实 Vue 用户流程、HTTP 服务、审计无效输入/幂等/失败回滚、资讯与字体工具、目录生成漂移、Vue SSR 和公共产物回归。`npm run test:browser` 先生成发布产物，再对 Chromium、Firefox、WebKit 运行真实浏览器用例，覆盖图表、历史导航、服务功能及桌面/手机布局。CI 在 Linux 与 Windows 安装三种浏览器并执行各项检查，浏览器缓存键包含 lockfile 哈希；失败保留截图，首次重试才录制 trace（[Playwright 官方建议](https://playwright.dev/docs/trace-viewer#tracing-on-ci)）。本地需要追踪时显式加 `--trace on`。
 - **ECharts 精简包**：入口 `src/charts/echarts.ts` 只注册页面用到的图表与组件，构建时用 esbuild 打成经典脚本；新增图表类型或组件时在入口里注册。仍按经典脚本加载是为了失败可重试：Chromium 会缓存失败的动态 `import()`，同一地址重试不会再请求。
 - **第三方产物出处**：`libs/README.md` 记录版本与来源。`npm run vendor:fonts` 将所有字体下载到暂存目录，检查 WOFF2 后按 SHA-256 内容去重并整组替换；失败保留或恢复旧目录。相同字节只存一份，CSS 保留各字重和 unicode-range 映射；成功替换时清理旧子集；构建时 Vite 按内容哈希重新命名。当前字体离线去重由 39 个文件降为 21 个，452,796 → 227,880 字节，减少约 49.7%。
 - **目录交换失败**：对临时占用错误 `EPERM/EBUSY/EACCES`，每次目录改名最多尝试 5 次，等待合计不超过 375ms；其他错误直接失败。切换与恢复都失败时保留旧目录备份并报告路径，不在调用方清理中删除恢复依据。

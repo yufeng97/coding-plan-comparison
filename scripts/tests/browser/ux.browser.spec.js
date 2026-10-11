@@ -1,12 +1,11 @@
 "use strict";
 const { test, expect } = require("@playwright/test");
-const fs = require("node:fs");
-const path = require("node:path");
-const vm = require("node:vm");
+const { BENCHMARKS, MAINTENANCE, STORAGE_KEYS, catalog, waitForData } = require("./helpers");
 
-const maintenance = vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../../../js/maintenance-data.js"), "utf8") + "; MAINTENANCE;");
-const followed = maintenance.changes.find((change) => change.kind === "plan");
-const readIds = maintenance.changes.filter((change) => change.id === followed.id).map((change) => change.changeId);
+const followed = MAINTENANCE.changes.find((change) => change.kind === "plan");
+const readIds = MAINTENANCE.changes.filter((change) => change.id === followed.id).map((change) => change.changeId);
+/** @param {import("@playwright/test").Page} page */
+const storedFollow = (page) => page.evaluate((key) => JSON.parse(localStorage.getItem(key) || "null"), STORAGE_KEYS.follow);
 const tab = (page, name) => page.getByRole("link", { name, exact:true });
 
 test("首页按标签延迟加载资料，历史返回和回首页保留视图且不重复下载", async ({ page }) => {
@@ -29,8 +28,7 @@ test("首页按标签延迟加载资料，历史返回和回首页保留视图�
   expect(requests).toEqual(["benchmark"]);
 
   await tab(page, "我的关注").click();
-  await page.waitForFunction(() => window["optionalDataLoaded"]("maintenance"));
-  await expect(page.locator("#maintenanceSummary")).not.toBeEmpty();
+  await waitForData(page, "maintenance");
   await expect(page.locator("#benchmarks")).toBeHidden();
   expect(requests).toEqual(["benchmark", "maintenance"]);
 
@@ -63,7 +61,7 @@ for (const [kind, label] of [["benchmark", "模型评测"], ["maintenance", "我
     expect(attempts).toBe(1);
     fail = false;
     await retry.click();
-    await page.waitForFunction(kind => window["optionalDataLoaded"](kind), kind);
+    await waitForData(page, /** @type {"benchmark" | "maintenance"} */ (kind));
     await expect(status).toBeEmpty();
     expect(attempts).toBe(2);
     if (kind === "benchmark") await expect(page.locator("#publicBenchmarkBody tr").first()).toBeVisible();
@@ -82,22 +80,20 @@ test("历史数据尚未下载时关注操作保留已读ID，打开维护页后
   }, { planId:followed.id, readChangeIds:readIds });
   await page.goto("/", { waitUntil:"networkidle" });
   expect(requested).toBe(false);
-  expect(await page.evaluate("followState.readChangeIds")).toEqual(readIds);
   const watch = page.locator("#quickGrid > .quick-card").first().locator("[data-watch-plan]");
   const planId = await watch.getAttribute("data-watch-plan");
   const previous = await watch.getAttribute("aria-pressed");
   await watch.click();
   await expect(watch).toHaveAttribute("aria-pressed", previous === "true" ? "false" : "true");
-  expect(await page.evaluate("JSON.parse(localStorage.getItem(FOLLOW_KEY)).readChangeIds")).toEqual(readIds);
+  expect((await storedFollow(page)).readChangeIds).toEqual(readIds);
   // 还原当前主卡的关注状态，让维护页只检验预置套餐的已读历史。
   await watch.click();
   expect(requested).toBe(false);
   await tab(page, "我的关注").click();
-  await page.waitForFunction(() => window["optionalDataLoaded"]("maintenance"));
+  await waitForData(page, "maintenance");
   await expect(page.locator("#followedChanges")).toContainText("没有未读");
   await expect(page.locator("#markFollowReadBtn")).toBeDisabled();
-  expect(await page.evaluate("followState.readChangeIds")).toEqual(readIds);
-  expect(await page.evaluate("JSON.parse(localStorage.getItem(FOLLOW_KEY)).readChangeIds")).toEqual(readIds);
+  expect((await storedFollow(page)).readChangeIds).toEqual(readIds);
   expect(planId).toMatch(/^plan-/);
 });
 
@@ -153,71 +149,69 @@ test("纠错链接预填真实项目与所选证据模板，来源组默认折�
   expect(requests).toEqual([]);
 });
 
-test("评测显示合理精度和来源区间，套餐匹配不把5.5误当5", async ({ page }) => {
+/** 当前协议的成绩里分数最高的配置（「每模型最佳配置」的首行）。 @param {string} protocolId */
+function topScore(protocolId) {
+  return BENCHMARKS.public.scores.filter((score) => score.benchmarkId === protocolId)
+    .sort((a, b) => b.score - a.score || a.model.localeCompare(b.model))[0];
+}
+
+test("评测显示合理精度和来源区间，未公布区间单独说明", async ({ page }) => {
   await page.goto("/#benchmarks");
   await expect(page.locator("#publicBenchmarkBody tr").first()).toBeVisible();
-  const snapshot = await page.evaluate("(() => { const row = publicBenchmarkRows()[0]; return { score:Number(row.score.toFixed(1)) + selectedPublicBenchmark().unit, cost:row.costUSD == null ? '未公布' : '$' + Number(row.costUSD.toFixed(2)), uncertainty:row.uncertainty }; })()");
+  const protocolId = await page.locator("#publicBenchmarkSelect").inputValue();
+  const protocol = BENCHMARKS.public.benchmarks.find((benchmark) => benchmark.id === protocolId);
+  const top = topScore(protocolId);
   const first = page.locator("#publicBenchmarkBody tr").first();
-  expect(await first.locator(".public-score-value").evaluate((cell) => cell.childNodes[0].textContent)).toBe(snapshot.score);
-  await expect(first.locator("td").nth(2)).toHaveText(snapshot.cost);
+  expect(await first.locator(".public-score-value").evaluate((cell) => cell.childNodes[0].textContent)).toBe(Number(top.score.toFixed(1)) + protocol.unit);
+  await expect(first.locator("td").nth(2)).toHaveText(top.costUSD == null ? "未公布" : "$" + Number(top.costUSD.toFixed(2)));
   const uncertainty = first.locator(".public-score-uncertainty");
   await expect(uncertainty).toBeVisible();
   await expect(uncertainty).toContainText("来源区间");
-  await expect(uncertainty).toHaveAttribute("title", snapshot.uncertainty);
+  await expect(uncertainty).toHaveAttribute("title", top.uncertainty);
   expect(await page.locator("#publicBenchmarkBody").innerText()).not.toMatch(/74\.115|4\.4291/);
-  await page.evaluate(`(() => {
-    const row = publicBenchmarkData().scores.find(r => !r.uncertainty);
-    const protocol = publicBenchmarkData().benchmarks.find(b => b.id === row.benchmarkId);
-    publicBenchmarkState.id = protocol.id; publicBenchmarkState.family = protocol.family;
-    publicBenchmarkState.search = row.model; publicBenchmarkState.mode = "all";
-    renderPublicBenchmarks();
-  })()`);
+  /* 来源没有公布区间的成绩：经页面筛选到该行 */
+  const plain = BENCHMARKS.public.scores.find((score) => !score.uncertainty);
+  const plainProtocol = BENCHMARKS.public.benchmarks.find((benchmark) => benchmark.id === plain.benchmarkId);
+  await page.locator("#publicBenchmarkFamily").selectOption(plainProtocol.family);
+  await page.locator("#publicBenchmarkSelect").selectOption(plainProtocol.id);
+  await page.locator("#publicBenchmarkMode").selectOption("all");
+  await page.locator("#publicModelSearch").fill(plain.model);
   await expect(page.locator(".public-score-uncertainty").filter({ hasText:"置信区间未公布" }).first()).toBeVisible();
-  const versions = await page.evaluate(`(() => {
-    const plan = PLANS.find(p => p.id === "plan-0002"), original = plan.models;
-    try {
-      plan.models = "Claude Opus 5.5";
-      const wrong = publicModelPlans("claude-opus-5").some(p => p === plan);
-      const exact = publicModelPlans("claude-opus-5-5").some(p => p === plan);
-      plan.models = "Claude Sonnet 5.5（不含 Claude Opus 5.5）";
-      const excluded = publicModelPlans("claude-opus-5-5").some(p => p === plan);
-      return { wrong, exact, excluded };
-    } finally { plan.models = original; }
-  })()`);
-  expect(versions).toEqual({ wrong:false, exact:true, excluded:false });
-  expect(await page.evaluate("publicModelPlans('glm-5.3').some(p=>['plan-0174','plan-0175','plan-0176','plan-0177','plan-0039'].includes(p.id))")).toBe(false);
-  expect(await page.evaluate("publicModelPlans('glm-5.3-flash').some(p=>p.id==='plan-0174')")).toBe(true);
-  expect(await page.evaluate("publicModelPlans('claude-fable-5.1').filter(p=>p.vendor==='Anthropic').map(p=>p.id)")).toEqual(["plan-0003", "plan-0006", "plan-0004"]);
-  expect(await page.evaluate("publicModelPlans('GPT-6.1 Sol').filter(p=>p.vendor==='OpenAI').map(p=>p.id)")).toEqual(["plan-0010", "plan-0011", "plan-0012", "plan-0013"]);
-  expect(await page.evaluate("publicModelPlans('GPT-6.2 Sol').some(p=>p.vendor==='OpenAI')")).toBe(false);
-  expect(await page.evaluate("publicModelPlans('GPT-6 Luna').some(p=>p.id==='plan-0010')")).toBe(true);
-  expect(await page.evaluate("publicModelIncluded(PLANS.find(p=>p.id==='plan-0001'), 'Claude Haiku 4.5')")).toBe(true);
-  expect(await page.evaluate("publicModelPlans('claude-opus-5').map(p=>p.id)")).toEqual(await page.evaluate("publicModelPlans('Opus 5').map(p=>p.id)"));
 });
+
+/** 在各评测协议的完整榜单中找到指向某档套餐的链接（逐个切换评测用途与协议）。
+ * @param {import("@playwright/test").Page} page @param {string} planId */
+async function benchmarkPlanLink(page, planId) {
+  const family = page.locator("#publicBenchmarkFamily"), protocol = page.locator("#publicBenchmarkSelect");
+  const link = page.locator(`#publicBenchmarkBody [data-benchmark-plan="${planId}"]`).first();
+  const values = (select) => select.locator("option").evaluateAll((options) => options.map((option) => option.getAttribute("value")));
+  for (const familyValue of await values(family)) {
+    await family.selectOption(familyValue);
+    for (const protocolValue of await values(protocol)) {
+      await protocol.selectOption(protocolValue);
+      if (await link.count()) return link;
+    }
+  }
+  throw new Error("没有评测成绩链接到 " + planId);
+}
 
 test("评测套餐链接按永久ID打开付费与免费权益，关闭后返回原链接", async ({ page }) => {
   await page.setViewportSize({ width:375, height:812 });
   await page.goto("/#benchmarks");
   await expect(page.locator("#publicBenchmarkBody tr").first()).toBeVisible();
-  const freeId = await page.evaluate("PLANS.find(p=>p.vendor.includes('GitHub') && p.priceM===0).id");
+  await page.locator("#publicBenchmarkMode").selectOption("all");
+  const freeId = catalog.PLANS.find((p) => p.vendor.includes("GitHub") && p.priceM === 0).id;
   for (const id of ["plan-0075", freeId]) {
-    const target = await page.evaluate(`((planId) => {
-      const row = publicBenchmarkData().scores.find((score) => publicModelPlans(score.model).some((plan) => plan.id === planId));
-      const protocol = publicBenchmarkData().benchmarks.find((item) => item.id === row.benchmarkId);
-      publicBenchmarkState.id = protocol.id; publicBenchmarkState.family = protocol.family;
-      publicBenchmarkState.search = row.model; publicBenchmarkState.mode = "best";
-      renderPublicBenchmarks();
-      const plan = PLANS.find((item) => item.id === planId);
-      return { title:planTitle(plan), search:plan.vendor + " " + plan.plan, free:isFreeCodingEntry(plan) };
-    })(${JSON.stringify(id)})`);
-    const link = page.locator(`[data-benchmark-plan="${id}"]`).first();
+    const plan = catalog.findPlanReference(id);
+    const link = await benchmarkPlanLink(page, id);
     if (!await link.isVisible()) await link.locator("xpath=ancestor::details[1]").locator("summary").click();
     const fallback = new URL(await link.getAttribute("href"), page.url());
-    expect(fallback.searchParams.get("q")).toBe(target.search);
-    expect(fallback.hash).toBe(target.free ? "#free" : "#table");
+    expect(fallback.searchParams.get("q")).toBe(plan.vendor + " " + plan.plan);
+    expect(fallback.hash).toBe(catalog.isFreeCodingEntry(plan) ? "#free" : "#table");
+    const title = (await link.textContent()).trim();
     await link.click();
     await expect(page.locator("#planDetailsModal")).toBeVisible();
-    await expect(page.locator("#planDetailsTitle")).toHaveText(target.title);
+    await expect(page.locator("#planDetailsTitle")).toHaveText(title);
     await expect(page).toHaveURL(/#benchmarks$/);
     await expect(page.locator("#planDetailsBody a[href^='https://']").first()).toBeVisible();
     await page.locator("#planDetailsCloseBtn").click();

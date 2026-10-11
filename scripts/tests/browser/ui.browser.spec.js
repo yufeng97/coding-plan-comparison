@@ -1,4 +1,6 @@
 const { test, expect } = require("@playwright/test");
+const fs = require("node:fs/promises");
+const { freshTablePlanIds, matchedTotal } = require("./helpers");
 async function openChapters(page) { await page.locator("#sectionMenu").evaluate((menu) => { /** @type {HTMLDetailsElement} */ (menu).open = true; }); }
 async function clickChapter(page, name) {
   await openChapters(page);
@@ -6,17 +8,17 @@ async function clickChapter(page, name) {
 }
 
 test("搜索防抖未执行时的同查询串后退仍更新表格", async ({ page }) => {
+  const expected = await freshTablePlanIds(page, "Cursor");
   await page.goto("/index.html#table");
   await page.evaluate(() => {
     const input = /** @type {HTMLInputElement} */ (document.getElementById("searchInput"));
     input.value = "Cursor";
     input.dispatchEvent(new Event("input", { bubbles: true }));
-    window["navigateToSection"]("#s1");
+    /** @type {HTMLElement} */ (document.querySelector('.topnav a[href="#s1"]')).click();
     history.back();
   });
   await expect(page).toHaveURL(/q=Cursor#table$/);
-  await expect.poll(() => page.evaluate(() => document.querySelectorAll("#tableBody tr").length)).toBe(
-    await page.evaluate("Math.min(responsivePageSize(), computeTableRows().length)"));
+  await expect.poll(() => page.locator("#tableBody .cmp-add").evaluateAll((buttons) => buttons.map((button) => button.getAttribute("data-plan-id")))).toEqual(expected);
   await expect(page.locator("#searchInput")).toHaveValue("Cursor");
 });
 
@@ -116,8 +118,9 @@ for (const colorScheme of /** @type {("light"|"dark")[]} */ (["light", "dark"]))
     await page.setViewportSize({ width: 375, height: 900 });
     await page.emulateMedia({ colorScheme });
     await page.goto("/?q=Claude+Pro#table");
-    await page.evaluate("revealTablePlan('plan-0002')");
     const row = page.locator('#tableBody tr:has(.cmp-add[data-plan-id="plan-0002"])');
+    const more = page.locator("#tableMoreBtn");
+    while (!await row.count() && await more.isVisible()) await more.click();
     const price = row.locator('[data-column="priceM"]');
     await expect(price).toBeVisible();
     await expect(price).toHaveAttribute("data-label", "价格 / 周期");
@@ -194,14 +197,18 @@ test("手机价格表分批展开并保持完整导出，排序后回到首批�
   await page.setViewportSize({ width: 375, height: 900 });
   await page.goto("/#table");
   await expect(page.locator("#tableBody tr")).toHaveCount(5);
-  const total = await page.evaluate("computeTableRows().length");
+  const total = matchedTotal(await page.locator("#tableCount").textContent());
+  expect(total).toBeGreaterThan(10);
   const more = page.locator("#tableMoreBtn");
   await expect(more).toBeVisible();
   await more.click();
   await expect(page.locator("#tableBody tr")).toHaveCount(10);
   await expect(page.locator("#tableBody .cmp-add").nth(5)).toBeFocused();
   await expect(page.locator("#tableCount")).toContainText(`已显示 10 / ${total}`);
-  expect(await page.evaluate('tableRowsCsv(computeTableRows()).split("\\r\\n").length')).toBe(total + 1);
+  const download = page.waitForEvent("download");
+  await page.locator("#exportCsvBtn").click();
+  const csv = await fs.readFile(await (await download).path(), "utf8");
+  expect(csv.slice(1).split("\r\n")).toHaveLength(total + 1);
   await page.locator('#planTable thead [data-sort="priceM"]').click();
   await expect(page.locator("#tableBody tr")).toHaveCount(5);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -214,7 +221,8 @@ test("手机额度表分批卡片被容器完整包住，后续章节不会盖�
   await page.setViewportSize({ width: 375, height: 900 });
   await page.goto("/#s3b");
   await expect(page.locator("#metricsBody tr")).toHaveCount(5);
-  const total = await page.evaluate("metricsTableRows().shownRows.length");
+  const total = matchedTotal(await page.locator("#metricsCount").textContent());
+  expect(total).toBeGreaterThan(10);
   await expect(page.locator("#metricsCount")).toHaveText(`已显示 5 / ${total} 行`);
   await page.locator("#metricsMoreBtn").click();
   await expect(page.locator("#metricsBody tr")).toHaveCount(10);
@@ -223,7 +231,7 @@ test("手机额度表分批卡片被容器完整包住，后续章节不会盖�
   expect(geometry.card).toBeLessThanOrEqual(geometry.next + 1);
   await page.locator('#metricsTable thead [data-sort="price"]').click();
   await expect(page.locator("#metricsBody tr")).toHaveCount(5);
-  expect(await page.evaluate("metricsTableRows().shownRows.length")).toBe(total);
+  await expect(page.locator("#metricsCount")).toHaveText(`已显示 5 / ${total} 行`);
 });
 
 test("稳定ID链接和无原生dialog降级可关闭、循环焦点和移出", async ({ page }) => {
@@ -272,9 +280,10 @@ test("历史恢复重新聚焦同一方案的表格按钮，筛选隐藏时回�
 });
 
 test("搜索延迟重绘时保留快速进入的对比按钮，筛掉方案则返回搜索", async ({ page }) => {
+  const expected = { Claude: await freshTablePlanIds(page, "Claude"), Cursor: await freshTablePlanIds(page, "Cursor") };
   await page.goto("/?q=Anthropic#table");
   const add = page.locator('#tableBody .cmp-add[data-plan-id="plan-0002"]');
-  for (const query of ["Claude", "Cursor"]) {
+  for (const query of /** @type {const} */ (["Claude", "Cursor"])) {
     await page.evaluate((query) => {
       const search = /** @type {HTMLInputElement} */ (document.getElementById("searchInput"));
       search.value = query;
@@ -284,8 +293,7 @@ test("搜索延迟重绘时保留快速进入的对比按钮，筛掉方案则�
     }, query);
     /* Vue preserves rows by permanent plan ID. Check the displayed result and focus,
        instead of requiring the old innerHTML renderer to detach every button. */
-    await expect.poll(() => page.evaluate(() => [...document.querySelectorAll("#tableBody .cmp-add")].map(button => button.getAttribute("data-plan-id")).join(";"))).toBe(
-      await page.evaluate("computeTableRows().slice(0, responsivePageSize()).map(plan => plan.id).join(';')"));
+    await expect.poll(() => page.locator("#tableBody .cmp-add").evaluateAll((buttons) => buttons.map((button) => button.getAttribute("data-plan-id")))).toEqual(expected[query]);
     if (query === "Claude") await expect(add).toBeFocused();
     else {
       await expect(add).toHaveCount(0);

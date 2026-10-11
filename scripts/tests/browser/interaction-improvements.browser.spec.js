@@ -1,5 +1,6 @@
 const { test, expect } = require("@playwright/test");
 const fs = require("node:fs/promises");
+const { catalog } = require("./helpers");
 
 test("个人图展开和收起后键盘焦点留在操作按钮", async ({ page }) => {
   await page.goto("/#s1");
@@ -34,8 +35,7 @@ test("推荐卡直接加入对比并与数据表同身份按钮同步", async ({
   await page.keyboard.press("Enter");
   await expect(recommendation).toHaveAttribute("aria-pressed", "true");
   await expect(recommendation).toBeFocused();
-  const planName = await page.evaluate("PLANS.find(p => p.id === " + JSON.stringify(id) + ").plan");
-  await page.locator("#searchInput").fill(planName);
+  await page.locator("#searchInput").fill(catalog.findPlanReference(id).plan);
   await expect(page.locator(`#tableBody .cmp-add[data-plan-id="${id}"]`)).toHaveAttribute("aria-pressed", "true");
   await recommendation.focus();
   await page.keyboard.press("Enter");
@@ -50,20 +50,31 @@ test("独立对比复制和CSV保持选择顺序及计价、核价元数据", as
     Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async (text) => { window["testComparisonCopy"] = text; } } });
   });
   await page.goto("/?q=Cursor&cmp=plan-0002;plan-0003#table");
-  const csv = await page.evaluate("tableRowsCsv(cmpState.items)");
-  const markdown = await page.evaluate("'并排对比（2 档方案）\\n\\n' + tableRowsMarkdown(cmpState.items)");
+  /* 数据表搜索（q=Cursor）不影响对比导出：两档按选择顺序各占一行 */
+  const plans = ["plan-0002", "plan-0003"].map((id) => catalog.findPlanReference(id).plan);
   await page.locator("#copyCmpMdBtn").click();
+  let markdown = "";
   await expect.poll(async () => {
     const text = browserName === "chromium" ? await page.evaluate(() => navigator.clipboard.readText()) : await page.evaluate(() => window["testComparisonCopy"]);
-    return String(text).replace(/\r\n/g, "\n"); /* Windows 系统剪贴板使用 CRLF。 */
-  }).toBe(markdown);
+    markdown = String(text ?? "").replace(/\r\n/g, "\n"); /* Windows 系统剪贴板使用 CRLF。 */
+    return markdown.startsWith("并排对比（2 档方案）\n\n");
+  }).toBe(true);
+  expect(markdown).toContain("数据更新日期：" + catalog.META.updated);
+  expect(markdown).toContain("参考汇率");
+  const lines = markdown.split("\n");
+  const rows = lines.slice(lines.findIndex((line) => /^\|(---\|)+$/.test(line)) + 1);
+  expect(rows).toHaveLength(2);
+  rows.forEach((row, i) => expect(row).toContain(`| ${plans[i]} |`));
   await expect(page.locator("#cmpFeedback")).toContainText("2 档");
   const pending = page.waitForEvent("download");
   await page.locator("#exportCmpCsvBtn").click();
   const download = await pending;
   expect(download.suggestedFilename()).toMatch(/^coding-plans-compare-\d{8}\.csv$/);
   const content = await fs.readFile(await download.path(), "utf8");
-  expect(content).toBe("\uFEFF" + csv);
+  expect(content.startsWith("\uFEFF")).toBe(true);
+  const csv = content.slice(1).split("\r\n");
+  expect(csv).toHaveLength(3);
+  csv.slice(1).forEach((line, i) => expect(line).toContain(`"${plans[i]}"`));
   expect(content).toContain("价格核查来源");
   expect(content).toContain("参考汇率");
 });

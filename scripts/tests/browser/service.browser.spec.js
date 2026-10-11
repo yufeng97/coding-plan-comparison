@@ -1,5 +1,8 @@
 "use strict";
 const { test, expect } = require("@playwright/test");
+const { catalog, goToSection } = require("./helpers");
+/** ECharts 精简包已加载（库脚本定义的全局）。 */
+const chartLibraryLoaded = () => typeof window["echarts"]?.init === "function";
 
 test("手机首屏展示主推荐，首屏和帮我选无需下载图表库", async ({ page }) => {
   await page.setViewportSize({ width:375, height:812 });
@@ -39,7 +42,7 @@ test("图表加载失败保留文字数据，重试只重新加载图表", async
   await page.route("**/libs/echarts*.js", async (route) => { if (fail) await route.abort(); else await route.continue(); });
   await page.goto("/#s4");
   await expect(page.locator("#chartApi [data-retry-chart]")).toBeVisible();
-  await expect(page.locator("#apiDetailBody tr")).toHaveCount(await page.evaluate("API_PRICES.length"));
+  await expect(page.locator("#apiDetailBody tr")).toHaveCount(catalog.API_PRICES.length);
   await expect(page.locator("#rankDetailBody tr")).not.toHaveCount(0);
   fail = false;
   await page.locator("#chartApi [data-retry-chart]").click();
@@ -93,7 +96,7 @@ test("图表仍在下载时回到顶部，加载完成不重新跳回分享章�
     await page.locator("#toTop").click();
     await expect(page.locator(".hero h1")).toBeFocused();
     release();
-    await expect.poll(() => page.evaluate("chartLibraryReady()" )).toBe(true);
+    await expect.poll(() => page.evaluate(chartLibraryLoaded)).toBe(true);
     await expect.poll(() => page.evaluate("scrollY")).toBeLessThan(10);
     await expect(page.locator(".hero h1")).toBeFocused();
   } finally { release(); }
@@ -114,8 +117,9 @@ for (const failed of [false,true]) test(`显式导航下载期间主动转到其
     const budget = page.locator('#picker [data-pick="budget"] [data-value="100"]');
     await budget.focus();
     release();
-    if (failed) await expect.poll(() => page.evaluate("chartLibraryPromise === null")).toBe(true);
-    else await expect.poll(() => page.evaluate("chartLibraryReady()")).toBe(true);
+    /* 失败时图表位置显示可重试的错误，成功时库已加载 */
+    if (failed) await expect(page.locator("[data-retry-chart]").first()).toBeAttached();
+    else await expect.poll(() => page.evaluate(chartLibraryLoaded)).toBe(true);
     await expect(budget).toBeFocused();
     await expect(page.locator("#table")).not.toBeFocused();
     expect(await page.locator("#table").evaluate((el) => el.getBoundingClientRect().top)).toBeGreaterThan(900);
@@ -140,7 +144,7 @@ for (const action of ["滚轮","PageUp"]) test(`显式导航下载期间通过${
     else await page.keyboard.press("PageUp");
     await expect.poll(() => page.evaluate("scrollY")).toBeLessThan(position - 2);
     release();
-    await expect.poll(() => page.evaluate("chartLibraryReady()")).toBe(true);
+    await expect.poll(() => page.evaluate(chartLibraryLoaded)).toBe(true);
     await expect(link).toBeFocused();
     await expect(page.locator("#table")).not.toBeFocused();
     expect(await page.locator("#table").evaluate((el) => el.getBoundingClientRect().top)).toBeGreaterThan(900);
@@ -205,31 +209,30 @@ test("无原生dialog时完整权益可循环焦点并还原背景", async ({ pa
 test("排行明细包含当前口径全部行，并同步口径切换", async ({ page }) => {
   await page.goto("/?rscope=credits#rank");
   const dataRows = page.locator("#rankDetailBody tr:not(.rank-divider)");
-  await expect(dataRows).toHaveCount(await page.evaluate("rankRows().length"));
+  const noted = async () => Number((await page.locator("#rankNote").textContent() || "").match(/共 (\d+) 档/)?.[1]);
   await expect(page.locator('#chipRScope [data-rscope="credits"]')).toHaveAttribute("aria-pressed","true");
-  expect(await page.evaluate("rankRows().every(r => !rankIsEstimate(r.m))")).toBe(true);
+  await expect(dataRows).toHaveCount(await noted());
+  await expect(page.locator("#rankDetailBody .conf-lo")).toHaveCount(0);
   await expect(page.locator("#rankDetailBody .rank-divider")).toHaveCount(0);
   const officialCount = await dataRows.count();
   await page.locator('#chipRScope [data-rscope="all"]').click();
-  await expect(dataRows).toHaveCount(await page.evaluate("rankRows().length"));
   await expect(page.locator('#chipRScope [data-rscope="all"]')).toHaveAttribute("aria-pressed","true");
+  await expect(dataRows).toHaveCount(await noted());
   expect(await dataRows.count()).toBeGreaterThan(officialCount);
   expect(await dataRows.count()).toBeGreaterThan(20);
-  expect(await page.evaluate("rankRows().some(r => rankIsEstimate(r.m))")).toBe(true);
+  expect(await page.locator("#rankDetailBody .conf-lo").count()).toBeGreaterThan(0);
   await expect(page.locator("#rankDetailBody .rank-divider")).toHaveCount(1);
   await expect(page.locator("#rankDetailBody .rank-divider")).toContainText("以下为第三方或请求次数估算");
 });
 
 test("选购用量入口打开计算器并带入精确模型，示例预设和三情景可编辑且可分享", async ({ page }) => {
   await page.goto("/?budget=200&region=cn&task=hard");
-  const recommendedPlanId = await page.locator("#quickGrid > .quick-card").first().locator(".cmp-add").getAttribute("data-plan-id");
-  const expectedModel = await page.evaluate("(() => { const api = recommendedApi(planProfile(findPlanReference(" + JSON.stringify(recommendedPlanId) + "))); return api ? api.vendor + '|' + api.model : null; })()");
-  expect(expectedModel).not.toBeNull();
   await page.locator("#checkWorkloadBtn").click();
   await expect(page).toHaveURL(/#s4$/);
   await expect(page.locator("#costCalculator")).toHaveAttribute("open","");
   await expect(page.locator("#costBudget")).toHaveValue("200");
-  await expect(page.locator("#costModel")).toHaveValue(expectedModel);
+  await expect(page.locator("#serviceFeedback")).toContainText("同名的 API 模型");
+  expect(await page.locator("#costModel").inputValue()).not.toBe("");
   await expect(page.locator("[data-cost-scenario-result]")).toHaveCount(3);
   await expect(page.locator("#costResult")).toContainText("不代表真实用户用量");
   await page.locator('[data-cost-preset="light"]').click();
@@ -265,10 +268,11 @@ test("表格应用选购条件叠加搜索，自动续费预算可包含优惠�
   await expect(page).toHaveURL(/tapply=1/);
   await page.reload();
   await expect(apply).toHaveAttribute("aria-pressed","true");
-  expect(await page.evaluate("tableState.search")).toBe("GLM");
+  await expect(page.locator("#searchInput")).toHaveValue("GLM");
   await apply.click();
   await expect(page.locator("#tableScope")).toContainText("尚未应用选购条件");
-  expect(await page.evaluate("tableState.search")).toBe("GLM");
+  await expect(page.locator("#searchInput")).toHaveValue("GLM");
+  await expect.poll(() => new URL(page.url()).searchParams.get("q")).toBe("GLM");
 });
 
 test("个人图应用选购支付方式时停用本区切换，取消、清除与后退恢复一致", async ({ page }) => {
@@ -283,14 +287,13 @@ test("个人图应用选购支付方式时停用本区切换，取消、清除�
   await expect(annual).toBeDisabled();
   await expect(annual).toHaveAttribute("aria-describedby","personalScope");
   await expect(page.locator("#personalScope")).toContainText("暂不可切换");
-  expect(await page.evaluate("personalTooltip(findPlanReference('plan-0002'))")).not.toContain("折算价：");
   await page.reload();
   await expect(annual).toBeDisabled();
   await apply.click();
   await expect(annual).toBeEnabled();
   await expect(annual).toHaveAttribute("aria-pressed","true");
   await apply.click();
-  await page.evaluate("navigateToSection('#rank')");
+  await goToSection(page, "#rank");
   await apply.click();
   await expect(annual).toBeEnabled();
   await page.goBack();

@@ -1,4 +1,4 @@
-/* 贡献者工具：筛选、记录与任务的渲染。记录展示值与筛选规范另在 scripts/tests/test-app-maintenance.js 里测。 */
+/* 贡献者工具：筛选、记录与任务；整页筛选和数据边界见 src/regression/maintenance.test.ts。 */
 import { BENCHMARK_DATA, loadBenchmarks, unloadOptionalData, useMount } from "../test/setup";
 import { beforeEach, expect, test } from "vitest";
 import { flushPromises } from "@vue/test-utils";

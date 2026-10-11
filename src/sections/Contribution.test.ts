@@ -1,4 +1,4 @@
-/* 帮助补全与纠错：证据模板、Issues 链接、复制与下载。模板内容的口径另在 scripts/tests/test-app-maintenance.js 里测。 */
+/* 帮助补全与纠错：证据模板、Issues 链接、复制与下载；跨区流程见 src/regression/maintenance.test.ts。 */
 import { focusedId, loadBenchmarks, unloadOptionalData, useMount } from "../test/setup";
 import { beforeEach, expect, test, vi } from "vitest";
 import { flushPromises } from "@vue/test-utils";

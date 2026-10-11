@@ -1,109 +1,94 @@
-#!/usr/bin/env node
-/* 数据语义回归：真实 data/metrics + 内存校验器 fixtures，零依赖且不修改仓库文件。 */
-const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
-const vm = require("node:vm");
-const root = path.join(__dirname, "..", "..");
-const dataPath = path.join(root, "js/data.js");
-const dataSource = fs.readFileSync(dataPath, "utf8");
-const metricsSource = require('./fixtures/read-typescript').classicSource('src/domain/metrics.ts');
-const validatorSource = fs.readFileSync(path.join(root, "scripts/build/validate-data.js"), "utf8");
+/* 数据语义与审计校验回归：直接载入生产 TypeScript 模块；候选源码经校验器的 source 参数在内存验证。 */
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+import { test, vi } from "vitest";
+import type { MetricsInput } from "@domain/model-types";
 
-function load() {
-  const box = { console };
-  vm.createContext(box);
-  vm.runInContext(dataSource + "\n;\n" + metricsSource +
-    "\n;globalThis.__D={PLANS,METRICS_RAW,ESTIMATES,UNCERTAIN,RATE_USD_CNY,resolvedField,matchModelRoles,windowTokens,computeMetrics,isFlagshipModelName,hasIncludedModelQuota,isPurchaseCountryAllowed,isPersonalMonthly,isOnSalePlan,isFourWeekPlan,findPlanReference,hasOwnClient};", box);
-  return box.__D;
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+const dataSource = fs.readFileSync(path.join(root, "js/data.js"), "utf8");
+interface ValidationOptions { now?: string | number | Date; }
+interface ValidationReport { errors: string[]; warns: string[]; notes: string[]; summary: string; }
+const { validateData } = createRequire(import.meta.url)("../../scripts/build/validate-data.js") as {
+  validateData(options: ValidationOptions & { workspace: string; source: string }): ValidationReport;
+};
+async function load() {
+  vi.resetModules();
+  const catalog = await import("@domain/catalog");
+  const metrics = await import("@domain/metrics");
+  return { ...catalog, ...metrics };
 }
-const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-8, `${actual} != ${expected}`);
-const plan = (d, vendor, name) => {
+type Data = Awaited<ReturnType<typeof load>>;
+const near = (actual: unknown, expected: unknown) => {
+  assert.ok(typeof actual === "number");
+  assert.ok(typeof expected === "number");
+  assert.ok(Math.abs(actual - expected) < 1e-8, `${actual} != ${expected}`);
+};
+function positive(value: number | null) { assert.ok(value !== null && value > 0); return value; }
+function plan(d: Data, vendor: string, name: string) {
   const found = d.PLANS.find((p) => p.vendor === vendor && p.plan === name);
   assert.ok(found, `缺少计划 ${vendor}|${name}`);
   return found;
-};
-const withPrice = (d, m) => {
+}
+function fixture(overrides: Partial<Plan>): Plan {
+  return { id: "fixture", vendor: "Fixture", plan: "Fixture", cat: "official", region: "cn", cur: "CNY", priceM: 1, priceY: null, seat: false, quota: "", models: "", tools: "", note: "", url: "https://example.com", ...overrides };
+}
+function withPrice(d: Data, m: MetricsInput & { ref?: string | [string, string] } | undefined): MetricsInput {
+  assert.ok(m);
   const p = d.findPlanReference(m.ref);
   assert.ok(p, `未解析的价格引用 ${JSON.stringify(m.ref)}`);
+  assert.ok(typeof p.priceM === "number");
   return { ...m, priceM: p.priceM, cur: p.cur, windowPeriod: p.windowPeriod };
-};
-
-/* 用虚拟 readFileSync 注入数据变体，运行真实 validate-data.js；真实文件始终只读。 */
-function validateFixture(mutation, options = {}) {
-  const output = [];
-  const stopped = {};
-  let exitCode = 0;
-  const fakeFs = {
-    ...fs,
-    readFileSync(file, options) {
-      return path.resolve(String(file)) === path.resolve(dataPath)
-        ? dataSource + "\n;\n" + mutation
-        : fs.readFileSync(file, options);
-    },
-  };
-  try {
-    vm.runInNewContext(validatorSource + `\n;if (!printReport(module.exports.validateData(${JSON.stringify(options)}))) process.exit(1);`, {
-      __dirname: path.join(root, "scripts", "build"),
-      require(name) { return name === "fs" ? fakeFs : require(name); },
-      module: { exports: {} },
-      console: Object.fromEntries(["log", "warn", "error"].map((name) => [name, (...args) => output.push(args.join(" "))])),
-      process: { exit(code) { exitCode = code; throw stopped; } },
-    }, { filename: "validate-data.fixture.js", timeout: 5000 });
-  } catch (err) {
-    if (err !== stopped) throw err;
-  }
-  return { exitCode, output: output.join("\n") };
+}
+function validateFixture(mutation: string, options: ValidationOptions = {}) {
+  const result = validateData({ workspace: root, source: dataSource + "\n;\n" + mutation, ...options });
+  return { exitCode: result.errors.length ? 1 : 0, output: [result.summary, ...result.errors, ...result.warns, ...result.notes].join("\n") };
 }
 
-let passed = 0, failed = 0;
-function test(name, fn) {
-  try { fn(); passed++; console.log("  ✓ " + name); }
-  catch (err) { failed++; console.error("  ✗ " + name + "\n    " + err.message); }
-}
-
-test("明确目标不邻近时仍解析，保留追加权益和限制", () => {
-  const d = load();
+test("明确目标不邻近时仍解析，保留追加权益和限制", async () => {
+  const d = await load();
   const plus = plan(d, "OpenCode (Anomaly/SST)", "OpenCode Go Plus");
   assert.match(d.resolvedField(plus, "tools"), /Claude Code/);
   assert.match(d.resolvedField(plus, "tools"), /任意 agent 可用/);
   assert.match(d.resolvedField(plan(d, "Google", "Google AI Ultra（20x）"), "models"), /Project Genie/);
   assert.match(d.resolvedField(plan(d, "OpenAI", "ChatGPT Pro（$500）"), "models"), /Astra Ultrafast/);
-  const base = { vendor: "Fixture", plan: "Starter", models: "Claude Opus / Sonnet" };
-  const next = { vendor: "Fixture", plan: "Pro", models: "同 Starter；不含 Opus" };
+  const base = fixture({ vendor: "Fixture", plan: "Starter", models: "Claude Opus / Sonnet" });
+  const next = fixture({ vendor: "Fixture", plan: "Pro", models: "同 Starter；不含 Opus" });
   d.PLANS.push(base, next);
   const text = d.resolvedField(next, "models");
   assert.match(text, /不含 Opus/);
   assert.ok(!d.matchModelRoles(text).some((r) => r.id === "claude-opus"));
 });
 
-test("JetBrains 商业 Pro 继承个人 Pro，避免继承相邻 Ultimate", () => {
-  const d = load();
+test("JetBrains 商业 Pro 继承个人 Pro，避免继承相邻 Ultimate", async () => {
+  const d = await load();
   const text = d.resolvedField(plan(d, "JetBrains AI", "AI Pro（商业）"), "quota");
   assert.match(text, /BYOK/);
   assert.match(text, /商业组织计费/);
   assert.doesNotMatch(text, /更高级别用量/);
 });
 
-test("fieldRefs 双向和自循环安全返回空串", () => {
-  const d = load();
-  const a = { vendor: "Cycle", plan: "A", models: "同错误目标", fieldRefs: { models: ["Cycle", "B"] } };
-  const b = { vendor: "Cycle", plan: "B", models: "同 A", fieldRefs: { models: ["Cycle", "A"] } };
+test("fieldRefs 双向和自循环安全返回空串", async () => {
+  const d = await load();
+  const a = fixture({ vendor: "Cycle", plan: "A", models: "同错误目标", fieldRefs: { models: ["Cycle", "B"] } });
+  const b = fixture({ vendor: "Cycle", plan: "B", models: "同 A", fieldRefs: { models: ["Cycle", "A"] } });
   d.PLANS.push(a, b);
   assert.equal(d.resolvedField(a, "models"), "");
-  a.fieldRefs.models = ["Cycle", "A"];
+  a.fieldRefs!.models = ["Cycle", "A"];
   assert.equal(d.resolvedField(a, "models"), "");
 });
 
-test("Gemini Pro、连字符 Kimi 为旗舰，轻量变体仍排除", () => {
-  const d = load();
+test("Gemini Pro、连字符 Kimi 为旗舰，轻量变体仍排除", async () => {
+  const d = await load();
   for (const name of ["Gemini 3.1 Pro", "Gemini-3.1-Pro", "Kimi-K2.6", "Kimi K2.6", "kimi-k3"]) assert.ok(d.isFlagshipModelName(name), name);
   for (const name of ["Gemini 3.1 Flash", "Kimi-K2.6-mini", "Kimi-K3-Flash"]) assert.equal(d.isFlagshipModelName(name), false, name);
 });
 
-test("排行旗舰与帮我选复杂任务共用 MODEL_ROLES，连字符/空格写法一致，口径差异只剩 Sonnet 与上一代主力", () => {
-  const d = load();
-  const ids = (text) => d.matchModelRoles(text).map((r) => r.id);
+test("排行旗舰与帮我选复杂任务共用 MODEL_ROLES，连字符/空格写法一致，口径差异只剩 Sonnet 与上一代主力", async () => {
+  const d = await load();
+  const ids = (text: string) => d.matchModelRoles(text).map((r) => r.id);
   for (const [text, id] of [["Gemini-3.1-Pro", "gemini-pro"], ["Gemini 3.1 Pro", "gemini-pro"], ["MiMo Pro", "mimo-pro"], ["MiMo V2.5 Pro", "mimo-pro"], ["MiMo-V2.5-Pro", "mimo-pro"],
     ["Doubao Seed 2.0 Pro", "doubao-pro"], ["doubao-seed-2.1-pro", "doubao-pro"], ["Doubao-Seed-Code", "doubao-pro"], ["Step 5 Preview", "step-5"], ["step-5", "step-5"], ["Qwen 3.7 Max", "qwen-max"]]) {
     assert.ok(ids(text).includes(id), `${text} 应匹配 ${id}`);
@@ -111,17 +96,16 @@ test("排行旗舰与帮我选复杂任务共用 MODEL_ROLES，连字符/空格�
   }
   for (const text of ["Step 50", "MiMo Flash", "Seed-2.1-Turbo", "GLM-5.3-Flash"]) assert.equal(ids(text).some((id) => ["step-5", "mimo-pro", "doubao-pro", "glm-5"].includes(id)), false, text);
   /* 真实额度行：两处结论不同的只允许是 Sonnet、Kimi K2.x、GPT-5.x（非轻量、但不是复杂任务首选）。 */
-  const rows = d.METRICS_RAW.concat(d.ESTIMATES).filter((m) => m.model);
+  const rows = [...d.METRICS_RAW, ...d.ESTIMATES].filter((m) => m.model);
   const differs = rows.filter((m) => d.isFlagshipModelName(m.model) !== d.matchModelRoles(m.model).some((r) => r.task === "hard"));
   assert.ok(differs.length > 0);
   for (const m of differs) assert.match(m.model, /sonnet|kimi[\s-]*k2|gpt-5/i, `${m.model} 的口径差异未登记`);
 });
 
-/** @type {[string, number][]} */
-const modelRanges = [["GPT-6 Sol", 150], ["GPT-6.1 Sol", 160]];
+const modelRanges: [string, number][] = [["GPT-6 Sol", 150], ["GPT-6.1 Sol", 160]];
 for (const [model, upper] of modelRanges) {
-  test(model + " Plus 使用条数 × 单次 tokens 派生区间", () => {
-    const d = load();
+  test(model + " Plus 使用条数 × 单次 tokens 派生区间", async () => {
+    const d = await load();
     const row = d.ESTIMATES.find((m) => m.plan === "ChatGPT Plus" && m.model === model);
     assert.ok(row);
     assert.equal(row.reqLowPer5h, 15);
@@ -134,40 +118,40 @@ for (const [model, upper] of modelRanges) {
     near(c.fHigh, upper * 40000 / 1e6);
     near(c.wkLowM, 1.5);
     near(c.wkHighM, upper * 40000 * 5 / 1e6);
-    near(c.moHigh, c.wkHighM * 4.33);
+    near(c.moHigh, positive(c.wkHighM) * 4.33);
   });
 }
 
-test("Cursor 用户消费场景不再作为套餐额度，说明保留", () => {
-  const d = load();
+test("Cursor 用户消费场景不再作为套餐额度，说明保留", async () => {
+  const d = await load();
   assert.ok(!d.ESTIMATES.some((m) => m.vendor === "Cursor"));
   assert.ok(d.UNCERTAIN.some((text) => text.includes("Cursor") && text.includes("消费情景") && text.includes("$60–100")));
 });
 
 for (const period of ["none", "month"]) {
-  test(period + " 不生成5h限制，同时保留月量与成本", () => {
-    const d = load();
+  test(period + " 不生成5h限制，同时保留月量与成本", async () => {
+    const d = await load();
     const input = { priceM: 49, cur: "CNY", creditCNY: 400, apiIn: 1.35, apiOut: 8.1, apiCache: 0.27 };
     const baseline = d.computeMetrics(input);
     const c = d.computeMetrics({ ...input, windowPeriod: period });
     assert.ok(c && baseline);
-    for (const key of ["fLow", "fHigh", "val5h", "val5hHi", "r5h", "r5hHi"]) assert.equal(c[key], null, key);
-    for (const key of ["moLow", "moHigh", "moMidM", "valMo", "rmo", "costPerM"]) near(c[key], baseline[key]);
+    for (const key of (["fLow", "fHigh", "val5h", "val5hHi", "r5h", "r5hHi"] as const)) assert.equal(c[key], null, key);
+    for (const key of (["moLow", "moHigh", "moMidM", "valMo", "rmo", "costPerM"] as const)) near(c[key], baseline[key]);
   });
 }
 
-test("月credits未标周期或周期未知也不生成伪5h上限", () => {
-  const d = load();
+test("月credits未标周期或周期未知也不生成伪5h上限", async () => {
+  const d = await load();
   for (const period of [undefined, "unknown"]) {
     const c = d.computeMetrics({ priceM: 10, cur: "USD", creditUSD: 70, apiIn: 0.15, apiOut: 0.6, apiCache: 0.003, windowPeriod: period });
     assert.ok(c);
-    for (const key of ["fLow", "fHigh", "val5h", "val5hHi", "r5h", "r5hHi"]) assert.equal(c[key], null, key);
-    assert.ok(c.moMidM > 0 && c.costPerM > 0);
+    for (const key of (["fLow", "fHigh", "val5h", "val5hHi", "r5h", "r5hHi"] as const)) assert.equal(c[key], null, key);
+    positive(c.moMidM); positive(c.costPerM);
   }
 });
 
-test("4周订阅保留完整表，排除按月价格图与个人月付推荐", () => {
-  const d = load();
+test("4周订阅保留完整表，排除按月价格图与个人月付推荐", async () => {
+  const d = await load();
   const rows = d.PLANS.filter((p) => p.vendor === "AIGoCode");
   assert.equal(rows.length, 3);
   for (const p of rows) {
@@ -178,8 +162,8 @@ test("4周订阅保留完整表，排除按月价格图与个人月付推荐", (
   assert.equal(d.isPersonalMonthly(plan(d, "OpenAI", "ChatGPT Plus")), true);
 });
 
-test("真实 Step 月池与 Pro 无5h标记正确", () => {
-  const d = load();
+test("真实 Step 月池与 Pro 无5h标记正确", async () => {
+  const d = await load();
   const step = d.METRICS_RAW.find((m) => m.vendor === "阶跃星辰 StepFun" && m.model === "step-3.7-flash");
   const c = d.computeMetrics(withPrice(d, step));
   assert.equal(c.fLow, null);
@@ -190,8 +174,8 @@ test("真实 Step 月池与 Pro 无5h标记正确", () => {
   for (const p of d.PLANS.filter((p) => p.vendor === "OpenAI" && /^ChatGPT Pro/.test(p.plan))) assert.equal(p.windowPeriod, "none");
 });
 
-test("MiMo、TokenHub与Canopy真实月额度不输出伪5h，并保留月量与成本", () => {
-  const d = load();
+test("MiMo、TokenHub与Canopy真实月额度不输出伪5h，并保留月量与成本", async () => {
+  const d = await load();
   const vendors = ["小米 MiMo", "腾讯云 TokenHub", "Canopy Wave"];
   const rows = d.METRICS_RAW.filter((m) => vendors.includes(m.vendor));
   assert.equal(rows.length, 19);
@@ -200,10 +184,10 @@ test("MiMo、TokenHub与Canopy真实月额度不输出伪5h，并保留月量与
     assert.equal(input.windowPeriod, "month", row.ref);
     const c = d.computeMetrics(input);
     assert.ok(c, row.ref);
-    for (const field of ["fLow", "fHigh", "val5h", "val5hHi", "r5h", "r5hHi"]) assert.equal(c[field], null, row.ref + " " + field);
+    for (const field of (["fLow", "fHigh", "val5h", "val5hHi", "r5h", "r5hHi"] as const)) assert.equal(c[field], null, row.ref + " " + field);
     const windows = d.windowTokens(input);
     near(c.moLow, windows.moLow);
-    assert.ok(c.costPerM > 0 && c.valMo > 0 && c.rmo > 0, row.ref);
+    positive(c.costPerM); positive(c.valMo); positive(c.rmo);
   }
   const lite = rows.find((m) => m.ref === "plan-0167" && m.model === "mimo-v2.6-flash");
   const c = d.computeMetrics(withPrice(d, lite));
@@ -212,13 +196,13 @@ test("MiMo、TokenHub与Canopy真实月额度不输出伪5h，并保留月量与
   for (const p of d.PLANS.filter((p) => p.vendor === "小米 MiMo")) assert.equal(p.windowPeriod, "month", p.id);
 });
 
-test("credits 面值与API牌价跨币种时先换算，价值列保持标价币种", () => {
-  const d = load();
+test("credits 面值与API牌价跨币种时先换算，价值列保持标价币种", async () => {
+  const d = await load();
   const common = { apiIn: 1, apiOut: 4, apiCache: 0.25 };
   const cny = d.computeMetrics({ ...common, priceM: 10, cur: "CNY", creditUSD: 10 });
   near(cny.valMo, 10 * d.RATE_USD_CNY);
   near(cny.moMidM, 10 * d.RATE_USD_CNY / 1.03);
-  near(cny.costPerM, 10 / cny.moMidM);
+  near(cny.costPerM, 10 / positive(cny.moMidM));
   const usd = d.computeMetrics({ ...common, priceM: 2, cur: "USD", creditCNY: 10 * d.RATE_USD_CNY });
   near(usd.valMo, 10);
   near(usd.moMidM, 10 / 1.03);
@@ -226,8 +210,8 @@ test("credits 面值与API牌价跨币种时先换算，价值列保持标价币
   near(usd.rmo, 5);
 });
 
-test("无效价、额度、缓存价格与不完整区间直接拒绝", () => {
-  const d = load();
+test("无效价、额度、缓存价格与不完整区间直接拒绝", async () => {
+  const d = await load();
   const base = { priceM: 49, cur: "CNY", creditCNY: 400, apiIn: 1.35, apiOut: 8.1, apiCache: 0.27 };
   for (const field of ["priceM", "creditCNY", "apiIn", "apiOut", "apiCache"]) {
     for (const bad of [NaN, Infinity, -1]) assert.equal(d.computeMetrics({ ...base, [field]: bad }), null, field + "=" + bad);
@@ -241,14 +225,14 @@ test("无效价、额度、缓存价格与不完整区间直接拒绝", () => {
   assert.equal(d.windowTokens({ reqPer5h: -1 }), null);
 });
 
-test("国家限定档默认不满足，印度明确满足；BYOK不计免费推理", () => {
-  const d = load();
+test("国家限定档默认不满足，印度明确满足；BYOK不计免费推理", async () => {
+  const d = await load();
   const start = plan(d, "Cursor", "Start（印度专属）");
   assert.equal(start.windowPeriod, "month");
-  assert.equal(d.isPurchaseCountryAllowed(start), false);
+  assert.equal(d.isPurchaseCountryAllowed(start, undefined), false);
   assert.equal(d.isPurchaseCountryAllowed(start, "US"), false);
   assert.equal(d.isPurchaseCountryAllowed(start, "in"), true);
-  assert.equal(d.isPurchaseCountryAllowed(plan(d, "Cursor", "Pro")), true);
+  assert.equal(d.isPurchaseCountryAllowed(plan(d, "Cursor", "Pro"), undefined), true);
   assert.equal(d.hasIncludedModelQuota(plan(d, "Kilo Code", "Free（BYOK/零加价）")), false);
   for (const [vendor, name] of [["Zed", "Free"], ["Cline", "开源版 + 按量充值"], ["Roo Code（Roomote）", "自托管（≤10 用户）"]]) {
     assert.equal(d.hasIncludedModelQuota(plan(d, vendor, name)), false, vendor);
@@ -257,8 +241,8 @@ test("国家限定档默认不满足，印度明确满足；BYOK不计免费推�
   assert.equal(plan(d, "Google", "Google AI Plus").codingSurface, false);
 });
 
-test("明确附赠编码工具的计划保持编程入口资格", () => {
-  const d = load();
+test("明确附赠编码工具的计划保持编程入口资格", async () => {
+  const d = await load();
   for (const name of ["SuperGrok", "SuperGrok Plus", "SuperGrok Heavy"]) {
     const p = plan(d, "xAI", name);
     assert.equal(p.codingSurface, true, name);
@@ -272,8 +256,8 @@ test("明确附赠编码工具的计划保持编程入口资格", () => {
   assert.notEqual(plan(d, "xAI", "SuperGrok Lite").codingSurface, true);
 });
 
-test("模型继承展开可检索，局部排除不混淆模型可用性", () => {
-  const d = load();
+test("模型继承展开可检索，局部排除不混淆模型可用性", async () => {
+  const d = await load();
   for (const name of ["Pro+", "Max"]) {
     const text = d.resolvedField(plan(d, "GitHub Copilot", name), "models");
     assert.match(text, /Luna/);
@@ -282,16 +266,16 @@ test("模型继承展开可检索，局部排除不混淆模型可用性", () =>
   }
   const small = plan(d, "火山引擎方舟（字节）", "方舟 Agent Plan（Small）");
   assert.ok(!d.matchModelRoles(small.models).some((r) => r.id === "kimi-k3"));
-  assert.deepEqual(Array.from(small.modelExcludes), ["Kimi-K3"]);
+  assert.deepEqual(small.modelExcludes, ["Kimi-K3"]);
   for (const name of ["SuperGrok", "SuperGrok Plus"]) assert.ok(d.hasOwnClient(plan(d, "xAI", name)));
-  const a = { vendor: "Model Cycle", plan: "A", id: "model-cycle-a", models: "A", modelBaseRef: "model-cycle-b" };
-  const b = { vendor: "Model Cycle", plan: "B", id: "model-cycle-b", models: "B", modelBaseRef: "model-cycle-a" };
+  const a = fixture({ vendor: "Model Cycle", plan: "A", id: "model-cycle-a", models: "A", modelBaseRef: "model-cycle-b" });
+  const b = fixture({ vendor: "Model Cycle", plan: "B", id: "model-cycle-b", models: "B", modelBaseRef: "model-cycle-a" });
   d.PLANS.push(a, b);
   assert.equal(d.resolvedField(a, "models"), "");
 });
 
-test("永久 ID 在改名和重排后保持引用与权益继承", () => {
-  const d = load();
+test("永久 ID 在改名和重排后保持引用与权益继承", async () => {
+  const d = await load();
   const original = plan(d, "Cursor", "Pro");
   const inherited = d.PLANS.find((p) => p.fieldRefs?.models === original.id);
   assert.ok(inherited);
@@ -305,22 +289,22 @@ test("永久 ID 在改名和重排后保持引用与权益继承", () => {
   assert.equal(d.findPlanReference("plan-missing"), null);
 });
 
-test("所有继承权益在整表更名重排后保持不变", () => {
-  const d = load();
+test("所有继承权益在整表更名重排后保持不变", async () => {
+  const d = await load();
   const previous = new Map();
-  for (const p of d.PLANS) for (const field of ["models", "tools", "quota"]) previous.set(p.id + "|" + field, d.resolvedField(p, field));
+  for (const p of d.PLANS) for (const field of (["models", "tools", "quota"] as const)) previous.set(p.id + "|" + field, d.resolvedField(p, field));
   d.PLANS.reverse();
   for (const p of d.PLANS) { p.vendor = "厂商 " + p.id; p.plan = "档位 " + p.id; }
-  for (const p of d.PLANS) for (const field of ["models", "tools", "quota"]) assert.equal(d.resolvedField(p, field), previous.get(p.id + "|" + field));
+  for (const p of d.PLANS) for (const field of (["models", "tools", "quota"] as const)) assert.equal(d.resolvedField(p, field), previous.get(p.id + "|" + field));
 });
 
-test("真实数据校验通过（内存运行）", () => {
+test("真实数据校验通过（内存运行）", async () => {
   const result = validateFixture("");
   assert.equal(result.exitCode, 0, result.output);
 });
 
-test("讯飞官方请求额度先除模型系数2，异版本牌价代理留在低置信估算", () => {
-  const d = load();
+test("讯飞官方请求额度先除模型系数2，异版本牌价代理留在低置信估算", async () => {
+  const d = await load();
   assert.equal(d.METRICS_RAW.some(m => m.ref === "plan-0082"), false);
   const rows = d.ESTIMATES.filter(m => m.ref === "plan-0082");
   assert.equal(rows.length, 1);
@@ -342,13 +326,14 @@ test("讯飞官方请求额度先除模型系数2，异版本牌价代理留在�
   near(c.moLow, 900);
   near(c.costPerM, 199 / 900);
 });
-test("ref解析后的牌价数值锚点校验能发现合法数值漂移", () => {
+test("ref解析后的牌价数值锚点校验能发现合法数值漂移", async () => {
   const result = validateFixture("METRICS_RAW[0].apiIn=9;");
   assert.equal(result.exitCode, 0, result.output);
   assert.match(result.output, /指标行牌价与 API_PRICES 同厂商同型号条目数值不同/);
 });
-/** @type {[string, string, RegExp][]} */
-const invalidFixtures = [
+const invalidFixtures: [string, string, RegExp][] = [
+  ["全年金额与折月价冲突", "PLANS.find(p=>p.id==='plan-0002').annualTotal=20;", /annualTotal/],
+  ["负自动续费金额", "PLANS.find(p=>p.id==='plan-0157').autoRenewMonthly=-1;", /autoRenewMonthly/],
   ["重复永久ID", "PLANS[1].id=PLANS[0].id;", /重复 id/],
   ["缺失永久ID", "delete PLANS[0].id;", /缺有效永久 id/],
   ["无效ID引用", "METRICS_RAW[0].ref='plan-missing';", /ref 无法解析/],
@@ -373,14 +358,14 @@ const invalidFixtures = [
   ["厂商自估周额度不成对", "delete METRICS_RAW.find(m=>m.ref==='plan-0031'&&m.model==='GLM-5.3').vendorWkHighM;", /vendorWkLowM\/vendorWkHighM/],
 ];
 for (const [label, mutation, expected] of invalidFixtures) {
-  test("校验器拒绝 " + label + " fixture", () => {
+  test("校验器拒绝 " + label + " fixture", async () => {
     const result = validateFixture(mutation);
     assert.equal(result.exitCode, 1, result.output);
     assert.match(result.output, expected);
   });
 }
 
-test("校验器提示已结束的限时活动与复制周额度，Vue 首页日期直接读取版本", () => {
+test("校验器提示已结束的限时活动与复制周额度，Vue 首页日期直接读取版本", async () => {
   const result = validateFixture([
     "PLANS.find(p=>p.id==='plan-0157').note+='；双节活动（09-25~10-07）全天按非高峰消耗';",
     "PLANS.find(p=>p.id==='plan-0066').note+='；截至 2026-10-04 的用量说明';",
@@ -396,11 +381,8 @@ test("校验器提示已结束的限时活动与复制周额度，Vue 首页日�
   assert.match(fs.readFileSync(path.join(root, 'src/App.vue'), 'utf8'), /id="heroDate">\{\{ META\.updated \}\}/, '首页日期绑定审计版本，无静态日期漂移');
 });
 
-test("核查说明改写去掉字段名与「库存」术语，保留真实商品库存的说法", () => {
-  const box = { console };
-  vm.createContext(box);
-  vm.runInContext(dataSource + "\n;globalThis.__R={displayPriceReason,INTERNAL_TEXT_RE,PRICE_CHECKS};", box);
-  const { displayPriceReason, INTERNAL_TEXT_RE, PRICE_CHECKS } = box.__R;
+test("核查说明改写去掉字段名与「库存」术语，保留真实商品库存的说法", async () => {
+  const { displayPriceReason, INTERNAL_TEXT_RE, PRICE_CHECKS } = await load();
   assert.equal(displayPriceReason("官方订阅表未列年付价，保持 priceY=null。"), "官方订阅表未列年付价，保持 年付折月价为空（官方未列）。");
   assert.equal(displayPriceReason("确认美元正常月费与库存相同"), "确认美元正常月费与本站原记录相同");
   assert.equal(displayPriceReason("实际库存及活动以下单页为准"), "实际库存及活动以下单页为准");
@@ -412,12 +394,9 @@ test("核查说明改写去掉字段名与「库存」术语，保留真实商�
   for (const row of Object.values(PRICE_CHECKS.rows)) assert.doesNotMatch(displayPriceReason(row.reason), INTERNAL_TEXT_RE);
 });
 
-test("同一订阅的重复条目、售罄预付包与已停止的 Gemini CLI 免费档不再作为可购或免费入口", () => {
-  const box = { console };
-  vm.createContext(box);
-  vm.runInContext(dataSource + "\n;globalThis.__R={PLANS,isFreeCodingEntry,isOnSalePlan,isPersonalMonthly,offerable,isSoldOut,isDuplicateListing,isRetiredPlan};", box);
-  const d = box.__R;
-  const byId = (id) => d.PLANS.find((p) => p.id === id);
+test("同一订阅的重复条目、售罄预付包与已停止的 Gemini CLI 免费档不再作为可购或免费入口", async () => {
+  const d = await load();
+  const byId = (id: string) => { const row = d.PLANS.find((p) => p.id === id); assert.ok(row); return row; };
   for (const id of ["plan-0108", "plan-0109", "plan-0110"]) {
     assert.ok(d.isDuplicateListing(byId(id)), id);
     assert.equal(d.isFreeCodingEntry(byId(id)) || d.isOnSalePlan(byId(id)) || d.isPersonalMonthly(byId(id)) || d.offerable(byId(id)), false, id);
@@ -428,7 +407,7 @@ test("同一订阅的重复条目、售罄预付包与已停止的 Gemini CLI �
   assert.equal(byId("plan-0197").singleMonthPrice, 15);
 });
 
-test("核查日期容差按北京时间跨日，注入无效时间报告校验错误", () => {
+test("核查日期容差按北京时间跨日，注入无效时间报告校验错误", async () => {
   const mutation = "META.updated='2026-10-10';";
   const beforeMidnight = validateFixture(mutation, { now: "2026-10-08T15:59:59Z" });
   assert.equal(beforeMidnight.exitCode, 1, beforeMidnight.output);
@@ -439,5 +418,3 @@ test("核查日期容差按北京时间跨日，注入无效时间报告校验�
   assert.doesNotMatch(validateFixture("", { now: 0 }).output, /校验时间无效/, "Unix epoch 是有效的注入时间");
 });
 
-console.log(`\n数据回归：${passed} 通过，${failed} 失败`);
-process.exit(failed ? 1 : 0);

@@ -4,6 +4,8 @@ import * as app from "@domain/runtime";
 import { targetValue } from "./dom";
 import { rankNote, rankVendors } from "./chart-models";
 import PickerScope from "./PickerScope.vue";
+import { useChartLifecycle } from "./chart-lifecycle";
+useChartLifecycle("chartRank");
 const state = app.rankState;
 const tiers = [["flagship", "只看旗舰"], ["all", "含轻量模型"]];
 const scopes = [["credits", "官方口径折算"], ["all", "含全部估算"]];

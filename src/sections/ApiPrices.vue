@@ -5,6 +5,8 @@ import { apiRows } from "./chart-models";
 import ChartLegend from "./ChartLegend.vue";
 import CostCalculator from "./CostCalculator.vue";
 import PriceCheck from "./PriceCheck.vue";
+import { useChartLifecycle } from "./chart-lifecycle";
+useChartLifecycle("chartApi", "chartPower");
 const rows = computed(apiRows);
 const regionLabel = (region: string) => app.REGION_LABEL[region as keyof typeof app.REGION_LABEL] || "—";
 const priceLegend = [{ name: "输入 / 1M tokens", color: "#6366f1" }, { name: "输出 / 1M tokens", color: "#f472b6" }];

@@ -66,6 +66,10 @@ function onSearch(value: string) {
   searchTimer = setTimeout(() => { searchTimer = undefined; displayedSearch.value = state.search; }, 150);
   change(() => { state.search = searchText.value; });
 }
+function cancelSearch() {
+  clearTimeout(searchTimer); searchTimer = undefined;
+  searchText.value = state.search; displayedSearch.value = state.search;
+}
 function reset() {
   clearTimeout(searchTimer); searchTimer = undefined;
   Object.assign(state, { search: "", cat: "all", region: "all", sortKey: "priceM", sortDir: 1, fromPicker: false, extra: false });
@@ -102,7 +106,7 @@ function flash(id: string, label: string) {
   clearTimeout(flashTimers.get(id));
   flashTimers.set(id, setTimeout(() => { delete labels.value[id]; flashTimers.delete(id); }, 1800));
 }
-const release = runtime.registerTableView("plan", { render: () => { clearTimeout(searchTimer); searchTimer = undefined; displayedSearch.value = state.search; revision.value++; }, more, reveal, reset, feedback: (message: string) => { feedback.value = message; }, flash, buttons: ["exportCsvBtn", "copyMdBtn"] });
+const release = runtime.registerTableView("plan", { render: () => { cancelSearch(); revision.value++; }, cancelSearch, hasPendingSearch: () => searchTimer !== undefined, more, reveal, reset, feedback: (message: string) => { feedback.value = message; }, flash, buttons: ["exportCsvBtn", "copyMdBtn"] });
 const resize = () => { pageSize.value = window.innerWidth < 768 ? 5 : 20; };
 onMounted(() => window.addEventListener("resize", resize, { passive: true }));
 onBeforeUnmount(() => { release(); clearTimeout(searchTimer); flashTimers.forEach(clearTimeout); window.removeEventListener("resize", resize); });

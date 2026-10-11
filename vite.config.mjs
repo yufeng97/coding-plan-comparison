@@ -58,5 +58,8 @@ export default defineConfig({
   test: {
     environment: "happy-dom",
     include: ["src/**/*.test.ts"],
+    setupFiles: ["src/test/environment.ts"],
+    /* 整页回归每次重新载入业务模块并挂载完整 App；并行运行时单次打开可达数秒。 */
+    testTimeout: 60_000,
   },
 });

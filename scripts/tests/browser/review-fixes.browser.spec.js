@@ -1,5 +1,6 @@
 "use strict";
 const { test, expect } = require("@playwright/test");
+const { catalog, chartOf, goToSection } = require("./helpers");
 
 for (const width of [701, 750, 767, 768, 1280]) {
   test(`${width}px 数据表详细字段始终有可见入口`, async ({ page }) => {
@@ -27,9 +28,9 @@ test("价格表与价格图都支持多词和产品别名，并保留分享搜�
   await page.locator("#searchInput").fill("克劳德 Pro");
   await expect(page.locator('#tableBody .cmp-add[data-plan-id="plan-0002"]')).toBeVisible();
   await page.locator("#chartSearch").fill("OpenAI Plus");
-  await page.evaluate("navigateToSection('#s1')");
+  await goToSection(page, "#s1");
   await expect(page.locator("#chartPersonalEmpty")).toBeHidden();
-  await expect.poll(() => page.evaluate("chartCache.chartPersonal.getOption().series[0].data.some(row => row._p.id === 'plan-0010')")).toBe(true);
+  await expect.poll(() => page.evaluate(`${chartOf("chartPersonal")}.getOption().series[0].data.some(row => row._p.id === 'plan-0010')`)).toBe(true);
   await expect(page).toHaveURL(/pq=OpenAI\+Plus/);
   await page.reload();
   await expect(page.locator("#chartSearch")).toHaveValue("OpenAI Plus");
@@ -61,7 +62,15 @@ test("降级对比窗口允许逐条键盘核对来源，收起详情不占焦�
   await page.evaluate(() => {
     document.getElementById("cmpFeedback").innerHTML = '<details><summary>额外核查</summary><a id="closedSourceLink" href="https://example.com">证据</a></details>';
   });
-  expect(await page.evaluate("cmpFocusableElements().some(el => el.id === 'closedSourceLink')")).toBe(false);
+  /* 收起详情里的链接不进入焦点循环：Tab 一整圈回到复制按钮，焦点始终留在窗口内 */
+  for (let i = 0; i < 40; i++) {
+    await page.keyboard.press("Tab");
+    const focus = await page.evaluate(() => ({ id: document.activeElement?.id || "", inside: !!document.activeElement?.closest("#cmpModal") }));
+    expect(focus.inside).toBe(true);
+    expect(focus.id).not.toBe("closedSourceLink");
+    if (focus.id === "copyCmpMdBtn") break;
+  }
+  await expect(page.locator("#copyCmpMdBtn")).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(page.locator("#cmpModal")).toBeHidden();
 });
@@ -112,7 +121,7 @@ for (const width of [375, 1280]) {
     await page.locator('[data-free-kind="included"]').click();
     await expect(page.locator('[data-free-region="cn"]')).toHaveAttribute("aria-pressed", "true");
     await expect(page.locator('[data-free-kind="included"]')).toHaveAttribute("aria-pressed", "true");
-    const expected = await page.evaluate("PLANS.filter(p => isFreeCodingEntry(p) && p.region === 'cn' && hasIncludedModelQuota(p)).length");
+    const expected = catalog.PLANS.filter((p) => catalog.isFreeCodingEntry(p) && p.region === "cn" && catalog.hasIncludedModelQuota(p)).length;
     await expect(cards).toHaveCount(expected);
     await expect(page.locator("#freeCount")).toHaveText(`显示 ${expected} / 18 个免费入口`);
     if (expected) await expect(cards.locator(".fc-region")).toHaveText(Array(expected).fill("国内"));

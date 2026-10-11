@@ -1,4 +1,4 @@
-/* 我的关注：关注与已读、关注同步、套餐历史、核查概况与逐条记录的渲染和交互。状态与计算另在 scripts/tests/test-app-maintenance.js 里测。 */
+/* 我的关注：关注与已读、关注同步、套餐历史、核查概况与逐条记录；整页状态流程见 src/regression/maintenance.test.ts。 */
 import { MAINTENANCE_DATA, focusedId, loadBenchmarks, loadMaintenance, unloadOptionalData, useMount } from "../test/setup";
 import { beforeEach, expect, test, vi } from "vitest";
 import { flushPromises } from "@vue/test-utils";

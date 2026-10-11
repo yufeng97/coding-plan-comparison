@@ -4,13 +4,13 @@ import {
   bindMetricsEvents, bindServiceEvents, byId, calcState, cancelPersonalSearch, cancelTableSearch,
   chartCache, chartLibraryReady, closeCmpModal, cmpState, DEBUG_MODE, ensureChartLibrary,
   evtTarget, focusTableControl, initTheme, isCmpModalOpen, loadViewData, markChartsForResize,
-  metricsState, navigationHooks, openCmpModal, optionalDataLoaded, personalSearchTimer,
+  hasPendingSearch, metricsState, navigationHooks, openCmpModal, optionalDataLoaded,
   personalState, pickerState, populateModelFilter, populateRankVendor, qs, qsa, rankState,
   renderApiChart, renderApiDetails, renderCmpBar, renderCmpModal, renderCostCalculator, renderFree,
   renderLegend, renderMetricsHead, renderMetricsTable, renderPersonalChart, renderPicker,
   renderPublicBenchmarkChart, renderRankChart, renderRankDetails, renderTable, renderTeamChart,
   renderTokensChart, rerenderCharts, resizeVisibleCharts, revealTablePlan, setUrlRestoring,
-  showChartError, syncControlsFromState, syncUrl, tableSearchTimer, tableState, updateActiveNav,
+  showChartError, syncControlsFromState, syncUrl, tableState, updateActiveNav,
 } from './runtime';
 
 export function startApplication() {
@@ -319,7 +319,7 @@ async function restoreHistoryState(search: any, restoreAnchor: boolean = true) {
     const focusedPlanId = focusedClass ? focused.dataset.planId : "";
     const focusedScope = focusedClass ? focused.dataset.cmpScope : "";
     /* 状态已经写进 URL，但防抖视图可能还没有更新；不能把相同状态当作相同视图。 */
-    const pendingSearch = personalSearchTimer != null || tableSearchTimer != null;
+    const pendingSearch = hasPendingSearch();
     cancelPersonalSearch();
     cancelTableSearch();
     setUrlRestoring(true);
