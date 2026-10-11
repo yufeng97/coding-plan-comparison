@@ -547,3 +547,22 @@ test("Cursor 复杂任务参考说明按量池费用，模型能力不被错误�
   assert.match(policy(), /预算不限会优先较大额度档/);
   page.healthy();
 });
+
+test("日常为主的主计划也列出同一日常模型的省钱档，与升级参考选角一致", async () => {
+  const page = await openPage({ url: "/?budget=any&region=intl&task=daily" });
+  const app = page.runtime;
+  const main = app.chooseMain(app.eligibleProfiles())!;
+  const daily = main.loose[0];
+  assert.ok(daily, "日常为主的主计划应带日常模型");
+  const cheaper = app.cheaperTiers(main);
+  assert.ok(cheaper.length > 0, `${main.p.vendor} ${main.p.plan} 应列出同一日常模型的更便宜档位`);
+  for (const tier of cheaper) {
+    assert.ok(tier.loose.some((r) => r.id === daily.id), `${tier.p.plan} 应包含主计划的日常模型`);
+    assert.ok(app.pickerMonthlyCNY(tier.p) < app.pickerMonthlyCNY(main.p), `${tier.p.plan} 应比主计划便宜`);
+  }
+  /* 复杂任务主计划仍按主力模型选省钱档。 */
+  await setPicker(page, { budget: "any", region: "cn", tool: "any", task: "both", billing: "M" });
+  const max = app.PLANS.find((p) => p.vendor === "智谱 BigModel" && p.plan === "GLM Coding V3 Max")!;
+  assert.ok(app.cheaperTiers(app.planProfile(max)).some((x) => x.p.plan === "GLM Coding V3 Pro"));
+  page.healthy();
+});

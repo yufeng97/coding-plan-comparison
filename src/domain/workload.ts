@@ -156,6 +156,9 @@ export function fmtCalcCNY(n: number) {
     return n > 0 && n < 1 ? "¥" + Number(n.toPrecision(2)) : fmtCNY(n);
 }
 
+/* 输出占比 = 100 - 输入占比；输入可带小数，避免 100 - 97.9 显示成 2.0999999999999943。 */
+export function outputSharePct(input: number | string) { return String(Number((100 - Number(input)).toFixed(4))); }
+
 export function fmtCalcNative(n: number) { return n > 0 && n < 1 ? String(Number(n.toPrecision(2))) : String(Number(n.toFixed(2))); }
 
 /* ---------- 按用量反查套餐与订阅回本点 ---------- */

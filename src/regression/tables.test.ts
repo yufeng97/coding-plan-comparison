@@ -618,3 +618,13 @@ test("降级对比窗口包含核查说明且跳过收起详情内的链接", as
   fixture.remove();
   page.healthy();
 });
+
+test("额度表空态的模型档提示与下拉选项文字一致", async () => {
+  const page = await openPage();
+  page.runtime.metricsState.model = "__none__";
+  await page.settle();
+  const text = page.byId("metricsBody").textContent!;
+  assert.match(text, /含轻量模型/);
+  assert.doesNotMatch(text, /全部模型档/);
+  page.healthy();
+});

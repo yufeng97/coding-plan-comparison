@@ -3,7 +3,7 @@ import { computed, onMounted, onBeforeUnmount, reactive, ref, watch } from "vue"
 import { API_PRICES, isPriceConfirmed, priceCheckOf } from "@generated/catalog";
 import { currencySymbol, displayModelName, REGION_LABEL, safeLink } from "@domain/core";
 import { fmtTok } from "@domain/metrics";
-import { calculateCostScenarios, calculateWorkload, COST_PRESETS, COST_SCENARIOS, fmtCalcCNY, fmtCalcNative, officialCachePrice, parseUsageExport, USAGE_IMPORT_MAX, validCalcValue } from "@domain/workload";
+import { calculateCostScenarios, calculateWorkload, COST_PRESETS, COST_SCENARIOS, fmtCalcCNY, fmtCalcNative, officialCachePrice, outputSharePct, parseUsageExport, USAGE_IMPORT_MAX, validCalcValue } from "@domain/workload";
 import { APP_DEFAULTS, calcState, pickerState } from "@state/app";
 import { updateAppState } from "@browser/url-state";
 import { calculatorView, usageToCalculator } from "@app/calculator";
@@ -112,8 +112,8 @@ async function importFile(event: Event) {
         <p>{{ result.monthlyBudgetM == null ? "当前单价为零，预算不构成token上限" : `预算可覆盖约 ${fmtTok(result.monthlyBudgetM)} 总 tokens/月` }}。{{ result.costCNY > Number(draft.budget) ? "当前工作量超出月预算。" : "当前工作量在月预算内。" }}</p><p>{{ cacheText }}</p>
         <p>按 {{ draft.days }} 个工作日、每天 {{ draft.requests }} 次请求，每个工作日约 {{ fmtCalcCNY(result.costCNY / Number(draft.days)) }}<template v-if="Number(draft.requests) > 0">，每次约 {{ fmtCalcCNY(result.costCNY / Number(draft.days) / Number(draft.requests)) }}</template>。{{ result.costCNY <= Number(draft.budget) ? `月预算剩余约 ${fmtCalcCNY(Number(draft.budget) - result.costCNY)}` : `月预算需补约 ${fmtCalcCNY(result.costCNY - Number(draft.budget))}` }}。</p>
         <p>工具与地区沿用「帮我选」：{{ PICKER_TOOL_LABELS[pickerState.tool] || "不限工具" }} · {{ regionLabel }}。这里估算所选模型的 API 推理账单，工具订阅、税费和支付手续费需另行核对；套餐内额度不能直接抵扣 API 账单。</p>
-        <p>上方费用按当前输入 {{ draft.input }}% / 输出 {{ 100 - Number(draft.input) }}%、输入缓存命中 {{ draft.cache }}% 计算。工作量上下浮动 20% 时约 {{ fmtCalcCNY(result.costCNY * 0.8) }}–{{ fmtCalcCNY(result.costCNY * 1.2) }}/月。</p>
-        <div class="cost-scenario-results"><table class="mini-table"><caption>三种示例计费情景（总工作量上下浮动 20%）</caption><thead><tr><th scope="col">情景与假设</th><th scope="col">基准月费</th><th scope="col">月费范围</th></tr></thead><tbody><tr v-for="scenario in scenarios" :key="scenario.id" :data-cost-scenario-result="scenario.id"><th scope="row">{{ scenario.label }}：输入 {{ scenario.input }}% / 输出 {{ 100 - Number(scenario.input) }}%，输入缓存 {{ scenario.cache }}%</th><td>{{ fmtCalcCNY(scenario.costCNY) }}</td><td>{{ fmtCalcCNY(scenario.lowCNY) }}–{{ fmtCalcCNY(scenario.highCNY) }}</td></tr></tbody></table></div>
+        <p>上方费用按当前输入 {{ draft.input }}% / 输出 {{ outputSharePct(draft.input) }}%、输入缓存命中 {{ draft.cache }}% 计算。工作量上下浮动 20% 时约 {{ fmtCalcCNY(result.costCNY * 0.8) }}–{{ fmtCalcCNY(result.costCNY * 1.2) }}/月。</p>
+        <div class="cost-scenario-results"><table class="mini-table"><caption>三种示例计费情景（总工作量上下浮动 20%）</caption><thead><tr><th scope="col">情景与假设</th><th scope="col">基准月费</th><th scope="col">月费范围</th></tr></thead><tbody><tr v-for="scenario in scenarios" :key="scenario.id" :data-cost-scenario-result="scenario.id"><th scope="row">{{ scenario.label }}：输入 {{ scenario.input }}% / 输出 {{ outputSharePct(scenario.input) }}%，输入缓存 {{ scenario.cache }}%</th><td>{{ fmtCalcCNY(scenario.costCNY) }}</td><td>{{ fmtCalcCNY(scenario.lowCNY) }}–{{ fmtCalcCNY(scenario.highCNY) }}</td></tr></tbody></table></div>
         <p>轻度、日常、重度及三种情景都是可编辑的示例假设，不代表真实用户用量，也不是费用预测或套餐额度承诺。典型沿用页面的 80% 输入 / 95% 缓存基准；三个情景使用同一缓存单价，未填写且未录入官方缓存价时按普通输入价计费。范围只模拟总工作量 ±20%，不包含价格变动、动态限流、工具费和税费。牌价核查 {{ priceCheckOf(selected, 'api')?.checkedAt || "未核实" }} · <a :href="safeLink(selected.url)" target="_blank" rel="noopener">官网计费规则</a></p>
         <p v-for="paragraph in quota" :key="paragraph">{{ paragraph }}</p><UsageCoverage :monthly-m="result.monthlyM" />
       </template>

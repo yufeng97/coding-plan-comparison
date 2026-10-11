@@ -258,3 +258,14 @@ test("应用个人图条件停用支付切换，取消、重置与历史恢复�
   assert.equal(app.personalState.billing, "M");
   page.healthy();
 });
+
+test("输入占比带小数时输出占比不出现浮点误差", async () => {
+  const page = await openPage();
+  page.runtime.calcState.input = "97.9";
+  await page.settle();
+  const text = page.byId("costResult").textContent!;
+  assert.match(text, /当前输入 97\.9% \/ 输出 2\.1%/);
+  assert.doesNotMatch(text, /2\.09999/);
+  assert.equal(page.runtime.outputSharePct("80"), "20");
+  page.healthy();
+});
