@@ -103,7 +103,8 @@ test("个人图表显示全部可收起，空结果可清除并恢复20档与筛
   for (const [id, key, value] of [["chipCat", "cat", "cloud"], ["chipRegion", "region", "cn"], ["chipBilling", "billing", "Y"]] as const) {
     const chip = chips(id).find((e) => e.dataset[key] === value)!;
     await click(page, chip);
-    assert.equal(chip.getAttribute("aria-pressed"), "true");
+    assert.equal(chip.getAttribute("aria-checked"), "true", "单选标签用 radio 语义");
+    assert.equal(chip.getAttribute("role"), "radio");
   }
   const search = await type(page, "chartSearch", "__没有任何匹配套餐__");
   assert.equal(option().series[0].data.length, 0);
@@ -118,8 +119,9 @@ test("个人图表显示全部可收起，空结果可清除并恢复20档与筛
   assert.equal(page.byId("chartPersonalEmpty").hidden, true);
   assert.equal(option().series[0].data.length, 20);
   for (const [id, key, value] of [["chipCat", "cat", "all"], ["chipRegion", "region", "all"], ["chipBilling", "billing", "M"]] as const) {
-    assert.equal(chips(id).filter((e) => e.getAttribute("aria-pressed") === "true").length, 1);
-    assert.equal(chips(id).find((e) => e.dataset[key] === value)!.getAttribute("aria-pressed"), "true");
+    assert.equal(chips(id).filter((e) => e.getAttribute("aria-checked") === "true").length, 1);
+    assert.equal(chips(id).find((e) => e.dataset[key] === value)!.getAttribute("aria-checked"), "true");
+    assert.deepEqual(chips(id).map((e) => e.tabIndex), chips(id).map((e) => e.dataset[key] === value ? 0 : -1), "只有选中项在 Tab 顺序里");
   }
   page.healthy();
 });
@@ -335,13 +337,18 @@ test("周tokens图按真实区间端点叠画，定额仅显示一个值且图�
   const fixed = { label: "测试定额", lowM: 416, highM: 416, model: "GLM-5.3", priceCNY: 100, isOfficial: true, url: "https://example.test/" };
   assert.match(option.tooltip.formatter({ data: { _r: fixed } }), /每周可用：416M tokens/);
   assert.doesNotMatch(option.tooltip.formatter({ data: { _r: fixed } }), /416–416/);
+  /* 图例色块与画布同源：都取主题里的 --chart-* 变量，两个系列颜色不同。 */
   for (const legend of ["tokensLegend", "apiLegend", "powerLegend"]) {
+    const colors = new Set<string>();
     for (const chip of page.byId(legend).querySelectorAll("[data-series]")) {
       const swatch = chip.querySelector<HTMLElement>(".legend-swatch");
       assert.ok(swatch, legend + " 色块");
       assert.equal(swatch.getAttribute("aria-hidden"), "true");
-      assert.match(swatch.getAttribute("style")!, /background:\s*#[0-9a-f]{6}/i);
+      const color = swatch.getAttribute("style")!.match(/background:\s*(var\(--chart-[a-z]+\))/)?.[1];
+      assert.ok(color, legend + " 色块应使用主题变量：" + swatch.getAttribute("style"));
+      colors.add(color);
     }
+    assert.equal(colors.size, 2, legend + " 两个系列颜色应不同");
   }
   const panel = page.byId("tokenInsight");
   assert.ok(panel.querySelector(".token-insight-list"));

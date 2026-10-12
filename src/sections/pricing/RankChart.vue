@@ -4,7 +4,7 @@ import { displayModelName, fmtCNY, planLabel } from "@domain/core";
 import { fullUseCostRangeText, tokSpan } from "@domain/picker/text";
 import { provenance } from "@domain/provenance";
 import { RANK_ESTIMATE_DIVIDER, rankIsEstimate, rankVendorLabel } from "@domain/rank";
-import { cpmColor } from "@domain/table-format";
+import { cpmColor, fmtCpm } from "@domain/table-format";
 import { rankState } from "@state/app";
 import { rankRowPaymentLabel, rankRows } from "@state/rank";
 import { chartCache, queuedChartRenders } from "@browser/charts/host";
@@ -12,12 +12,13 @@ import { renderRankChart } from "@browser/charts/rank";
 import { updateAppState } from "@browser/url-state";
 import { targetValue } from "@browser/dom";
 import { rankNote, rankVendors } from "./chart-models";
+import ChipRadioGroup from "../../components/ChipRadioGroup.vue";
 import PickerScope from "../../components/PickerScope.vue";
 import { useChartLifecycle } from "../../composables/chart-lifecycle";
 useChartLifecycle("chartRank");
 const state = rankState;
-const tiers = [["flagship", "只看旗舰"], ["all", "含轻量模型"]];
-const scopes = [["credits", "官方口径折算"], ["all", "含全部估算"]];
+const tiers = [["flagship", "只看旗舰"], ["all", "含轻量模型"]] as const;
+const scopes = [["credits", "官方口径折算"], ["all", "含全部估算"]] as const;
 const vendors = computed(rankVendors), rows = computed(() => rankRows()), note = computed(rankNote);
 const details = ref<HTMLDetailsElement | null>(null);
 function change(key: "tier" | "scope" | "vendor", value: string) { updateAppState(() => { state[key] = value; }); }
@@ -35,8 +36,8 @@ function expandDetails() {
 </script>
 <template>
   <div class="controls">
-    <div class="chip-group" id="chipRank" role="group" aria-label="模型档"><button v-for="[id, label] in tiers" :key="id" type="button" class="chip" :class="{ active: state.tier === id }" :data-rank="id" :aria-pressed="state.tier === id" @click="change('tier', id)">{{ label }}</button></div>
-    <div class="chip-group" id="chipRScope" role="group" aria-label="排行口径"><button v-for="[id, label] in scopes" :key="id" type="button" class="chip" :class="{ active: state.scope === id }" :data-rscope="id" :aria-pressed="state.scope === id" @click="change('scope', id)">{{ label }}</button></div>
+    <ChipRadioGroup id="chipRank" class="chip-group" label="模型档" data-key="rank" :options="tiers" :model-value="state.tier" @select="change('tier', $event)" />
+    <ChipRadioGroup id="chipRScope" class="chip-group" label="排行口径" data-key="rscope" :options="scopes" :model-value="state.scope" @select="change('scope', $event)" />
     <select id="rankVendor" class="select" aria-label="排行厂商" :value="state.vendor" @change="change('vendor', targetValue($event))"><option value="all">全部厂商</option><option v-for="vendor in vendors" :key="vendor" :value="vendor">{{ rankVendorLabel(vendor) }}</option></select>
     <PickerScope name="rank" />
   </div>
@@ -54,7 +55,7 @@ function expandDetails() {
           <tr v-if="rankIsEstimate(row.m) && index > 0 && !rankIsEstimate(rows[index - 1].m)" class="rank-divider"><th scope="rowgroup" colspan="5">{{ RANK_ESTIMATE_DIVIDER }}</th></tr>
           <tr><th scope="row">{{ planLabel(row.m) }}<br>{{ displayModelName(row.m.model) }}</th>
             <td class="td-price">{{ fmtCNY(row.c.priceCNY) }}/月<br><span class="sub">{{ rankRowPaymentLabel(row.m) }}</span></td>
-            <td><span class="cost-value" :style="{ color: cpmColor(row.c.costPerM) }">¥{{ row.c.costPerM.toFixed(3) }}</span><template v-if="fullUseCostRangeText(row.c)"><br><span class="sub">{{ fullUseCostRangeText(row.c) }}</span></template></td>
+            <td><span class="cost-value" :style="{ color: cpmColor(row.c.costPerM) }">{{ fmtCpm(row.c.costPerM) }}</span><template v-if="fullUseCostRangeText(row.c)"><br><span class="sub">{{ fullUseCostRangeText(row.c) }}</span></template></td>
             <td class="tok-cell">{{ tokSpan(row.c, 'moLow', 'moHigh') }}</td>
             <td class="prov-cell"><span class="conf" :class="provenance(row.m).conf === '高' ? 'conf-hi' : provenance(row.m).conf === '中' ? 'conf-mid' : 'conf-lo'">{{ provenance(row.m).conf }}</span>{{ provenance(row.m).text }}</td>
           </tr>

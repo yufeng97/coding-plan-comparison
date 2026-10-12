@@ -165,26 +165,6 @@ export const fmtCNY = (n: number) => "¥" + (Math.round(n * 10) / 10).toLocaleSt
 
 export const trunc = (s: string | null | undefined, n: number) => (!s ? "—" : (s.length > n ? s.slice(0, n) + "…" : s));
 
-/* ---------- 内联 SVG 图标（替代 173KB 的 Remix Icon 字体；stroke 继承 currentColor） ---------- */
-const ICON_SVG = {
-    globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
-    stack: '<path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="m3 12.5 9 5 9-5"/><path d="m3 17 9 5 9-5"/>',
-    gift: '<rect x="3.5" y="7.5" width="17" height="4.5" rx="1"/><path d="M5.5 12v7a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-7M12 7.5V21"/><path d="M12 7.5C9 7.5 7.2 6.6 7.2 5.2 7.2 4 8.2 3 9.4 3c1.7 0 2.6 2 2.6 4.5C12 5 12.9 3 14.6 3c1.2 0 2.2 1 2.2 2.2 0 1.4-1.8 2.3-4.8 2.3Z"/>',
-    tag: '<path d="M3 3h8l10 10-8 8L3 11V3Z"/><circle cx="8" cy="8" r="1.7"/>',
-    "arrow-down-circle": '<circle cx="12" cy="12" r="9"/><path d="M12 7v10m0 0 4-4m-4 4-4-4"/>',
-    "arrow-up-circle": '<circle cx="12" cy="12" r="9"/><path d="M12 17V7m0 0 4 4m-4-4-4 4"/>',
-    moon: '<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z"/>',
-    sun: '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.8v2M12 19.2v2M2.8 12h2M19.2 12h2M5 5l1.4 1.4M17.6 17.6 19 19M19 5l-1.4 1.4M6.4 17.6 5 19"/>',
-    computer: '<rect x="3" y="4" width="18" height="12.5" rx="2"/><path d="M9 20.5h6m-3-4v4"/>',
-    "arrow-up": '<path d="M12 19V5m0 0-6 6m6-6 6 6"/>',
-};
-
-export type IconName = keyof typeof ICON_SVG;
-
-export function icon(name: IconName) {
-    return `<i class="ric" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON_SVG[name] || ""}</svg></i>`;
-}
-
 export function priceOf(p: Plan, billing: string) {
     if (billing === "Y")
         return p.priceY ?? null;
@@ -299,7 +279,19 @@ const SEARCH_VENDOR_ALIASES: [RegExp, string][] = [
     [/小米|MiMo/i, "小米 Xiaomi MiMo"],
 ];
 
+/* 搜索文本只取决于套餐的静态字段，每次输入都要对全部套餐匹配：按套餐对象缓存。 */
+const SEARCH_BLOB_CACHE = new WeakMap<Plan, string>();
+
 export function planSearchBlob(p: Plan) {
+    let blob = SEARCH_BLOB_CACHE.get(p);
+    if (blob === undefined) {
+        blob = planSearchBlobUncached(p);
+        SEARCH_BLOB_CACHE.set(p, blob);
+    }
+    return blob;
+}
+
+function planSearchBlobUncached(p: Plan) {
     const identity = [p.vendor, p.plan].join(" ");
     const aliases = SEARCH_VENDOR_ALIASES.filter(([pattern]) => pattern.test(identity)).map(([, words]) => words);
     return foldSearch([p.vendor, p.plan, resolvedField(p, "models"), resolvedField(p, "tools"), resolvedField(p, "quota"), resolvedField(p, "note"), ...aliases].join(" "));

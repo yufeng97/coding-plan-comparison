@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import { isOnSalePlan, PLANS } from "@generated/catalog";
 import { CAT_LABEL, REGION_LABEL, tableVendors } from "@domain/core";
 import { boundedSearch, cmpState, pickerState, tableState } from "@state/app";
@@ -14,12 +14,13 @@ import PlanPrice from "../../components/PlanPrice.vue";
 import PriceCheck from "../../components/PriceCheck.vue";
 import SortHeader from "../../components/SortHeader.vue";
 import WatchButton from "../../components/WatchButton.vue";
+import { useResponsivePageSize } from "../../composables/page-size";
 
 const state = tableState;
 const searchInput = ref<HTMLInputElement | null>(null);
 const searchText = ref(state.search);
 const displayedSearch = ref(state.search);
-const pageSize = ref(typeof window === "undefined" || window.innerWidth >= 768 ? 20 : 5);
+const pageSize = useResponsivePageSize();
 const visibleLimit = ref(pageSize.value);
 const showColumns = ref(false);
 const feedback = ref("");
@@ -122,30 +123,35 @@ function flash(id: string, label: string) {
   clearTimeout(flashTimers.get(id));
   flashTimers.set(id, setTimeout(() => { delete labels.value[id]; flashTimers.delete(id); }, 1800));
 }
-const release = registerTableView("plan", { render: () => { cancelSearch(); revision.value++; }, cancelSearch, hasPendingSearch: () => searchTimer !== undefined, more, reveal, reset, feedback: (message: string) => { feedback.value = message; }, flash, buttons: ["exportCsvBtn", "copyMdBtn"] });
-const resize = () => { pageSize.value = window.innerWidth < 768 ? 5 : 20; };
-onMounted(() => window.addEventListener("resize", resize, { passive: true }));
-onBeforeUnmount(() => { release(); clearTimeout(searchTimer); flashTimers.forEach(clearTimeout); window.removeEventListener("resize", resize); });
+const release = registerTableView("plan", { render: () => { cancelSearch(); revision.value++; }, cancelSearch, hasPendingSearch: () => searchTimer !== undefined, reveal, feedback: (message: string) => { feedback.value = message; }, flash, buttons: ["exportCsvBtn", "copyMdBtn"] });
+onBeforeUnmount(() => { release(); clearTimeout(searchTimer); flashTimers.forEach(clearTimeout); });
 </script>
 
 <template>
+  <!-- 工具栏按「筛选 / 排序与显示 / 导出」成组换行；记录数单独一行。 -->
   <div class="controls controls-table">
-    <input id="searchInput" ref="searchInput" type="search" class="search-input" maxlength="200" placeholder="搜索厂商 / 计划 / 模型…" aria-label="搜索数据表" :value="searchText" @input.stop="onSearch(targetValue($event))">
-    <select id="selectCat" class="select" aria-label="按类别筛选数据表" :value="state.cat" @change.stop="change(() => { state.cat = targetValue($event); })">
+    <div class="control-group control-filters" role="group" aria-label="筛选数据表">
+      <input id="searchInput" ref="searchInput" type="search" class="search-input" maxlength="200" placeholder="搜索厂商 / 计划 / 模型…" aria-label="搜索数据表" :value="searchText" @input.stop="onSearch(targetValue($event))">
+      <select id="selectCat" class="select" aria-label="按类别筛选数据表" :value="state.cat" @change.stop="change(() => { state.cat = targetValue($event); })">
       <option value="all">全部类别</option><option v-for="(label, category) in CAT_LABEL" :key="category" :value="category">{{ label }}</option>
-    </select>
-    <select id="selectRegion" class="select" aria-label="按地区筛选数据表" :value="state.region" @change.stop="change(() => { state.region = targetValue($event); })"><option value="all">全部地区</option><option value="cn">国内</option><option value="intl">国际</option></select>
-    <select id="selectVendor" class="select" aria-label="按厂商筛选数据表" :value="state.vendor" @change.stop="change(() => { state.vendor = targetValue($event); })"><option value="all">全部厂商</option><option v-for="vendor in vendors" :key="vendor" :value="vendor">{{ vendor }}</option></select>
-    <button id="tableExtraToggle" type="button" class="chip" :class="{ active: state.extra }" :aria-pressed="state.extra" :title="state.extra ? '隐藏中转站和价格待核实的历史记录' : `显示中转站和价格待核实的历史记录${hiddenExtra ? `（当前筛选下 ${hiddenExtra} 档）` : ''}`" @click.stop="change(() => { state.extra = !state.extra; })">含中转站与待核价格</button>
-    <span id="tableCount" class="table-count" role="status" aria-live="polite" aria-atomic="true">{{ countText }}</span>
-    <button id="tableResetBtn" type="button" class="chip" :disabled="isDefault" @click.stop="change(reset)">清除筛选</button>
-    <button id="tableColsToggle" type="button" class="chip" :class="{ active: showColumns }" :aria-expanded="showColumns" aria-controls="planTable" :title="showColumns ? '隐藏模型、支持工具和备注列' : '显示模型、支持工具和备注列'" @click.stop="showColumns = !showColumns">{{ showColumns ? "收起详细列" : "展开详细列" }}</button>
-    <button id="copyMdBtn" type="button" class="chip" :disabled="!rows.length" :title="rows.length ? '复制当前筛选结果为 Markdown 表格' : '没有可导出的结果，请先调整筛选'" @click.stop="copyTableMarkdown">{{ labels.copyMdBtn || "复制 Markdown" }}</button>
-    <button id="exportCsvBtn" type="button" class="chip" :disabled="!rows.length" :title="rows.length ? '下载当前筛选结果为 CSV（UTF-8）' : '没有可导出的结果，请先调整筛选'" @click.stop="exportTableCsv">{{ labels.exportCsvBtn || "导出 CSV" }}</button>
-    <button type="button" class="chip" data-apply-picker="table" :class="{ active: state.fromPicker }" :aria-pressed="state.fromPicker" :disabled="pickerState.budget === '0' && !state.fromPicker" :title="pickerState.budget === '0' && !state.fromPicker ? '选购预算为「免费」：这里只列付费档，免费档见「免费 Coding 入口」' : ''" @click.stop="applyPickerScope('table')">{{ state.fromPicker ? "取消选购条件" : "应用当前选购条件" }}</button>
-    <select id="tablePriceSort" class="select" aria-label="价格表排序口径与方向" :value="priceSort" @change.stop="choosePriceSort(targetValue($event))">
+      </select>
+      <select id="selectRegion" class="select" aria-label="按地区筛选数据表" :value="state.region" @change.stop="change(() => { state.region = targetValue($event); })"><option value="all">全部地区</option><option value="cn">国内</option><option value="intl">国际</option></select>
+      <select id="selectVendor" class="select" aria-label="按厂商筛选数据表" :value="state.vendor" @change.stop="change(() => { state.vendor = targetValue($event); })"><option value="all">全部厂商</option><option v-for="vendor in vendors" :key="vendor" :value="vendor">{{ vendor }}</option></select>
+      <button id="tableExtraToggle" type="button" class="chip" :class="{ active: state.extra }" :aria-pressed="state.extra" :title="state.extra ? '隐藏中转站和价格待核实的历史记录' : `显示中转站和价格待核实的历史记录${hiddenExtra ? `（当前筛选下 ${hiddenExtra} 档）` : ''}`" @click.stop="change(() => { state.extra = !state.extra; })">含中转站与待核价格</button>
+      <button type="button" class="chip" data-apply-picker="table" :class="{ active: state.fromPicker }" :aria-pressed="state.fromPicker" :disabled="pickerState.budget === '0' && !state.fromPicker" :title="pickerState.budget === '0' && !state.fromPicker ? '选购预算为「免费」：这里只列付费档，免费档见「免费 Coding 入口」' : ''" @click.stop="applyPickerScope('table')">{{ state.fromPicker ? "取消选购条件" : "应用当前选购条件" }}</button>
+      <button id="tableResetBtn" type="button" class="chip" :disabled="isDefault" @click.stop="change(reset)">清除筛选</button>
+    </div>
+    <div class="control-group" role="group" aria-label="排序与显示">
+      <select id="tablePriceSort" class="select" aria-label="价格表排序口径与方向" :value="priceSort" @change.stop="choosePriceSort(targetValue($event))">
       <option value="priceM:1">目录价格 / 周期：从低到高</option><option value="priceM:-1">目录价格 / 周期：从高到低</option><option value="priceY:1">目录年付折月：从低到高</option><option value="priceY:-1">目录年付折月：从高到低</option><option value="selectedMonthly:1" :disabled="!state.fromPicker">所选支付月均：从低到高</option><option value="selectedMonthly:-1" :disabled="!state.fromPicker">所选支付月均：从高到低</option>
-    </select>
+      </select>
+      <button id="tableColsToggle" type="button" class="chip" :class="{ active: showColumns }" :aria-expanded="showColumns" aria-controls="planTable" :title="showColumns ? '隐藏模型、支持工具和备注列' : '显示模型、支持工具和备注列'" @click.stop="showColumns = !showColumns">{{ showColumns ? "收起详细列" : "展开详细列" }}</button>
+    </div>
+    <div class="control-group" role="group" aria-label="导出当前结果">
+      <button id="copyMdBtn" type="button" class="chip" :disabled="!rows.length" :title="rows.length ? '复制当前筛选结果为 Markdown 表格' : '没有可导出的结果，请先调整筛选'" @click.stop="copyTableMarkdown">{{ labels.copyMdBtn || "复制 Markdown" }}</button>
+      <button id="exportCsvBtn" type="button" class="chip" :disabled="!rows.length" :title="rows.length ? '下载当前筛选结果为 CSV（UTF-8）' : '没有可导出的结果，请先调整筛选'" @click.stop="exportTableCsv">{{ labels.exportCsvBtn || "导出 CSV" }}</button>
+    </div>
+    <span id="tableCount" class="table-count" role="status" aria-live="polite" aria-atomic="true">{{ countText }}</span>
   </div>
   <p id="tableScope" class="maintenance-meta">{{ scopeText }}</p>
   <p id="tableFeedback" class="table-feedback" role="status" aria-live="polite">{{ feedback }}</p>

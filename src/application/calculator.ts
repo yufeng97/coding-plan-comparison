@@ -1,22 +1,21 @@
 import { usageToCalculator as calculateUsageInputs, costModelKey, metricApiCNYPerM } from '../domain/workload';
 import type { CalcState, UsageSummary, UsageCalculatorValues, WorkloadState } from '../domain/workload';
 import { isPersonalMonthly, findPlanReference, resolvedField, API_PRICES, isPriceConfirmed } from '../generated/catalog';
-import { pickerState, calcState } from '../state/app';
+import { pickerState, calcState, calcUiState } from '../state/app';
 import { escRe, METRICS_ALL, metricOfferOk } from '../domain/core';
 import type { MetricRow } from '../domain/core';
 import { updateAppState } from '../browser/url-state';
 import type { PlanProfile } from '../domain/picker/profile';
 import type { PaymentQuote } from '../domain/picker/payment';
 import { metricForRole, recommendablePlan, matchesTool } from '../domain/picker/profile';
-import { chooseMain, eligibleProfiles, pickerPaymentQuote } from '../state/picker';
+import { currentPickerSelection, pickerPaymentQuote } from '../state/picker';
 import { byId } from '../browser/dom';
 import { navigateToSection } from './navigation';
-import { serviceFeedback } from './service-actions';
 import { computeMetrics, fromCNY, isFlagshipModelName, toCNY, WEEKS_PER_MONTH, type MetricsResult } from '../domain/metrics';
 import { provenance } from '../domain/provenance';
 
 /* 费用计算器与用量导入由 CostCalculator.vue 实现；挂载时登记重算与导入入口，供推荐卡、导航与历史恢复调用。 */
-export const calculatorView: { render?: () => void; importUsage?: (text: string) => void } = {};
+export const calculatorView: { render?: () => void } = {};
 
 /* 费用计算器按共享状态重算（其余控件由 Vue 直接绑定）。 */
 export function renderCostCalculator() {
@@ -54,7 +53,7 @@ export function recommendedApi(main: PlanProfile | null) {
 }
 
 export function openWorkloadCalculator() {
-    const main = chooseMain(eligibleProfiles()), api = recommendedApi(main);
+    const main = currentPickerSelection().main, api = recommendedApi(main);
     updateAppState(() => {
         if (pickerState.budget !== "any")
             setCostInputs({ budget: pickerState.budget });
@@ -65,7 +64,7 @@ export function openWorkloadCalculator() {
     const calculator = byId("costCalculator");
     if (calculator)
         calculator.setAttribute("open", "");
-    serviceFeedback((pickerState.budget === "any" ? "选购预算不限，计算器保留你当前填写的月预算。" : "已带入当前月均预算。") +
+    calcUiState.feedback = ((pickerState.budget === "any" ? "选购预算不限，计算器保留你当前填写的月预算。" : "已带入当前月均预算。") +
         (api ? "已选择与推荐同名的 API 模型；缓存单价请按计费规则填写。" : "推荐模型没有可精确匹配的 API 报价，保留计算器当前模型；两者额度不能直接互相抵扣。"));
     navigateToSection("#s4");
 }
@@ -119,8 +118,6 @@ export function usageCoverageRows(monthlyM: number, state: Pick<WorkloadState, "
         return { ...row, apiMonthlyCNY: apiPerM == null ? null : apiPerM * monthlyM, breakEvenM: apiPerM == null ? null : row.quote.monthlyCNY / apiPerM };
     }).sort((a, b) => a.quote.monthlyCNY - b.quote.monthlyCNY || b.c.moLow - a.c.moLow);
 }
-
-export function importUsageText(text: string) { calculatorView.importUsage?.(String(text)); }
 
 /** 导入的用量折成计算器输入；默认沿用当前计算器的请求数与天数。 */
 export function usageToCalculator(usage: UsageSummary, state: WorkloadState = calcState): UsageCalculatorValues {

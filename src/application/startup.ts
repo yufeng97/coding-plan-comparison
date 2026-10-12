@@ -1,7 +1,7 @@
 import { cmpState } from '../state/app';
 import { byId, qsa } from '../browser/dom';
 import { focusTableControl, isCmpModalOpen } from '../browser/interaction';
-import { applyUrlState, debugModeEnabled, syncUrl } from '../browser/url-state';
+import { debugModeEnabled, syncUrl } from '../browser/url-state';
 import { boot } from './boot';
 import { renderCostCalculator, syncControlsFromState } from './calculator';
 import { bindChartResize, initTheme } from './chart-lifecycle';
@@ -36,7 +36,7 @@ export function startApplication() {
     document.addEventListener("pointerdown", forgetPlanFocus, { passive: true });
     navigationHooks.navigate = navigateToSection;
     navigationHooks.restore = restoreHistoryState;
-    applyUrlState();
+    /* 地址栏条件已由 main.ts 在挂载前恢复（applyUrlState），这里不再重复解析。 */
     let initialSection = "quick";
     try {
         initialSection = decodeURIComponent(location.hash.slice(1)) || "quick";
@@ -90,6 +90,6 @@ export function startApplication() {
         navigateToSection(location.hash, false, false, true);
     /* Vue 已挂载并恢复当前条件；清除默认预渲染标记，让带参数链接显示当前结果。 */
     qsa("[data-prerendered]").forEach((el) => el.removeAttribute("data-prerendered"));
-    document.documentElement.classList.remove("has-query");
+    document.documentElement.classList.remove("has-query", "js-pending");
     window.codingPlanReady = true;
 }

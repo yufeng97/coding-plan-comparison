@@ -111,11 +111,12 @@ export function fmtUnit(n: number) {
     return String(Math.round(n * 10000) / 10000);
 }
 
-export function listPriceHint(m: Pick<QuotaRow, "apiIn" | "apiOut" | "apiCache"> & { cur: string }) {
+/** 模型牌价的三段文字（输入 / 输出 / 缓存，每百万 tokens）；额度表逐段不换行显示。 */
+export function listPriceParts(m: Pick<QuotaRow, "apiIn" | "apiOut" | "apiCache"> & { cur: string }) {
     if (typeof m.apiIn !== "number")
-        return "";
+        return [];
     const sym = m.cur === "USD" ? "$" : "¥";
-    return `输入 ${sym}${fmtUnit(m.apiIn)} / 输出 ${sym}${fmtUnit(m.apiOut)} / 缓存 ${sym}${fmtUnit(m.apiCache)}`;
+    return [`输入 ${sym}${fmtUnit(m.apiIn)}`, `输出 ${sym}${fmtUnit(m.apiOut)}`, `缓存 ${sym}${fmtUnit(m.apiCache)}`];
 }
 
 export function cpmColor(v: number | null | undefined) {

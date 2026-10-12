@@ -219,18 +219,36 @@ export function appQueryString() {
     return p.toString();
 }
 
+/* 写入失败后的补写：浏览器限制短时间内的 replaceState 次数（如 WebKit 超出后抛 SecurityError），
+   快速输入或按住数字框方向键时可能被拒，地址栏会停在旧条件。失败后按最新状态退避重试，最多 5 次；
+   每次成功写入或新的写入都会重置。地址栏始终不可写的环境（file:// 直开）重试用完即停。 */
+const URL_RETRY_LIMIT = 5;
+let urlRetryTimer: ReturnType<typeof setTimeout> | undefined;
+let urlRetryAttempts = 0;
+
 export function syncUrl() {
     if (URL_RESTORING)
         return;
+    clearTimeout(urlRetryTimer);
+    urlRetryTimer = undefined;
     const qs = appQueryString();
     const hash = location.hash || "";
     const next = location.pathname + (qs ? "?" + qs : "") + hash;
-    if (next === location.pathname + location.search + hash)
+    if (next === location.pathname + location.search + hash) {
+        urlRetryAttempts = 0;
         return;
+    }
     try {
         history.replaceState(null, "", next);
+        urlRetryAttempts = 0;
     }
-    catch (e) { /* file:// 直开时地址栏不可写，状态仅在当前页生效 */ }
+    catch (e) {
+        /* file:// 直开时地址栏不可写，状态仅在当前页生效；被限流时稍后补写最新状态。 */
+        if (urlRetryAttempts < URL_RETRY_LIMIT) {
+            urlRetryAttempts++;
+            urlRetryTimer = setTimeout(syncUrl, 1000 * urlRetryAttempts);
+        }
+    }
 }
 
 export function debugModeEnabled() { return DEBUG_MODE; }

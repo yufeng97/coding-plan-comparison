@@ -25,19 +25,19 @@ test("搜索防抖未执行时的同查询串后退仍更新表格", async ({ pa
 test("预算后退/前进同步按钮、推荐及分享URL", async ({ page }) => {
   await page.goto("/?budget=100");
   const budget = page.locator('#picker [data-pick="budget"]');
-  await expect(budget.getByRole("button", { name: "≤ ¥100", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(budget.getByRole("radio", { name: "≤ ¥100", exact: true })).toHaveAttribute("aria-checked", "true");
   const first = await page.locator("#quickGrid").innerText();
   await clickChapter(page, "性价比排行");
-  await budget.getByRole("button", { name: "≤ ¥500", exact: true }).click();
+  await budget.getByRole("radio", { name: "≤ ¥500", exact: true }).click();
   await expect(page).toHaveURL(/budget=500/);
   const changed = await page.locator("#quickGrid").innerText();
   await page.goBack();
   await expect(page).toHaveURL(/\?budget=100$/);
-  await expect(budget.getByRole("button", { name: "≤ ¥100", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(budget.getByRole("radio", { name: "≤ ¥100", exact: true })).toHaveAttribute("aria-checked", "true");
   await expect(page.locator("#quickGrid")).toHaveText(first, { useInnerText: true });
   await page.goForward();
   await expect(page).toHaveURL(/budget=500.*#rank$/);
-  await expect(budget.getByRole("button", { name: "≤ ¥500", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(budget.getByRole("radio", { name: "≤ ¥500", exact: true })).toHaveAttribute("aria-checked", "true");
   await expect(page.locator("#quickGrid")).toHaveText(changed, { useInnerText: true });
   await page.reload();
   await expect(page.locator("#quickGrid")).toHaveText(changed, { useInnerText: true });
@@ -136,7 +136,7 @@ for (const colorScheme of /** @type {("light"|"dark")[]} */ (["light", "dark"]))
     await expect(page.locator("#metricsCount")).toHaveText("1 行");
     const cpm = page.locator('#metricsBody tr [data-column="cpm"]');
     await expect(cpm).toBeVisible();
-    await expect(cpm).toHaveAttribute("data-label", "💵每M tokens");
+    await expect(cpm).toHaveAttribute("data-label", "每M tokens");
     const bounds = await cpm.boundingBox();
     expect(bounds.x).toBeGreaterThanOrEqual(0);
     expect(bounds.x + bounds.width).toBeLessThanOrEqual(375);

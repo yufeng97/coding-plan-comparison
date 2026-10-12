@@ -54,7 +54,7 @@ test("预渲染发布页在脚本执行前即可阅读，启动后按链接条�
       await page.waitForFunction(() => window["codingPlanReady"] === true);
       expect(await page.locator("[data-prerendered]").count()).toBe(0);
       expect(await page.evaluate(() => document.documentElement.classList.contains("has-query"))).toBe(false);
-      await expect(page.locator('#picker [data-pick="budget"] [data-value="500"]')).toHaveAttribute("aria-pressed", "true");
+      await expect(page.locator('#picker [data-pick="budget"] [data-value="500"]')).toHaveAttribute("aria-checked", "true");
       expect(errors).toEqual([]);
     }
     await context.close();

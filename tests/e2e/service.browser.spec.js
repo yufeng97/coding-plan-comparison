@@ -80,7 +80,7 @@ test("恢复常用条件留在当前操作区，不跳回旧的地址锚点", as
   await page.locator("#savePresetBtn").click();
   await page.locator('#picker [data-pick="budget"] [data-value="500"]').click();
   await page.locator("#loadPresetBtn").click();
-  await expect(page.locator('#picker [data-pick="budget"] [data-value="100"]')).toHaveAttribute("aria-pressed","true");
+  await expect(page.locator('#picker [data-pick="budget"] [data-value="100"]')).toHaveAttribute("aria-checked","true");
   expect(await page.locator("#loadPresetBtn").evaluate((e) => e.getBoundingClientRect().top)).toBeLessThan(900);
   await expect(page).toHaveURL(/#table$/);
 });
@@ -158,7 +158,7 @@ test("保存与恢复常用条件、复制当前状态和删除预设", async ({
   await expect(page.locator("#loadPresetBtn")).toBeEnabled();
   await page.locator('#picker [data-pick="budget"] [data-value="500"]').click();
   await page.locator("#loadPresetBtn").click();
-  await expect(page.locator('#picker [data-pick="budget"] [data-value="100"]')).toHaveAttribute("aria-pressed","true");
+  await expect(page.locator('#picker [data-pick="budget"] [data-value="100"]')).toHaveAttribute("aria-checked","true");
   await expect(page.locator("#costCache")).toHaveValue("50");
   await expect(page.locator("#costBudget")).toHaveValue("88");
   await page.locator("#shareResultsBtn").click();
@@ -210,13 +210,13 @@ test("排行明细包含当前口径全部行，并同步口径切换", async ({
   await page.goto("/?rscope=credits#rank");
   const dataRows = page.locator("#rankDetailBody tr:not(.rank-divider)");
   const noted = async () => Number((await page.locator("#rankNote").textContent() || "").match(/共 (\d+) 档/)?.[1]);
-  await expect(page.locator('#chipRScope [data-rscope="credits"]')).toHaveAttribute("aria-pressed","true");
+  await expect(page.locator('#chipRScope [data-rscope="credits"]')).toHaveAttribute("aria-checked","true");
   await expect(dataRows).toHaveCount(await noted());
   await expect(page.locator("#rankDetailBody .conf-lo")).toHaveCount(0);
   await expect(page.locator("#rankDetailBody .rank-divider")).toHaveCount(0);
   const officialCount = await dataRows.count();
   await page.locator('#chipRScope [data-rscope="all"]').click();
-  await expect(page.locator('#chipRScope [data-rscope="all"]')).toHaveAttribute("aria-pressed","true");
+  await expect(page.locator('#chipRScope [data-rscope="all"]')).toHaveAttribute("aria-checked","true");
   await expect(dataRows).toHaveCount(await noted());
   expect(await dataRows.count()).toBeGreaterThan(officialCount);
   expect(await dataRows.count()).toBeGreaterThan(20);
@@ -231,7 +231,7 @@ test("选购用量入口打开计算器并带入精确模型，示例预设和�
   await expect(page).toHaveURL(/#s4$/);
   await expect(page.locator("#costCalculator")).toHaveAttribute("open","");
   await expect(page.locator("#costBudget")).toHaveValue("200");
-  await expect(page.locator("#serviceFeedback")).toContainText("同名的 API 模型");
+  await expect(page.locator("#costFeedback")).toContainText("同名的 API 模型");
   expect(await page.locator("#costModel").inputValue()).not.toBe("");
   await expect(page.locator("[data-cost-scenario-result]")).toHaveCount(3);
   await expect(page.locator("#costResult")).toContainText("不代表真实用户用量");
@@ -281,7 +281,7 @@ test("个人图应用选购支付方式时停用本区切换，取消、清除�
   const annual = page.locator('#chipBilling [data-billing="Y"]');
   const apply = page.locator('[data-apply-picker="personal"]');
   await expect(annual).toBeEnabled();
-  await expect(annual).toHaveAttribute("aria-pressed","true");
+  await expect(annual).toHaveAttribute("aria-checked","true");
   await apply.click();
   await expect(monthly).toBeDisabled();
   await expect(annual).toBeDisabled();
@@ -291,7 +291,7 @@ test("个人图应用选购支付方式时停用本区切换，取消、清除�
   await expect(annual).toBeDisabled();
   await apply.click();
   await expect(annual).toBeEnabled();
-  await expect(annual).toHaveAttribute("aria-pressed","true");
+  await expect(annual).toHaveAttribute("aria-checked","true");
   await apply.click();
   await goToSection(page, "#rank");
   await apply.click();
@@ -300,5 +300,5 @@ test("个人图应用选购支付方式时停用本区切换，取消、清除�
   await expect(annual).toBeDisabled();
   await page.locator("#personalResetBtn").click();
   await expect(annual).toBeEnabled();
-  await expect(monthly).toHaveAttribute("aria-pressed","true");
+  await expect(monthly).toHaveAttribute("aria-checked","true");
 });

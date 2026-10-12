@@ -23,6 +23,8 @@
 .cmp-fallback-backdrop { position: fixed; inset: 0; z-index: 300; background: rgba(10, 12, 10, .55); }
 .cmp-modal.cmp-fallback[open] { display: block; position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0; z-index: 310; overflow: auto; }
 .cmp-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+/* 窗口内容滚动时标题与关闭按钮留在顶部（手机上没有 Esc 可按）。 */
+.cmp-modal .cmp-head { position: sticky; top: 0; z-index: 3; padding: 4px 0 8px; background: var(--panel); }
 .cmp-head h3 { color: var(--ink); font-size: 16px; font-weight: 800; }
 .cmp-head-actions { display: flex; gap: 8px; }
 .cmp-tip { color: var(--faint); font-size: 12px; margin-bottom: 10px; }
@@ -40,15 +42,6 @@
 .cmp-diff-label, .cmp-price-label { display: block; margin-top: 4px; font-size: 10px; font-weight: 600; }
 .cmp-diff-label { color: var(--muted); }
 .cmp-price-label { color: var(--green); }
-.fc-cost { color: var(--ink); font-weight: 700; margin: 6px 0; }
-.checked-date, .filter-hint { display: inline-block; font-size: 11px; color: var(--muted); }
-.checked-date { margin-left: 10px; }
-.render-error { padding: 16px; color: var(--red); }
-.assumptions-box { margin-bottom: 20px; }
-.price-check-details { margin-top: 5px; white-space: normal; max-width: 260px; }
-.price-check-details summary { cursor: pointer; color: var(--accent-2); font-size: 11px; }
-.price-check-details summary:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
-.price-check-details p { margin: 5px 0 0; font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; }
 .cmp-remove { display: block; margin-top: 8px; }
 #cmpTable thead th:first-child { left: 0; z-index: 6; }
 #cmpTable thead th b { color: var(--ink); }

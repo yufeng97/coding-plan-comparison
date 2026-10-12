@@ -1,35 +1,11 @@
-import { isRetiredPlan, isOneTimePlan, isRenewalOnly, isFourWeekPlan, isPersonalMonthly, isOnSalePlan, findPlanReference, PLANS, API_PRICES, PLAN_TOKENS, isPriceConfirmed } from '@generated/catalog';
-import { displayModelName, foldSearch, METRICS_ALL, planLabel, planSearchBlob, queryHit, RATE, resolvePlan, shortVendor } from "@domain/core";
-import { computeMetrics, toCNY } from "@domain/metrics";
-import { provenance } from "@domain/provenance";
+import { isOneTimePlan, isRenewalOnly, isFourWeekPlan, isPersonalMonthly, isPriceConfirmed } from '@generated/catalog';
+import { planTitle } from "@domain/core";
 import { rankChartRows, rankIsEstimate, rankVendorLabel } from "@domain/rank";
-import { personalState, rankState } from "@state/app";
-import { matchesPickerPurchase } from "@state/picker";
+import { rankState } from "@state/app";
 import { rankCandidateRows, rankPaymentLabel, rankRows } from "@state/rank";
-import { personalChartPrice } from "@browser/charts/personal";
-import { metricChartLabel } from "@browser/charts/tokens";
+import { weeklyTokenRows } from "@browser/charts/tokens";
 
-/** Chart data and the accessible text/table views share the same purchase filters. */
-export function personalView(search: string = personalState.q) {
-  const state = personalState;
-  const query = foldSearch(search) ? search.trim() : "";
-  const annual = !state.fromPicker && state.billing === "Y";
-  const rows = PLANS.filter((p) => isPriceConfirmed(p) && isPersonalMonthly(p)
-    && (!annual || (p.priceY != null && p.priceY > 0))
-    && (state.cat === "all" || p.cat === state.cat)
-    && (state.region === "all" || p.region === state.region)
-    && (!state.fromPicker || matchesPickerPurchase(p))
-    && (!query || queryHit(planSearchBlob(p), query)))
-    .sort((a, b) => personalChartPrice(a) - personalChartPrice(b));
-  const noFilter = !state.fromPicker && state.cat === "all" && state.region === "all" && !query;
-  const shown = noFilter && state.limit ? rows.slice(0, state.limit) : rows;
-  const excluded = query ? PLANS.filter((p) => !isRetiredPlan(p) && queryHit(planSearchBlob(p), query)
-    && (!isPersonalMonthly(p) || !isPriceConfirmed(p) || (annual && !(p.priceY != null && p.priceY > 0)))) : [];
-  const inTable = excluded.filter(isOnSalePlan);
-  const free = excluded.filter((p) => p.priceM === 0);
-  const quote = excluded.filter((p) => !inTable.includes(p) && !free.includes(p));
-  return { rows, shown, annual, noFilter, excluded, inTable, free, quote };
-}
+/* 图表与无障碍文字视图共用 browser/charts 里的同一份数据（personalView、weeklyTokenRows、apiPriceRows），这里只补文字说明与排序。 */
 
 export function excludedList(plans: Plan[], annual: boolean) {
   function reason(p: Plan) {
@@ -42,7 +18,7 @@ export function excludedList(plans: Plan[], annual: boolean) {
     if (p.priceM === 0) return "免费档";
     return "按量或定制";
   }
-  return plans.slice(0, 6).map((p) => `${shortVendor(p.vendor)} ${p.plan}（${reason(p)}）`).join("、")
+  return plans.slice(0, 6).map((p) => `${planTitle(p)}（${reason(p)}）`).join("、")
     + (plans.length > 6 ? ` 等 ${plans.length} 档` : "");
 }
 
@@ -68,33 +44,7 @@ export function rankNote() {
   return `${count}${all.length > rows.length ? `，图中显示 ${rows.length} 档` : ""}。可按厂商查看 Claude、ChatGPT、Kimi 等套餐。${tier}${scope}${excluded}${mixed}实色柱：依据官方额度规则折算；斜纹柱：第三方或请求次数估算。绿色 ≤¥0.30 · 黄色 ≤¥1 · 红色 >¥1。`;
 }
 
-export function apiRows() {
-  return API_PRICES.map((api) => ({ ...api,
-    input: api.cur === "CNY" ? Number(api.inCNY) / RATE : Number(api.inUSD),
-    output: api.cur === "CNY" ? Number(api.outCNY) / RATE : Number(api.outUSD),
-  })).filter((a) => Number.isFinite(a.input) && Number.isFinite(a.output)).sort((a, b) => a.output - b.output);
-}
-
+/** 每周 tokens 旁的性价比列表：与图表同一份数据，按每 ¥100/月 可得的每周 tokens 排序。 */
 export function weeklyRows() {
-  const official = PLAN_TOKENS.flatMap((t) => {
-    const plan = findPlanReference(t.ref);
-    return plan && isPriceConfirmed(plan) && !isRetiredPlan(plan)
-      ? [{ label: planLabel(plan) + " · " + displayModelName(t.model), lowM: t.lowM, highM: t.highM,
-        priceCNY: toCNY(plan.priceM ?? 0, plan.cur), isOfficial: true, conf: "中" }] : [];
-  });
-  const covered = new Set(PLAN_TOKENS.map((t) => findPlanReference(t.ref)?.id).filter(Boolean));
-  const extra = METRICS_ALL.filter((metric) => {
-    const plan = metric.ref != null ? findPlanReference(metric.ref) : null;
-    return (!plan || (isPriceConfirmed(plan) && !isRetiredPlan(plan)))
-      && (metric.wkLowM != null || metric.reqLowPer5h != null)
-      && !metric.note?.includes("系数折算") && metric.weeklyChart !== false && (!plan || !covered.has(plan.id));
-  }).flatMap((metric) => {
-    const current = resolvePlan(metric) || metric, result = computeMetrics(current);
-    if (!result || result.wkLowM == null || result.wkHighM == null) return [];
-    const metricProvenance = provenance(metric);
-    return [{ label: metricChartLabel(metric), lowM: result.wkLowM, highM: result.wkHighM,
-      priceCNY: toCNY(current.priceM ?? 0, current.cur), isOfficial: !metric.isEst && metricProvenance.conf === "高", conf: metric.confidence || metricProvenance.conf }];
-  });
-  return [...official, ...extra].map((row) => ({ ...row, midM: (row.lowM + row.highM) / 2 }))
-    .sort((a, b) => (b.priceCNY > 0 ? b.midM / b.priceCNY : -1) - (a.priceCNY > 0 ? a.midM / a.priceCNY : -1));
+  return weeklyTokenRows().sort((a, b) => (b.priceCNY > 0 ? b.midM / b.priceCNY : -1) - (a.priceCNY > 0 ? a.midM / a.priceCNY : -1));
 }

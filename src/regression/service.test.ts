@@ -180,15 +180,17 @@ test("选购用量 CTA 带入预算与精确模型，模型改变清除缓存价
   assert.equal(page.byId<HTMLSelectElement>("costModel").value, "小米 MiMo|mimo-v2.6-pro");
   assert.equal(page.byId<HTMLInputElement>("costCachePrice").value, "");
   assert.equal(location.hash, "#s4");
-  assert.match(page.byId("serviceFeedback").textContent!, /同名的 API 模型/);
+  /* 页面跳到计算器，带入说明显示在计算器顶部，不留在推荐区。 */
+  assert.match(page.byId("costFeedback").textContent!, /同名的 API 模型/);
+  assert.equal(page.byId("serviceFeedback").textContent, "");
   assert.equal(app.recommendedApi(app.planProfile(app.findPlanReference("plan-0002")!))!.model, "Claude Opus 5.5");
   Object.assign(app.pickerState, { budget: "any", region: "intl", tool: "cursor", task: "hard" });
   await input(page, "costBudget", "123.4");
   page.fire(page.byId("checkWorkloadBtn"), "click");
   await page.settle();
   assert.equal(page.byId<HTMLInputElement>("costBudget").value, "123.4");
-  assert.match(page.byId("serviceFeedback").textContent!, /没有可精确匹配的 API 报价/);
-  assert.match(page.byId("serviceFeedback").textContent!, /预算不限/);
+  assert.match(page.byId("costFeedback").textContent!, /没有可精确匹配的 API 报价/);
+  assert.match(page.byId("costFeedback").textContent!, /预算不限/);
   page.healthy();
 });
 

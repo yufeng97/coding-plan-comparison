@@ -93,7 +93,7 @@ test("评测排名图随版本、搜索和成本视图更新，主题和窄屏�
   const expected = await page.locator("#publicBenchmarkBody tr").count();
   expect(await page.evaluate(`${chartOf("chartPublicBenchmark")}.getOption().series[0].data.length`)).toBe(expected);
   await page.locator('[data-public-chart="cost"]').click();
-  await expect(page.locator('[data-public-chart="cost"]')).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator('[data-public-chart="cost"]')).toHaveAttribute("aria-checked", "true");
   await expect(page.locator("#publicBenchmarkChartLegend")).toBeHidden();
   expect(await page.evaluate(`${chartOf("chartPublicBenchmark")}.getOption().series[0].data.every(v=>typeof v==='number' && v>=0)`)).toBe(true);
   const target = await scoreRow(page.locator("#publicBenchmarkBody tr").last());
@@ -214,10 +214,10 @@ test("手机切换独立协议且CSV和JSON保留公开来源与费用口径", a
   expect(controlsBounds.left).toBeGreaterThanOrEqual(controlsBounds.parentLeft - 1);
   expect(controlsBounds.right).toBeLessThanOrEqual(controlsBounds.parentRight + 1);
   expect(controlsBounds.scrollWidth).toBeLessThanOrEqual(controlsBounds.clientWidth + 1);
+  /* 手机上成绩表改为卡片：表格容器与页面都不横向滚动。 */
   const wrapper = page.locator("#publicBenchmarkWrap");
-  expect(await wrapper.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
-  await wrapper.evaluate((el) => { el.scrollLeft = el.scrollWidth; });
-  expect(await wrapper.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
+  expect(await wrapper.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+  expect(await page.locator("#publicBenchmarkBody tr").first().evaluate((row) => getComputedStyle(row).display)).toBe("grid");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
   const pending = page.waitForEvent("download"); await page.locator("#downloadPublicBenchmarkCsvBtn").click();
   const csv = await fs.readFile(await (await pending).path(), "utf8");

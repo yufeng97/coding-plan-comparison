@@ -18,14 +18,22 @@ export function syncHeaderHeight() {
         style.setProperty("--header-height", height + "px");
 }
 
+/* 章节链接有两处：帮我选下方的「更多比较」菜单（.topnav）与页头的「章节」下拉（.section-jump-list），当前章节同时标出。 */
+const SECTION_LINK_SELECTOR = '.topnav a[href^="#"], .section-jump-list a[href^="#"]';
+
 export function updateActiveNav() {
-    const links = Array.from(qsa<HTMLAnchorElement>('.topnav a[href^="#"]'));
-    const previous = links.find((link) => link.getAttribute("aria-current") === "location");
+    const links = Array.from(qsa<HTMLAnchorElement>(SECTION_LINK_SELECTOR));
     const scrollPadding = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("scroll-padding-top"));
     const readingTop = Number.isFinite(scrollPadding) ? scrollPadding : headerHeight;
-    let active: HTMLAnchorElement | null = null, closestTop = -Infinity;
+    /* 每个章节只量一次：两处菜单指向同一组章节。 */
+    let activeHash = "", closestTop = -Infinity;
+    const measured = new Set<string>();
     links.forEach((link) => {
-        const target = byId((link.getAttribute("href") || "").slice(1));
+        const hash = link.getAttribute("href") || "";
+        if (measured.has(hash))
+            return;
+        measured.add(hash);
+        const target = byId(hash.slice(1));
         if (!target || target.hidden || typeof target.getBoundingClientRect !== "function")
             return;
         const top = target.getBoundingClientRect().top;
@@ -33,27 +41,17 @@ export function updateActiveNav() {
         const paddingTop = parseFloat(getComputedStyle(target).getPropertyValue("padding-top")) || 0;
         if (Number.isFinite(top) && top <= readingTop + paddingTop && top >= closestTop) {
             closestTop = top;
-            active = link;
+            activeHash = hash;
         }
     });
     links.forEach((link) => {
-        const on = link === active;
+        const on = !!activeHash && link.getAttribute("href") === activeHash;
         link.classList.toggle("active", on);
         if (on)
             link.setAttribute("aria-current", "location");
         else
             link.removeAttribute("aria-current");
     });
-    /* 窄屏导航横向滚动时让当前章节露出来，只在章节变化时调整。 */
-    const nav = qs(".topnav");
-    const current = active as HTMLAnchorElement | null;
-    if (current && current !== previous && nav && nav.scrollWidth > nav.clientWidth) {
-        const box = current.getBoundingClientRect(), bounds = nav.getBoundingClientRect();
-        if (box.left < bounds.left + 8)
-            nav.scrollLeft += box.left - bounds.left - 8;
-        else if (box.right > bounds.right - 8)
-            nav.scrollLeft += box.right - bounds.right + 8;
-    }
 }
 
 export function initPageNavigation() {

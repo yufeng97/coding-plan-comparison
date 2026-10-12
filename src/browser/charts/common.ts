@@ -27,9 +27,9 @@ export function chartLogAxis(values: number[], name: string) {
 }
 
 /* DOM 图例可用键盘操作；同一名称的区间基柱和上限段一起切换。 */
-export function bindChartLegend(chart: EChartsType, id: string, colors: Record<string, string>) {
+export function bindChartLegend(chart: EChartsType, id: string, names: readonly string[]) {
     const selections = chartLegendSelections[id] || (chartLegendSelections[id] = {});
-    for (const name of Object.keys(colors)) {
+    for (const name of names) {
         if (selections[name] === false)
             chart.dispatchAction({ type: "legendUnSelect", name });
     }

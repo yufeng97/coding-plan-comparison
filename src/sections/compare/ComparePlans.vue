@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { findPlanReference, isOneTimePlan, isPriceConfirmed, resolvedField } from "@generated/catalog";
-import { CAT_LABEL, cnyOf, planBadges, planPriceLabel, priceUnit, REGION_LABEL, shortVendor } from "@domain/core";
+import { CAT_LABEL, cnyOf, planBadges, planPriceLabel, planTitle, priceUnit, REGION_LABEL } from "@domain/core";
 import { annualPaymentText } from "@domain/picker/payment";
 import { CMP_MAX, cmpState } from "@state/app";
 import { cmpFocusableElements, focusTableControl, isCmpModalOpen, setCmpBackgroundInert } from "@browser/interaction";
 import { syncUrl, updateAppState } from "@browser/url-state";
-import { copyCmpMarkdown, exportCmpCsv, registerTableView, tableFeedback } from "@app/tables";
+import { copyCmpMarkdown, exportCmpCsv, registerTableView } from "@app/tables";
 import PlanBadges from "../../components/PlanBadges.vue";
 import PlanPrice from "../../components/PlanPrice.vue";
 import PriceCheck from "../../components/PriceCheck.vue";
@@ -14,13 +14,23 @@ const dialog = ref<HTMLDialogElement | null>(null);
 const backdrop = ref<HTMLDivElement | null>(null);
 const closeButton = ref<HTMLButtonElement | null>(null);
 const feedback = ref("");
+/* 加入、移出与清空的结果显示在对比条上方：操作可能来自推荐卡、数据表或对比条，提示不能落在别的章节里。 */
+const toast = ref("");
+let toastTimer: ReturnType<typeof setTimeout> | undefined;
+function notify(message: string) {
+  /* 对比窗口打开时浮动提示在遮罩下方看不见，改写进窗口内的提示行。 */
+  if (isCmpModalOpen()) { feedback.value = message; return; }
+  toast.value = message;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toast.value = ""; toastTimer = undefined; }, 4000);
+}
 const labels = ref<Record<string, string>>({});
 const timers = new Map<string, ReturnType<typeof setTimeout>>();
 let returnFocus: Element | null = null;
 let needsFocusRestore = false;
 const items = computed(() => cmpState.items as Plan[]);
 const count = computed(() => items.value.length);
-const names = computed(() => items.value.map((plan) => `${shortVendor(plan.vendor)} ${plan.plan}`).join("、"));
+const names = computed(() => items.value.map(planTitle).join("、"));
 const barText = computed(() => `已选 ${count.value}/${CMP_MAX} 档${count.value === 1 ? '，再选 1 档可对比' : count.value >= CMP_MAX ? '，已满' : ''}${count.value ? '：' + names.value : ''}`);
 const lowestPrice = computed(() => {
   const prices = items.value.map((plan) => cnyOf(plan, "M"));
@@ -51,11 +61,11 @@ function add(reference: string, plan?: string) {
   if (!selected || items.value.some((item) => item.id === selected.id)) return;
   if (count.value >= CMP_MAX) {
     flash("cmpOpenBtn", `最多对比 ${CMP_MAX} 档`);
-    tableFeedback(`最多对比 ${CMP_MAX} 档，请先移出一档再添加。`); return;
+    notify(`最多对比 ${CMP_MAX} 档，请先移出一档再添加。`); return;
   }
   cmpState.items = [...items.value, selected];
   syncUrl(); feedback.value = "";
-  tableFeedback(`已加入 ${shortVendor(selected.vendor)} ${selected.plan}。当前选择 ${count.value}/${CMP_MAX} 档${count.value === 1 ? '，再选一档即可比较' : ''}。`);
+  notify(`已加入 ${planTitle(selected)}。当前选择 ${count.value}/${CMP_MAX} 档${count.value === 1 ? '，再选一档即可比较' : ''}。`);
 }
 async function remove(reference: string, plan?: string) {
   const index = items.value.findIndex((item) => plan == null ? item.id === reference : item.vendor === reference && item.plan === plan);
@@ -64,7 +74,7 @@ async function remove(reference: string, plan?: string) {
   const modalOpen = isCmpModalOpen();
   cmpState.items = items.value.filter((item) => item.id !== removed.id);
   syncUrl(); feedback.value = "";
-  tableFeedback(`已移出 ${shortVendor(removed.vendor)} ${removed.plan}。当前选择 ${count.value}/${CMP_MAX} 档。`);
+  notify(`已移出 ${planTitle(removed)}。当前选择 ${count.value}/${CMP_MAX} 档。`);
   if (!modalOpen) return;
   if (count.value < 2) close();
   else {
@@ -80,7 +90,7 @@ function clear() {
   syncUrl(); feedback.value = "";
   close();
   if (focusInBar) focusTableControl(document.getElementById("searchInput"));
-  tableFeedback("已清空对比选择。");
+  notify("已清空对比选择。");
 }
 function restoreFocus() {
   if (!needsFocusRestore) return;
@@ -137,7 +147,7 @@ const guardFocus = (event: FocusEvent) => { if (dialog.value?.classList.contains
 watch(count, (value) => { document.body.classList.toggle("has-compare", value > 0); }, { immediate: true });
 const release = registerTableView("compare", { render: () => { feedback.value = ""; }, add, remove, clear, open, close, finishClose, feedback: (message: string) => { feedback.value = message; }, flash, buttons: ["cmpOpenBtn", "copyCmpMdBtn", "exportCmpCsvBtn"] });
 onMounted(() => document.addEventListener("focusin", guardFocus));
-onBeforeUnmount(() => { close(); release(); timers.forEach(clearTimeout); document.removeEventListener("focusin", guardFocus); document.body.classList.remove("has-compare"); });
+onBeforeUnmount(() => { close(); release(); timers.forEach(clearTimeout); clearTimeout(toastTimer); document.removeEventListener("focusin", guardFocus); document.body.classList.remove("has-compare"); });
 </script>
 
 <template>
@@ -147,18 +157,19 @@ onBeforeUnmount(() => { close(); release(); timers.forEach(clearTimeout); docume
       <button id="cmpOpenBtn" type="button" class="chip" :disabled="count < 2" :title="count < 2 ? '至少选择 2 档' : '并排查看已选档'" @click.stop="open">{{ labels.cmpOpenBtn || "对比" }}</button>
       <button id="cmpClearBtn" type="button" class="chip" @click.stop="updateAppState(clear)">清空</button>
     </div>
+    <p id="cmpToast" class="toast" role="status" aria-live="polite" aria-atomic="true">{{ toast }}</p>
     <div id="cmpBackdrop" ref="backdrop" class="cmp-fallback-backdrop" hidden aria-hidden="true" @click.stop="close"></div>
     <dialog id="cmpModal" ref="dialog" class="cmp-modal" role="dialog" tabindex="-1" aria-labelledby="cmpModalTitle" @close="finishClose" @keydown.stop="keydown" @click.stop="outsideClick">
-      <div class="cmp-head"><h3 id="cmpModalTitle">⚖️ 并排对比</h3><div class="cmp-head-actions">
+      <div class="cmp-head"><h3 id="cmpModalTitle">并排对比</h3><div class="cmp-head-actions">
         <button id="copyCmpMdBtn" type="button" class="chip" :disabled="count < 2" :title="count < 2 ? '至少选择 2 档后导出对比' : '复制已选方案的完整对比与核价元数据'" @click.stop="copyCmpMarkdown">{{ labels.copyCmpMdBtn || "复制对比 Markdown" }}</button>
         <button id="exportCmpCsvBtn" type="button" class="chip" :disabled="count < 2" :title="count < 2 ? '至少选择 2 档后导出对比' : '下载已选方案的完整对比与核价元数据'" @click.stop="exportCmpCsv">{{ labels.exportCmpCsvBtn || "导出对比 CSV" }}</button>
         <button id="cmpClearInModal" type="button" class="chip" @click.stop="updateAppState(clear)">清空对比</button>
-        <button id="cmpCloseBtn" ref="closeButton" type="button" class="chip" @click.stop="close">关闭 ✕</button>
+        <button id="cmpCloseBtn" ref="closeButton" type="button" class="chip" @click.stop="close">关闭 <span aria-hidden="true">✕</span></button>
       </div></div>
       <p class="cmp-tip">各家「额度」口径不同（5 小时窗口 / 每周 tokens / credits），不能直接互比；此处保留官方口径原文对照。</p>
       <p id="cmpFeedback" class="table-feedback" role="status" aria-live="polite">{{ feedback }}</p>
       <div class="table-wrap cmp-wrap" tabindex="0" role="region" aria-label="套餐并排对比，可横向滚动"><table id="cmpTable">
-        <thead><tr><th scope="col">厂商 · 计划</th><th v-for="plan in items" :key="plan.id" scope="col"><b>{{ plan.vendor }}</b><br>{{ plan.plan }}<br><button type="button" class="chip cmp-remove" :data-plan-id="plan.id" :data-vendor="plan.vendor" :data-plan="plan.plan" data-cmp-scope="cmpTable" :aria-label="`移出 ${shortVendor(plan.vendor)} ${plan.plan}`" @click.stop="updateAppState(() => { void remove(plan.id); })">移出对比</button></th></tr></thead>
+        <thead><tr><th scope="col">厂商 · 计划</th><th v-for="plan in items" :key="plan.id" scope="col"><b>{{ plan.vendor }}</b><br>{{ plan.plan }}<br><button type="button" class="chip cmp-remove" :data-plan-id="plan.id" :data-vendor="plan.vendor" :data-plan="plan.plan" data-cmp-scope="cmpTable" :aria-label="`移出 ${planTitle(plan)}`" @click.stop="updateAppState(() => { void remove(plan.id); })">移出对比</button></th></tr></thead>
         <tbody><tr v-for="row in compareRows" :key="row.id" :class="{ 'cmp-diff-row': differs(row.id) }"><th scope="row">{{ row.label }}<span v-if="differs(row.id)" class="cmp-diff-label">有差异</span></th><td v-for="plan in items" :key="plan.id" :class="{ 'cmp-best-price': row.id === 'price' && lowestPrice != null && cnyOf(plan, 'M') === lowestPrice }">
           <template v-if="row.id === 'position'"><span class="tag" :class="`tag-${plan.cat}`">{{ CAT_LABEL[plan.cat] || plan.cat }}</span> {{ REGION_LABEL[plan.region] || "" }}<div v-if="planBadges(plan).length" class="badge-row"><PlanBadges :plan="plan" /></div></template>
           <template v-else-if="row.id === 'price'"><PlanPrice :plan="plan" compare /><span v-if="lowestPrice != null && cnyOf(plan, 'M') === lowestPrice" class="cmp-price-label">同周期最低价</span></template>

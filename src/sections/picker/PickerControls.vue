@@ -3,6 +3,7 @@ import { computed } from "vue";
 import { PICKER_BILLING_LABELS } from "@domain/picker/payment";
 import { pickerState } from "@state/app";
 import { setPicker } from "@app/picker";
+import ChipRadioGroup from "../../components/ChipRadioGroup.vue";
 
 type PickerKey = keyof typeof pickerState;
 type Row = { key: PickerKey; label: string; aria?: string; options: readonly (readonly [string, string])[] };
@@ -18,22 +19,30 @@ const advanced: Row[] = [
 const billing = [["M", "月付标价"], ["A", "自动续费"], ["Y", "年付"]] as const;
 const state = pickerState;
 const paymentInitiallyOpen = state.billing !== "M";
-const selected = (key: string, value: string) => state[key as keyof typeof state] === value;
-function select(event: MouseEvent, key: PickerKey, value: string) {
-  event.stopImmediatePropagation();
-  setPicker(key, value);
-}
 const paymentLabel = computed(() => "付款：" + PICKER_BILLING_LABELS[state.billing as keyof typeof PICKER_BILLING_LABELS] + (state.billing === "Y" ? "（按折月预算）" : ""));
 const billingNote = computed(() => state.billing === "Y" ? "预算按年付月均比较；首次一次支付全年，金额见卡片。" : state.billing === "A" ? "有单列连续包月价时按该价比较；未单列的普通月订阅按标价计作为上限。购买资格与续费规则见卡片。" : "按公开月价比较；部分月价附有连续包月或优惠条件，购买前请核对。");
 </script>
 
 <template>
   <div id="picker" class="picker">
-    <div v-for="row in basic" :key="row.key" class="picker-row" :data-pick="row.key" role="group" :aria-label="row.label"><span class="picker-label">{{ row.label }}</span><div class="picker-options"><button v-for="[value, label] in row.options" :key="value" type="button" class="chip" :class="{ active: selected(row.key, value) }" :data-value="value" :aria-pressed="selected(row.key, value)" @click="select($event, row.key, value)">{{ label }}</button></div></div>
+    <div v-for="row in basic" :key="row.key" class="picker-row" :data-pick="row.key">
+      <span :id="`pickerLabel-${row.key}`" class="picker-label">{{ row.label }}</span>
+      <ChipRadioGroup class="picker-options" :labelledby="`pickerLabel-${row.key}`" :options="row.options" :model-value="state[row.key]" @select="setPicker(row.key, $event)" />
+    </div>
     <div class="picker-task-controls picker-advanced-grid">
-      <div v-for="row in advanced" :key="row.key" class="picker-row" :data-pick="row.key" role="group" :aria-label="row.aria || row.label"><span class="picker-label">{{ row.label }}</span><div class="picker-options"><button v-for="[value, label] in row.options" :key="value" type="button" class="chip" :class="{ active: selected(row.key, value) }" :data-value="value" :aria-pressed="selected(row.key, value)" @click="select($event, row.key, value)">{{ label }}</button></div></div>
+      <div v-for="row in advanced" :key="row.key" class="picker-row" :data-pick="row.key">
+        <span :id="`pickerLabel-${row.key}`" class="picker-label" :aria-hidden="row.aria ? 'true' : undefined">{{ row.label }}</span>
+        <ChipRadioGroup class="picker-options" :label="row.aria" :labelledby="row.aria ? undefined : `pickerLabel-${row.key}`" :options="row.options" :model-value="state[row.key]" @select="setPicker(row.key, $event)" />
+      </div>
       <p class="picker-hint">Claude Code / Codex 包含第三方兼容接入。「模型能力」按 DeepSWE v1.1 已公布成绩排序。</p>
     </div>
-    <details id="pickerPayment" class="picker-payment" :open="paymentInitiallyOpen"><summary id="pickerPaymentSummary">{{ paymentLabel }}</summary><div class="picker-row" data-pick="billing" role="group" aria-label="支付方式"><span class="picker-label">支付方式</span><div class="picker-options"><button v-for="[value, label] in billing" :key="value" type="button" class="chip" :class="{ active: state.billing === value }" :data-value="value" :aria-pressed="state.billing === value" @click="select($event, 'billing', value)">{{ label }}</button></div></div><p id="pickerBillingNote" class="maintenance-meta">{{ billingNote }}</p></details>
+    <details id="pickerPayment" class="picker-payment" :open="paymentInitiallyOpen">
+      <summary id="pickerPaymentSummary">{{ paymentLabel }}</summary>
+      <div class="picker-row" data-pick="billing">
+        <span id="pickerLabel-billing" class="picker-label">支付方式</span>
+        <ChipRadioGroup class="picker-options" labelledby="pickerLabel-billing" :options="billing" :model-value="state.billing" @select="setPicker('billing', $event)" />
+      </div>
+      <p id="pickerBillingNote" class="maintenance-meta">{{ billingNote }}</p>
+    </details>
   </div>
 </template>

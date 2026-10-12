@@ -2,18 +2,18 @@
 import { computed } from "vue";
 import { displayPriceReason, PRICE_CHECKS, priceCheckOf } from "@generated/catalog";
 import { planCodingBenchmarks, publicModelDisplayName, publicScoreText } from "@domain/benchmarks";
-import { fmtCNY, planBadges, planTitle, priceCheckLabel, priceText, safeLink, shortVendor } from "@domain/core";
+import { fmtCNY, planTitle, priceCheckLabel, priceText, safeLink, shortVendor } from "@domain/core";
 import { annualPaymentText, pickerMoney } from "@domain/picker/payment";
 import { roleDisplayName } from "@domain/picker/text";
 import { checkAgeText } from "@domain/table-format";
-import { pickerState } from "@state/app";
 import { dataRevision } from "@state/maintenance";
 import { benchmarkRankingNote, pickerPaymentQuote, priceLine } from "@state/picker";
 import { setPicker } from "@app/picker";
 import { showPlanDetails } from "@app/plan-details";
 import WatchButton from "../../components/WatchButton.vue";
 import CompareButton from "../../components/CompareButton.vue";
-import { paymentSummary, tierRows, usageLines, type PickerCardModel } from "./picker-view";
+import PlanBadges from "../../components/PlanBadges.vue";
+import { paymentSummary, tierRole as cardTierRole, tierRows, usageLines, type PickerCardModel } from "./picker-view";
 
 const props = defineProps<{ model: PickerCardModel }>();
 const plan = computed(() => props.model.plan);
@@ -21,14 +21,14 @@ const quote = computed(() => pickerPaymentQuote(plan.value));
 const check = computed(() => priceCheckOf(plan.value));
 const sources = computed(() => check.value?.sourceIds.map((id) => PRICE_CHECKS.sources[id as keyof typeof PRICE_CHECKS.sources]).filter(Boolean) ?? []);
 const verified = computed(() => check.value ? `${check.value.checkedAt}${checkAgeText(check.value.checkedAt)} · ${priceCheckLabel(plan.value)}${check.value.reason ? "。" + displayPriceReason(check.value.reason) : ""}` : "暂无逐条核查记录，请在官网核对价格与权益。");
+/* 评测名次取自首屏评测摘要；摘要更新时 dataRevision.benchmark 递增，这里随之重算。 */
 const hits = computed(() => {
   void dataRevision.benchmark;
   return props.model.role ? planCodingBenchmarks(plan.value, props.model.role).filter((hit): hit is NonNullable<typeof hit> => hit !== null) : [];
 });
 const tiers = computed(() => tierRows(props.model));
-const tierRole = computed(() => props.model.role || (pickerState.task === "daily" ? props.model.tiers?.loose[0] || props.model.tiers?.headline : props.model.tiers?.headline || props.model.tiers?.loose[0]));
+const tierRole = computed(() => cardTierRole(props.model));
 const hasExtra = computed(() => hits.value.length > 0 || tiers.value.length > 0);
-const badges = computed(() => planBadges(plan.value));
 const compactPayment = computed(() => paymentSummary(plan.value, true));
 const fullPayment = computed(() => paymentSummary(plan.value));
 const usage = computed(() => usageLines(plan.value));
@@ -41,7 +41,7 @@ function showDetails(event: MouseEvent) {
 <template>
   <div class="quick-card" :style="{ '--qc-accent': model.accent }">
     <div class="qc-title"><span class="qc-title-label">{{ model.title }}</span><WatchButton :plan="plan" class="qc-watch" /></div>
-    <b class="qc-plan">{{ planTitle(plan) }}</b>
+    <h3 class="qc-plan">{{ planTitle(plan) }}</h3>
     <div class="qc-value">
       <em v-if="plan.priceM === 0">免费</em>
       <em v-else-if="!quote.available">未列公开{{ quote.label }}价</em>
@@ -70,7 +70,7 @@ function showDetails(event: MouseEvent) {
           <tbody><tr v-for="tier in tiers" :key="tier.plan.id" :class="{ 'is-current': tier.current }"><th scope="row">{{ tier.plan.plan }}</th><td class="qc-tier-price" :data-cny="tier.price.toFixed(2)">{{ priceLine(tier.plan) }}</td><td>{{ tier.quota }}</td><td>{{ tier.status }}</td></tr></tbody>
         </table>
         <p v-if="fullPayment.length" class="qc-payment-summary"><template v-for="(part, index) in fullPayment" :key="index"><br v-if="index">{{ part }}</template></p>
-        <div class="badge-row"><span v-for="badge in badges" :key="badge.k" class="badge" :class="`badge-${badge.k}`">{{ badge.t }}</span></div>
+        <div class="badge-row"><PlanBadges :plan="plan" /></div>
         <template v-if="plan.priceM != null && plan.priceM > 0">
           <div class="qc-line"><span class="k">月付原价</span>{{ priceText(plan, 'priceM') }}/月{{ plan.seat ? '，每席位' : '' }}；按原币支付。</div>
           <div v-if="plan.priceY && plan.priceY > 0" class="qc-line"><span class="k">年付全年</span>{{ annualPaymentText(plan) }}</div>

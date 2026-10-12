@@ -1,5 +1,5 @@
 import { RATE_INR_CNY, META, isOnSalePlan, isRelay, findPlanReference, resolvedField, PLANS, PAYG_REFERENCES, priceCheckOf, isPriceConfirmed, displayPriceReason } from '../generated/catalog';
-import { CAT_LABEL, REGION_LABEL, esc, planPriceLabel, priceUnit, priceCheckLabel, priceCheckSources, mainlandAccessText, RATE, queryHit, planSearchBlob, shortVendor, METRICS_ALL, metricOfferOk, safeLink } from '../domain/core';
+import { CAT_LABEL, REGION_LABEL, esc, planPriceLabel, planTitle, priceUnit, priceCheckLabel, priceCheckSources, mainlandAccessText, RATE, queryHit, planSearchBlob, METRICS_ALL, metricOfferOk, safeLink } from '../domain/core';
 import { annualPaymentText } from '../domain/picker/payment';
 import { priceLine, pickerFirstPaymentText, matchesPickerPurchase, pickerMonthlyCNY, pickerMetricInput } from '../state/picker';
 import { tableState, cmpState, CMP_MAX, metricsState } from '../state/app';
@@ -7,6 +7,7 @@ import type { TableState } from '../state/app';
 import { toCNY, blendPrice, isFlagshipModelName, computeMetrics } from '../domain/metrics';
 import { personalViewHooks } from '../browser/charts/personal';
 import { csvCell, rateClass } from '../domain/table-format';
+import { provenance } from '../domain/provenance';
 import { downloadCsvText, copyTextToClipboard } from '../browser/interaction';
 import { syncUrl } from '../browser/url-state';
 import type { MetricRow } from '../domain/core';
@@ -19,9 +20,7 @@ interface PlanTableView {
     render(): void;
     cancelSearch(): void;
     hasPendingSearch(): boolean;
-    more(all?: boolean): void;
     reveal(planId: string): boolean;
-    reset(): void;
     feedback(message: string): void;
     flash(id: string, label: string): void;
     buttons: string[];
@@ -40,7 +39,7 @@ interface CompareView {
     buttons: string[];
 }
 
-interface MetricsTableView { render(): void; more(all?: boolean): void; reset(): void; models(): void; }
+interface MetricsTableView { render(): void; models(): void; }
 
 export interface TableViews { plan?: PlanTableView; compare?: CompareView; metrics?: MetricsTableView; }
 
@@ -150,17 +149,7 @@ export function computeTableRows(state: TableState = tableState) {
 
 export function renderTable() { tableViews.plan?.render(); }
 
-/** 显示下一批记录；all 为真时一次展开全部。 */
-export function showMoreTableRows(all = false) { tableViews.plan?.more(all); }
-
 export function revealTablePlan(planId: string) { return tableViews.plan?.reveal(planId) ?? false; }
-
-export function resetTableFilters() {
-    if (tableViews.plan)
-        tableViews.plan.reset();
-    else
-        Object.assign(tableState, { search: "", cat: "all", region: "all", vendor: "all", sortKey: "priceM", sortDir: 1, fromPicker: false, extra: false });
-}
 
 /* 数据表的搜索防抖由组件登记：历史恢复时取消待执行的搜索。 */
 export function cancelTableSearch() { tableViews.plan?.cancelSearch(); }
@@ -242,7 +231,7 @@ export function cmpAdd(reference: string, plan?: string) {
     }
     cmpState.items = [...cmpState.items, p];
     syncUrl();
-    tableFeedback(`已加入 ${shortVendor(p.vendor)} ${p.plan}。当前选择 ${cmpState.items.length}/${CMP_MAX} 档${cmpState.items.length === 1 ? "，再选一档即可比较" : ""}。`);
+    tableFeedback(`已加入 ${planTitle(p)}。当前选择 ${cmpState.items.length}/${CMP_MAX} 档${cmpState.items.length === 1 ? "，再选一档即可比较" : ""}。`);
 }
 
 export function cmpRemove(reference: string, plan?: string) {
@@ -255,7 +244,7 @@ export function cmpRemove(reference: string, plan?: string) {
         return;
     cmpState.items = cmpState.items.filter((x) => x.id !== removed.id);
     syncUrl();
-    tableFeedback(`已移出 ${shortVendor(removed.vendor)} ${removed.plan}。当前选择 ${cmpState.items.length}/${CMP_MAX} 档。`);
+    tableFeedback(`已移出 ${planTitle(removed)}。当前选择 ${cmpState.items.length}/${CMP_MAX} 档。`);
 }
 
 export function cmpClear() {
@@ -302,13 +291,6 @@ export function openCmpModal() { tableViews.compare?.open(); }
 export function closeCmpModal() { tableViews.compare?.close(); }
 
 /* ---------- 额度深度对比表 ---------- */
-export function resetMetricsFilters() {
-    if (tableViews.metrics)
-        tableViews.metrics.reset();
-    else
-        Object.assign(metricsState, { model: "all", ver: "all", tier: "flagship", offer: "current", sortKey: "cpm", sortDir: 1, fromPicker: false });
-}
-
 /** 官方 API 按量参照行的口径：没有月费与额度，只有按牌价折算的每百万 tokens 成本。 */
 export interface PaygMetricModel {
     vendor: string; plan: string; ver: string; model: string; cur: string;
@@ -347,18 +329,18 @@ export const METRICS_COLUMNS: MetricsColumn[] = [
     { id: "model", label: "模型", cls: "model-cell" },
     { id: "price", label: "月费", sortKey: "price", asc: true, cls: "td-price" },
     { id: "tps", label: "TPS", cls: "col-more tps-cell" },
-    { id: "cpm", label: "💵每M tokens", sortKey: "cpm", asc: true },
+    { id: "cpm", label: "每M tokens", sortKey: "cpm", asc: true },
     { id: "t5h", label: "Tokens/5h", sortKey: "t5h", cls: "col-more tok-cell" },
-    { id: "val5h", label: "💰价值/5h", cls: "col-more val-cell" },
-    { id: "r5h", label: "⏫倍率/5h", sortKey: "r5h", cls: "col-more rate-cell",
+    { id: "val5h", label: "价值/5h", cls: "col-more val-cell" },
+    { id: "r5h", label: "倍率/5h", sortKey: "r5h", cls: "col-more rate-cell",
         tdClass: ({ c, isPayg }) => (isPayg ? "" : " " + rateClass(c.r5h)) },
     { id: "twk", label: "Tokens/周", sortKey: "twk", cls: "col-more tok-cell" },
-    { id: "valWk", label: "💰价值/周", cls: "col-more val-cell" },
-    { id: "rwk", label: "⏫倍率/周", sortKey: "rwk", cls: "col-more rate-cell",
+    { id: "valWk", label: "价值/周", cls: "col-more val-cell" },
+    { id: "rwk", label: "倍率/周", sortKey: "rwk", cls: "col-more rate-cell",
         tdClass: ({ c, isPayg }) => (isPayg ? "" : " " + rateClass(c.rwk)) },
     { id: "tmo", label: "每月 tokens", sortKey: "tmo", cls: "tok-cell" },
-    { id: "valMo", label: "💰价值/月", cls: "col-more val-cell" },
-    { id: "rmo", label: "⏫倍率/月", sortKey: "rmo", cls: "col-more rate-cell",
+    { id: "valMo", label: "价值/月", cls: "col-more val-cell" },
+    { id: "rmo", label: "倍率/月", sortKey: "rmo", cls: "col-more rate-cell",
         tdClass: ({ c, isPayg }) => (isPayg ? "" : " " + rateClass(c.rmo)) },
     { id: "prov", label: "依据", cls: "prov-cell",
         title: ({ m }) => [m.note, m.source].filter(Boolean).join(" · ") }
@@ -414,6 +396,7 @@ export function metricsTableRows() {
         : [];
     const shownRows: MetricsTableRow[] = [...payg, ...rows];
     const sv = METRICS_SORT_GET[metricsState.sortKey];
+    const grouped = metricsSortGroupsConfidence();
     shownRows.sort((a, b) => {
         const va = sv ? sv(a) : 0, vb = sv ? sv(b) : 0;
         const aN = va == null || Number.isNaN(va), bN = vb == null || Number.isNaN(vb);
@@ -422,14 +405,24 @@ export function metricsTableRows() {
                 return 0;
             return aN ? 1 : -1;
         } /* 无对应额度（按量无月费、credits 制等）恒排末尾 */
-        return (va - vb) * metricsState.sortDir;
+        const group = grouped ? Number(metricsRowLowConfidence(a)) - Number(metricsRowLowConfidence(b)) : 0;
+        return group || (va - vb) * metricsState.sortDir;
     });
     return { rows, payg, shownRows };
 }
 
-export function renderMetricsTable() { tableViews.metrics?.render(); }
+/* 依赖额度折算的排序（每 M 成本、各时段 tokens 与倍率）与性价比排行同一规则：先排官方与中置信行，再排低置信估算，
+   免得第三方毛利反推的估算排到第一位；按月费排序是事实价格，不分组。 */
+const CONFIDENCE_GROUPED_SORTS = new Set(["cpm", "t5h", "r5h", "twk", "rwk", "tmo", "rmo"]);
 
-export function showMoreMetricsRows(all = false) { tableViews.metrics?.more(all); }
+export function metricsSortGroupsConfidence() { return CONFIDENCE_GROUPED_SORTS.has(metricsState.sortKey); }
+
+/** 低置信行：第三方估算、请求次数折算，或价格待核的按量参照。 */
+export function metricsRowLowConfidence(row: MetricsTableRow) {
+    return row.payg ? !isPriceConfirmed(row.m, "payg") : provenance(row.m).conf === "低";
+}
+
+export function renderMetricsTable() { tableViews.metrics?.render(); }
 
 /* 模型筛选下拉：从全部数据源动态填充 */
 export function populateModelFilter() { tableViews.metrics?.models(); }
