@@ -429,7 +429,8 @@ async function main() {
         assert.deepEqual(error.errors, [swapError, restoreError]);
         const backups = fs.readdirSync(root).filter((name) => name.startsWith(".site-backup-"));
         assert.equal(backups.length, 1);
-        assert.ok(error.message.includes(path.join(root, backups[0])));
+        /* 发布脚本按真实路径工作；CI 的临时目录可能是 8.3 短名（RUNNER~1），报告的是展开后的路径。 */
+        assert.ok(error.message.includes(path.join(fs.realpathSync.native(root), backups[0])));
         return true;
       });
     } finally { fs.renameSync = originalRename; }
@@ -484,7 +485,7 @@ async function main() {
         assert.ok(error instanceof AggregateError);
         assert.deepEqual(error.errors, [swapError, restoreError]);
         const backup = fs.readdirSync(root).find(name => name.startsWith(".site-backup-"));
-        assert.ok(backup && error.message.includes(path.join(root, backup)));
+        assert.ok(backup && error.message.includes(path.join(fs.realpathSync.native(root), backup)));
         return true;
       });
     } finally { fs.renameSync = originalRename; }
