@@ -425,11 +425,11 @@ test("按用量反查可覆盖套餐，提供同模型按量费用与订阅回�
   const prices = rows.map((r) => r.quote.monthlyCNY);
   assert.deepEqual(prices, prices.slice().sort((a, b) => a - b));
   assert.equal(new Set(rows.map((r) => r.p.id)).size, rows.length);
-  assert.match(page.byId("costResult").textContent!, /能覆盖这个用量的套餐/);
+  assert.match(page.byId("costResult").textContent!, /套餐额度对照/);
   assert.equal(app.usageCoverageRows(1e9).length, 0);
   Object.assign(app.calcState, { requests: "100000", tokens: "10000000", days: "31" });
   await page.settle();
-  assert.match(page.byId("costResult").textContent!, /没有套餐的参考月额度下限/);
+  assert.match(page.byId("costResult").textContent!, /没有套餐的月额度折算或基准参考下限/);
   page.healthy();
 });
 

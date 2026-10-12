@@ -15,6 +15,65 @@ const view = useMount(PublicBenchmarks, () => {
 
 const SEARCH_SETTLE_MS = 200;
 
+test("共用模型名的版本枚举和区间参与可用套餐及能力匹配", () => {
+  const pro = legacy.findPlanReference("plan-0091")!, plus = legacy.findPlanReference("plan-0092")!, max = legacy.findPlanReference("plan-0093")!;
+  expect(legacy.publicModelIncluded(pro, "Claude Sonnet 5")).toBe(true);
+  expect(legacy.publicModelIncluded(pro, "Claude Sonnet 5.5")).toBe(true);
+  for (const plan of [plus, max]) {
+    expect(legacy.publicModelIncluded(plan, "Claude Opus 4.7")).toBe(true);
+    expect(legacy.publicModelIncluded(plan, "Claude Opus 5")).toBe(true);
+    expect(legacy.publicModelIncluded(plan, "Claude Opus 5.5")).toBe(true);
+    expect(legacy.publicModelIncluded(plan, "Claude Opus 5.6")).toBe(false);
+    expect(legacy.planProtocolScore(plan, legacy.planProfile(plan).headline)?.row.model).toBe("claude-opus-5");
+  }
+  expect(legacy.publicModelPlans("claude-opus-5").map((plan) => plan.id)).toContain(plus.id);
+  expect(legacy.publicModelPlans("claude-sonnet-5").map((plan) => plan.id)).toContain(pro.id);
+});
+
+test("版本简写保留系列后缀、否定和额外收费限制，不扩展未声明型号", () => {
+  const base = legacy.findPlanReference("plan-0092")!;
+  const fixture = (models: string, modelExcludes: string[] = []): Plan => ({ ...base, models, modelExcludes,
+    modelBaseRef: undefined, modelIncludes: undefined, fieldRefs: undefined });
+  const gemini = fixture("Gemini 3.5–3.8 Flash");
+  expect(legacy.publicModelIncluded(gemini, "Gemini 3.8 Flash")).toBe(true);
+  expect(legacy.publicModelIncluded(gemini, "Gemini 3.8 Pro")).toBe(false);
+  expect(legacy.publicModelIncluded(gemini, "Gemini 3.9 Flash")).toBe(false);
+  expect(legacy.publicModelIncluded(gemini, "Gemini 3.8")).toBe(false);
+  const glm = fixture("GLM-5.2/5.3");
+  expect(legacy.publicModelIncluded(glm, "GLM 5.3")).toBe(true);
+  expect(legacy.publicModelIncluded(glm, "GLM 5.4")).toBe(false);
+  expect(legacy.publicModelIncluded(glm, "GLM 5.3 Flash")).toBe(false);
+  const mixed = fixture("GLM-5.3/5.3-Flash");
+  expect(legacy.publicModelIncluded(mixed, "GLM 5.3")).toBe(true);
+  expect(legacy.publicModelIncluded(mixed, "GLM 5.3 Flash")).toBe(true);
+  expect(legacy.publicModelIncluded(mixed, "GLM 5.2")).toBe(false);
+  const differentVersions = fixture("GLM-5.2/5.3-Flash");
+  expect(legacy.publicModelIncluded(differentVersions, "GLM 5.2")).toBe(true);
+  expect(legacy.publicModelIncluded(differentVersions, "GLM 5.3 Flash")).toBe(true);
+  expect(legacy.publicModelIncluded(differentVersions, "GLM 5.3")).toBe(false);
+  expect(legacy.publicModelIncluded(differentVersions, "GLM 5.2 Flash")).toBe(false);
+  expect(legacy.publicModelIncluded(fixture("GLM-5.2-Flash/5.3"), "GLM 5.3")).toBe(true);
+  expect(legacy.publicModelIncluded(fixture("GLM-5.2-Flash/5.3"), "GLM 5.2 Flash")).toBe(true);
+  for (const plan of legacy.PLANS.filter((plan) => legacy.resolvedField(plan, "models").includes("GLM-5.3/5.3-Flash"))) {
+    expect(legacy.publicModelIncluded(plan, "GLM 5.3")).toBe(true);
+    expect(legacy.publicModelIncluded(plan, "GLM 5.3 Flash")).toBe(true);
+  }
+  expect(legacy.publicModelIncluded(fixture("GPT-5-6"), "GPT-5.5")).toBe(false);
+  for (const models of ["不支持 Claude Opus 4.7–5.5", "Claude Opus 4.7–5.5（需 usage credits）", "Claude Opus 4.7/5/5.5（需额外付费）"]) {
+    for (const version of ["4.7", "5", "5.5"]) expect(legacy.publicModelIncluded(fixture(models), "Claude Opus " + version)).toBe(false);
+  }
+  expect(legacy.publicModelIncluded(fixture("Claude Opus 4.7–5.5", ["Claude Opus 5.5"]), "Claude Opus 5.5")).toBe(false);
+  expect(legacy.publicModelIncluded(fixture("Claude Opus 4.7–5.5", ["Claude Opus 4.7–5.5"]), "Claude Opus 5")).toBe(false);
+  expect(legacy.publicModelIncluded(fixture("Claude Opus 4.7–5.5", ["Opus 4.7–5.5"]), "Claude Opus 5")).toBe(false);
+  const switched = "Claude Opus 4.7/5.5/Gemini 3.8 Flash";
+  expect(legacy.publicModelIncluded(fixture(switched), "Gemini 3.8 Flash")).toBe(true);
+  expect(legacy.publicModelIncluded(fixture(switched), "Claude Opus 5.5")).toBe(true);
+  for (const models of ["不支持 " + switched, switched + "（需额外付费）", switched + " 需 usage credits"]) {
+    expect(legacy.publicModelIncluded(fixture(models), "Gemini 3.8 Flash")).toBe(false);
+    expect(legacy.publicModelIncluded(fixture(models), "Claude Opus 5.5")).toBe(false);
+  }
+});
+
 function fixtureData(): PublicBenchmarkSnapshot {
   const protocol: PublicBenchmarkProtocol = { id: "deepswe-1-1", family: "DeepSWE", name: "Fixture DeepSWE", version: "1.1", category: "coding", metric: "任务通过率", unit: "%", description: "仅测试fixture", configuration: "固定测试配置", scope: "10项fixture", sourceUrl: "https://example.com/protocol", sourceUpdatedAt: null, checkedAt: "2026-10-10" };
   const score: PublicBenchmarkScore = { id: "fixture-a", benchmarkId: protocol.id, model: "Fixture Model A", reasoning: "high", agent: "fixture-agent", score: 80, costUSD: null, costNote: null, uncertainty: null, tokens: null, steps: null, sourceUrl: "https://example.com/scores", checkedAt: "2026-10-10" };

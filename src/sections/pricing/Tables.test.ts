@@ -104,10 +104,10 @@ test("输入搜索后在同一事件轮进入对比按钮，延迟筛掉该套�
   }
 });
 
-test.each(["body", "other"])("排序保留方案节点时修复页面失焦，保留用户其他控件焦点（%s）", async destination => {
+test.each([".cmp-add", ".watch-plan", 'td[data-column="url"] a'].flatMap(selector => ["body", "other"].map(destination => ({ selector, destination }))))("排序保留行内 $selector 焦点，保留用户其他控件焦点（$destination）", async ({ selector, destination }) => {
   runtime.tableState.search = "Anthropic";
   await tables.render();
-  const selected = document.querySelector<HTMLButtonElement>('#tableBody .cmp-add[data-plan-id="plan-0004"]')!;
+  const selected = document.querySelector<HTMLElement>(`#tableBody tr[data-plan-id="plan-0004"] ${selector}`)!;
   const other = document.getElementById("copyMdBtn") as HTMLButtonElement;
   const body = document.getElementById("tableBody")!;
   const insertBefore = body.insertBefore.bind(body);
@@ -131,12 +131,41 @@ test.each(["body", "other"])("排序保留方案节点时修复页面失焦，�
   expect(document.activeElement === other).toBe(destination === "other");
 });
 
+test.each([".watch-plan", 'td[data-column="url"] a'])("搜索筛掉聚焦的 %s 时返回搜索框", async selector => {
+  runtime.tableState.search = "Anthropic";
+  await tables.render();
+  const selected = document.querySelector<HTMLElement>(`#tableBody tr[data-plan-id="plan-0002"] ${selector}`)!;
+  vi.useFakeTimers();
+  const search = document.getElementById("searchInput") as HTMLInputElement;
+  search.value = "Cursor";
+  search.dispatchEvent(new Event("input", { bubbles: true }));
+  selected.focus();
+  await vi.advanceTimersByTimeAsync(151);
+  await flushPromises();
+  expect(selected.isConnected).toBe(false);
+  expect(document.activeElement).toBe(search);
+});
+
+test.each([".watch-plan", 'td[data-column="url"] a'])("响应式分页保留第 9 行 %s 的记录与焦点", async selector => {
+  await tables.render();
+  const selected = plans()[8]!.querySelector<HTMLElement>(selector)!;
+  selected.focus();
+  window.innerWidth = 375;
+  window.dispatchEvent(new Event("resize"));
+  await flushPromises();
+  expect(plans()).toHaveLength(10);
+  expect(selected.isConnected).toBe(true);
+  expect(document.activeElement).toBe(selected);
+});
+
 test("分页继续浏览会聚焦第一条新增记录；对比已满时聚焦新增行", async () => {
   await tables.render();
+  const reveal = vi.spyOn(HTMLElement.prototype, "scrollIntoView");
   await tables.wrapper.get("#tableMoreBtn").trigger("click");
   await flushPromises();
   expect(plans().length).toBe(40);
   expect(document.activeElement).toBe(compareButtons()[20]);
+  expect(reveal.mock.contexts).toContain(compareButtons()[20]);
   for (const button of compareButtons().slice(0, 4)) button.click();
   await flushPromises();
   expect(runtime.cmpState.items.length).toBe(4);
@@ -144,6 +173,29 @@ test("分页继续浏览会聚焦第一条新增记录；对比已满时聚焦�
   await tables.wrapper.get("#tableMoreBtn").trigger("click");
   await flushPromises();
   expect(document.activeElement).toBe(plans()[40]);
+  expect(reveal.mock.contexts).toContain(plans()[40]);
+  await tables.wrapper.get("#metricsMoreBtn").trigger("click");
+  await flushPromises();
+  const firstNewMetric = document.querySelectorAll<HTMLTableRowElement>("#metricsBody tr")[20];
+  expect(document.activeElement).toBe(firstNewMetric);
+  expect(reveal.mock.contexts).toContain(firstNewMetric);
+});
+
+test.each(["clipped", "visible", "moved", "detached"])("分页滚动提交后只补齐仍被裁剪的当前焦点（%s）", state => {
+  const wrap = document.createElement("div"); wrap.className = "table-wrap";
+  const target = document.createElement("button"), other = document.createElement("button");
+  wrap.append(target); document.body.append(wrap, other);
+  const frames: FrameRequestCallback[] = [];
+  vi.spyOn(window, "requestAnimationFrame").mockImplementation(callback => { frames.push(callback); return frames.length; });
+  vi.spyOn(wrap, "getBoundingClientRect").mockReturnValue(DOMRect.fromRect({ x: 0, y: 100, width: 1000, height: 600 }));
+  vi.spyOn(target, "getBoundingClientRect").mockReturnValue(DOMRect.fromRect({ x: 10, y: state === "visible" ? 200 : 1100, width: 50, height: 21 }));
+  const scroll = vi.spyOn(target, "scrollIntoView");
+  expect(runtime.revealAndFocusTableControl(target)).toBe(true);
+  if (state === "moved") other.focus();
+  if (state === "detached") target.remove();
+  frames.shift()!(0); frames.shift()!(0);
+  expect(scroll).toHaveBeenCalledTimes(state === "clipped" ? 2 : 1);
+  if (state === "moved") expect(document.activeElement).toBe(other);
 });
 
 test("导出包含全部筛选结果与核价元数据，保留计价单位，超出当前分页", async () => {

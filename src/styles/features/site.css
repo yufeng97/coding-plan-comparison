@@ -20,7 +20,7 @@
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-l);
   padding: 20px; font-size: 13px; color: var(--muted); margin-bottom: 10px;
 }
-.source-card h3 { color: var(--ink); font-size: 14.5px; margin-bottom: 12px; font-weight: 700; }
+.source-card :is(h2, h3) { color: var(--ink); font-size: 14.5px; margin-bottom: 12px; font-weight: 700; }
 #sourceList .method-box ul { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
 #sourceList .method-box li { overflow-wrap: anywhere; }
 .source-group { margin-bottom: 12px; }

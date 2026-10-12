@@ -9,6 +9,32 @@ export function focusTableControl(el: Element | null | undefined) {
     return document.activeElement === target;
 }
 
+/* 分页是主动进入新记录：先滚动其所在的表格和页面，再聚焦。
+ * 其他焦点恢复仍用 preventScroll，避免筛选、关闭窗口或历史恢复改变阅读位置。 */
+export function revealAndFocusTableControl(el: Element | null | undefined) {
+    const target = el as (HTMLElement & { disabled?: boolean }) | null | undefined;
+    if (!target || target.isConnected === false || target.disabled || typeof target.focus !== "function")
+        return false;
+    target.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
+    const focused = focusTableControl(target);
+    /* WebKit 冷加载时，嵌套表格滚动后会在首帧把外层窗口退回旧位置。
+     * 等滚动提交后只补齐仍被裁剪的当前焦点；用户已换控件时不再滚动。 */
+    if (focused && typeof window.requestAnimationFrame === "function") {
+        window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+            if (!target.isConnected || document.activeElement !== target || target.closest("[hidden], [inert]"))
+                return;
+            const box = target.getBoundingClientRect();
+            const wrap = target.closest(".table-wrap")?.getBoundingClientRect();
+            const headerBottom = document.querySelector(".topbar")?.getBoundingClientRect().bottom || 0;
+            const top = Math.max(0, headerBottom, wrap?.top ?? 0), bottom = Math.min(window.innerHeight, wrap?.bottom ?? window.innerHeight);
+            const left = Math.max(0, wrap?.left ?? 0), right = Math.min(window.innerWidth, wrap?.right ?? window.innerWidth);
+            if (box.top < top - 1 || box.bottom > bottom + 1 || box.left < left - 1 || box.right > right + 1)
+                target.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
+        }));
+    }
+    return focused;
+}
+
 export function responsivePageSize() { return window.innerWidth < 768 ? 5 : 20; }
 
 export function downloadCsvText(csv: string, filename: string) {

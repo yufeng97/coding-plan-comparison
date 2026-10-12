@@ -6,7 +6,7 @@ const os = require("node:os");
 const path = require("node:path");
 const vm = require("node:vm");
 const { syncPricingAudit, parseArgs } = require("../../scripts/build/sync-pricing-audit");
-const { seededHistory } = require("../../scripts/maintenance/history");
+const { seededHistory, changeOf, mergeHistory } = require("../../scripts/maintenance/history");
 const { validateData } = require("../../scripts/build/validate-data");
 const { buildMaintenance } = require("../../scripts/maintenance/build-maintenance");
 const { rewindToFullAudit } = require("./full-audit-baseline");
@@ -144,6 +144,51 @@ test("无效来源URL通过完整校验拒绝且所有输出不变", ({ root, sn
   fs.writeFileSync(file, JSON.stringify(audit));
   assert.throws(() => syncPricingAudit(root), /核价来源 URL 非法/);
   assert.deepEqual(snapshot(), before);
+  assert.deepEqual(stages(), []);
+});
+
+test("全量与增量均拒绝同来源ID的URL或证据覆盖，落盘前零写入", ({ root, incremental, writeIncremental, allOutputs, stages }) => {
+  const file = path.join(root, "data/audit", inputs[0]);
+  const original = JSON.parse(fs.readFileSync(file, "utf8"));
+  const existing = original.sources.find((entry) => entry.id === "claude-plans");
+  const before = allOutputs();
+  for (const mode of ["full", "incremental"]) for (const field of ["url", "evidence"]) {
+    const replacement = { ...existing, [field]: field === "url" ? "https://claude.com/other-pricing" : "同一来源 ID 的另一份核查证据。" };
+    let options = {};
+    if (mode === "full") {
+      const audit = structuredClone(original);
+      Object.assign(audit.sources.find((entry) => entry.id === existing.id), replacement);
+      fs.writeFileSync(file, JSON.stringify(audit));
+    } else {
+      const audit = incremental();
+      audit.sources = [replacement]; audit.records[0].sourceIds = [existing.id];
+      options = writeIncremental(audit);
+    }
+    assert.throws(() => syncPricingAudit(root, { ...options, writeBytes() { throw new Error("不得开始写入"); } }), /旧来源证据不可覆盖/);
+    assert.deepEqual(allOutputs(), before);
+    assert.deepEqual(stages(), []);
+  }
+});
+
+test("全量复核保留不再引用的既有来源，证据身份和幂等输出不变", ({ root, allOutputs, checkedAt }) => {
+  const file = path.join(root, "data/sources/data.js"), id = "historical-unreferenced-source";
+  const evidence = { url: "https://example.com/old-pricing", evidence: "历史核价时的原始说明，当前记录已不再引用。", checkedAt };
+  fs.writeFileSync(file, fs.readFileSync(file, "utf8").replace('"sources": {', '"sources": {\n' + JSON.stringify(id) + ': ' + JSON.stringify(evidence) + ','));
+  syncPricingAudit(root);
+  const after = dataOf(fs.readFileSync(file, "utf8"));
+  assert.equal(JSON.stringify(after.PRICE_CHECKS.sources[id]), JSON.stringify(evidence));
+  const before = allOutputs();
+  assert.equal(syncPricingAudit(root, { writeBytes() { throw new Error("幂等复核不得写入"); } }).filesChanged, 0);
+  assert.deepEqual(allOutputs(), before);
+});
+
+test("全量复核不能用已保存的旧来源代替本次输入缺失的证据", ({ root, allOutputs, stages }) => {
+  const file = path.join(root, "data/audit", inputs[0]), audit = JSON.parse(fs.readFileSync(file, "utf8"));
+  audit.sources = audit.sources.filter((entry) => entry.id !== "claude-plans");
+  fs.writeFileSync(file, JSON.stringify(audit));
+  const before = allOutputs();
+  assert.throws(() => syncPricingAudit(root, { writeBytes() { throw new Error("不得开始写入"); } }), /核价来源缺失或未提供本次证据/);
+  assert.deepEqual(allOutputs(), before);
   assert.deepEqual(stages(), []);
 });
 
@@ -415,6 +460,37 @@ test("显式完整new才能增加永久计划，重复入库无变化，复用ID
   audit.records[0].new.priceM = 10;
   assert.throws(() => syncPricingAudit(root, writeIncremental(audit)), /永久 ID 已存在/);
   assert.deepEqual(allOutputs(), updated);
+});
+
+for (const origin of ["history", "ledger"]) test("全量与增量新增都拒绝复用" + (origin === "history" ? "变更历史" : "无改价的已发布台账") + "中的已移除永久ID", ({ root, writeIncremental, allOutputs, stages }) => {
+  const id = "plan-removed-" + origin;
+  const current = dataOf(fs.readFileSync(path.join(root, "data/sources/data.js"), "utf8"));
+  assert.equal(current.PLANS.some((plan) => plan.id === id), false);
+  const identity = { id, kind: "plan", vendor: "Old Vendor", name: "Former Plan", checkedAt: "2026-10-03", sourceUrls: ["https://old.example.com/pricing"] };
+  if (origin === "history") {
+    const file = path.join(root, "data/audit/change-history.json");
+    const previous = JSON.parse(fs.readFileSync(file, "utf8"));
+    fs.writeFileSync(file, JSON.stringify(mergeHistory(previous, [changeOf({ priceM: 9 }, { priceM: 10 }, identity)])));
+  } else {
+    const ledger = { checkedAt: identity.checkedAt, totals: { plans: 1, api: 0, payg: 0 }, sources: [], records: [{ ...identity, current: { vendor: identity.vendor, plan: identity.name, priceM: 10 } }] };
+    fs.writeFileSync(path.join(root, "data/audit/pricing-verification-2026-10-03.json"), JSON.stringify(ledger));
+  }
+  const plan = { id, vendor: "New Vendor", plan: "Different Pro", cat: "tool", region: "intl", priceM: 30, priceY: null, cur: "USD", seat: false, quota: "每月1000次编程请求。", models: "GPT-6 Sol", tools: "独立CLI", note: "与历史产品无关的全新产品。", url: "https://new.example.com/pricing" };
+  const source = { id: "new-vendor-evidence", url: plan.url, evidence: "全新厂商产品月费30美元，已核对官网。" };
+  const record = { kind: "plan", id, vendor: plan.vendor, name: plan.plan, new: plan, status: "verified", checkedAt: "2026-10-04", sourceIds: [source.id], reason: "新增不同供应商的编程产品。" };
+  const before = allOutputs();
+  for (const mode of ["incremental", "full"]) {
+    let options;
+    if (mode === "incremental") options = writeIncremental({ sources: [source], records: [record] });
+    else {
+      const file = path.join(root, "data/audit", inputs[0]), audit = JSON.parse(fs.readFileSync(file, "utf8"));
+      audit.sources.push(source); audit.records.push(record);
+      fs.writeFileSync(file, JSON.stringify(audit)); options = {};
+    }
+    assert.throws(() => syncPricingAudit(root, { ...options, writeBytes() { throw new Error("不得开始写入"); } }), /永久 ID 已用于历史计划，不能复用新增/);
+    assert.deepEqual(allOutputs(), before);
+    assert.deepEqual(stages(), []);
+  }
 });
 
 test("增量data、台账、history第四文件失败回滚，不留新台账", ({ root, incremental, writeIncremental, allOutputs, stages }) => {

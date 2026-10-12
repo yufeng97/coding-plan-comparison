@@ -200,7 +200,7 @@ function downloadJson() {
 
   <div id="publicBenchmarkMeta">
     <template v-if="selected">
-      <h3>{{ selected.name }}</h3>
+      <h2>{{ selected.name }}</h2>
       <p class="maintenance-meta">{{ selected.metric }}（{{ selected.unit }}） · {{ selected.scope }}</p>
       <!-- 按协议区分：换协议时收起，同一协议内筛选或搜索保持展开 -->
       <details :key="selected.id" class="public-protocol-details" :data-benchmark-id="selected.id">

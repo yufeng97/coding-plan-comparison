@@ -41,7 +41,7 @@ export function bindBackToTop() {
         const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
         const view = siteView();
-        const title = view === "compare" ? qs(".hero h1") : byId(view)?.querySelector("h2");
+        const title = view === "compare" ? qs(".hero h1") : byId(view)?.querySelector<HTMLElement>(".section-head h1");
         if (title) {
             title.setAttribute("tabindex", "-1");
             title.focus({ preventScroll: true });

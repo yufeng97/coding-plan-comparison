@@ -7,7 +7,7 @@
 .usage-import-file input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 .usage-import-file:focus-within { outline: 2px solid var(--accent-2); outline-offset: 3px; }
 .usage-coverage { margin-top: 14px; }
-.usage-coverage h4 { margin: 0 0 6px; font-size: 14px; color: var(--ink); }
+.usage-coverage h3 { margin: 0 0 6px; font-size: 14px; color: var(--ink); }
 .usage-coverage-table th, .usage-coverage-table td { padding: 6px 8px; text-align: left; vertical-align: top; }
 .usage-coverage-table thead th { color: var(--faint); font-size: 12px; font-weight: 600; border-bottom: 1px solid var(--line); }
 .usage-coverage-table th[scope="row"] { color: var(--ink); font-weight: 600; border-bottom: 1px dashed var(--line); }

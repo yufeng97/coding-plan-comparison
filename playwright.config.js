@@ -26,5 +26,7 @@ module.exports = defineConfig({
     url: "http://127.0.0.1:18461",
     env: { PORT: "18461" },
     reuseExistingServer: false,
+    /* 包含 Vite、经典资源和 Vue SSR 构建，冷启动为较慢的 Windows / CI 主机留足时间。 */
+    timeout: 180000,
   },
 });

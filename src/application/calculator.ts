@@ -12,7 +12,7 @@ import { chooseMain, eligibleProfiles, pickerPaymentQuote } from '../state/picke
 import { byId } from '../browser/dom';
 import { navigateToSection } from './navigation';
 import { serviceFeedback } from './service-actions';
-import { computeMetrics, isFlagshipModelName, type MetricsResult } from '../domain/metrics';
+import { computeMetrics, fromCNY, isFlagshipModelName, toCNY, WEEKS_PER_MONTH, type MetricsResult } from '../domain/metrics';
 import { provenance } from '../domain/provenance';
 
 /* 费用计算器与用量导入由 CostCalculator.vue 实现；挂载时登记重算与导入入口，供推荐卡、导航与历史恢复调用。 */
@@ -80,9 +80,11 @@ export interface UsageCoverageRow {
     flagship: boolean;
     apiMonthlyCNY: number | null;
     breakEvenM: number | null;
+    quotaBasis: "workload" | "reference";
 }
 
-/* 参考月额度下限覆盖本月用量的套餐：只用官方或中置信折算（第三方与请求次数估算不作「够用」依据），
+/* 月额度对照：credits 月池按当前输入/缓存比例重算，其余按页面基准的参考下限筛选。
+   只用官方或中置信折算（第三方与请求次数估算不作「够用」依据），
    沿用帮我选的地区、工具与付款方式，按月均价从低到高。每档只保留一行：优先能覆盖的主力模型。 */
 export function usageCoverageRows(monthlyM: number, state: Pick<WorkloadState, "input" | "cache"> = calcState): UsageCoverageRow[] {
     const byPlan = new Map<string, Omit<UsageCoverageRow, "apiMonthlyCNY" | "breakEvenM">>();
@@ -93,10 +95,21 @@ export function usageCoverageRows(monthlyM: number, state: Pick<WorkloadState, "
         if ((pickerState.region !== "all" && p.region !== pickerState.region) || !matchesTool(p, pickerState.tool))
             continue;
         const quote = pickerPaymentQuote(p);
-        const c = computeMetrics(m), conf = provenance(m).conf;
-        if (!quote.available || !c || c.moLow == null || !(conf === "高" || conf === "中") || c.moLow < monthlyM)
+        const baseline = computeMetrics(m), conf = provenance(m).conf;
+        if (!quote.available || !baseline || baseline.moLow == null || !(conf === "高" || conf === "中"))
             continue;
-        const row = { p, m, c: { ...c, moLow: c.moLow }, conf, quote, flagship: isFlagshipModelName(m.model) };
+        const credits = m.creditCNY != null || m.creditUSD != null;
+        const apiPerM = metricApiCNYPerM(m, p, state);
+        const creditCNY = m.creditCNY ?? (m.creditUSD != null ? toCNY(m.creditUSD, "USD") : null);
+        const moLow = credits ? creditCNY != null && apiPerM != null ? creditCNY / apiPerM : null : baseline.moLow;
+        if (moLow == null || moLow < monthlyM)
+            continue;
+        const c = credits ? { ...baseline, moLow, moHigh: moLow, moMidM: moLow,
+            fLow: null, fHigh: null,
+            wkLowM: moLow / WEEKS_PER_MONTH, wkHighM: moLow / WEEKS_PER_MONTH,
+            blend: fromCNY(apiPerM!, p.cur), costPerM: baseline.priceCNY / moLow,
+        } : { ...baseline, moLow };
+        const row = { p, m, c, conf, quote, flagship: isFlagshipModelName(m.model), quotaBasis: credits ? "workload" as const : "reference" as const };
         const previous = byPlan.get(p.id);
         if (!previous || (row.flagship && !previous.flagship) || (row.flagship === previous.flagship && row.c.moLow > previous.c.moLow))
             byPlan.set(p.id, row);

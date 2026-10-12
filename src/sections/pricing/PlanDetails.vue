@@ -10,7 +10,8 @@ import PlanHistory from "../follow/PlanHistory.vue";
 import WatchButton from "../../components/WatchButton.vue";
 const planId = ref(""), dialog = ref<HTMLDialogElement | null>(null), backdrop = ref<HTMLElement | null>(null);
 const followFeedback = ref("");
-watch(() => followView.feedback, message => { if (dialog.value?.open) followFeedback.value = message; });
+const isOpen = () => !!dialog.value && (dialog.value.open === true || dialog.value.hasAttribute("open"));
+watch(() => followView.feedback, message => { if (isOpen()) followFeedback.value = message; });
 const plan = computed(() => findPlanReference(planId.value));
 const fields = computed(() => {
   const current = plan.value;
@@ -39,8 +40,8 @@ function finishClose() {
 function close() {
   openRequest++;
   const element = dialog.value;
-  if (!element?.open) return;
-  if (typeof element.close === "function") element.close();
+  if (!element || !isOpen()) return;
+  if (!element.classList.contains("cmp-fallback") && typeof element.close === "function") element.close();
   else { element.removeAttribute("open"); finishClose(); }
 }
 function makeBackgroundInert(element: Element) {
@@ -60,17 +61,19 @@ async function show(id: string, trigger: HTMLElement | null = null) {
   if (!findPlanReference(id)) return;
   const request = ++openRequest;
   if (isCmpModalOpen()) closeCmpModal();
-  if (!dialog.value?.open) returnFocus = trigger || (document.activeElement instanceof HTMLElement ? document.activeElement : null);
+  if (!isOpen()) returnFocus = trigger || (document.activeElement instanceof HTMLElement ? document.activeElement : null);
   planId.value = id;
   followFeedback.value = followView.storageMessage;
   await nextTick();
   const element = dialog.value;
   if (!element || request !== openRequest) return;
-  if (element.open) { focusTableControl(document.getElementById("planDetailsCloseBtn")); return; }
+  if (isOpen()) { focusTableControl(document.getElementById("planDetailsCloseBtn")); return; }
   element.setAttribute("aria-modal", "true");
-  if (typeof element.showModal === "function") element.showModal();
+  const fallback = typeof element.showModal !== "function";
+  element.classList.toggle("cmp-fallback", fallback);
+  if (!fallback) element.showModal();
   else {
-    element.classList.add("cmp-fallback"); element.setAttribute("open", "");
+    element.setAttribute("open", "");
     if (backdrop.value) backdrop.value.hidden = false;
     makeBackgroundInert(element);
   }

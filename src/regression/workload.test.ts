@@ -82,3 +82,39 @@ test("三种费用情景按明确示例假设计算，各自保留工作量区�
   for (const [i, usd] of [228.8, 158.4, 123.2].entries()) near(noCache[i].costNative, usd);
   expect(app.calculateCostScenarios({ ...app.APP_DEFAULTS.calc, requests: "0" }, usdApi).map((r) => r.costCNY)).toEqual([0, 0, 0]);
 });
+
+function codexUsageLog(session: string, extended = false) {
+  const usage = (input: number, output: number) => ({ input_tokens: input, cached_input_tokens: input * 0.8, output_tokens: output, total_tokens: input + output });
+  const event = (minute: string, total: ReturnType<typeof usage>, last: ReturnType<typeof usage>) => JSON.stringify({
+    timestamp: `2026-10-01T10:${minute}:00Z`, type: "event_msg", payload: { type: "token_count", info: { total_token_usage: total, last_token_usage: last } },
+  });
+  const first = usage(5000, 300);
+  return [JSON.stringify({ type: "session_meta", payload: { id: session } }), event("02", first, first),
+    ...(extended ? [event("05", usage(12000, 700), usage(7000, 400))] : [])].join("\n");
+}
+
+test("Codex 相同会话的重复和重叠文件只计一次，不同会话相同用量分别计入", () => {
+  const first = codexUsageLog("session-a"), extended = codexUsageLog("session-a", true);
+  expect(app.parseUsageExport([first, first]).total).toBe(5300);
+  expect(app.parseUsageExport([first, extended]).total).toBe(12700);
+  expect(app.parseUsageExport([extended, first]).total).toBe(12700);
+  expect(app.parseUsageExport([first, codexUsageLog("session-b")]).total).toBe(10600);
+  expect(app.parseUsageExport(first + "\n" + codexUsageLog("session-b")).total).toBe(10600);
+});
+
+test("多文件用量保留同粒度导入，拒绝混合日记录与月记录", () => {
+  const daily = JSON.stringify({ daily: [{ date: "2026-10-01", inputTokens: 800000, outputTokens: 200000 }] });
+  const nextDay = JSON.stringify({ daily: [{ date: "2026-10-02", inputTokens: 800000, outputTokens: 200000 }] });
+  const monthly = JSON.stringify({ monthly: [{ month: "2026-09", inputTokens: 24000000, outputTokens: 6000000 }] });
+  const nextMonth = JSON.stringify({ monthly: [{ month: "2026-10", inputTokens: 24000000, outputTokens: 6000000 }] });
+  const dayUsage = app.parseUsageExport([daily, nextDay]);
+  expect(dayUsage.total).toBe(2000000);
+  expect(dayUsage.activeDays).toBe(2);
+  const monthUsage = app.parseUsageExport([monthly, nextMonth]);
+  expect(monthUsage.total).toBe(60000000);
+  expect(monthUsage.months).toBe(2);
+  const values = app.usageToCalculator(monthUsage);
+  expect(Math.abs(Number(values.requests) * Number(values.tokens) * Number(values.days) - 30000000)).toBeLessThanOrEqual(1100);
+  expect(() => app.parseUsageExport([daily, monthly])).toThrow(/不能混合按日记录与按月记录/);
+  expect(() => app.parseUsageExport([monthly, daily])).toThrow(/统一导出/);
+});

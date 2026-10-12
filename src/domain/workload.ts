@@ -190,7 +190,7 @@ const objectOrNull = (value: unknown) => value && typeof value === "object" ? va
    Codex 在限额信息更新时会重复发出 token_count，累计用量未变的事件不重复计入。 */
 function usageRowsFromLog(text: string, seen: Set<string>): UsageRecord[] {
     const rows: UsageRecord[] = [];
-    let parsed = 0, codexTotal = "", codexModel = "";
+    let parsed = 0, codexTotal = "", codexModel = "", codexSession = "";
     for (const line of text.split(/\r?\n/)) {
         if (!line.trim())
             continue;
@@ -218,6 +218,13 @@ function usageRowsFromLog(text: string, seen: Set<string>): UsageRecord[] {
             continue;
         }
         const payload = objectOrNull(event.payload) ?? {};
+        if (event.type === "session_meta" && typeof payload.id === "string") {
+            if (codexSession !== payload.id) {
+                codexTotal = "";
+                codexModel = "";
+            }
+            codexSession = payload.id;
+        }
         if (event.type === "turn_context" && typeof payload.model === "string")
             codexModel = payload.model;
         const info = payload.type === "token_count" ? objectOrNull(payload.info) : null;
@@ -227,6 +234,14 @@ function usageRowsFromLog(text: string, seen: Set<string>): UsageRecord[] {
         if (info.total_token_usage && total === codexTotal)
             continue;
         codexTotal = total;
+        /* 同一会话的累计快照可在备份/重叠文件中再次出现；不同会话的相同计数不能合并。
+           缺少会话身份时只作文件内去重，不猜测两份日志是否属于同一次会话。 */
+        if (codexSession && info.total_token_usage) {
+            const id = JSON.stringify(["codex", codexSession, total]);
+            if (seen.has(id))
+                continue;
+            seen.add(id);
+        }
         const last = info.last_token_usage as Record<string, unknown>;
         rows.push({ date, model: codexModel, inputTokens: last.input_tokens, cachedInputTokens: last.cached_input_tokens, outputTokens: last.output_tokens });
     }
@@ -288,9 +303,11 @@ export function parseUsageExport(texts: string | readonly string[]): UsageSummar
         if (/^\d{4}-\d{2}-\d{2}$/.test(date))
             days.add(date);
         const month = typeof row.month === "string" ? row.month.slice(0, 7) : "";
-        if (/^\d{4}-\d{2}$/.test(month))
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date) && /^\d{4}-\d{2}$/.test(month))
             months.add(month);
     }
+    if (days.size && months.size)
+        throw new Error("不能混合按日记录与按月记录：请分别导入，或将所有文件统一导出为 ccusage daily --json 后再合并。");
     const total = input + output;
     if (!(total > 0))
         throw new Error("没有读到 token 用量；请确认粘贴的是 ccusage daily 或 monthly 的 --json 输出，或含 token 记录的会话日志。");

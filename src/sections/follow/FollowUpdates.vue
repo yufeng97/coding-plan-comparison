@@ -65,7 +65,7 @@ watch(() => follow.planIds.length, async () => {
 <template>
   <div class="maintenance-grid" @focusin="rememberFocus">
     <div class="maintenance-panel">
-      <h3>我关注的套餐</h3>
+      <h2>我关注的套餐</h2>
       <p id="followStorageNote">{{ storageNote }}</p>
       <div id="followImport" class="follow-import" :hidden="!importInfo.fresh.length">
         <template v-if="importInfo.fresh.length">
@@ -100,7 +100,7 @@ watch(() => follow.planIds.length, async () => {
       </div>
     </div>
     <div class="maintenance-panel">
-      <h3>查看套餐历史</h3>
+      <h2>查看套餐历史</h2>
       <label class="maintenance-select" for="maintenancePlan">选择套餐<select id="maintenancePlan" ref="planSelect" :value="maintenance.planId" @change="maintenance.planId = targetValue($event)">
         <option value="">选择套餐</option>
         <option v-for="plan in PLANS" :key="plan.id" :value="plan.id">{{ planTitle(plan) }}</option>

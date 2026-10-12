@@ -84,7 +84,7 @@ npm run test:news
 4. 添加官网证据和对应 `PRICE_CHECKS.rows["plan:" + id]`；API 与按量记录按 `vendor|model` 身份同步维护。加入 `SOURCES`，有值得告知用户的事件时更新 `DYNAMICS`，随后把官方监测网址加入采集配置。只有额度依据足够时才补 `METRICS_RAW`/`ESTIMATES`，标清官方值、折算或估算。
 5. 更新版本日期与 `CHANGES.md`，先执行 `npm run catalog:build` 同步浏览器类型化目录，再执行 `npm run check`、`npm run typecheck`、`npm run validate`、`npm test`。修改页面交互或推荐逻辑时再执行相关浏览器回归；检查构建产物后发布。新增数据字段先在 `types/catalog.d.ts` 的对应接口里声明；在数据文件里新增顶层常量或函数时用 JSDoc 写明类型（`catalog:build` 只按 JSDoc 生成 TypeScript 注解，函数参数缺少注解时生成失败）。
 
-**全量与增量分开运行**：默认同步仍要求四份全量审计输入日期一致、覆盖全部记录。日常使用增量模式，只更新此次有新证据的行，保留其他行的核查日期；拒绝日期倒退、旧 patch 覆盖新值、来源 ID 的证据冲突及无证据修改。新增套餐通过 record.new 提交完整 Plan，并分配从未使用过的永久 ID。同步会原子更新数据、审计台账与变更历史，失败整组回滚；不会更新动态、来源目录或额度指标。输入字段及完整步骤见 [贡献指南](../CONTRIBUTING.md)。
+**全量与增量分开运行**：默认同步仍要求四份全量审计输入日期一致、覆盖全部记录。日常使用增量模式，只更新此次有新证据的行，保留其他行的核查日期；拒绝日期倒退、旧 patch 覆盖新值及无证据修改。两种模式都必须在本次输入提供引用的来源，保留既有来源及其身份；同 ID 不得改写 URL 或证据，新的依据须使用新来源 ID。新增套餐通过 record.new 提交完整 Plan，并分配从未使用过的永久 ID；校验同时检查当前目录、变更历史和正式核价台账，已移除套餐的 ID 也不能复用。同步会原子更新数据、审计台账与变更历史，失败整组回滚；不会更新动态、来源目录或额度指标。输入字段及完整步骤见 [贡献指南](../CONTRIBUTING.md)。
 
 核价同步与维护摘要构建共用 `data/audit/.pricing.lock`，互斥覆盖读取、校验、历史合并到提交全过程，维护一致性检查也参与这把锁。释放时核对唯一所有者；运行期间不得人工删除或替换锁文件。异常退出后先检查其中的主机、PID 与时间，确认没有核价或维护进程后再人工清理；脚本不会按死 PID 自动删锁。
 
@@ -154,7 +154,7 @@ npm run catalog:build
 npm test
 ```
 
-`collect` 只写忽略目录 `data/audit/benchmark-sources/`，保留原始下载 SHA-256、完整历史候选和来源连续失败；变化比较按协议/精确模型/推理/Agent 的稳定 ID，日期刷新不会冒充成绩变化。任何必需来源失败或格式改变均返回非零码，保留正式数据与上一份完整候选。`publish` 要求审核者、理由及哈希匹配的原始证据，然后原子替换 `data/benchmarks/public-results.json`；`benchmark:build` 生成浏览器可离线读取的 `BENCHMARKS.public`（按需加载），并从中派生首屏加载的 `data/sources/benchmark-summary.js`：仅编程协议的每模型最佳配置与本协议名次，供「帮我选」卡片显示本档明确包含的模型成绩，只作参考、不参与推荐排序；`benchmark:check` 在 CI 只读核对两份产物。采集不直接提交或部署；可从 [手动采集工作流](../.github/workflows/benchmark-collect.yml) 下载待审材料。
+`collect` 只写忽略目录 `data/audit/benchmark-sources/`，保留原始下载 SHA-256、完整历史候选和来源连续失败；变化比较按协议/精确模型/推理/Agent 的稳定 ID，日期刷新不会冒充成绩变化。任何必需来源失败或格式改变均返回非零码，保留正式数据与上一份完整候选。`publish` 要求审核者、理由及哈希匹配的原始证据，然后原子替换 `data/benchmarks/public-results.json`；`benchmark:build` 生成浏览器可离线读取的 `BENCHMARKS.public`（按需加载），并从中派生首屏加载的 `data/generated/benchmark-summary.js`：仅编程协议的每模型最佳配置与本协议名次，供「帮我选」卡片显示本档明确包含的模型成绩。「模型能力优先」按 DeepSWE v1.1 已公布成绩参与推荐排序，额度与价格优先时仅作参考；`benchmark:check` 在 CI 只读核对两份产物。采集不直接提交或部署；可从 [手动采集工作流](../.github/workflows/benchmark-collect.yml) 下载待审材料。
 
 核查日期是本站本次下载/核对时间，官方更新日另记；未公布的运行日、工具、费用或样本数保留未知。费用列属于评测任务或 rollout 的官方成本，DeepSWE 的部分模型按官网当前价格修正表折算，CursorBench 4.0 按公布的 token 价格计算，3.0 历史发布节选的费用未公布；不把原始费用、折算费用或未知费用混为真实账单，不等同订阅月费。不跨模型/协议推断未公布的成绩，也不把空值补成零。
 

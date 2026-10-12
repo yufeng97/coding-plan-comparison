@@ -9,6 +9,7 @@ import { abilityText, candidateRole, priceLine, quotaEvidenceText } from "@state
 import { focusTableControl } from "@browser/interaction";
 import { openWorkloadCalculator } from "@app/calculator";
 import PickerCard from "./PickerCard.vue";
+import ServiceActions from "./ServiceActions.vue";
 import CompareButton from "../../components/CompareButton.vue";
 import { pickerView, pickerPolicy, priorityLabel } from "./picker-view";
 
@@ -45,5 +46,6 @@ watch(view, async () => {
     <details v-if="view.alternatives.length" class="picker-alternatives method-box"><summary>其他候选（{{ view.alternatives.length }} 档，均在预算内）</summary><div class="picker-alternatives-grid"><PickerCard v-for="card in view.alternatives" :key="card.plan.id" :model="card" /></div></details>
   </div>
   <div class="picker-after"><button id="checkWorkloadBtn" type="button" class="chip workload-check" @click.stop="openWorkloadCalculator()">按我的用量核对</button><p id="pickerNote" class="chart-note" role="status" aria-live="polite" aria-atomic="true">{{ view.note }}</p></div>
+  <ServiceActions />
   <details id="pickerRules" class="method-box picker-rules"><summary>推荐规则与口径</summary><p id="pickerPolicy" class="maintenance-meta">{{ policy }}</p><p id="pickerRulesNote" class="maintenance-meta">{{ rules }}</p></details>
 </template>

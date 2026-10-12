@@ -148,23 +148,42 @@ test("历史恢复取消个人图待显示的搜索，不启动尚未初始化�
   expect(charts.size).toBe(0);
 });
 
-test("完整权益弹窗的备用模式隔离背景、保留内容并恢复触发按钮焦点", async () => {
+test.each([false, true])("完整权益备用模式在 open 属性缺失=%s 时可关闭与重开，并精确恢复背景", async missingOpen => {
   await details.render();
   const trigger = document.createElement("button"); trigger.id = "detailsTrigger"; document.body.appendChild(trigger); trigger.focus();
   const modal = details.wrapper.get<HTMLDialogElement>("#planDetailsModal").element;
   Object.defineProperty(modal, "showModal", { value: undefined, configurable: true });
   Object.defineProperty(modal, "close", { value: undefined, configurable: true });
+  if (missingOpen) Object.defineProperty(modal, "open", { get: () => undefined, configurable: true });
+  const preserved = document.createElement("aside");
+  preserved.setAttribute("inert", "existing"); preserved.setAttribute("aria-hidden", "false"); document.body.append(preserved);
   const plan = app.PLANS[0];
   app.showPlanDetails(plan.id, trigger); await flushPromises();
-  expect(modal.open).toBe(true);
+  expect(modal.hasAttribute("open")).toBe(true);
   expect(modal.getAttribute("aria-modal")).toBe("true");
   expect(modal.parentElement?.hasAttribute("inert")).toBe(false);
   expect(trigger.hasAttribute("inert")).toBe(true);
   expect(details.wrapper.get("#planDetailsTitle").text()).toBe(app.planTitle(plan));
   expect(details.wrapper.get("#planDetailsBody").text()).toContain(app.resolvedField(plan, "quota"));
   expect(focusedId()).toBe("planDetailsCloseBtn");
+  app.showPlanDetails(app.PLANS[1]!.id); await flushPromises();
+  expect(details.wrapper.get("#planDetailsTitle").text()).toBe(app.planTitle(app.PLANS[1]!));
+  const feedback = `关注操作已在窗口更新 ${missingOpen}`;
+  app.followView.feedback = feedback;
+  await flushPromises();
+  expect(details.wrapper.get("#planFollowFeedback").text()).toBe(feedback);
   await details.wrapper.get("#planDetailsCloseBtn").trigger("click");
-  expect(modal.open).toBe(false);
+  expect(modal.hasAttribute("open")).toBe(false);
+  expect(trigger.hasAttribute("inert")).toBe(false);
+  expect(preserved.getAttribute("inert")).toBe("existing");
+  expect(preserved.getAttribute("aria-hidden")).toBe("false");
+  expect(document.body.classList.contains("has-plan-details")).toBe(false);
+  expect(focusedId()).toBe("detailsTrigger");
+  app.showPlanDetails(plan.id, trigger); await flushPromises();
+  expect(modal.hasAttribute("open")).toBe(true);
+  await details.wrapper.get("#planDetailsModal").trigger("keydown", { key: "Escape" });
+  expect(modal.hasAttribute("open")).toBe(false);
+  expect(details.wrapper.get<HTMLElement>("#planDetailsBackdrop").element.hidden).toBe(true);
   expect(trigger.hasAttribute("inert")).toBe(false);
   expect(focusedId()).toBe("detailsTrigger");
 });

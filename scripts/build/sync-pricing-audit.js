@@ -13,6 +13,18 @@ function shanghaiDate(now) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
 }
 
+/** Published ledgers also retain IDs for plans whose facts never changed before removal. */
+function historicalPlanIds(auditDir, history) {
+  const ids = new Set(history.changes.filter((change) => change.kind === "plan").map((change) => change.id));
+  for (const filename of fs.readdirSync(auditDir).filter((name) => /^pricing-(?:verification|incremental)-.*\.json$/.test(name))) {
+    const ledger = JSON.parse(fs.readFileSync(path.join(auditDir, filename), "utf8"));
+    // Candidate inputs are not publication records; formal outputs contain totals and current facts.
+    if (!ledger.totals || !Array.isArray(ledger.records)) continue;
+    for (const record of ledger.records) if (record.kind === "plan" && typeof record.id === "string" && record.current) ids.add(record.id);
+  }
+  return ids;
+}
+
 /** Stage all outputs before replacing any file; restore existing or remove newly created files on failure.
  * @param {Map<string,Buffer>} outputs
  * @param {{rename?:(from:string,to:string)=>void,writeBytes?:(file:string,bytes:Buffer)=>void}} options */
@@ -94,7 +106,9 @@ function syncPricingAuditUnlocked(workspace, options = {}) {
   let source = fs.readFileSync(dataFile, "utf8");
   const data = loadData(source);
   const priorHistory = readHistory(root);
-  const sourceMap = options.incremental ? structuredClone(data.PRICE_CHECKS.sources) : {};
+  const publishedPlanIds = records.some((record) => record.new != null) ? historicalPlanIds(auditDir, priorHistory) : new Set();
+  /* 全量复核也不能删除或改写已有来源身份；不再引用的来源继续保留为历史证据。 */
+  const sourceMap = structuredClone(data.PRICE_CHECKS.sources);
   const supplied = new Set(sources.map((entry) => entry.id));
   for (const entry of sources) {
     const previous = sourceMap[entry.id];
@@ -157,12 +171,13 @@ function syncPricingAuditUnlocked(workspace, options = {}) {
       validateNewPlan(record.new, record);
       if (Object.keys(record.patch).length) throw new Error("新增计划不能同时填写 patch");
       if (index >= 0 && canonical(entries[index]) !== canonical(record.new)) throw new Error("永久 ID 已存在，不能覆盖新增：" + record.id);
+      if (index < 0 && publishedPlanIds.has(record.id)) throw new Error("永久 ID 已用于历史计划，不能复用新增：" + record.id);
     }
     if (index < 0 && record.new == null) throw new Error("未找到审计条目，请显式提供 new：" + record.kind + ":" + record.id);
     const key = record.kind + ":" + (record.kind === "plan" ? record.id : record.vendor + "|" + (record.patch.model || entries[index].model));
     if (seen.has(key)) throw new Error("重复条目：" + key);
     seen.add(key);
-    if (!Array.isArray(record.sourceIds) || !record.sourceIds.length || record.sourceIds.some((id) => typeof id !== "string" || !sourceMap[id] || (options.incremental && !supplied.has(id)))) throw new Error("核价来源缺失或增量未提供本次证据：" + key);
+    if (!Array.isArray(record.sourceIds) || !record.sourceIds.length || record.sourceIds.some((id) => typeof id !== "string" || !sourceMap[id] || !supplied.has(id))) throw new Error("核价来源缺失或未提供本次证据：" + key);
     if (!["verified", "changed", "unverified", "retired", "custom"].includes(record.status)) throw new Error("核价状态非法：" + key);
     if (typeof record.reason !== "string" || !record.reason.trim()) throw new Error("缺少核价说明：" + key);
     const item = index >= 0 ? entries[index] : {};

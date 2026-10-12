@@ -2,7 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { displayModelName, METRICS_ALL } from "@domain/core";
 import { metricsState, pickerState } from "@state/app";
-import { focusTableControl } from "@browser/interaction";
+import { focusTableControl, revealAndFocusTableControl } from "@browser/interaction";
 import { updateAppState } from "@browser/url-state";
 import { applyPickerScope, pickerScopeText } from "@app/picker";
 import { METRICS_COLUMNS, type MetricsCellContext, type MetricsTableRow, metricsTableRows, paygReferenceRows, registerTableView } from "@app/tables";
@@ -35,7 +35,7 @@ async function more(all = false) {
   visibleLimit.value = all ? Math.max(rows.value.length, visibleLimit.value) : visibleLimit.value + pageSize.value;
   await nextTick();
   const row = document.querySelectorAll<HTMLElement>("#metricsBody tr")[previous];
-  if (row) { row.tabIndex = -1; focusTableControl(row); } else focusTableControl(document.getElementById("metricsMoreBtn"));
+  if (row) { row.tabIndex = -1; revealAndFocusTableControl(row); } else focusTableControl(document.getElementById("metricsMoreBtn"));
 }
 /* 列配置的 title / tdClass 只读额度行、换算结果与是否按量。 */
 function context(row: MetricsTableRow): MetricsCellContext {

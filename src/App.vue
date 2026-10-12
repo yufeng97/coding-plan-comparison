@@ -7,7 +7,6 @@ import AppFooter from './layouts/AppFooter.vue';
 import SiteHero from './sections/site/SiteHero.vue';
 import PickerControls from './sections/picker/PickerControls.vue';
 import PickerRecommendations from './sections/picker/PickerRecommendations.vue';
-import ServiceActions from './sections/picker/ServiceActions.vue';
 import PersonalPrices from './sections/pricing/PersonalPrices.vue';
 import FreePlans from './sections/pricing/FreePlans.vue';
 import RankChart from './sections/pricing/RankChart.vue';
@@ -42,7 +41,6 @@ import OptionalDataStatus from './components/OptionalDataStatus.vue';
       <p>按预算与工具筛选可购买套餐。</p>
     </div>
     <picker-controls></picker-controls>
-    <ServiceActions />
     <picker-recommendations></picker-recommendations>
 
     <details class="section-menu" id="sectionMenu">
@@ -128,7 +126,7 @@ import OptionalDataStatus from './components/OptionalDataStatus.vue';
   </section>
 
   <section class="section" id="benchmarks" hidden>
-    <div class="section-head"><h2><span class="sec-no">11</span>模型公开评测</h2><p>查看公开来源的模型分数、评测配置与范围。每个版本和协议独立展示，不合成跨榜总分。</p></div>
+    <div class="section-head"><h1><span class="sec-no">11</span>模型公开评测</h1><p>查看公开来源的模型分数、评测配置与范围。每个版本和协议独立展示，不合成跨榜总分。</p></div>
     <OptionalDataStatus id="benchmarkDataStatus" kind="benchmark" />
     <div class="maintenance-panel public-benchmark-panel">
       <!-- 由 src/sections/benchmarks/PublicBenchmarks.vue 渲染：筛选、协议说明、图表、成绩表与导出。 -->
@@ -144,7 +142,7 @@ import OptionalDataStatus from './components/OptionalDataStatus.vue';
   </section>
 
   <section class="section" id="updates" hidden>
-    <div class="section-head"><h2><span class="sec-no">12</span>我的关注与套餐变更</h2><p>查看关注套餐的已确认变更，核对价格来源与复查安排。<a href="changes.xml">订阅全部变更 RSS ↗</a>；关注套餐后可单独订阅对应厂商。</p></div>
+    <div class="section-head"><h1><span class="sec-no">12</span>我的关注与套餐变更</h1><p>查看关注套餐的已确认变更，核对价格来源与复查安排。<a href="changes.xml">订阅全部变更 RSS ↗</a>；关注套餐后可单独订阅对应厂商。</p></div>
     <OptionalDataStatus id="maintenanceDataStatus" kind="maintenance" />
     <!-- 由 src/sections/follow/FollowUpdates.vue 渲染：关注与已读、套餐历史、到期复查、核查概况与下载、逐条维护状态。 -->
     <div id="updatesApp" data-v-app=""><follow-updates></follow-updates></div>
@@ -152,14 +150,14 @@ import OptionalDataStatus from './components/OptionalDataStatus.vue';
   </section>
 
   <section class="section" id="contribute" hidden>
-    <div class="section-head"><h2><span class="sec-no">13</span>帮助补全与纠错</h2><p>提交新厂商、官方变更证据或可复现测评，帮助其他人做选择。</p></div>
+    <div class="section-head"><h1><span class="sec-no">13</span>帮助补全与纠错</h1><p>提交新厂商、官方变更证据或可复现测评，帮助其他人做选择。</p></div>
     <!-- 由 src/sections/contribution/Contribution.vue 渲染：贡献类型、证据模板、复制下载与 Issues 链接。 -->
     <div class="maintenance-panel" id="contributionApp" data-v-app=""><contribution></contribution></div>
   </section>
 
   <!-- ======== 14 数据来源与说明 ======== -->
   <section class="section" id="sources" hidden>
-    <div class="section-head"><h2><span class="sec-no">14</span>数据来源与说明</h2></div><site-sources></site-sources></section>
+    <div class="section-head"><h1><span class="sec-no">14</span>数据来源与说明</h1></div><site-sources></site-sources></section>
 
 </main>
 

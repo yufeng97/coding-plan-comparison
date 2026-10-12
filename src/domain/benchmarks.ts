@@ -44,17 +44,72 @@ export function publicModelClauseIncludes(part: string, label: string) {
         !/^[\s（(]*(?:需\s*(?:usage\s*credits|按量|额外付费)|(?:不支持|不可用|未包含)(?=[）),，;；]|$))/i.test(suffix);
 }
 
-export function publicModelIncluded(p: Plan, name: string) {
-    /* 结构化排除优先于文本匹配。 */
-    if (Array.isArray(p.modelExcludes) && p.modelExcludes.some((x) => publicModelExactPattern(name).test(String(x)) || publicModelExactPattern(String(x)).test(name)))
+/* 只展开文本已声明的同系列版本：Sonnet 4.6/5/5.5、Grok 4.5–4.7 等。
+   针对待匹配的精确型号检查版本，不生成型号；Pro/Flash 等后缀与否定/付费语境仍走原匹配规则。 */
+const publicVersionPatternCache = new Map<string, RegExp>();
+
+function publicListedVersionIncludes(part: string, label: string) {
+    /* 列表末尾直接修饰整个列表的收费条件不能在按 slash 分项时丢失。
+       「（Fable 需 usage credits）」只修饰 Fable，仍由具体模型的前后文判断。 */
+    if (part.includes("/") && /[（(]\s*需\s*(?:usage\s*credits|按量|额外付费)[^）)]*[）)]\s*$|\s+需\s*(?:usage\s*credits|按量|额外付费)\s*$/i.test(part))
         return false;
-    const included = splitModelAccess(resolvedField(p, "models")).included;
-    const parts = included.split(/[/、；]/);
+    const target = label.match(/^(.+?)[\s-]*(\d+(?:\.\d+)*)(.*)$/);
+    if (!target)
+        return publicModelClauseIncludes(part, label);
+    const family = target[1].replace(/[\s-]+$/, "");
+    let listed = publicVersionPatternCache.get(family);
+    if (!listed) {
+        const version = "\\d+(?:\\.\\d+)*";
+        const pattern = family.split(/[\s-]+/).map(escRe).join("[\\s-]*");
+        const suffix = "(?:[\\s-]+(?:pro|flash|lite|mini|nano|preview|exp|plus|ultra|max|fast|turbo|thinking)(?![a-z0-9.-]))*";
+        const range = version + "(?:\\s*[–—~～]\\s*" + version + ")?";
+        const item = range + suffix;
+        const sequence = "(?:" + item + "(?:\\s*/\\s*" + item + ")+|" + version + "\\s*[–—~～]\\s*" + version + suffix + ")";
+        listed = new RegExp("(^|[^a-z0-9])(" + pattern + "[\\s-]*)(" + sequence + ")(?![\\d.])", "gi");
+        publicVersionPatternCache.set(family, listed);
+    }
+    const compare = (a: string, b: string) => {
+        const left = a.split(".").map(Number), right = b.split(".").map(Number);
+        for (let i = 0; i < Math.max(left.length, right.length); i++) {
+            const diff = (left[i] ?? 0) - (right[i] ?? 0);
+            if (diff) return diff;
+        }
+        return 0;
+    };
+    let plain = part;
+    for (const match of part.matchAll(listed)) {
+        /* 版本组必须连同后面的资格一起判断，不能让组首版本从普通精确匹配绕过付费限制。 */
+        plain = plain.replace(match[0], match[1]);
+        for (const item of match[3].split("/")) {
+            const version = item.trim().match(/^(\d+(?:\.\d+)*)(?:\s*[–—~～]\s*(\d+(?:\.\d+)*))?(.*)$/)!;
+            const allowed = version[2] ? compare(target[2], version[1]) >= 0 && compare(target[2], version[2]) <= 0
+                : compare(target[2], version[1]) === 0;
+            if (!allowed)
+                continue;
+            const start = match.index + match[1].length + match[2].length;
+            const expanded = part.slice(0, start) + target[2] + version[3] + part.slice(start + match[3].length);
+            if (publicModelClauseIncludes(expanded, label))
+                return true;
+        }
+    }
+    return publicModelClauseIncludes(plain, label);
+}
+
+function publicClauseIncludesVersion(part: string, label: string) {
+    return publicListedVersionIncludes(part, label);
+}
+
+export function publicModelIncluded(p: Plan, name: string) {
     const names = [name];
-    /* Claude 的共享品牌前缀及官方 GPT 全系括号内的精确版本，均来自套餐明确列出的文本。 */
     if (/^Claude (?:Opus|Sonnet|Haiku|Fable)\b/i.test(name))
         names.push(name.replace(/^Claude /i, ""));
-    if (names.some((label) => parts.some((part) => publicModelClauseIncludes(part, label))))
+    /* 结构化排除优先于文本匹配。 */
+    if (Array.isArray(p.modelExcludes) && p.modelExcludes.some((x) => names.some((label) => publicClauseIncludesVersion(String(x), label) || publicModelExactPattern(String(x)).test(label))))
+        return false;
+    const included = splitModelAccess(resolvedField(p, "models")).included;
+    const parts = included.split(/[、；;]/);
+    /* Claude 的共享品牌前缀及官方 GPT 全系括号内的精确版本，均来自套餐明确列出的文本。 */
+    if (names.some((label) => parts.some((part) => publicClauseIncludesVersion(part, label))))
         return true;
     const gpt = name.match(/^GPT-(\d+(?:\.\d+)?)\s+(.+)$/i);
     if (p.vendor === "OpenAI" && gpt) {

@@ -3,7 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { isOnSalePlan, PLANS } from "@generated/catalog";
 import { CAT_LABEL, REGION_LABEL, tableVendors } from "@domain/core";
 import { boundedSearch, cmpState, pickerState, tableState } from "@state/app";
-import { focusTableControl } from "@browser/interaction";
+import { focusTableControl, revealAndFocusTableControl } from "@browser/interaction";
 import { updateAppState, URL_VALID } from "@browser/url-state";
 import { applyPickerScope, pickerScopeText } from "@app/picker";
 import { computeTableRows, copyTableMarkdown, exportTableCsv, PLAN_TABLE_COLUMNS, registerTableView, tableExtraHidden, tableFilteredPlans } from "@app/tables";
@@ -43,11 +43,16 @@ const scopeText = computed(() => state.fromPicker
   ? `已应用选购条件：${pickerScopeText()}。保留目录月付/年付价，并另标选购口径；可按所选支付月均排序。继续叠加本区筛选。`
   : "当前仅使用本区筛选，尚未应用选购条件。应用后会叠加预算、地区、工具与支付方式。");
 const priceSort = computed(() => `${state.sortKey}:${state.sortDir}`);
+const ROW_CONTROLS = "a[href], button, input, select, textarea, summary, [tabindex]";
 
 /* 在组件更新前捕获焦点；此时更新任务已入队，nextTick 才能等到行节点真正更新。 */
 watch(() => JSON.stringify([displayState.value, pageSize.value, state.fromPicker ? pickerState : null]), () => {
   const active = document.activeElement as HTMLElement | null;
-  const focusedId = active?.closest("#tableBody") && active.classList.contains("cmp-add") ? active.dataset.planId : "";
+  const focusedRow = active?.closest<HTMLTableRowElement>("#tableBody tr[data-plan-id]");
+  const focusedId = focusedRow?.dataset.planId;
+  const focusedCell = active?.closest<HTMLTableCellElement>("td[data-column]");
+  const column = focusedCell?.dataset.column;
+  const controlIndex = active && focusedCell ? Array.from(focusedCell.querySelectorAll<HTMLElement>(ROW_CONTROLS)).indexOf(active) : -1;
   visibleLimit.value = pageSize.value;
   if (focusedId) {
     const index = rows.value.findIndex((plan) => plan.id === focusedId);
@@ -55,7 +60,10 @@ watch(() => JSON.stringify([displayState.value, pageSize.value, state.fromPicker
     void nextTick(() => {
       const current = document.activeElement;
       if (current === active || current && current !== document.body && current.isConnected !== false) return;
-      const replacement = Array.from(document.querySelectorAll<HTMLButtonElement>("#tableBody .cmp-add")).find((button) => button.dataset.planId === focusedId);
+      const row = Array.from(document.querySelectorAll<HTMLTableRowElement>("#tableBody tr[data-plan-id]")).find((item) => item.dataset.planId === focusedId);
+      const cell = row && Array.from(row.querySelectorAll<HTMLTableCellElement>("td[data-column]")).find((item) => item.dataset.column === column);
+      const replacement = active?.isConnected ? active : active === focusedRow ? row : cell?.querySelectorAll<HTMLElement>(ROW_CONTROLS)[controlIndex];
+      if (replacement === row && row) row.tabIndex = -1;
       if (!focusTableControl(replacement)) focusTableControl(searchInput.value);
     });
   }
@@ -98,9 +106,9 @@ async function more(all = false) {
   visibleLimit.value = all ? Math.max(rows.value.length, visibleLimit.value) : visibleLimit.value + pageSize.value;
   await nextTick();
   const first = document.querySelectorAll<HTMLButtonElement>("#tableBody .cmp-add")[previous];
-  if (focusTableControl(first)) return;
+  if (revealAndFocusTableControl(first)) return;
   const row = document.querySelectorAll<HTMLElement>("#tableBody tr")[previous];
-  if (row) { row.tabIndex = -1; if (focusTableControl(row)) return; }
+  if (row) { row.tabIndex = -1; if (revealAndFocusTableControl(row)) return; }
   if (!focusTableControl(document.getElementById("tableMoreBtn"))) focusTableControl(searchInput.value);
 }
 function reveal(planId: string) {
@@ -151,7 +159,7 @@ onBeforeUnmount(() => { release(); clearTimeout(searchTimer); flashTimers.forEac
         </template>
       </tr></thead>
       <tbody id="tableBody">
-        <tr v-for="plan in visibleRows" :key="plan.id">
+        <tr v-for="plan in visibleRows" :key="plan.id" :data-plan-id="plan.id">
           <td v-for="column in columns" :key="column.id" :data-column="column.id" :data-label="column.label" :class="column.tdClass ? column.tdClass(plan) : column.cls">
             <template v-if="column.id === 'plan'"><span class="plan-name">{{ plan.plan }}</span><div class="badge-row"><PlanBadges :plan="plan" /></div><CompareButton :plan="plan" /><WatchButton :plan="plan" /></template>
             <span v-else-if="column.id === 'cat'" class="tag" :class="`tag-${plan.cat}`">{{ CAT_LABEL[plan.cat] || plan.cat }}</span>

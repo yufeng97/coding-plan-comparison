@@ -31,7 +31,7 @@ test("同时选择 Claude Code 与 Codex 会话日志后合并填好计算器，
   await expect(page.locator("#costModel")).toHaveValue("Anthropic|Claude Opus 5.5");
   await expect(page.locator("#costDays")).toHaveValue("30");
   await expect(page.locator("#usageImportText")).toHaveValue("");
-  await expect(page.locator("#costResult")).toContainText("能覆盖这个用量的套餐");
+  await expect(page.locator("#costResult")).toContainText("套餐额度对照");
   expect(await page.evaluate(() => location.href.includes("m1-0") || location.href.includes("claude-opus-5-5"))).toBe(false);
 });
 
