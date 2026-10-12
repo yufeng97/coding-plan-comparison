@@ -40,14 +40,14 @@
 | `src/assets/fonts/` | Manrope、IBM Plex Mono 本地子集；39 个字体声明共用 21 份内容去重资产 |
 | `src/test/` / `src/regression/` | 测试支撑与整页回归：`test/runtime.ts` 汇总业务模块供测试读取状态、调用函数（生产代码禁止引用）；`test/page.ts` 挂载真实 `App.vue` 并按生产顺序启动，只替换浏览器边界（历史、计时器、ECharts、存储、剪贴板、下载及按需数据），可在启动前准备数据（`prepare`）或按模块替换导出（`mock`） |
 | `data/sources/data.js` / `project-data.js` | 人工维护的审计数据与公开项目配置；订阅永久 ID、引用权益与项目入口在此维护，生成 TS 目录后进入应用 |
-| `data/generated/` | 维护与评测脚本生成、随源数据提交的文件（`.gitattributes` 标为生成文件）：按需加载的 `maintenance-data.js` / `benchmark-data.js`、首屏评测摘要 `benchmark-summary.js`、首屏维护摘要 `maintenance-summary.js`（导航未读提醒用的套餐变更 ID）、维护快照 `maintenance.json`，以及全站与分厂商变更 RSS `changes.xml` / `feeds/`（发布 URL 保持 `changes.xml` 与 `feeds/`） |
+| `data/generated/` | 维护与评测脚本生成、随源数据提交的文件（`.gitattributes` 标为生成文件）：按需加载的 `maintenance-data.js` / `benchmark-data.js`、首屏评测摘要 `benchmark-summary.js`、首屏维护摘要 `maintenance-summary.js`（导航未读提醒与核查日期超期提示用的套餐变更 ID 与复查间隔）、维护快照 `maintenance.json`，以及全站与分厂商变更 RSS `changes.xml` / `feeds/`（发布 URL 保持 `changes.xml` 与 `feeds/`） |
 | `data/audit/` | 258 条价格的原始库存、分组官网证据、JSON/CSV 合并台账与已确认变更历史 `change-history.json`；资讯、评测采集与截图的本地工作目录也在此（不纳入版本库）；不复制到公共部署产物 |
 | `data/config/news-sources.json` / `review-calendar.json` | 官方监测、开放发现与有来源的复核日历 |
 | `scripts/benchmarks/` / `data/benchmarks/` | 官方公开评测 adapter、带哈希证据的采集/审核、public-results.json 快照、固定任务验收与公共测评构建 |
 | `public/` | 只放手写静态资源：分享卡片图 `img/og-card.png`（og:image）。由 `build:site` 与开发中间件按白名单发布，发布 URL 保持 `img/` |
 | `tsconfig.json` / `tsconfig.*.json` | 根配置只引用子项目，编辑器据此为每个文件选用对应配置：`app`（业务模块与组件，不含 Node 类型）、`vitest`（测试）、`data`（数据文件 checkJs）、`node`（工具脚本、端到端测试与 Vite / Playwright 配置） |
 | `scripts/lib/paths.js` / `atomic-swap.js` | 共享的「路径是否在根内 / 封锁段」判断、目录级原子交换（暂存→备份→切换→回滚）与逐文件替换回滚 |
-| `scripts/build/` | 构建与校验工具：vite-assets（公共源白名单、经典资源哈希与 ECharts 生成）、catalog-types、vendor-fonts、stage-site、prerender、render-vue、deploy-site、check-syntax、check-architecture、validate-data、sync-pricing-audit |
+| `scripts/build/` | 构建与校验工具：vite-assets（公共源白名单、经典资源哈希与 ECharts 生成）、catalog-types、vendor-fonts、stage-site、prerender、render-vue、deploy-site、check-syntax、check-architecture、validate-data、sync-pricing-audit、update-rates（参考汇率） |
 | `scripts/server/serve.js` | 发布产物预览服务器（`serve.js .site-build`；只监听 127.0.0.1，只读站点目录内的白名单文件并拒绝隐藏路径） |
 | `scripts/news/collect-news.js` | 联网采集资讯候选与页面变化；保留缓存和来源错误，不改正式数据 |
 | `scripts/maintenance/` | 维护摘要与变更 RSS 构建：读写 `data/audit/change-history.json`，输出到 `data/generated/` |

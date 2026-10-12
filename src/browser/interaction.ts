@@ -27,6 +27,12 @@ export function downloadTextFile(text: string, filename: string, mime: string = 
     setTimeout(() => URL.revokeObjectURL(a.href), 3000);
 }
 
+/* 触屏设备且浏览器支持系统分享面板时优先用它分享；桌面和不支持的浏览器复制链接。 */
+export function canNativeShare() {
+    return typeof navigator !== "undefined" && typeof navigator.share === "function" &&
+        typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
+}
+
 export async function copyTextToClipboard(text: string) {
     let ok = false;
     try {

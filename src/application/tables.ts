@@ -19,7 +19,7 @@ interface PlanTableView {
     render(): void;
     cancelSearch(): void;
     hasPendingSearch(): boolean;
-    more(): void;
+    more(all?: boolean): void;
     reveal(planId: string): boolean;
     reset(): void;
     feedback(message: string): void;
@@ -40,7 +40,7 @@ interface CompareView {
     buttons: string[];
 }
 
-interface MetricsTableView { render(): void; more(): void; reset(): void; models(): void; }
+interface MetricsTableView { render(): void; more(all?: boolean): void; reset(): void; models(): void; }
 
 export interface TableViews { plan?: PlanTableView; compare?: CompareView; metrics?: MetricsTableView; }
 
@@ -121,6 +121,7 @@ export function tableFilteredPlans(state: TableState = tableState) {
     const q = state.search.trim().toLowerCase();
     return PLANS.filter(isOnSalePlan).filter((p) => (state.cat === "all" || p.cat === state.cat) &&
         (state.region === "all" || p.region === state.region) &&
+        (state.vendor === "all" || p.vendor === state.vendor) &&
         (!state.fromPicker || matchesPickerPurchase(p)) &&
         (!q || queryHit(planSearchBlob(p), q)));
 }
@@ -149,7 +150,8 @@ export function computeTableRows(state: TableState = tableState) {
 
 export function renderTable() { tableViews.plan?.render(); }
 
-export function showMoreTableRows() { tableViews.plan?.more(); }
+/** 显示下一批记录；all 为真时一次展开全部。 */
+export function showMoreTableRows(all = false) { tableViews.plan?.more(all); }
 
 export function revealTablePlan(planId: string) { return tableViews.plan?.reveal(planId) ?? false; }
 
@@ -157,7 +159,7 @@ export function resetTableFilters() {
     if (tableViews.plan)
         tableViews.plan.reset();
     else
-        Object.assign(tableState, { search: "", cat: "all", region: "all", sortKey: "priceM", sortDir: 1, fromPicker: false, extra: false });
+        Object.assign(tableState, { search: "", cat: "all", region: "all", vendor: "all", sortKey: "priceM", sortDir: 1, fromPicker: false, extra: false });
 }
 
 /* 数据表的搜索防抖由组件登记：历史恢复时取消待执行的搜索。 */
@@ -427,7 +429,7 @@ export function metricsTableRows() {
 
 export function renderMetricsTable() { tableViews.metrics?.render(); }
 
-export function showMoreMetricsRows() { tableViews.metrics?.more(); }
+export function showMoreMetricsRows(all = false) { tableViews.metrics?.more(all); }
 
 /* 模型筛选下拉：从全部数据源动态填充 */
 export function populateModelFilter() { tableViews.metrics?.models(); }

@@ -3,7 +3,7 @@ import { readPreset, writePreset, clearStoredPreset } from '../browser/presets';
 import { appQueryString, syncUrl, currentResultsUrl, pushQueryHistory } from '../browser/url-state';
 import { pickerSummaryText } from '../state/picker';
 import { restoreHistoryState } from './navigation';
-import { copyTextToClipboard } from '../browser/interaction';
+import { canNativeShare, copyTextToClipboard } from '../browser/interaction';
 
 /* 「帮我选」下方的操作栏（ServiceActions.vue）：复制方案链接与推荐摘要、在本机保存或恢复常用条件，提示写在 #serviceFeedback。 */
 
@@ -23,9 +23,24 @@ export async function copyPickerSummary() {
     serviceFeedback(ok ? "已复制推荐摘要，可直接粘贴到聊天或文档；价格以官网为准。" : "复制失败，请改用「复制当前方案链接」。");
 }
 
-export async function shareCurrentResults() {
+/* 分享当前方案：触屏设备调起系统分享面板（text 为选购条件说明），取消时不再复制，其他失败退回复制链接；桌面直接复制。 */
+export async function shareCurrentResults(text = "") {
     const query = appQueryString();
     const url = currentResultsUrl(query);
+    if (canNativeShare()) {
+        try {
+            await navigator.share({ title: document.title, text, url });
+            serviceFeedback("已打开系统分享；链接包含筛选、对比与费用计算条件。");
+            return;
+        }
+        catch (err) {
+            if ((err as { name?: unknown } | null)?.name === "AbortError") {
+                serviceFeedback("已取消分享。");
+                return;
+            }
+            /* 其他失败（如权限受限）退回复制链接。 */
+        }
+    }
     const ok = await copyTextToClipboard(url);
     serviceFeedback(ok ? "已复制当前方案链接，包含筛选、对比与费用计算条件。" : "复制失败，请从地址栏复制当前链接。");
 }

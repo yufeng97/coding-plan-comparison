@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { isOnSalePlan, PLANS } from "@generated/catalog";
-import { CAT_LABEL, REGION_LABEL } from "@domain/core";
+import { CAT_LABEL, REGION_LABEL, tableVendors } from "@domain/core";
 import { boundedSearch, cmpState, pickerState, tableState } from "@state/app";
 import { focusTableControl } from "@browser/interaction";
 import { updateAppState, URL_VALID } from "@browser/url-state";
@@ -35,9 +35,10 @@ const rows = computed(() => { revision.value; return computeTableRows(displaySta
 const visibleRows = computed(() => rows.value.slice(0, visibleLimit.value));
 const hiddenExtra = computed(() => state.extra ? 0 : tableFilteredPlans(displayState.value).filter(tableExtraHidden).length);
 const countText = computed(() => `已显示 ${visibleRows.value.length} / ${rows.value.length} 条匹配记录 · 共 ${PLANS.filter(isOnSalePlan).length} 档${hiddenExtra.value ? ` · 另有 ${hiddenExtra.value} 档中转站或待核价格未显示` : ""}`);
-const isDefault = computed(() => !state.fromPicker && !state.extra && !state.search && state.cat === "all" && state.region === "all" && state.sortKey === "priceM" && state.sortDir === 1);
+const isDefault = computed(() => !state.fromPicker && !state.extra && !state.search && state.cat === "all" && state.region === "all" && state.vendor === "all" && state.sortKey === "priceM" && state.sortDir === 1);
 const freeScope = computed(() => state.fromPicker && pickerState.budget === "0");
-const filterText = computed(() => [state.search.trim() ? `关键词「${state.search.trim()}」` : "", state.cat === "all" ? "" : categoryLabels[state.cat], state.region === "all" ? "" : regionLabels[state.region], state.fromPicker ? "选购条件" : ""].filter(Boolean).join(" · ") || "当前筛选");
+const filterText = computed(() => [state.search.trim() ? `关键词「${state.search.trim()}」` : "", state.cat === "all" ? "" : categoryLabels[state.cat], state.region === "all" ? "" : regionLabels[state.region], state.vendor === "all" ? "" : state.vendor, state.fromPicker ? "选购条件" : ""].filter(Boolean).join(" · ") || "当前筛选");
+const vendors = tableVendors();
 const scopeText = computed(() => state.fromPicker
   ? `已应用选购条件：${pickerScopeText()}。保留目录月付/年付价，并另标选购口径；可按所选支付月均排序。继续叠加本区筛选。`
   : "当前仅使用本区筛选，尚未应用选购条件。应用后会叠加预算、地区、工具与支付方式。");
@@ -78,7 +79,7 @@ function cancelSearch() {
 }
 function reset() {
   clearTimeout(searchTimer); searchTimer = undefined;
-  Object.assign(state, { search: "", cat: "all", region: "all", sortKey: "priceM", sortDir: 1, fromPicker: false, extra: false });
+  Object.assign(state, { search: "", cat: "all", region: "all", vendor: "all", sortKey: "priceM", sortDir: 1, fromPicker: false, extra: false });
   searchText.value = "";
   displayedSearch.value = "";
   focusTableControl(searchInput.value);
@@ -91,9 +92,10 @@ function choosePriceSort(value: string) {
   if (!key || !URL_VALID.tsortKeys.has(key) || key === "selectedMonthly" && !state.fromPicker) return;
   change(() => { state.sortKey = key; state.sortDir = direction === "-1" ? -1 : 1; });
 }
-async function more() {
+/* 显示下一批；all 为真时一次展开剩余全部（手机每批 5 条也不必反复点按）。焦点落在新显示的第一条。 */
+async function more(all = false) {
   const previous = visibleRows.value.length;
-  visibleLimit.value += pageSize.value;
+  visibleLimit.value = all ? Math.max(rows.value.length, visibleLimit.value) : visibleLimit.value + pageSize.value;
   await nextTick();
   const first = document.querySelectorAll<HTMLButtonElement>("#tableBody .cmp-add")[previous];
   if (focusTableControl(first)) return;
@@ -125,6 +127,7 @@ onBeforeUnmount(() => { release(); clearTimeout(searchTimer); flashTimers.forEac
       <option value="all">全部类别</option><option v-for="(label, category) in CAT_LABEL" :key="category" :value="category">{{ label }}</option>
     </select>
     <select id="selectRegion" class="select" aria-label="按地区筛选数据表" :value="state.region" @change.stop="change(() => { state.region = targetValue($event); })"><option value="all">全部地区</option><option value="cn">国内</option><option value="intl">国际</option></select>
+    <select id="selectVendor" class="select" aria-label="按厂商筛选数据表" :value="state.vendor" @change.stop="change(() => { state.vendor = targetValue($event); })"><option value="all">全部厂商</option><option v-for="vendor in vendors" :key="vendor" :value="vendor">{{ vendor }}</option></select>
     <button id="tableExtraToggle" type="button" class="chip" :class="{ active: state.extra }" :aria-pressed="state.extra" :title="state.extra ? '隐藏中转站和价格待核实的历史记录' : `显示中转站和价格待核实的历史记录${hiddenExtra ? `（当前筛选下 ${hiddenExtra} 档）` : ''}`" @click.stop="change(() => { state.extra = !state.extra; })">含中转站与待核价格</button>
     <span id="tableCount" class="table-count" role="status" aria-live="polite" aria-atomic="true">{{ countText }}</span>
     <button id="tableResetBtn" type="button" class="chip" :disabled="isDefault" @click.stop="change(reset)">清除筛选</button>
@@ -165,5 +168,8 @@ onBeforeUnmount(() => { release(); clearTimeout(searchTimer); flashTimers.forEac
       </tbody>
     </table>
   </div>
-  <button id="tableMoreBtn" type="button" class="chip" :hidden="visibleRows.length >= rows.length" aria-controls="tableBody" @click.stop="more">显示更多记录（还有 {{ rows.length - visibleRows.length }} 条）</button>
+  <div class="table-more-actions">
+    <button id="tableMoreBtn" type="button" class="chip" :hidden="visibleRows.length >= rows.length" aria-controls="tableBody" @click.stop="more()">显示更多记录（还有 {{ rows.length - visibleRows.length }} 条）</button>
+    <button id="tableAllBtn" type="button" class="chip" :hidden="rows.length - visibleRows.length <= pageSize" aria-controls="tableBody" @click.stop="more(true)">显示全部 {{ rows.length }} 条</button>
+  </div>
 </template>

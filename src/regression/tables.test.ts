@@ -650,3 +650,68 @@ test("完整权益窗口只在有选购口径时列出相应行，来源与核�
   assert.deepEqual(app.linkList(["javascript:alert(1)"], "x"), [], "非 http(s) 地址不生成链接");
   page.healthy();
 });
+
+test("价格表可按厂商筛选并写入链接，非法厂商被忽略；手机可一次展开全部并保持焦点", async () => {
+  const page = await openPage({ url: "/index.html?tvendor=Cursor#table", width: 390 });
+  const app = page.runtime;
+  const vendor = page.byId<HTMLSelectElement>("selectVendor");
+  assert.equal(app.tableState.vendor, "Cursor");
+  assert.equal(vendor.value, "Cursor");
+  assert.ok(vendor.options.length > 20);
+  const cursorRows = app.computeTableRows();
+  assert.ok(cursorRows.length > 0 && cursorRows.every((p) => p.vendor === "Cursor"));
+  assert.match(location.search, /tvendor=Cursor/);
+  await click(page, page.byId("tableResetBtn"));
+  assert.equal(app.tableState.vendor, "all");
+  assert.equal(vendor.value, "all");
+  assert.doesNotMatch(location.search, /tvendor/);
+  const all = page.byId("tableAllBtn");
+  const total = app.computeTableRows().length;
+  assert.equal(all.hidden, false);
+  assert.equal(all.textContent, `显示全部 ${total} 条`);
+  const firstHidden = app.computeTableRows()[rows(page, "tableBody").length]!.id;
+  await click(page, all);
+  assert.equal(rows(page, "tableBody").length, total);
+  assert.equal(all.hidden, true);
+  assert.equal(page.byId("tableMoreBtn").hidden, true);
+  assert.equal((document.activeElement as HTMLElement).dataset.planId, firstHidden, "焦点落在新展开的第一条");
+  const metricsAll = page.byId("metricsAllBtn");
+  const metricsTotal = app.metricsTableRows().shownRows.length;
+  assert.equal(metricsAll.hidden, false);
+  await click(page, metricsAll);
+  assert.equal(rows(page, "metricsBody").length, metricsTotal);
+  assert.equal(metricsAll.hidden, true);
+  page.healthy();
+  const invalid = await openPage({ url: "/index.html?tvendor=NoSuchVendor" });
+  assert.equal(invalid.runtime.tableState.vendor, "all");
+  invalid.healthy();
+});
+
+test("核价来源与推荐卡核查日期显示距今天数，超过复查间隔时标出", async () => {
+  let page = await openPage();
+  const app = page.runtime;
+  assert.equal(app.daysSince("2026-10-04", "2026-10-10"), 6);
+  assert.equal(app.daysSince("2026-10-11", "2026-10-10"), null, "时区差导致的未来日期不显示");
+  assert.equal(app.daysSince("bad", "2026-10-10"), null);
+  assert.equal(app.staleAfterDays(), app.MAINTENANCE_SUMMARY.staleAfterDays);
+  assert.equal(app.checkAgeText("2026-10-10", "2026-10-10"), "（今天）");
+  assert.equal(app.checkAgeText("2026-09-01", "2026-10-10"), "（39 天前，超过复查间隔）");
+  const age = /\d{4}-\d{2}-\d{2}（(?:今天|\d+ 天前)(?:，超过复查间隔)?）/;
+  assert.match(page.byId("tableBody").querySelector(".td-trust .sub")!.textContent!, age);
+  assert.match(page.byId("quickGrid").querySelector(".quick-card")!.textContent!, new RegExp("本档核查" + age.source));
+  page.healthy();
+  /* 把一条核查改到很久以前：价格表的核查行标出超期。 */
+  page = await openPage({ prepare(runtime) {
+    const check = runtime.priceCheckOf(runtime.findPlanReference("plan-0002")!)!;
+    runtime.PRICE_CHECKS.rows["plan:plan-0002"] = { ...check, checkedAt: "2020-01-01" };
+  } });
+  const { default: PriceCheck } = await import("../components/PriceCheck.vue");
+  const stale = mount(PriceCheck, { props: { plan: plan(page, "plan-0002") } });
+  assert.ok(stale.get(".sub").classes().includes("check-stale"));
+  assert.match(stale.get(".sub").text(), /· 2020-01-01（\d+ 天前，超过复查间隔）/);
+  stale.unmount();
+  const fresh = mount(PriceCheck, { props: { plan: plan(page, "plan-0001") } });
+  assert.equal(fresh.get(".sub").classes().includes("check-stale"), false);
+  fresh.unmount();
+  page.healthy();
+});

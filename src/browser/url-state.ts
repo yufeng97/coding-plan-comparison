@@ -1,5 +1,6 @@
 import { findPlanReference } from '../generated/catalog';
 import { rankVendorValues } from '../domain/rank';
+import { tableVendors } from '../domain/core';
 import { pickerState, personalState, tableState, metricsState, rankState, cmpState, calcState, PERSONAL_DEFAULT_LIMIT, APP_DEFAULTS, boundedSearch, MODEL_FILTER_VALUES, CMP_MAX } from '../state/app';
 import { validCalcValue, type CalcState } from '../domain/workload';
 
@@ -64,6 +65,7 @@ export const URL_KEYS: Record<string, () => string> = {
     q: () => tableState.search,
     tcat: () => tableState.cat,
     tregion: () => tableState.region,
+    tvendor: () => tableState.vendor,
     tsort: () => tableState.sortKey + ":" + tableState.sortDir,
     tall: () => tableState.extra ? "1" : "0",
     /* 额度深度对比表 */
@@ -165,6 +167,8 @@ export function applyUrlState(search: string = location.search) {
     pick("tcat", URL_VALID.tcat, tableState, "cat");
     pick("tregion", URL_VALID.tregion, tableState, "region");
     tableState.extra = p.get("tall") === "1";
+    /* 只接受价格表里确有记录的厂商。 */
+    pick("tvendor", new Set(["all", ...tableVendors()]), tableState, "vendor");
     const ts = p.get("tsort");
     if (ts) {
         const [key = "", dir] = ts.split(":");

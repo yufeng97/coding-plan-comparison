@@ -7,7 +7,7 @@ import { CALC_DEFAULT_MODEL, type CalcState } from '../domain/workload';
 export interface PersonalState { cat: string; region: string; billing: string; q: string; limit: number | null; fromPicker: boolean; }
 export interface RankState { tier: string; scope: string; vendor: string; fromPicker: boolean; }
 export type PickerState = PickerCriteria;
-export interface TableState { search: string; cat: string; region: string; sortKey: string; sortDir: number; fromPicker: boolean; extra: boolean; }
+export interface TableState { search: string; cat: string; region: string; vendor: string; sortKey: string; sortDir: number; fromPicker: boolean; extra: boolean; }
 export interface MetricsState { model: string; ver: string; tier: string; offer: string; sortKey: string; sortDir: number; fromPicker: boolean; }
 export interface CompareState { items: Plan[]; }
 export type ThemeMode = "dark" | "light" | "system";
@@ -26,7 +26,7 @@ export const rankState = reactive<RankState>({ tier: "flagship", scope: "all", v
 
 export const pickerState = reactive<PickerState>({ budget: "200", region: "cn", tool: "any", task: "both", billing: "M", priority: "quota" });
 
-export const tableState = reactive<TableState>({ search: "", cat: "all", region: "all", sortKey: "priceM", sortDir: 1, fromPicker: false, extra: false });
+export const tableState = reactive<TableState>({ search: "", cat: "all", region: "all", vendor: "all", sortKey: "priceM", sortDir: 1, fromPicker: false, extra: false });
 
 /* 对比保存的是目录里的套餐对象，只追踪数组替换，不把套餐对象本身变成响应式代理。 */
 export const cmpState = shallowReactive<CompareState>({ items: [] });

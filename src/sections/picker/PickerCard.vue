@@ -5,6 +5,7 @@ import { planCodingBenchmarks, publicModelDisplayName, publicScoreText } from "@
 import { fmtCNY, planBadges, planTitle, priceCheckLabel, priceText, safeLink, shortVendor } from "@domain/core";
 import { annualPaymentText, pickerMoney } from "@domain/picker/payment";
 import { roleDisplayName } from "@domain/picker/text";
+import { checkAgeText } from "@domain/table-format";
 import { pickerState } from "@state/app";
 import { dataRevision } from "@state/maintenance";
 import { benchmarkRankingNote, pickerPaymentQuote, priceLine } from "@state/picker";
@@ -19,7 +20,7 @@ const plan = computed(() => props.model.plan);
 const quote = computed(() => pickerPaymentQuote(plan.value));
 const check = computed(() => priceCheckOf(plan.value));
 const sources = computed(() => check.value?.sourceIds.map((id) => PRICE_CHECKS.sources[id as keyof typeof PRICE_CHECKS.sources]).filter(Boolean) ?? []);
-const verified = computed(() => check.value ? `${check.value.checkedAt} · ${priceCheckLabel(plan.value)}${check.value.reason ? "。" + displayPriceReason(check.value.reason) : ""}` : "暂无逐条核查记录，请在官网核对价格与权益。");
+const verified = computed(() => check.value ? `${check.value.checkedAt}${checkAgeText(check.value.checkedAt)} · ${priceCheckLabel(plan.value)}${check.value.reason ? "。" + displayPriceReason(check.value.reason) : ""}` : "暂无逐条核查记录，请在官网核对价格与权益。");
 const hits = computed(() => {
   void dataRevision.benchmark;
   return props.model.role ? planCodingBenchmarks(plan.value, props.model.role).filter((hit): hit is NonNullable<typeof hit> => hit !== null) : [];

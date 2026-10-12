@@ -95,7 +95,7 @@ test("同锚点popstate也恢复全部状态，push/replace不派发历史导航
   assert.equal(JSON.stringify(app.pickerState), JSON.stringify({ budget: "500", region: "intl", tool: "codex", task: "daily", billing: "M", priority: "quota" }));
   assert.equal(JSON.stringify(app.personalState), JSON.stringify({ cat: "tool", region: "intl", billing: "Y", q: "Cursor", limit: null, fromPicker: false }));
   assert.equal(JSON.stringify(app.rankState), JSON.stringify({ tier: "all", scope: "credits", vendor: "all", fromPicker: false }));
-  assert.equal(JSON.stringify(app.tableState), JSON.stringify({ search: "Cursor", cat: "tool", region: "intl", sortKey: "priceY", sortDir: -1, fromPicker: false, extra: false }));
+  assert.equal(JSON.stringify(app.tableState), JSON.stringify({ search: "Cursor", cat: "tool", region: "intl", vendor: "all", sortKey: "priceY", sortDir: -1, fromPicker: false, extra: false }));
   assert.equal(JSON.stringify(app.metricsState), JSON.stringify({ model: "GPT-6.1 Sol", ver: "V2", tier: "flagship", offer: "current", sortKey: "twk", sortDir: -1, fromPicker: false }));
   assert.equal(page.byId<HTMLInputElement>("chartSearch").value, "Cursor");
   assert.equal(page.byId<HTMLInputElement>("searchInput").value, "Cursor");

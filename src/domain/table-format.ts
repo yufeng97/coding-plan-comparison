@@ -1,4 +1,4 @@
-import { PRICE_CHECKS } from '../generated/catalog';
+import { MAINTENANCE_SUMMARY, PRICE_CHECKS } from '../generated/catalog';
 import { fmtTok } from './metrics';
 import { cpmTier } from './core';
 
@@ -21,6 +21,33 @@ export function chinaCalendarDay(now: Date = new Date()) {
     const parts = new Intl.DateTimeFormat("en", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(now);
     const value = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? "";
     return `${value("year")}-${value("month")}-${value("day")}`;
+}
+
+/** 距核查日的天数，按北京时间的日历日比较；日期无效或晚于今天（时区差）时返回 null。 */
+export function daysSince(date: string | null | undefined, today: string = chinaCalendarDay()) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date || "")))
+        return null;
+    const diff = Math.round((Date.parse(today + "T00:00:00Z") - Date.parse(date + "T00:00:00Z")) / 86400000);
+    return Number.isFinite(diff) && diff >= 0 ? diff : null;
+}
+
+/* 复查间隔与维护摘要一致（首屏摘要提供，缺省 14 天）。 */
+export function staleAfterDays() {
+    return MAINTENANCE_SUMMARY.staleAfterDays > 0 ? MAINTENANCE_SUMMARY.staleAfterDays : 14;
+}
+
+/** 核查日期是否已超过复查间隔。 */
+export function checkIsStale(date: string | null | undefined, today: string = chinaCalendarDay()) {
+    const age = daysSince(date, today);
+    return age != null && age >= staleAfterDays();
+}
+
+/** 「（6 天前）」「（今天）」；超过复查间隔时注明。 */
+export function checkAgeText(date: string | null | undefined, today: string = chinaCalendarDay()) {
+    const age = daysSince(date, today);
+    if (age == null)
+        return "";
+    return `（${age === 0 ? "今天" : age + " 天前"}${age >= staleAfterDays() ? "，超过复查间隔" : ""}）`;
 }
 
 type DynamicDates = Pick<DynamicItem, "date" | "text" | "checked" | "endDate">;

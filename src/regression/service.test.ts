@@ -269,3 +269,40 @@ test("输入占比带小数时输出占比不出现浮点误差", async () => {
   assert.equal(page.runtime.outputSharePct("80"), "20");
   page.healthy();
 });
+
+test("触屏设备用系统分享面板发送方案链接，取消不复制，失败时退回复制", async () => {
+  let page = await openPage({ url: "/index.html?budget=500&region=intl" });
+  const share = async () => { page.fire(page.byId("shareResultsBtn"), "click"); await page.settle(); };
+  assert.equal(page.byId("shareResultsBtn").textContent, "复制当前方案链接", "桌面保持复制");
+  await share();
+  assert.match(page.copied ?? "", /budget=500&region=intl/);
+  const shared: ShareData[] = [];
+  let shareImpl = async (data: ShareData) => { shared.push(data); };
+  const coarse = (media: string) => ({ matches: media === "(pointer: coarse)", media }) as MediaQueryList;
+  Object.defineProperty(navigator, "share", { configurable: true, value: (data: ShareData) => shareImpl(data) });
+  try {
+    window.matchMedia = coarse;
+    Object.assign(page.runtime.pickerState, { tool: "codex" });
+    await page.settle();
+    await share();
+    assert.equal(shared.length, 1);
+    assert.match(shared[0]!.url!, /budget=500&region=intl&tool=codex/);
+    assert.match(shared[0]!.text!, /^Coding Plan 选购条件：月均预算 ≤¥500 · 国际 · Codex/);
+    assert.doesNotMatch(page.copied ?? "", /tool=codex/, "系统分享成功时不再复制");
+    assert.match(page.byId("serviceFeedback").textContent!, /已打开系统分享/);
+    shareImpl = async () => { const error = new Error("cancel"); error.name = "AbortError"; throw error; };
+    await share();
+    assert.equal(page.byId("serviceFeedback").textContent, "已取消分享。");
+    assert.doesNotMatch(page.copied ?? "", /tool=codex/);
+    shareImpl = async () => { throw new Error("denied"); };
+    await share();
+    assert.match(page.copied ?? "", /tool=codex/, "其他失败退回复制链接");
+    page.healthy();
+    /* 挂载时就支持系统分享的触屏设备，按钮直接写「分享当前方案」。 */
+    page = await openPage({ prepare() { window.matchMedia = coarse; } });
+    assert.equal(page.byId("shareResultsBtn").textContent, "分享当前方案");
+    page.healthy();
+  } finally {
+    delete (navigator as { share?: unknown }).share;
+  }
+});

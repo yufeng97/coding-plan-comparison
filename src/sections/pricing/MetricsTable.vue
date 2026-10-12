@@ -30,9 +30,9 @@ function change(action: () => void) { updateAppState(action); }
 function sort(key: string, direction = 1) { change(() => { state.sortDir = state.sortKey === key ? -state.sortDir : direction; state.sortKey = key; }); }
 function reset() { Object.assign(state, { model: "all", ver: "all", tier: "flagship", offer: "current", sortKey: "cpm", sortDir: 1, fromPicker: false }); focusTableControl(modelSelect.value); }
 function populateModels() { if (state.model !== "all" && !models.includes(state.model)) state.model = "all"; }
-async function more() {
+async function more(all = false) {
   const previous = visibleRows.value.length;
-  visibleLimit.value += pageSize.value;
+  visibleLimit.value = all ? Math.max(rows.value.length, visibleLimit.value) : visibleLimit.value + pageSize.value;
   await nextTick();
   const row = document.querySelectorAll<HTMLElement>("#metricsBody tr")[previous];
   if (row) { row.tabIndex = -1; focusTableControl(row); } else focusTableControl(document.getElementById("metricsMoreBtn"));
@@ -69,7 +69,10 @@ onBeforeUnmount(() => { release(); window.removeEventListener("resize", resize);
       </tbody>
     </table>
   </div>
-  <button id="metricsMoreBtn" type="button" class="chip" :hidden="visibleRows.length >= rows.length" aria-controls="metricsBody" @click.stop="more">显示更多额度记录（还有 {{ rows.length - visibleRows.length }} 行）</button>
+  <div class="table-more-actions">
+    <button id="metricsMoreBtn" type="button" class="chip" :hidden="visibleRows.length >= rows.length" aria-controls="metricsBody" @click.stop="more()">显示更多额度记录（还有 {{ rows.length - visibleRows.length }} 行）</button>
+    <button id="metricsAllBtn" type="button" class="chip" :hidden="rows.length - visibleRows.length <= pageSize" aria-controls="metricsBody" @click.stop="more(true)">显示全部 {{ rows.length }} 行</button>
+  </div>
   <div id="metricsNote" class="chart-note">
     <b>当前范围：</b>{{ state.tier === "all" ? "含轻量模型" : "只看旗舰模型" }}；{{ state.offer === "all" ? "含历史与仅老用户续费档，购买前请核对来源" : "仅新用户当前可购买的套餐，与排行使用相同购买筛选" }}。API 按量是参照行，不进入套餐排行。当前 {{ rows.length }} 行（含 <b>{{ results.payg.length }}</b> 行官方按量、<b>{{ results.rows.filter((row) => row.m.isEst).length }}</b> 行「≈估」），按{{ sortDescription }}排序。
     <details class="metrics-legend"><summary>各列口径、计算假设与置信度说明</summary><b>💵每M tokens</b> = 月费÷月 tokens 中值（统一折算¥，越低越便宜；绿色≤¥0.30、黄色≤¥1、红色&gt;¥1）。标「官方 API 按量」的行没有月费，这一列用同一套 80/20、95% 缓存假设把低峰牌价折成人民币，所以能和套餐排在一起；模型名下方仍是原始输入 / 输出 / 缓存命中。套餐行模型名下方的牌价也不是套餐的每 M 成本。同一请求额度下，牌价更高的模型「额度价值 / 倍率」更高，每 M 成本不变。带牌价的 credits 按这套单价把面值折成 tokens；没有逐模型牌价的美元 credits 仍按假设均价 ¥10/M，且不进入「真实单价」排行。标「官方系数」的行用厂商公布的积分系数、按同一套假设摊成 tokens，置信度为中，不进入每周 tokens 图。<br>计算假设：输入/输出=80/20、缓存命中率 95%、每周 5 个 5h 窗口、每月 4.33 周。官方周 tokens：Tokens/5h=周÷5，Tokens/月=周×4.33。请求数制若同时写了每 5 小时、每周、每月上限，三列各自用该窗口的次数，不按「周÷5、周×4.33」互相换算，因此 Tokens/5h×5 可以不等于 Tokens/周。⏫额度倍率 = 该时段额度价值 ÷ 该时段分摊月费（5h=月费/21.65，周=月费/4.33，月=月费）。<b>「依据」列</b>标注出处与置信度（<span class="conf conf-hi">高</span>官方/credits · <span class="conf conf-mid">中</span>实测/区间/牌价折算 · <span class="conf conf-lo">低</span>毛利/第三方/请求折算）。</details>

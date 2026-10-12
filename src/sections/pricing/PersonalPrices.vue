@@ -46,7 +46,7 @@ onBeforeUnmount(() => { clearTimeout(timer); personalViewHooks.cancelSearch = un
 function change(key: "cat" | "region" | "billing", value: string) { updateAppState(() => { state[key] = value; }); }
 function toggleAll() { updateAppState(() => { state.limit = state.limit == null ? PERSONAL_DEFAULT_LIMIT : null; }); }
 function showExcluded() {
-  updateAppState(() => { Object.assign(tableState, { search: state.q, cat: "all", region: "all", fromPicker: false, extra: true }); }, renderTable);
+  updateAppState(() => { Object.assign(tableState, { search: state.q, cat: "all", region: "all", vendor: "all", fromPicker: false, extra: true }); }, renderTable);
   navigateToSection("#table");
 }
 </script>

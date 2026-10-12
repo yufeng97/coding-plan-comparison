@@ -1,6 +1,6 @@
 import { RATE_USD_CNY, META, MODEL_ROLES, isRetiredPlan, isOneTimePlan, isRenewalOnly, isFourWeekPlan, isSoldOut, offerable, isRelay, findPlanReference, resolvedField, hasOwnClient, mainlandAccessOf, METRICS_RAW, ESTIMATES, PRICE_CHECKS, priceCheckOf, isPriceConfirmed } from '../generated/catalog';
 import { toCNY } from './metrics';
-import { hasIncludedModelQuota } from '../generated/catalog';
+import { hasIncludedModelQuota, isOnSalePlan, PLANS } from '../generated/catalog';
 
 export type Billing = "M" | "Y";
 
@@ -303,6 +303,11 @@ export function planSearchBlob(p: Plan) {
     const identity = [p.vendor, p.plan].join(" ");
     const aliases = SEARCH_VENDOR_ALIASES.filter(([pattern]) => pattern.test(identity)).map(([, words]) => words);
     return foldSearch([p.vendor, p.plan, resolvedField(p, "models"), resolvedField(p, "tools"), resolvedField(p, "quota"), resolvedField(p, "note"), ...aliases].join(" "));
+}
+
+/** 价格表里确有记录的厂商（在售明码标价档），按中文名排序；数据表的厂商筛选与链接参数校验共用。 */
+export function tableVendors() {
+    return [...new Set(PLANS.filter(isOnSalePlan).map((p) => p.vendor))].sort((a, b) => a.localeCompare(b, "zh-CN"));
 }
 
 export function queryHit(blob: string, q: string | null | undefined) {

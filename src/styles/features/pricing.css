@@ -99,6 +99,10 @@ table.is-empty { min-width: 0 !important; }
 table.is-empty thead { display: none; }
 #metricsTable.is-empty tbody td.table-empty { position: static; width: auto; max-width: none; white-space: normal; overflow: visible; }
 
+/* ---------- 显示更多与显示全部 ---------- */
+.table-more-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.table-more-actions:has(> :not([hidden])) { margin-top: 12px; }
+
 /* ---------- API 价格明细 ---------- */
 #apiDetailTable tbody th { padding: 9px 12px; text-align: left; font-weight: 600; border-bottom: 1px solid var(--row-border); }
 .api-detail-wrap { margin-top: 14px; }
