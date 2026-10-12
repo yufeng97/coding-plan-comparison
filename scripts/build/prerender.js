@@ -4,10 +4,10 @@
  * 浏览器执行脚本后按当前条件重绘这些容器。带查询参数的链接在重绘前隐藏预渲染内容，避免先闪出默认推荐。 */
 "use strict";
 const fs = require('node:fs');
-const os = require('node:os');
 const path = require('node:path');
 const { execFile } = require('node:child_process');
 const { promisify } = require('node:util');
+const { realTempRoot } = require('../lib/temp-dir');
 const run = promisify(execFile);
 
 /** 把容器的渲染结果写入空的同名元素，并标记 data-prerendered。容器在源文件中必须为空，避免误替换嵌套内容。
@@ -29,7 +29,8 @@ function injectContainer(html, id, content) {
 
 /** @param {string} html 已带缓存版本号的发布用 index.html @returns {Promise<string>} */
 async function prerenderIndex(html) {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'coding-plan-ssr-'));
+  const temporaryRoot = realTempRoot();
+  const directory = fs.mkdtempSync(path.join(temporaryRoot, 'coding-plan-ssr-'));
   const output = path.join(directory, 'render.json');
   try {
     await run(process.execPath, [path.join(__dirname, 'render-vue.mjs'), output], { cwd: path.resolve(__dirname, '../..'), timeout: 120000, maxBuffer: 4 * 1024 * 1024 });
@@ -39,7 +40,7 @@ async function prerenderIndex(html) {
     // Teleport nodes once; inserting server Teleports here would leave duplicate IDs.
     return injectContainer(html, 'app', rendered);
   } finally {
-    if (path.dirname(directory) !== fs.realpathSync(os.tmpdir()) || !path.basename(directory).startsWith('coding-plan-ssr-')) throw new Error('拒绝清理未知预渲染目录');
+    if (path.dirname(directory) !== temporaryRoot || !path.basename(directory).startsWith('coding-plan-ssr-')) throw new Error('拒绝清理未知预渲染目录');
     fs.rmSync(directory, { recursive: true, force: true });
   }
 }

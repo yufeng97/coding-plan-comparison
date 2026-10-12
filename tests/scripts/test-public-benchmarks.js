@@ -2,9 +2,9 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const os = require("node:os");
 const { validatePublic, rowId, officialURL, collect, publish, digest, compareScores, readPublic } = require("../../scripts/benchmarks/public-scores");
 const { fetchSource, MAX_BYTES } = require("../../scripts/news/network");
+const { realTempRoot } = require("../../scripts/lib/temp-dir");
 const now = new Date().toISOString(), url = "https://deepswe.datacurve.ai/";
 const board = { id: "test-protocol", family: "test-only", name: "Test fixture", version: "1", category: "coding", metric: "pass@1", unit: "%", description: "Test-only fixture", configuration: "same protocol", scope: "fixture", sourceUrl: url, sourceUpdatedAt: null, checkedAt: now };
 const row = { id: "", benchmarkId: board.id, model: "test-only", reasoning: "high", agent: "test-agent", score: 67, costUSD: null, costNote: null, uncertainty: null, tokens: null, steps: null, sourceUrl: url, checkedAt: now };
@@ -53,7 +53,8 @@ async function main() {
     assert.equal((await fetchSource(url, { resolver, maxBytes: MAX_BYTES + 1, fetcher: async () => new Response("x".repeat(MAX_BYTES + 1)) })).bytes.length, MAX_BYTES + 1);
     await assert.rejects(fetchSource(url, { maxBytes: 17 * 1024 * 1024 }), /限额/);
   });
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "public-benchmark-test-"));
+  const temporaryRoot = realTempRoot();
+  const dir = fs.mkdtempSync(path.join(temporaryRoot, "public-benchmark-test-"));
   const latest = path.join(dir, "data/audit/benchmark-sources/latest.json"), formal = path.join(dir, "data/benchmarks/public-results.json");
   const getter = async raw => ({ text: bytes.toString(), bytes, finalURL: raw });
   const good = { id: "test", collect: async get => { const source = await get(url); return { benchmarks: [{ ...board, checkedAt: source.checkedAt }], scores: [{ ...row, checkedAt: source.checkedAt }] }; } };
@@ -137,7 +138,7 @@ async function main() {
       } finally { fs.unlinkSync(lock); }
     });
   } finally {
-    if (path.dirname(dir) !== fs.realpathSync(os.tmpdir()) || !path.basename(dir).startsWith("public-benchmark-test-")) throw new Error("未知测试目录");
+    if (path.dirname(dir) !== temporaryRoot || !path.basename(dir).startsWith("public-benchmark-test-")) throw new Error("未知测试目录");
     fs.rmSync(dir, { recursive: true, force: true });
   }
   console.log("公开评测离线回归通过：" + passed + " 项");

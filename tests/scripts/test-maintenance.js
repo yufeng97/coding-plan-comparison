@@ -2,17 +2,18 @@
 "use strict";
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
-const os = require("node:os");
 const path = require("node:path");
 const vm = require("node:vm");
 const { buildMaintenance, parseArgs, rssOf } = require("../../scripts/maintenance/build-maintenance");
 const { seededHistory, canonical, changeOf, validateHistory } = require("../../scripts/maintenance/history");
 const { rewindToFullAudit } = require("./full-audit-baseline");
+const { realTempRoot } = require("../../scripts/lib/temp-dir");
 const workspace = path.resolve(__dirname, "../..");
 const outputs = ["data/audit/change-history.json", "data/generated/maintenance.json", "data/generated/maintenance-data.js", "data/generated/maintenance-summary.js", "data/generated/changes.xml"];
 
 function fixture(run) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "coding-plan-maintenance-test-"));
+  const temporaryRoot = realTempRoot();
+  const root = fs.mkdtempSync(path.join(temporaryRoot, "coding-plan-maintenance-test-"));
   try {
     /* 维护与核价回放使用生产候选校验，夹具保留完整 Vue/TypeScript 入口依赖。 */
     for (const file of ["index.html", "src", "data/sources", "data/generated", "types"]) fs.cpSync(path.join(workspace, file), path.join(root, file), { recursive: true });
@@ -27,7 +28,7 @@ function fixture(run) {
     for (const generated of ["maintenance-data.js", "maintenance-summary.js", "maintenance.json", "changes.xml", "feeds"]) fs.rmSync(path.join(root, "data/generated", generated), { recursive: true, force: true });
     run({ root, snapshot, calendar });
   } finally {
-    if (path.dirname(root) !== fs.realpathSync(os.tmpdir()) || !path.basename(root).startsWith("coding-plan-maintenance-test-")) throw new Error("拒绝清理未知维护测试目录");
+    if (path.dirname(root) !== temporaryRoot || !path.basename(root).startsWith("coding-plan-maintenance-test-")) throw new Error("拒绝清理未知维护测试目录");
     fs.rmSync(root, { recursive: true, force: true });
   }
 }

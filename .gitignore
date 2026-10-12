@@ -1,7 +1,10 @@
 .vercel
 .claude/
 data/audit/.pricing.lock
+**/.lock-release-*
+data/audit/news-corrupt/
 **/.audit-update-*/
+**/.news-update-*/
 .site-stage-*/
 .site-backup-*/
 **/.asset-update-*/
