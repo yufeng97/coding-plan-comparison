@@ -4,7 +4,7 @@
 const assert = require("node:assert/strict");
 const { spawnSync } = require("node:child_process");
 
-for (const script of [require.resolve("./run"), require.resolve("../build/check-syntax")]) {
+for (const script of [require.resolve("./run"), require.resolve("../../scripts/build/check-syntax")]) {
   for (const outcome of [
     { status: 0, signal: null, expected: 0 },
     { status: 7, signal: null, expected: 7 },

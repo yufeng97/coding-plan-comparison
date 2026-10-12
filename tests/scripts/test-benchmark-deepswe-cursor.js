@@ -1,7 +1,7 @@
 // @ts-check
 'use strict';
 const assert = require('node:assert/strict');
-const {collect} = require('../benchmarks/sources/deepswe-cursor');
+const {collect} = require('../../scripts/benchmarks/sources/deepswe-cursor');
 
 // Test-only, intentionally tiny protocol fixtures. Labels and Cursor's published
 // numeric examples are real; DeepSWE token counts/cost are synthetic to isolate

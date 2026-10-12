@@ -7,8 +7,8 @@ const fs = require("node:fs");
 const http = require("node:http");
 const os = require("node:os");
 const path = require("node:path");
-const { createServer, fileFromUrl, allowedHost } = require("../server/serve");
-const { blockedSegment } = require("../lib/paths");
+const { createServer, fileFromUrl, allowedHost } = require("../../scripts/server/serve");
+const { blockedSegment } = require("../../scripts/lib/paths");
 
 function request(port, urlPath, headers = {}, method = "GET", setHost = true) {
   return new Promise((resolve, reject) => {

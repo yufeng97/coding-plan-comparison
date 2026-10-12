@@ -2,7 +2,7 @@
 const assert = require("node:assert/strict");
 const { createHash } = require("node:crypto");
 const { deflateRawSync } = require("node:zlib");
-const { collect } = require("../benchmarks/sources/osworld-hle");
+const { collect } = require("../../scripts/benchmarks/sources/osworld-hle");
 const time = "2026-10-08T00:00:00.000Z";
 const v1 = "https://osworld-v1.xlang.ai/", v2 = "https://osworld-v2.xlang.ai/", hle = "https://lastexam.ai/";
 const guide = "https://api.github.com/repos/centerforaisafety/hle/contents/docs/evaluation-with-tools.md";

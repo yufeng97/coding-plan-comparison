@@ -4,10 +4,10 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { updateFonts, get: fontGet } = require("../build/vendor-fonts");
-const { stageSite } = require("../build/stage-site");
-const { deployment, deploySite, resolveDeploymentToken } = require("../build/deploy-site");
-const { fetchRates, applyRates, updateRates, parseArgs: parseRateArgs } = require("../build/update-rates");
+const { updateFonts, get: fontGet } = require("../../scripts/build/vendor-fonts");
+const { stageSite } = require("../../scripts/build/stage-site");
+const { deployment, deploySite, resolveDeploymentToken } = require("../../scripts/build/deploy-site");
+const { fetchRates, applyRates, updateRates, parseArgs: parseRateArgs } = require("../../scripts/build/update-rates");
 
 async function fixture(fn) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "coding-plan-tools-test-"));
@@ -112,10 +112,10 @@ async function main() {
     for (const name of ["badgeHtml", "priceCheckHtml", "watchButtonHtml", "maintenanceSources", "changeCardHtml", "planHistoryParts", "planHistoryHtml", "fillPlanHistory", "usageCoverageHtml", "mainCard"]) {
       assert.equal(name in runtime, false, name + " 只属于测试渲染边界");
     }
-    assert.doesNotMatch(code, /scripts[\\/]tests[\\/]fixtures|Test-only classic HTML rendering boundary/);
+    assert.doesNotMatch(code, /(?:scripts[\\/]tests|tests[\\/]scripts)[\\/]fixtures|Test-only classic HTML rendering boundary/);
   });
   await test("构建只读入公共源目录，经 junction 指向私有目录的模块和资源被拒绝", () => fixture(async (root, write) => {
-    const { assertPublicSource, publicSourcesOnly } = await import("../build/vite-assets.mjs");
+    const { assertPublicSource, publicSourcesOnly } = await import("../../scripts/build/vite-assets.mjs");
     write("data/audit/secret.js", "PRIVATE_SECRET_MARKER");
     assert.doesNotThrow(() => assertPublicSource(root, path.join(root, "src/browser/extra.js")));
     assert.throws(() => assertPublicSource(root, path.join(root, "data/audit/secret.js")), /公共目录以外/);
@@ -132,7 +132,7 @@ async function main() {
     } finally { fs.unlinkSync(link); }
   }));
   await test("ECharts 精简包由 npm 包构建：经典脚本执行后登记全局 echarts，版本与依赖一致", async () => {
-    const { bundleEcharts } = await import("../build/vite-assets.mjs");
+    const { bundleEcharts } = await import("../../scripts/build/vite-assets.mjs");
     const root = path.resolve(__dirname, "..", "..");
     const code = (await bundleEcharts(root, "src/entries/echarts.ts")).toString("utf8");
     assert.doesNotMatch(code, /^\s*(?:import|export)\s/m, "必须是经典脚本，页面按 <script> 插入");
@@ -144,7 +144,7 @@ async function main() {
   });
   await test("开发经典脚本缓存跟随入口及间接依赖内容更新，失败生成可在修复后重试", () => fixture(async (root, write) => {
     const { createServer } = await import("vite");
-    const { classicScripts } = await import("../build/vite-assets.mjs");
+    const { classicScripts } = await import("../../scripts/build/vite-assets.mjs");
     write("src/domain/message.ts", 'export const message = "one";');
     write("src/browser/entry.ts", 'import { message } from "../domain/message"; globalThis.fixtureMessage = message;');
     const plugin = classicScripts({ root, generated: { "js/theme-init.js": "src/browser/entry.ts" } });
@@ -178,7 +178,7 @@ async function main() {
   }));
   await test("开发 URL 保持分享图及 RSS 地址，阻止私有链接与源码目录 URL", () => fixture(async (root, write) => {
     const { createServer } = await import("vite");
-    const { publicAssets } = await import("../build/vite-assets.mjs");
+    const { publicAssets } = await import("../../scripts/build/vite-assets.mjs");
     write("public/img/og-card.png", "public image");
     write("data/generated/changes.xml", "<rss/>");
     write("data/generated/feeds/vendor.xml", "<rss>vendor</rss>");
@@ -204,7 +204,7 @@ async function main() {
     } finally { await server.close(); }
   }));
   await test("生成中的依赖变化不会把旧字节登记为新缓存，watcher 延迟时也重新生成", async () => {
-    const { classicScripts } = await import("../build/vite-assets.mjs");
+    const { classicScripts } = await import("../../scripts/build/vite-assets.mjs");
     const { EventEmitter } = require("node:events");
     const crypto = require("node:crypto");
     for (const emitChange of [true, false]) await fixture(async (root, write) => {
@@ -235,7 +235,7 @@ async function main() {
     });
   });
   await test("审计输入确定性生成类型化目录，保留永久 ID、正则、共享字段与评测摘要，顶层函数参数须写明类型", () => fixture(async (root, write) => {
-    const { catalogSource, writeCatalog, CATALOG_FILE } = await import("../build/catalog-types.mjs");
+    const { catalogSource, writeCatalog, CATALOG_FILE } = await import("../../scripts/build/catalog-types.mjs");
     write("data/sources/data.js", 'const RATE_USD_CNY = 6.71;\n/** @type {Plan[]} */\nconst PLANS = [{id:"stable-id",plan:"fixture",quota:"shared"}];\n/** @type {ModelRole[]} */\nconst MODEL_ROLES = [{re:/glm-5/i}];\n/** @type {PriceChecks} */\nconst PRICE_CHECKS = {checkedAt:"2026-10-10",sources:{},rows:{}};\n/** @param {Plan} p @param {PlanTextField} key @param {Set<Plan>} [seen] @returns {string} */\nfunction resolvedField(p,key,seen) { return p[key]; }');
     write("data/generated/benchmark-summary.js", '/** @type {BenchmarkSummary} */\nconst BENCHMARK_SUMMARY = {schemaVersion:1,checkedAt:"2026-10-10",protocols:[]};');
     write("data/generated/maintenance-summary.js", '/** @type {MaintenanceSummary} */\nconst MAINTENANCE_SUMMARY = {schemaVersion:1,changes:[]};');
@@ -273,7 +273,7 @@ async function main() {
   }));
   await test("Vue SSR 首屏包含可读推荐、价格表与免费入口，并保留模块入口供浏览器接管", async () => {
     const root = path.resolve(__dirname, "..", "..");
-    const { prerenderIndex } = require("../build/prerender");
+    const { prerenderIndex } = require("../../scripts/build/prerender");
     const html = await prerenderIndex(fs.readFileSync(path.join(root, "index.html"), "utf8"));
     assert.match(html, /class="quick-card"/);
     assert.match(html, /class="qc-plan"/);
@@ -283,7 +283,7 @@ async function main() {
     assert.doesNotMatch(html, /virtual:legacy|src="js\/app-(?:core|picker|tables|init)\.js"/);
   });
   await test("目录生成不经公共路径链接读入私有审计内容", () => fixture(async (root, write) => {
-    const { catalogSource } = await import("../build/catalog-types.mjs");
+    const { catalogSource } = await import("../../scripts/build/catalog-types.mjs");
     write("data/audit/private/data.js", "const PRIVATE_SECRET_MARKER = 'must-not-publish';");
     const input = path.join(root, "data/sources"), backup = path.join(root, "data/sources-original");
     fs.renameSync(input, backup);
@@ -292,7 +292,7 @@ async function main() {
     finally { fs.unlinkSync(input); fs.renameSync(backup, input); }
   }));
   await test("开发目录插件加载时不写源码，已登记输入热更新后重建类型目录", () => fixture(async (root, write) => {
-    const { watchCatalog, writeCatalog, CATALOG_FILE } = await import("../build/catalog-types.mjs");
+    const { watchCatalog, writeCatalog, CATALOG_FILE } = await import("../../scripts/build/catalog-types.mjs");
     write("data/sources/data.js", "const PLANS = [];");
     write("data/generated/benchmark-summary.js", "const BENCHMARK_SUMMARY = {};");
     write("data/generated/maintenance-summary.js", "const MAINTENANCE_SUMMARY = {};");

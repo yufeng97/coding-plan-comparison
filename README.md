@@ -56,7 +56,7 @@ npm run catalog:check # 只检查生成的目录与审计输入一致，不改�
 npm run typecheck    # 数据目录一致性，严格检查全部 TS 业务模块、Vue/模板与测试，以及数据与工具脚本
 npm run check:architecture # 检查前端模块循环依赖与分层边界
 npm run validate     # 数据结构、引用、来源与日期
-npm test             # Node 工具、架构约束 + TypeScript / Vue 回归
+npm test             # tests/scripts/ 的 Node 工具、架构约束 + TypeScript / Vue 回归
 npm run test:unit    # 公式、数据、真实 Vue 整页和组件测试（Vitest）
 npm run test:browser # 构建后用 Chromium / Firefox / WebKit 运行 tests/e2e/ 的端到端回归
 npm run build:site   # Vite + Vue SSR 生成发布产物 .site-build/
@@ -65,6 +65,8 @@ npm run build:site   # Vite + Vue SSR 生成发布产物 .site-build/
 前端使用 Vue 3 + Vite + TypeScript：`src/App.vue` 排列整页，页头页脚在 `src/layouts/`，`src/sections/` 按帮我选、价格、对比、费用计算、评测、关注、贡献和站点说明分组，跨区块复用的组件与组合式函数在 `src/components/`、`src/composables/`。`src/domain/` 保存无浏览器依赖的业务规则，`src/state/` 管共享状态与绑定状态的选择器，`src/browser/` 封装 DOM、URL、存储、图表与资源加载，`src/application/` 协调跨功能动作与页面启动，单独打包的经典脚本入口在 `src/entries/`。组件按需从具体模块导入，`check:architecture` 与 CI 检查分层方向、循环依赖和测试代码隔离。源码、Vue 模板与测试统一使用严格 TypeScript，审计数据的结构类型由 `types/catalog.d.ts` 共用。说明见 [架构与发布](docs/architecture.md#前端结构与迁移)。
 
 `data/sources/` 是人工维护的审计数据，脚本生成的文件（目录、按需数据、维护快照与 RSS）分别在 `src/generated/` 与 `data/generated/`，随源数据提交；`catalog:check` 防止两份内容漂移。公式和数据测试直接导入 TypeScript 模块，整页回归挂载真实 `App.vue`，浏览器回归使用真实发布产物。旧页面 VM、HTML 渲染夹具和浏览器业务全局 getter 已删除。
+
+Node 工具与架构回归集中在 `tests/scripts/`，浏览器端到端用例在 `tests/e2e/`；TS 整页回归与测试支撑分别在 `src/regression/`、`src/test/`，组件测试继续就近放置。`npm test` 经 `tests/scripts/run.js` 依次执行 Node 套件，再运行 Vitest。
 
 修改数据后先运行 `npm run maintenance:build`（维护摘要、变更 RSS、分厂商订阅与导航未读提醒的首屏摘要），再运行 `npm run catalog:build`；评测摘要变化后也需重新生成目录。详细流程见 [数据维护手册](docs/maintenance.md)。
 

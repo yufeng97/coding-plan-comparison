@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
 const { spawn, spawnSync } = require("node:child_process");
-const { acquireFileLock, withFileLock, withFileLockSync } = require("../lib/file-lock");
+const { acquireFileLock, withFileLock, withFileLockSync } = require("../../scripts/lib/file-lock");
 
 let passed = 0;
 async function test(label, action) {
@@ -21,7 +21,7 @@ async function test(label, action) {
 function contender(file) {
   return new Promise((resolve, reject) => {
     const code = `
-      const {acquireFileLock}=require(${JSON.stringify(require.resolve("../lib/file-lock"))});
+      const {acquireFileLock}=require(${JSON.stringify(require.resolve("../../scripts/lib/file-lock"))});
       try { const release=acquireFileLock(process.argv[1]); release(); process.stdout.write("acquired"); }
       catch(error) { if(!error.message.includes("人工检查")) throw error; process.stdout.write("blocked"); }
     `;

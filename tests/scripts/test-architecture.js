@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { checkArchitecture } = require("../build/check-architecture");
+const { checkArchitecture } = require("../../scripts/build/check-architecture");
 
 /** @param {Record<string, string>} files @param {(root: string) => void} check */
 function fixture(files, check) {

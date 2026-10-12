@@ -2,6 +2,14 @@
 
 > 按数据核查和代码修复批次记录。
 
+## 2026-10-12：Node 工具回归移到 `tests/scripts/`
+
+- `scripts/tests/` 整体移到 `tests/scripts/`，Node 工具、架构约束与维护回归集中到根目录 `tests/` 下，与 `tests/e2e/` 的浏览器回归并列；`scripts/` 保留构建、校验、服务与维护工具。
+- 同步测试对被测脚本的静态导入、动态导入及子进程模块定位，并将 npm 测试入口改为 `tests/scripts/run.js`；当前目录说明与贡献约定同步更新。
+- 保留 runner 的套件顺序与失败退出行为：14 个 Node 套件通过后继续运行 Vitest；`test-news-proxy.js` 仍由 `test-news.js` 调用，`full-audit-baseline.js` 仍作为核价与维护回归共用的基线夹具。
+- TS 整页回归、测试支撑与就近组件测试保持原位置；历史变更记录、审计快照和测试来源注释保留。
+- 验证：`npm run typecheck` 通过；`npm test` 的 14 个 Node 工具套件与 24 个 TS / Vue 测试文件的 366 项测试全部通过；`npm run test:browser -- --list` 正确识别 15 个文件的 339 项浏览器用例。
+
 ## 2026-10-12：移植 #3 并合并 main
 
 - 本分支拉出后，main 合入了 #3（见下方「2026-10-10：审查补充修复与回访服务」），它改的是旧的 `js/`、`index.html` 与 `css/style.css`。#3 的 7 个提交逐一移植为对应的 7 个提交，功能与 #3 一致：日常主导时按日常模型找更便宜的同模型档；29 档计划改用结构化字段判定（数据改动与 #3 逐行相同）；Claude Code / Codex 会话日志导入；导航「我的关注」未读数；价格表厂商筛选、两张表的「显示全部」、触屏系统分享、核查日期距今天数；`npm run rates:update` 等。

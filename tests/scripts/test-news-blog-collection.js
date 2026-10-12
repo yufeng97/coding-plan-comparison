@@ -1,7 +1,7 @@
 "use strict";
 const assert = require("node:assert/strict");
-const { collectNews } = require("../news/collect-news");
-const { parseBlogArticle } = require("../news/blog");
+const { collectNews } = require("../../scripts/news/collect-news");
+const { parseBlogArticle } = require("../../scripts/news/blog");
 const NOW = new Date("2026-10-09T10:00:00Z");
 const blog = { id: "official-blog", name: "Official blog", kind: "blog", authority: "official", url: "https://official.example.com/news", articlePaths: ["^/news/[^/]+/?$"] };
 const resolver = async () => [{ address: "8.8.8.8" }];

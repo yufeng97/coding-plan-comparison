@@ -4,8 +4,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
 const crypto = require("node:crypto");
-const { acquireFileLock } = require("../lib/file-lock");
-const {tasks,runTask,validateRuns,importRun,benchmarkSummary,build} = require("../benchmarks/benchmark");
+const { acquireFileLock } = require("../../scripts/lib/file-lock");
+const {tasks,runTask,validateRuns,importRun,benchmarkSummary,build} = require("../../scripts/benchmarks/benchmark");
 const catalog=tasks();
 const root=path.resolve(__dirname,"../..");
 {

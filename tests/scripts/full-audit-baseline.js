@@ -5,7 +5,7 @@
  * 得到与全量台账一致的基线。为重建临时放入的输入、台账与历史文件随后删除，夹具原有的文件布局不变。 */
 const fs = require("node:fs");
 const path = require("node:path");
-const { syncPricingAudit } = require("../build/sync-pricing-audit");
+const { syncPricingAudit } = require("../../scripts/build/sync-pricing-audit");
 
 const FULL_AUDIT_INPUTS = ["pricing-root.json", "pricing-relays.json", "pricing-tools.json", "pricing-cn.json"];
 

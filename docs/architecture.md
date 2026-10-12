@@ -45,13 +45,13 @@
 | `data/config/news-sources.json` / `review-calendar.json` | 官方监测、开放发现与有来源的复核日历 |
 | `scripts/benchmarks/` / `data/benchmarks/` | 官方公开评测 adapter、带哈希证据的采集/审核、public-results.json 快照、固定任务验收与公共测评构建 |
 | `public/` | 只放手写静态资源：分享卡片图 `img/og-card.png`（og:image）。由 `build:site` 与开发中间件按白名单发布，发布 URL 保持 `img/` |
-| `tsconfig.json` / `tsconfig.*.json` | 根配置只引用子项目，编辑器据此为每个文件选用对应配置：`app`（业务模块与组件，不含 Node 类型）、`vitest`（测试）、`data`（数据文件 checkJs）、`node`（工具脚本、端到端测试与 Vite / Playwright 配置） |
+| `tsconfig.json` / `tsconfig.*.json` | 根配置只引用子项目，编辑器据此为每个文件选用对应配置：`app`（业务模块与组件，不含 Node 类型）、`vitest`（测试）、`data`（数据文件 checkJs）、`node`（工具脚本、Node 回归、端到端测试与 Vite / Playwright 配置） |
 | `scripts/lib/paths.js` / `atomic-swap.js` | 共享的「路径是否在根内 / 封锁段」判断、目录级原子交换（暂存→备份→切换→回滚）与逐文件替换回滚 |
 | `scripts/build/` | 构建与校验工具：vite-assets（公共源白名单、经典资源哈希与 ECharts 生成）、catalog-types、vendor-fonts、stage-site、prerender、render-vue、deploy-site、check-syntax、check-architecture、validate-data、sync-pricing-audit、update-rates（参考汇率） |
 | `scripts/server/serve.js` | 发布产物预览服务器（`serve.js .site-build`；只监听 127.0.0.1，只读站点目录内的白名单文件并拒绝隐藏路径） |
 | `scripts/news/collect-news.js` | 联网采集资讯候选与页面变化；保留缓存和来源错误，不改正式数据 |
 | `scripts/maintenance/` | 维护摘要与变更 RSS 构建：读写 `data/audit/change-history.json`，输出到 `data/generated/` |
-| `scripts/tests/` | Node 工具、架构约束及维护回归；TS 公式、数据、整页与就近组件测试由 `npm test` 一并运行 |
+| `tests/scripts/` | Node 工具、架构约束及维护回归，与被测的 `scripts/` 工具分开；`run.js` 依次执行 Node 套件，再运行 TS 公式、数据、整页与就近组件测试，统一入口为 `npm test` |
 | `tests/e2e/` | Chromium、Firefox、WebKit 端到端用例（Playwright），通过 DOM、地址、存储和 ECharts 公共 API 检查发布产物 |
 
 ## 前端结构与迁移

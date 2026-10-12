@@ -4,11 +4,11 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { plainText, parseFeed, parseHN } = require("../news/feed");
-const { fetchSource, publicURL, publicAddress, validateSourceURL, MAX_BYTES } = require("../news/network");
-const { collectNews, runCollection, normalizeURL, readKnownVendors, parseArguments, main, withNewsLock } = require("../news/collect-news");
-const { stableId, validateInbox, contentHash } = require("../news/inbox");
-const { applyReview, runReview, triageData, parseArguments: reviewArguments } = require("../news/review-news");
+const { plainText, parseFeed, parseHN } = require("../../scripts/news/feed");
+const { fetchSource, publicURL, publicAddress, validateSourceURL, MAX_BYTES } = require("../../scripts/news/network");
+const { collectNews, runCollection, normalizeURL, readKnownVendors, parseArguments, main, withNewsLock } = require("../../scripts/news/collect-news");
+const { stableId, validateInbox, contentHash } = require("../../scripts/news/inbox");
+const { applyReview, runReview, triageData, parseArguments: reviewArguments } = require("../../scripts/news/review-news");
 
 const NOW = new Date("2026-10-07T00:00:00Z");
 const OCT8 = new Date("2026-10-08T00:00:00Z");
@@ -400,7 +400,7 @@ async function tests() {
   await test("无时区pubDate统一按UTC解释，UTC与UTC+8机器得到相同发布时间与内容哈希", () => {
     const xml = rss(itemXML("Coding plan zoneless", "https://new.example.com/zoneless", "2026-10-06 10:00:00"), itemXML("Coding plan RFC", "https://new.example.com/rfc", "Mon, 05 Oct 2026 08:00:00"),
       itemXML("Coding plan offset", "https://new.example.com/offset", "Mon, 05 Oct 2026 08:00:00 +0800"), itemXML("Coding plan iso", "https://new.example.com/iso", "2026-10-06T10:00:00"));
-    const script = "const { collectNews } = require(" + JSON.stringify(require.resolve("../news/collect-news")) + ");" +
+    const script = "const { collectNews } = require(" + JSON.stringify(require.resolve("../../scripts/news/collect-news")) + ");" +
       "collectNews({ config: { schemaVersion: 1, sources: [" + JSON.stringify(source()) + "] }, now: new Date(" + JSON.stringify(NOW.toISOString()) + "), resolver: async () => [{ address: '8.8.8.8' }], fetcher: async () => new Response(" + JSON.stringify(xml) + ") })" +
       ".then(({ report, inbox }) => process.stdout.write(JSON.stringify({ offset: new Date(" + JSON.stringify(NOW.toISOString()) + ").getTimezoneOffset(), dates: Object.fromEntries(report.candidates.map((item) => [item.url, item.publishedAt])), hashes: inbox.items.map((item) => item.contentHash) })));";
     const [utc, shanghai] = ["UTC", "Asia/Shanghai"].map((zone) => {

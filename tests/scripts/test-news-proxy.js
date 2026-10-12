@@ -1,6 +1,6 @@
 "use strict";
 const assert = require("node:assert/strict");
-const { resolveHost, validateSourceURL } = require("../news/network");
+const { resolveHost, validateSourceURL } = require("../../scripts/news/network");
 
 async function testProxyDNS() {
   const fakeLookup = async () => [{ address: "198.18.0.5", family: 4 }];

@@ -1,6 +1,6 @@
 
 /* 付款方式：自动续费、年付、首次付款与「应用选购条件」的范围。原 scripts/tests/test-app-payments.js，现用真实 App。
- * 自动续费金额的数据校验见 scripts/tests/test-data-regressions.js。 */
+ * 自动续费金额的数据校验见 src/regression/data.test.ts。 */
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { mount } from "@vue/test-utils";

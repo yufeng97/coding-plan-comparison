@@ -81,6 +81,8 @@ npm run build:site
 
 ## 发布与巡检
 
+工具、数据维护流程与架构约束的 Node 回归放在 `tests/scripts/`，由 `npm test` 统一执行；新增独立套件需登记到 `tests/scripts/run.js`。浏览器端到端用例放在 `tests/e2e/`，TS 整页回归放在 `src/regression/`，组件测试继续就近放置。
+
 页面交互变更执行 `npm run test:browser`，覆盖桌面/手机及键盘操作。公共构建只发布首页、公开 JS/CSS/字体与 changes.xml，不发布 audit、脚本或待审队列。`npm run deploy -- --dry-run` 检查发布清单，`npm run deploy -- --prod` 更新已有 Vercel 生产项目；线上复核首页、核心交互和 RSS。
 
 每日看来源连续失败和待复核事件，每周做不限厂商的中文/英文搜索并处理积压，每月补实际任务样本与检查推荐假设。Codex 自动化在当前聊天管理；GitHub 手动采集工作流需远程仓库可用。报告与缓存默认忽略，审核后及时备份重要队列；CI 缓存不应充当唯一档案。

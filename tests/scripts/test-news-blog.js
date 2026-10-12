@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 "use strict";
 const assert = require("node:assert/strict");
-const { parseBlogLinks, parseBlogArticle } = require("../news/blog");
+const { parseBlogLinks, parseBlogArticle } = require("../../scripts/news/blog");
 
 const ANTHROPIC = "https://www.anthropic.com/news";
 const PATHS = ["^/news/[^/]+/?$", "^/claude-[a-z0-9-]+-[0-9][a-z0-9-]*/?$"];
