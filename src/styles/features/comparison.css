@@ -1,0 +1,58 @@
+/* ---------- 并排对比 ---------- */
+.cmp-bar {
+  display: none;
+  position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+  z-index: 150; align-items: center; gap: 10px;
+  max-width: min(92vw, 780px);
+  background: var(--panel); border: 1px solid var(--line-strong); border-radius: 999px;
+  padding: 7px 10px 7px 16px; box-shadow: 0 8px 24px rgba(16, 17, 15, .18);
+  font-size: 12.5px; color: var(--text);
+}
+.cmp-bar.is-on { display: flex; }
+#cmpBarText { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmp-bar .chip { flex: 0 0 auto; padding: 4px 10px; }
+.cmp-bar .chip:disabled { opacity: .45; cursor: not-allowed; }
+.cmp-modal {
+  width: min(96vw, 1140px); max-height: 88vh; margin: auto;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-l);
+  background: var(--panel); color: var(--text); padding: 16px 18px 14px;
+}
+.cmp-modal:not([open]) { display: none; }
+.cmp-modal::backdrop { background: rgba(10, 12, 10, .55); }
+.has-cmp-modal { overflow: hidden; }
+.cmp-fallback-backdrop { position: fixed; inset: 0; z-index: 300; background: rgba(10, 12, 10, .55); }
+.cmp-modal.cmp-fallback[open] { display: block; position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0; z-index: 310; overflow: auto; }
+.cmp-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+.cmp-head h3 { color: var(--ink); font-size: 16px; font-weight: 800; }
+.cmp-head-actions { display: flex; gap: 8px; }
+.cmp-tip { color: var(--faint); font-size: 12px; margin-bottom: 10px; }
+.cmp-wrap { max-height: 64vh; }
+#cmpTable { min-width: 640px; font-size: 12.5px; }
+#cmpTable th, #cmpTable td { text-align: left; vertical-align: top; padding: 9px 12px; white-space: normal; }
+#cmpTable tbody th {
+  white-space: nowrap; color: var(--muted); font-size: 11.5px; width: 1%;
+  position: sticky; left: 0; z-index: 2; background: var(--panel-2);
+}
+#cmpTable td { min-width: 210px; max-width: 330px; color: var(--text); }
+#cmpTable td b { color: var(--ink); }
+.cmp-diff-row td { background: var(--surface); }
+.cmp-best-price { box-shadow: inset 3px 0 0 var(--green); }
+.cmp-diff-label, .cmp-price-label { display: block; margin-top: 4px; font-size: 10px; font-weight: 600; }
+.cmp-diff-label { color: var(--muted); }
+.cmp-price-label { color: var(--green); }
+.fc-cost { color: var(--ink); font-weight: 700; margin: 6px 0; }
+.checked-date, .filter-hint { display: inline-block; font-size: 11px; color: var(--muted); }
+.checked-date { margin-left: 10px; }
+.render-error { padding: 16px; color: var(--red); }
+.assumptions-box { margin-bottom: 20px; }
+.price-check-details { margin-top: 5px; white-space: normal; max-width: 260px; }
+.price-check-details summary { cursor: pointer; color: var(--accent-2); font-size: 11px; }
+.price-check-details summary:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+.price-check-details p { margin: 5px 0 0; font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; }
+.cmp-remove { display: block; margin-top: 8px; }
+#cmpTable thead th:first-child { left: 0; z-index: 6; }
+#cmpTable thead th b { color: var(--ink); }
+
+@media (max-width: 700px) {
+  .cmp-head-actions { flex-wrap: wrap; }
+}

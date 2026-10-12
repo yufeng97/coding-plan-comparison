@@ -53,7 +53,6 @@ jobs:
           npm run maintenance:check
           npm run benchmark:check
           npm test
-          npm run cache:check
       - name: 生成白名单公共站点
         run: npm run build:site
       # .site-build 与 Vercel 部署共用；vercel.json 只对 Vercel 有意义，不随 Pages 公开。

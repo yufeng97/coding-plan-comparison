@@ -7,14 +7,17 @@ const { stageSite } = require("./stage-site");
 const { prerenderIndex } = require("./prerender");
 
 const repositoryRoot = path.resolve(__dirname, "..", "..");
-/* 预渲染在页面虚拟 DOM 中运行本仓库的页面脚本，只适用于发布本仓库；其他工作区（如测试夹具）按原样暂存。 */
-function stageOptions(workspace) {
-  return path.resolve(workspace) === repositoryRoot ? { prerender: prerenderIndex } : {};
+/* 预渲染在页面虚拟 DOM 中运行本仓库的页面脚本，只适用于发布本仓库；其他工作区（如测试夹具）不预渲染。
+   build 默认是 Vite 构建，测试可传入替身。 */
+/** @param {string} workspace @param {{ build?: (outDir: string, root: string) => Promise<void> }} [options] */
+function stageOptions(workspace, options = {}) {
+  return { build: options.build, prerender: path.resolve(workspace) === repositoryRoot ? prerenderIndex : undefined };
 }
 
 /** Fresh public assets only; never reads or deploys .vercel/output.
  * Vercel API reference: https://vercel.com/docs/rest-api/deployments/create-a-new-deployment */
-function deployment(workspace, args = []) {
+/** @param {{ build?: (outDir: string, root: string) => Promise<void> }} [options] */
+async function deployment(workspace, args = [], options = {}) {
   if (args.some((arg) => !["--prod", "--dry-run"].includes(arg))) throw new Error("用法：npm run deploy -- [--prod] [--dry-run]");
   const root = path.resolve(workspace);
   const projectFile = path.join(root, ".vercel", "project.json");
@@ -27,7 +30,7 @@ function deployment(workspace, args = []) {
     throw error;
   }
   if (!project.projectId || !project.orgId) throw new Error("根目录 .vercel/project.json 缺少项目关联");
-  const site = stageSite(root, stageOptions(root));
+  const site = await stageSite(root, stageOptions(root, options));
   const team = project.orgId.startsWith("team_") ? "?teamId=" + encodeURIComponent(project.orgId) : "";
   const files = site.files.map((file) => ({ file: file.split(path.sep).join("/"),
     data: fs.readFileSync(path.join(site.directory, file)).toString("base64"), encoding: "base64" }));
@@ -51,13 +54,13 @@ function resolveDeploymentToken(options = {}, environment = process.env) {
   } catch { return undefined; }
 }
 
-/** @param {{token?:string,fetcher?:typeof fetch,wait?:typeof delay}} options */
+/** @param {{token?:string,fetcher?:typeof fetch,wait?:typeof delay,build?:(outDir: string, root: string) => Promise<void>}} options */
 async function deploySite(workspace, args = [], options = {}) {
   if (args.some((arg) => !["--prod", "--dry-run"].includes(arg))) throw new Error("用法：npm run deploy -- [--prod] [--dry-run]");
-  if (args.includes("--dry-run")) return { dryRun: true, files: stageSite(path.resolve(workspace), stageOptions(workspace)).files };
+  if (args.includes("--dry-run")) return { dryRun: true, files: (await stageSite(path.resolve(workspace), stageOptions(workspace, options))).files };
   const token = resolveDeploymentToken(options);
   if (!token) throw new Error("部署需要 VERCEL_TOKEN、调用者 token 或已登录的 Windows Vercel CLI；--dry-run 只验证公共文件清单");
-  const job = deployment(workspace, args);
+  const job = await deployment(workspace, args, options);
   const fetcher = options.fetcher || fetch;
   const wait = options.wait || delay;
   const redact = (value) => String(value).split(token).join("[redacted]");

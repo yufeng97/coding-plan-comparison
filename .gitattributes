@@ -1,3 +1,7 @@
 * text=auto eol=lf
 *.woff2 -text
 *.png -text
+
+# 生成文件：由 catalog:build、maintenance:build、benchmark:build 写入，随源数据提交，代码统计与差异视图按生成文件处理。
+src/generated/** linguist-generated=true
+data/generated/** linguist-generated=true

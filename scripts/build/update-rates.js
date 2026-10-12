@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 "use strict";
-/* 更新参考汇率：从 Frankfurter（欧洲央行参考汇率）取 USD→CNY / INR，改写 js/data.js 的 RATE_* 与 META 汇率字段，
- * 以及 index.html 无脚本时可见的静态汇率。候选源码先通过完整数据校验，再与 index.html 一并原子提交；
- * 与核价同步、维护摘要共用 audit/.pricing.lock。不改任何原币价格，也不在构建或 CI 中自动运行。 */
+/* 更新参考汇率：从 Frankfurter（欧洲央行参考汇率）取 USD→CNY / INR，改写 data/sources/data.js 的 RATE_* 与 META 汇率字段。
+ * 页面上的汇率由组件从这些常量渲染，没有另需改写的静态文本。候选源码先通过完整数据校验再原子写入；
+ * 与核价同步、维护摘要共用 data/audit/.pricing.lock。不改任何原币价格，也不在构建或 CI 中自动运行。 */
 const fs = require("node:fs");
 const path = require("node:path");
 const { validateData, isISODate } = require("./validate-data");
@@ -35,8 +35,8 @@ function replaceOnce(text, pattern, replacement, label) {
   return text.replace(pattern, replacement);
 }
 
-/** 纯函数：返回改写后的 data.js 与 index.html 源码。 @param {string} source @param {string} html @param {{date:string,cny:number,inr:number,source:string}} rates */
-function applyRates(source, html, rates) {
+/** 纯函数：返回改写后的 data.js 源码。 @param {string} source @param {{date:string,cny:number,inr:number,source:string}} rates */
+function applyRates(source, rates) {
   const usdCny = Math.round(rates.cny * 100) / 100;
   let next = source;
   next = replaceOnce(next, /const RATE_USD_CNY = [\d.]+;/, `const RATE_USD_CNY = ${usdCny};`, " RATE_USD_CNY");
@@ -45,29 +45,27 @@ function applyRates(source, html, rates) {
   next = replaceOnce(next, /rateAsOf: "\d{4}-\d{2}-\d{2}",/, `rateAsOf: "${rates.date}",`, " META.rateAsOf");
   next = replaceOnce(next, /rateSource: "https:\/\/api\.frankfurter\.dev\/v1\/[^"]+",/, `rateSource: "${rates.source}",`, " META.rateSource");
   next = replaceOnce(next, /汇率: 1 USD ≈ [\d.]+ CNY（\d{4}-\d{2}-\d{2} frankfurter 实测 [\d.]+，/, `汇率: 1 USD ≈ ${usdCny} CNY（${rates.date} frankfurter 实测 ${rates.cny}，`, "文件头汇率说明");
-  let page = html;
-  for (const id of ["rateText", "rateText2"]) page = replaceOnce(page, new RegExp(`<span id="${id}">[\\d.]+</span>`), `<span id="${id}">${usdCny}</span>`, " index.html #" + id);
-  return { source: next, html: page, usdCny };
+  return { source: next, usdCny };
 }
 
 /** @param {string} workspace @param {{date?:string, dryRun?:boolean, fetcher?:typeof fetch, rename?:(from:string,to:string)=>void}} options */
 async function updateRates(workspace = path.resolve(__dirname, "..", ".."), options = {}) {
   const root = path.resolve(workspace);
   const rates = await fetchRates(options);
-  fs.mkdirSync(path.join(root, "audit"), { recursive: true });
-  return withFileLockSync(path.join(root, "audit/.pricing.lock"), () => {
-    const dataFile = path.join(root, "js/data.js"), htmlFile = path.join(root, "index.html");
-    const source = fs.readFileSync(dataFile, "utf8"), html = fs.readFileSync(htmlFile, "utf8");
+  fs.mkdirSync(path.join(root, "data/audit"), { recursive: true });
+  return withFileLockSync(path.join(root, "data/audit/.pricing.lock"), () => {
+    const dataFile = path.join(root, "data/sources/data.js");
+    const source = fs.readFileSync(dataFile, "utf8");
     const current = /rateAsOf: "(\d{4}-\d{2}-\d{2})"/.exec(source);
     if (current && rates.date < current[1]) throw new Error(`汇率日期 ${rates.date} 早于当前 ${current[1]}，拒绝回退`);
-    const next = applyRates(source, html, rates);
-    const changed = next.source !== source || next.html !== html;
+    const next = applyRates(source, rates);
+    const changed = next.source !== source;
     if (!changed || options.dryRun) return { ...rates, usdCny: next.usdCny, changed, written: 0 };
     const validation = validateData({ workspace: root, source: next.source });
     if (validation.errors.length) throw new Error("汇率更新后的数据校验失败：\n" + validation.errors.join("\n"));
-    const written = commitOutputs(new Map([[dataFile, Buffer.from(next.source)], [htmlFile, Buffer.from(next.html)]]), options);
+    const written = commitOutputs(new Map([[dataFile, Buffer.from(next.source)]]), options);
     return { ...rates, usdCny: next.usdCny, changed, written };
-  }, { busyMessage: "核价正在同步或维护摘要正在构建，或存在遗留锁（audit/.pricing.lock）" });
+  }, { busyMessage: "核价正在同步或维护摘要正在构建，或存在遗留锁（data/audit/.pricing.lock）" });
 }
 
 /** @param {string[]} args */
@@ -85,7 +83,7 @@ if (require.main === module) {
   (async () => {
     const result = await updateRates(undefined, parseArgs(process.argv.slice(2)));
     console.log(`Frankfurter ${result.date}：1 USD = ${result.cny} CNY / ${result.inr} INR（页面取 ${result.usdCny}）。` +
-      (!result.changed ? "与当前数据一致，未写入。" : result.written ? `已更新 ${result.written} 个文件；接着运行 npm run maintenance:build、npm run validate、npm test 与 npm run bump。` : "仅预览，未写入。"));
+      (!result.changed ? "与当前数据一致，未写入。" : result.written ? `已更新 ${result.written} 个文件；接着运行 npm run maintenance:build、npm run catalog:build、npm run validate 与 npm test。` : "仅预览，未写入。"));
   })().catch((error) => { console.error(error.message); process.exitCode = 1; });
 }
 module.exports = { fetchRates, applyRates, updateRates, parseArgs };

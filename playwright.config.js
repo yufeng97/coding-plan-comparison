@@ -1,7 +1,7 @@
 const { defineConfig } = require("@playwright/test");
 
 module.exports = defineConfig({
-  testDir: "./scripts/tests/browser",
+  testDir: "./tests/e2e",
   testMatch: "**/*.browser.spec.js",
   timeout: 45000,
   expect: { timeout: 10000 },
@@ -20,8 +20,9 @@ module.exports = defineConfig({
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },
+  /* 测发布产物：先完整构建（Vite + 预渲染）到 .site-build/，再用本地静态服务器提供。 */
   webServer: {
-    command: "node scripts/server/serve.js",
+    command: "node scripts/build/stage-site.js && node scripts/server/serve.js .site-build",
     url: "http://127.0.0.1:18461",
     env: { PORT: "18461" },
     reuseExistingServer: false,

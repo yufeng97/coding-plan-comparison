@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "checkJs": true,
+    "noEmit": true,
+    "lib": [
+      "ES2020",
+      "DOM"
+    ],
+    "types": [],
+    "skipLibCheck": true
+  },
+  "include": [
+    "data/sources/**/*.js",
+    "data/generated/**/*.js",
+    "types/catalog.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "public",
+    ".vercel",
+    ".site-build",
+    ".git"
+  ]
+}

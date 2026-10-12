@@ -1,0 +1,234 @@
+"use strict";
+const { test, expect } = require("@playwright/test");
+const { BENCHMARKS, chartOf, waitForApp, waitForData } = require("./helpers");
+const fs = require("node:fs/promises");
+
+/** 成绩表某一行的名次、显示名和来源模型 ID。 @param {import("@playwright/test").Locator} row */
+async function scoreRow(row) {
+  const text = async (selector) => (await row.locator(selector).textContent() || "").trim();
+  return { rank: await text(".public-score-rank"), name: await text("th strong"), model: await text(".public-score-more code") };
+}
+
+async function expectNoPageOverflow(page, phase) {
+  try {
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), {
+      message: `${phase}: page width settles within the viewport`,
+    }).toBeLessThanOrEqual(1);
+  } catch (error) {
+    console.log("Page overflow diagnostics", await page.evaluate((phase) => ({
+      phase,
+      viewport: window.innerWidth,
+      documentWidth: document.documentElement.scrollWidth,
+      bodyWidth: document.body.scrollWidth,
+      activeElement: document.activeElement?.id,
+      chart: Array.from(document.querySelectorAll("#chartPublicBenchmark, #chartPublicBenchmark > div")).map((el) => {
+        const rect = el.getBoundingClientRect();
+        return { id: el.id, style: el.getAttribute("style"), left: rect.left, right: rect.right,
+          width: rect.width, scrollWidth: el.scrollWidth, clientWidth: el.clientWidth };
+      }),
+      outside: Array.from(document.querySelectorAll("body *")).filter((el) => el.getClientRects().length && el.getBoundingClientRect().right > window.innerWidth + 1).slice(0, 40).map((el) => {
+        let scrollParent = el.parentElement;
+        while (scrollParent && getComputedStyle(scrollParent).overflowX === "visible") scrollParent = scrollParent.parentElement;
+        const rect = el.getBoundingClientRect();
+        return { tag: el.tagName, id: el.id, className: el.getAttribute("class"), left: rect.left, right: rect.right,
+          scrollParent: scrollParent && { id: scrollParent.id, className: scrollParent.getAttribute("class"), overflowX: getComputedStyle(scrollParent).overflowX } };
+      }),
+    }), phase));
+    throw error;
+  }
+}
+
+test("公开榜默认DeepSWE，搜索保留原榜名次且空态可键盘清除", async ({ page }) => {
+  await page.goto("/#benchmarks"); await waitForApp(page);
+  await expect(page.locator('[data-site-view="benchmarks"]')).toHaveAttribute("aria-current", "page");
+  await expect(page.locator("#benchmarks .sec-no")).toHaveText("11");
+  await expect(page.locator("#updates .sec-no")).toHaveText("12");
+  expect(await page.evaluate(() => !!(document.getElementById("benchmarks").compareDocumentPosition(document.getElementById("updates")) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+  await waitForData(page, "benchmark");
+  const select = page.locator("#publicBenchmarkSelect");
+  await expect(select).toHaveValue(/deepswe/);
+  await expect(select.locator('option[value="deepswe-v1"]')).toHaveCount(1);
+  await expect(page.locator("#chartPublicBenchmark canvas")).toHaveCount(1);
+  await expect(page.locator("#publicBenchmarkMode")).toHaveValue("best");
+  const bestCount = await page.locator("#publicBenchmarkBody tr").count();
+  await page.locator("#publicBenchmarkMode").selectOption("all");
+  expect(await page.locator("#publicBenchmarkBody tr").count()).toBeGreaterThan(bestCount);
+  await page.locator("#publicBenchmarkMode").selectOption("best");
+  await expect(page.locator("#publicBenchmarkBody tr").first()).toBeVisible();
+  await expect(page.locator("#publicBenchmarkMeta")).toContainText("配置");
+  await expect(page.locator("#publicBenchmarkMeta")).toContainText("核查");
+  const target = await scoreRow(page.locator("#publicBenchmarkBody tr").last());
+  const search = page.locator("#publicModelSearch");
+  await search.fill(target.model);
+  await expect(search).toBeFocused();
+  await expect(page.locator("#publicBenchmarkBody")).toContainText(target.name);
+  const row = page.locator("#publicBenchmarkBody tr").filter({ has: page.locator("th strong", { hasText: target.name }) }).last();
+  await expect(row.locator("td").first()).toHaveText(target.rank);
+  await search.fill("__没有匹配的公开模型__");
+  await expect(page.locator("#publicBenchmarkEmpty")).toBeVisible();
+  await expect(page.locator("#downloadPublicBenchmarkCsvBtn")).toBeDisabled();
+  const clear = page.locator("#publicModelClearBtn"); await clear.focus(); await page.keyboard.press("Enter");
+  await expect(search).toBeFocused(); await expect(search).toHaveValue("");
+  await expect(page.locator("#publicBenchmarkWrap")).toBeVisible();
+  await expect(page.locator("#contributorBenchmarkTools")).not.toHaveAttribute("open", "");
+});
+
+test("评测排名图随版本、搜索和成本视图更新，主题和窄屏切换保持正确尺寸", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/#benchmarks");
+  await waitForApp(page);
+  await waitForData(page, "benchmark");
+  const chart = page.locator("#chartPublicBenchmark");
+  await expect(chart.locator("canvas")).toHaveCount(1);
+  await expect.poll(() => page.evaluate(`${chartOf("chartPublicBenchmark")}.getOption().series[0].data.length`)).toBe(20);
+  const colors = await page.evaluate(`(() => { const data=${chartOf("chartPublicBenchmark")}.getModel().getSeriesByIndex(0).getData(); return Array.from({length:data.count()},(_,i)=>data.getItemVisual(i,'style').fill); })()`);
+  expect(new Set(colors).size).toBeGreaterThan(3);
+  await expect(page.locator("#publicBenchmarkChartLegend")).toContainText("Claude");
+  await expect(page.locator("#publicBenchmarkChartLegend")).toContainText("GPT");
+  await page.locator("#publicBenchmarkSelect").selectOption("deepswe-v1");
+  await expect(page.locator("#publicBenchmarkMeta")).toContainText("deepswe-v1");
+  await page.locator("#publicBenchmarkChartLimit").selectOption("all");
+  /* 图表显示全部时与成绩表行数一致 */
+  const expected = await page.locator("#publicBenchmarkBody tr").count();
+  expect(await page.evaluate(`${chartOf("chartPublicBenchmark")}.getOption().series[0].data.length`)).toBe(expected);
+  await page.locator('[data-public-chart="cost"]').click();
+  await expect(page.locator('[data-public-chart="cost"]')).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("#publicBenchmarkChartLegend")).toBeHidden();
+  expect(await page.evaluate(`${chartOf("chartPublicBenchmark")}.getOption().series[0].data.every(v=>typeof v==='number' && v>=0)`)).toBe(true);
+  const target = await scoreRow(page.locator("#publicBenchmarkBody tr").last());
+  await page.locator("#publicModelSearch").fill(target.model);
+  /* 搜索后图表标签沿用成绩表首行的原榜名次 */
+  await expect.poll(() => page.evaluate(`(() => { const rank = document.querySelector("#publicBenchmarkBody .public-score-rank").textContent.trim(); return ${chartOf("chartPublicBenchmark")}.getOption().yAxis[0].data.every(label => label.startsWith("#" + rank + " ")); })()`)).toBe(true);
+  await page.locator("#publicModelClearBtn").click();
+  await page.locator('[data-public-chart="score"]').click();
+  await chart.scrollIntoViewIfNeeded();
+  const fill = `${chartOf("chartPublicBenchmark")}.getModel().getSeriesByIndex(0).getData().getItemVisual(0,'style').fill`;
+  const before = await page.evaluate(fill);
+  await page.locator("#themeBtn").click();
+  expect(await page.evaluate(fill)).not.toBe(before);
+  await page.getByRole("navigation", { name: "主要内容" }).getByRole("link", { name: "我的关注" }).click();
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.getByRole("navigation", { name: "主要内容" }).getByRole("link", { name: "模型评测" }).click();
+  await chart.scrollIntoViewIfNeeded();
+  await expect.poll(() => page.evaluate(`Math.abs(${chartOf("chartPublicBenchmark")}.getWidth() - document.getElementById('chartPublicBenchmark').clientWidth) < 1`)).toBe(true);
+  expect(await chart.locator("canvas").evaluate((element) => {
+    const canvas = /** @type {HTMLCanvasElement} */ (element);
+    const pixels = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
+    let count = 0;
+    for (let i = 3; i < pixels.length; i += 4) if (pixels[i] > 0) count++;
+    return count > 1000;
+  })).toBe(true);
+  await page.mouse.move(0, 0);
+  await chart.evaluate((element) => window.scrollTo({ top: element.getBoundingClientRect().top + window.scrollY - 650, behavior: "instant" }));
+  await expect.poll(() => chart.evaluate((element) => Math.abs(element.getBoundingClientRect().top - 650))).toBeLessThanOrEqual(2);
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await expectNoPageOverflow(page, "Before benchmark tooltip");
+  await page.evaluate(`${chartOf("chartPublicBenchmark")}.dispatchAction({type:'showTip',seriesIndex:0,dataIndex:0})`);
+  const tooltip = chart.locator(':scope > div').filter({ hasText: "每任务成本：" });
+  await expect(tooltip).toBeVisible();
+  await expect(tooltip).toHaveCSS("position", "fixed");
+  const bounds = await tooltip.boundingBox();
+  expect(bounds.x).toBeGreaterThanOrEqual(0);
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(375);
+  expect(bounds.y).toBeGreaterThanOrEqual(0);
+  expect(bounds.y + bounds.height).toBeLessThanOrEqual(812);
+  expect(await tooltip.evaluate((el) => el.scrollWidth <= el.clientWidth + 1 && el.scrollHeight <= el.clientHeight + 1)).toBe(true);
+  await expectNoPageOverflow(page, "With benchmark tooltip");
+  await page.evaluate("window.scrollBy({top:20,behavior:'instant'})");
+  await expect(tooltip).toBeHidden();
+  await page.evaluate(`${chartOf("chartPublicBenchmark")}.dispatchAction({type:'showTip',seriesIndex:0,dataIndex:0})`);
+  await expect(tooltip).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 812 });
+  await expect(tooltip).toBeHidden();
+  await page.evaluate(`${chartOf("chartPublicBenchmark")}.dispatchAction({type:'showTip',seriesIndex:0,dataIndex:0})`);
+  await expect(tooltip).toBeVisible();
+  await page.getByRole("navigation", { name: "主要内容" }).getByRole("link", { name: "我的关注" }).click();
+  await expect(tooltip).toBeHidden();
+  await expectNoPageOverflow(page, "After hiding benchmark section");
+  expect(errors).toEqual([]);
+});
+
+test("CursorBench 默认最新版本，历史节选不冒充完整排名或已知成本", async ({ page }) => {
+  await page.goto("/#benchmarks");
+  await waitForApp(page);
+  await waitForData(page, "benchmark");
+  await page.locator("#publicBenchmarkFamily").selectOption("cursorbench");
+  await expect(page.locator("#publicBenchmarkSelect")).toHaveValue("cursorbench-4-0");
+  await page.locator("#publicBenchmarkSelect").selectOption("cursorbench-3-0-release");
+  await expect(page.locator("#publicBenchmarkMeta")).toContainText("节选");
+  await expect(page.locator("#publicBenchmarkMeta")).toContainText("非完整");
+  await expect(page.locator("#publicBenchmarkBody tr")).toHaveCount(3);
+  await expect(page.locator("#publicBenchmarkBody tr").first()).toContainText("61.3%");
+  await expect(page.locator('[data-public-chart="cost"]')).toBeDisabled();
+  /* 节选没有公布成本、tokens 与步骤数，页面不补零 */
+  for (const row of await page.locator("#publicBenchmarkBody tr").all()) {
+    await expect(row.locator("td").nth(2)).toHaveText("未公布");
+    await expect(row.locator(".public-score-more")).toContainText("Tokens：未公布");
+    await expect(row.locator(".public-score-more")).toContainText("Steps：未公布");
+  }
+  const details = page.locator("#publicBenchmarkMeta details");
+  await expect(details).not.toHaveAttribute("open", "");
+  await details.locator("summary").click();
+  await page.locator("#publicModelSearch").fill("Composer");
+  await expect(details).toHaveAttribute("open", "");
+  await expect(details.locator('a')).toHaveAttribute("href", "https://cursor.com/blog/composer-2");
+});
+
+test("成本和置信度在排行明细与额度表使用相同语义颜色", async ({ page }) => {
+  await page.goto("/#rank");
+  await waitForApp(page);
+  await page.locator("#rankDetailsSummary").click();
+  await expect(page.locator("#rankDetailBody .cost-value").first()).toBeVisible();
+  const rows = await page.locator("#rankDetailBody tr:not(.rank-divider)").count();
+  expect(await page.locator("#rankDetailBody .cost-value").count()).toBe(rows);
+  expect(await page.locator("#rankDetailBody .conf").count()).toBe(rows);
+  const same = await page.evaluate("(() => { const cells=[...document.querySelectorAll('#metricsBody td[data-column=cpm]')]; return cells.some(cell=>getComputedStyle(cell.querySelector('span')).color===getComputedStyle(document.querySelector('#rankDetailBody .cost-value')).color); })()");
+  expect(same).toBe(true);
+});
+
+test("手机切换独立协议且CSV和JSON保留公开来源与费用口径", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/#benchmarks"); await waitForApp(page);
+  await expect(page.locator('[data-site-view="benchmarks"]')).toHaveAttribute("aria-current", "page");
+  await waitForData(page, "benchmark");
+  const family = page.locator("#publicBenchmarkFamily"); await family.focus(); await family.selectOption("OSWorld");
+  await expect(family).toBeFocused();
+  const select = page.locator("#publicBenchmarkSelect");
+  await expect(select).toHaveValue("osworld-2-25443e96866dc9ce");
+  const id = await select.inputValue();
+  await expect(page.locator("#publicBenchmarkMeta")).toContainText(id);
+  /* 每模型最佳配置：行数等于该协议下有成绩的模型数，不混入其他协议 */
+  const models = new Set(BENCHMARKS.public.scores.filter((score) => score.benchmarkId === id).map((score) => score.model));
+  await expect(page.locator("#publicBenchmarkBody tr")).toHaveCount(models.size);
+  const longest = await select.locator("option").evaluateAll((options) => options.map((option) => ({ value:option.getAttribute("value"), length:option.textContent.length })).sort((a,b) => b.length - a.length)[0]);
+  await select.focus();
+  await select.selectOption(longest.value);
+  await expect(select).toBeFocused();
+  await expect(select).toHaveValue(longest.value);
+  await expect(page.locator("#publicBenchmarkMeta")).toContainText(longest.value);
+  const controlsBounds = await select.evaluate((el) => {
+    const controls = el.closest(".public-benchmark-controls"), box = el.getBoundingClientRect(), parent = controls.getBoundingClientRect();
+    return { left:box.left, right:box.right, parentLeft:parent.left, parentRight:parent.right, clientWidth:controls.clientWidth, scrollWidth:controls.scrollWidth };
+  });
+  expect(controlsBounds.left).toBeGreaterThanOrEqual(controlsBounds.parentLeft - 1);
+  expect(controlsBounds.right).toBeLessThanOrEqual(controlsBounds.parentRight + 1);
+  expect(controlsBounds.scrollWidth).toBeLessThanOrEqual(controlsBounds.clientWidth + 1);
+  const wrapper = page.locator("#publicBenchmarkWrap");
+  expect(await wrapper.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
+  await wrapper.evaluate((el) => { el.scrollLeft = el.scrollWidth; });
+  expect(await wrapper.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+  const pending = page.waitForEvent("download"); await page.locator("#downloadPublicBenchmarkCsvBtn").click();
+  const csv = await fs.readFile(await (await pending).path(), "utf8");
+  /* 带 BOM；表头之后每行对应成绩表的一行，并保留所选协议 ID */
+  expect(csv.startsWith("\uFEFF")).toBe(true);
+  const lines = csv.slice(1).split("\r\n").filter(Boolean);
+  expect(lines[0]).toMatch(/^"?协议 ID"?,/);
+  expect(lines.length - 1).toBe(await page.locator("#publicBenchmarkBody tr").count());
+  expect(lines.slice(1).every((line) => line.includes(longest.value))).toBe(true);
+  const all = page.waitForEvent("download"); await page.locator("#downloadPublicBenchmarkJsonBtn").click();
+  const json = JSON.parse(await fs.readFile(await (await all).path(), "utf8"));
+  expect(json.schemaVersion).toBe(1); expect(json.benchmarks.length).toBeGreaterThan(1); expect(json.scores.length).toBeGreaterThan(0);
+  expect(json).not.toHaveProperty("planIds"); expect(json).not.toHaveProperty("runs");
+});

@@ -1,4 +1,5 @@
-# CLI 部署（vercel 命令）只应发布公共站点文件；outputDirectory 指向仓库根目录时，
+# 发布契约只允许构建产物的公共路径；npm run deploy 使用 stage-site 清单上传。
+# 直接从仓库根运行 Vercel CLI 不是支持的部署入口。outputDirectory 指向根时，
 # 没有本文件会把 scripts/、README、lockfile 等全部公开。白名单写法：先忽略一切再放行。
 /*
 !/index.html

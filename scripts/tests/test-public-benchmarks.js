@@ -54,7 +54,7 @@ async function main() {
     await assert.rejects(fetchSource(url, { maxBytes: 17 * 1024 * 1024 }), /限额/);
   });
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "public-benchmark-test-"));
-  const latest = path.join(dir, "audit/benchmark-sources/latest.json"), formal = path.join(dir, "benchmarks/public-results.json");
+  const latest = path.join(dir, "data/audit/benchmark-sources/latest.json"), formal = path.join(dir, "data/benchmarks/public-results.json");
   const getter = async raw => ({ text: bytes.toString(), bytes, finalURL: raw });
   const good = { id: "test", collect: async get => { const source = await get(url); return { benchmarks: [{ ...board, checkedAt: source.checkedAt }], scores: [{ ...row, checkedAt: source.checkedAt }] }; } };
   try {
@@ -69,17 +69,17 @@ async function main() {
     await test("来源失败、格式变化及非法分数不覆盖候选或正式数据，连续失败持久记录", async () => {
       const bad = { id: "test", collect: async () => { throw new Error("HTTP 503"); } };
       await assert.rejects(collect(dir, { fetchSource: getter, adapters: [bad] }), /保留/);
-      assert.equal(fs.existsSync(path.join(dir, "audit/benchmark-sources/.benchmark.lock")), false);
+      assert.equal(fs.existsSync(path.join(dir, "data/audit/benchmark-sources/.benchmark.lock")), false);
       await assert.rejects(collect(dir, { fetchSource: getter, adapters: [{ id: "test", collect: async get => { const value = await good.collect(get); value.scores[0].score = 101; return value; } }] }), /保留/);
-      const health = JSON.parse(fs.readFileSync(path.join(dir, "audit/benchmark-sources/health.json"), "utf8"));
+      const health = JSON.parse(fs.readFileSync(path.join(dir, "data/audit/benchmark-sources/health.json"), "utf8"));
       assert.equal(health.sources[0].consecutiveFailures, 2); assert.equal(health.sources[0].ok, false);
       assert.deepEqual(fs.readFileSync(latest), beforeLatest); assert.deepEqual(fs.readFileSync(formal), beforeFormal);
       await collect(dir, { fetchSource: getter, adapters: [good] });
-      assert.equal(JSON.parse(fs.readFileSync(path.join(dir, "audit/benchmark-sources/health.json"), "utf8")).sources[0].consecutiveFailures, 0);
+      assert.equal(JSON.parse(fs.readFileSync(path.join(dir, "data/audit/benchmark-sources/health.json"), "utf8")).sources[0].consecutiveFailures, 0);
     });
     await test("缺失或被改动的原始证据不得发布", () => {
       const data = JSON.parse(fs.readFileSync(latest, "utf8"));
-      const raw = path.join(dir, "audit/benchmark-sources/raw", data.artifacts[0].sha256 + ".bin");
+      const raw = path.join(dir, "data/audit/benchmark-sources/raw", data.artifacts[0].sha256 + ".bin");
       fs.writeFileSync(raw, "tampered"); assert.throws(() => publish(latest, "reviewer", "reason", dir), /证据/);
       assert.deepEqual(fs.readFileSync(formal), beforeFormal); fs.writeFileSync(raw, bytes);
     });
@@ -112,10 +112,10 @@ async function main() {
       await started;
       assert.throws(() => publish(latest, "reviewer", "reason", dir), /正在采集/);
       release(); await running;
-      assert.equal(fs.existsSync(path.join(dir, "audit/benchmark-sources/.benchmark.lock")), false);
+      assert.equal(fs.existsSync(path.join(dir, "data/audit/benchmark-sources/.benchmark.lock")), false);
     });
     await test("公开评测的遗留锁拒绝同时采集与发布，不修改锁、候选或审核数据", async () => {
-      const lock = path.join(dir, "audit/benchmark-sources/.benchmark.lock");
+      const lock = path.join(dir, "data/audit/benchmark-sources/.benchmark.lock");
       const exited = require("node:child_process").spawnSync(process.execPath, ["-e", "process.stdout.write(String(process.pid))"], { encoding: "utf8" });
       assert.equal(exited.status, 0);
       const stale = JSON.stringify({ pid: Number(exited.stdout) }), latestBefore = fs.readFileSync(latest), formalBefore = fs.readFileSync(formal);
@@ -130,7 +130,7 @@ async function main() {
       } finally { fs.unlinkSync(lock); }
     });
     await test("公开评测执行中锁被替换时报告并保留另一所有者的锁", async () => {
-      const lock = path.join(dir, "audit/benchmark-sources/.benchmark.lock"), replacement = JSON.stringify({ ownerId: "another-owner", pid: process.pid });
+      const lock = path.join(dir, "data/audit/benchmark-sources/.benchmark.lock"), replacement = JSON.stringify({ ownerId: "another-owner", pid: process.pid });
       try {
         await assert.rejects(collect(dir, { fetchSource: getter, adapters: [{ id: "test", collect: async get => { fs.writeFileSync(lock, replacement); return good.collect(get); } }] }), /所有权已变化/);
         assert.equal(fs.readFileSync(lock, "utf8"), replacement);

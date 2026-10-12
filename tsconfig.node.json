@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "checkJs": true,
+    "noEmit": true,
+    "types": ["node"],
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true
+  },
+  "include": ["scripts/**/*.js", "scripts/**/*.mjs", "tests/**/*.js", "playwright.config.js", "vite.config.mjs"],
+  "exclude": ["node_modules"]
+}

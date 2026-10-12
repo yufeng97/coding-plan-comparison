@@ -4,12 +4,18 @@
   "version": "1.0.0",
   "description": "国内外 AI Coding Plan（编程订阅计划）价格与 token 额度可视化对比",
   "scripts": {
-    "serve": "node scripts/server/serve.js",
+    "predev": "npm run catalog:build",
+    "dev": "vite",
+    "serve": "node scripts/build/stage-site.js && node scripts/server/serve.js .site-build",
     "validate": "node scripts/build/validate-data.js",
+    "pretest": "npm run catalog:check",
     "test": "node scripts/tests/run.js",
-    "bump": "node scripts/build/bump-versions.js",
     "check": "node scripts/build/check-syntax.js",
-    "typecheck": "tsc -p jsconfig.json && tsc -p jsconfig.node.json",
+    "typecheck": "npm run catalog:check && npm run check:architecture && tsc -p tsconfig.data.json && tsc -p tsconfig.node.json && vue-tsc -p tsconfig.app.json && vue-tsc -p tsconfig.vitest.json",
+    "check:architecture": "node scripts/build/check-architecture.js",
+    "test:architecture": "node scripts/tests/test-architecture.js",
+    "catalog:build": "node scripts/build/catalog-types.mjs",
+    "catalog:check": "node scripts/build/catalog-types.mjs --check",
     "test:tools": "node scripts/tests/test-tools.js",
     "news:collect": "node scripts/news/collect-news.js",
     "news:review": "node scripts/news/review-news.js",
@@ -26,20 +32,29 @@
     "maintenance:check": "node scripts/maintenance/build-maintenance.js --check",
     "test:news": "node scripts/tests/test-news.js && node scripts/tests/test-news-blog.js && node scripts/tests/test-news-blog-collection.js",
     "test:browser": "playwright test",
-    "cache:check": "node scripts/build/bump-versions.js --check",
     "vendor:fonts": "node scripts/build/vendor-fonts.js",
-    "vendor:echarts": "node scripts/build/rebuild-echarts.js",
     "build:site": "node scripts/build/stage-site.js",
-    "deploy": "node scripts/build/deploy-site.js"
+    "deploy": "node scripts/build/deploy-site.js",
+    "pretest:unit": "npm run catalog:check",
+    "test:unit": "vitest run"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",
     "@types/node": "22.20.4",
+    "@vitejs/plugin-vue": "6.0.9",
+    "@vue/test-utils": "2.5.1",
     "echarts": "6.1.0",
     "esbuild": "0.28.2",
-    "typescript": "5.9.3"
+    "happy-dom": "20.14.5",
+    "typescript": "5.9.3",
+    "vite": "8.3.4",
+    "vitest": "5.0.3",
+    "vue-tsc": "3.3.11"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.12"
+  },
+  "dependencies": {
+    "vue": "3.5.43"
   }
 }

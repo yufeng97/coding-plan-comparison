@@ -1,0 +1,37 @@
+/* 计算器：ccusage 导入与「能覆盖这个用量的套餐」。文件选择框藏在按钮式标签里，键盘聚焦时显示外框。 */
+.usage-import { margin: 12px 0 4px; }
+.usage-import > summary { cursor: pointer; color: var(--muted); font-weight: 600; }
+.usage-import-field { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; color: var(--text); font-size: 12.5px; }
+.usage-import-field textarea { width: 100%; min-height: 96px; padding: 8px 10px; border: 1px solid var(--line-strong); border-radius: var(--radius-s); background: var(--panel); color: var(--ink); font: 12px/1.5 var(--mono); resize: vertical; }
+.usage-import-file { position: relative; cursor: pointer; }
+.usage-import-file input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.usage-import-file:focus-within { outline: 2px solid var(--accent-2); outline-offset: 3px; }
+.usage-coverage { margin-top: 14px; }
+.usage-coverage h4 { margin: 0 0 6px; font-size: 14px; color: var(--ink); }
+.usage-coverage-table th, .usage-coverage-table td { padding: 6px 8px; text-align: left; vertical-align: top; }
+.usage-coverage-table thead th { color: var(--faint); font-size: 12px; font-weight: 600; border-bottom: 1px solid var(--line); }
+.usage-coverage-table th[scope="row"] { color: var(--ink); font-weight: 600; border-bottom: 1px dashed var(--line); }
+.usage-coverage-table td:last-child { text-align: left; font-family: inherit; }
+
+/* ---------- 费用计算表单与结果 ---------- */
+.cost-form { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+.cost-form label { display: flex; flex-direction: column; gap: 6px; color: var(--text); font-size: 12.5px; }
+.cost-model { grid-column: span 2; }
+.cost-form input, .cost-form select { width: 100%; min-width: 0; min-height: 38px; padding: 8px 10px; font: inherit; border: 1px solid var(--line-strong); border-radius: var(--radius-s); color: var(--ink); background: var(--panel); }
+.cost-form button { align-self: end; }
+.cost-result { margin-top: 14px; padding: 14px; border-radius: var(--radius); background: var(--panel-2); overflow-wrap: anywhere; }
+.cost-result p + p { margin-top: 8px; }
+.cost-result strong { color: var(--ink); font-size: 15px; }
+
+@media (max-width: 700px) {
+  .cost-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cost-model { grid-column: 1 / -1; }
+  .usage-coverage .table-wrap { overflow: visible; border: 0; background: transparent; }
+  .usage-coverage-table, .usage-coverage-table tbody { display: block; }
+  .usage-coverage-table thead { display: none; }
+  .usage-coverage-table tbody { display: grid; gap: 10px; }
+  .usage-coverage-table tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+  .usage-coverage-table tbody th, .usage-coverage-table tbody td { display: block; padding: 0; border: 0; overflow-wrap: anywhere; }
+  .usage-coverage-table tbody th { grid-column: 1 / -1; }
+  .usage-coverage-table tbody td::before { content: attr(data-label); display: block; color: var(--faint); font-size: 10px; margin-bottom: 3px; }
+}

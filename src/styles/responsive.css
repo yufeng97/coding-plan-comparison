@@ -1,0 +1,62 @@
+/* ---------- 移动端适配（≤700px） ---------- */
+/* 中等屏幕也将品牌/主题和导航分为两行，避免主题按钮单独落在第三行。 */
+@media (max-width: 960px) {
+  :root { --header-height: 88px; }
+  .topbar-inner { gap: 8px; padding: 8px 14px; }
+  .theme-btn { order: 2; margin-left: auto; }
+  .primary-nav { order: 3; flex-basis: 100%; margin-right: 0; }
+  .primary-nav a { flex: 1; text-align: center; white-space: nowrap; padding: 5px 9px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .chip, .quick-card, .free-card { transition: none; }
+  .quick-card:hover { transform: none; }
+}
+@media (max-width: 700px) {
+  .hero-inner, .section { padding-left: 16px; padding-right: 16px; }
+  .section { padding-top: 40px; }
+  .section-head h2 { font-size: 19px; }
+  .hero-inner { padding-top: 12px; padding-bottom: 12px; }
+  .hero h1 { font-size: 24px; }
+  .hero .hero-meta { margin-top: 8px; }
+  .hero .hero-details { margin-top: 10px; }
+  .prompt-mark { margin-bottom: 8px; }
+  .hero-meta { font-family: var(--sans); line-height: 1.8; }
+  .controls { gap: 8px; }
+  .controls .search-input { width: 100%; }
+  .controls .select { flex: 1 1 140px; }
+  /* iOS Safari 聚焦字号小于 16px 的输入框会自动放大页面；窄屏统一用 16px。 */
+  :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) { font-size: 16px; }
+  .table-count { flex: 1 1 100%; margin-left: 0; }
+  .chip { min-height: 40px; }
+  .picker { padding: 12px; gap: 10px; }
+  .picker-row { gap: 6px; }
+  .picker-options { gap: 6px; }
+  .picker-label { color: var(--ink); }
+  .picker-row .chip { padding: 6px 8px; }
+  .picker-row[data-pick="budget"] { grid-template-columns: minmax(0, 1fr); }
+  .picker-row[data-pick="budget"] .picker-label { padding-top: 0; }
+  .picker-row[data-pick="budget"] { gap: 4px; }
+  .picker-row[data-pick="budget"] .chip { padding-left: 8px; padding-right: 8px; }
+  .legend-inline { margin-left: 0; gap: 8px 12px; }
+  .chart-card { padding-left: 6px; padding-right: 6px; }
+  .card-text { padding: 16px; }
+  .quick-card { padding: 18px; }
+  .theme-btn { width: 40px; height: 40px; }
+  .cmp-modal { padding: 12px; max-height: 92dvh; }
+  .cmp-head { flex-wrap: wrap; }
+  .cmp-head-actions { margin-left: auto; }
+  .cmp-bar { bottom: 12px; border-radius: 12px; flex-wrap: wrap; padding: 8px 10px; width: calc(100% - 28px); }
+  #cmpBarText { flex: 1 1 100%; }
+  .cmp-bar .chip { flex: 1 1 auto; }
+  /* 对比浮动条居中占宽，回到顶部按钮上移避让 */
+  .to-top { bottom: 24px; right: 18px; }
+  .has-compare .to-top { bottom: 110px; }
+  .dynamics-list li { flex-direction: column; gap: 6px; min-width: 0; }
+  .dyn-src { white-space: normal; overflow-wrap: anywhere; }
+}
+
+/* 窄屏加大对比、关注按钮的点击区域；推荐卡按钮复用它们，所以放在功能样式之后。 */
+@media (max-width: 767px) {
+  .cmp-add, .watch-plan { min-height: 40px; padding: 7px 10px; }
+}

@@ -36,7 +36,7 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - name: 语法检查
         run: npm run check
-      - name: 类型检查（checkJs）
+      - name: TypeScript、Vue 模板及维护脚本类型检查
         run: npm run typecheck
       - name: 数据校验
         run: npm run validate
@@ -44,10 +44,8 @@ jobs:
         run: |
           npm run maintenance:check
           npm run benchmark:check
-      - name: 额度换算、用户流程与 HTTP 服务回归
+      - name: TS 额度公式、真实 Vue 用户流程与 Node 工具回归
         run: npm run test
-      - name: 缓存版本号与文件一致（改动资产后须跑 npm run bump）
-        run: npm run cache:check
       - name: 安装 Chromium、Firefox 与 WebKit
         run: npx playwright install --with-deps chromium firefox webkit
       - name: 三种浏览器回归

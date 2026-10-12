@@ -10,8 +10,8 @@ const { syncPricingAudit } = require("../build/sync-pricing-audit");
 const FULL_AUDIT_INPUTS = ["pricing-root.json", "pricing-relays.json", "pricing-tools.json", "pricing-cn.json"];
 
 function rewindToFullAudit(root, workspace) {
-  const checkedAt = JSON.parse(fs.readFileSync(path.join(workspace, "audit", FULL_AUDIT_INPUTS[0]), "utf8")).checkedAt;
-  const dataFile = path.join(root, "js/data.js");
+  const checkedAt = JSON.parse(fs.readFileSync(path.join(workspace, "data/audit", FULL_AUDIT_INPUTS[0]), "utf8")).checkedAt;
+  const dataFile = path.join(root, "data/sources/data.js");
   const source = fs.readFileSync(dataFile, "utf8");
   const start = source.indexOf("const PRICE_CHECKS = ");
   const end = source.indexOf("\nfunction priceCheckOf", start);
@@ -21,14 +21,14 @@ function rewindToFullAudit(root, workspace) {
   if (rewound === block) return { checkedAt, rewound: false };
   const temporary = [];
   const ensureDir = (dir) => { if (!fs.existsSync(dir)) { fs.mkdirSync(dir, { recursive: true }); temporary.push(dir); } };
-  ensureDir(path.join(root, "audit"));
+  ensureDir(path.join(root, "data/audit"));
   ensureDir(path.join(root, "data"));
   const ledgers = [`pricing-verification-${checkedAt}.json`, `pricing-verification-${checkedAt}.csv`];
   for (const file of [...FULL_AUDIT_INPUTS, ...ledgers]) {
-    const target = path.join(root, "audit", file);
-    if (!fs.existsSync(target)) { fs.copyFileSync(path.join(workspace, "audit", file), target); temporary.push(target); }
+    const target = path.join(root, "data/audit", file);
+    if (!fs.existsSync(target)) { fs.copyFileSync(path.join(workspace, "data/audit", file), target); temporary.push(target); }
   }
-  const history = path.join(root, "data/change-history.json");
+  const history = path.join(root, "data/audit/change-history.json");
   if (!fs.existsSync(history)) temporary.push(history);
   fs.writeFileSync(dataFile, source.slice(0, start) + rewound + source.slice(end));
   syncPricingAudit(root);

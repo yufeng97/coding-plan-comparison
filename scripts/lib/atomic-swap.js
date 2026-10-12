@@ -1,5 +1,6 @@
 "use strict";
 const fs = require("node:fs");
+const path = require("node:path");
 const RENAME_RETRY_CODES = new Set(["EPERM", "EBUSY", "EACCES"]);
 /* Windows 文件索引/扫描可短暂占用刚写出的目录；每次改名最多 5 次，等待合计 375ms。 */
 const RENAME_RETRY_DELAYS_MS = [25, 50, 100, 200];

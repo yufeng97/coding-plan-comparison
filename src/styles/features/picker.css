@@ -1,0 +1,179 @@
+/* ---------- 推荐卡下方：用量核对、规则说明与付款口径 ---------- */
+.workload-check { align-self: flex-start; margin-bottom: 12px; }
+/* 推荐卡下方：用量核对与一行状态并排，规则说明收进折叠区。 */
+.picker-after { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-bottom: 10px; }
+.picker-after .workload-check { margin-bottom: 0; }
+.picker-after .chart-note { margin: 0; }
+
+.picker-rules { margin-top: 6px; }
+.picker-rules p + p { margin-top: 6px; }
+.qc-payment-summary { margin-top: 8px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+#pickerBillingNote { grid-column: 1 / -1; margin: 0; line-height: 1.6; }
+
+/* ---------- 快速决策卡 ---------- */
+.quick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); gap: 14px; margin-bottom: 10px; }
+.quick-card {
+  position: relative; background: var(--panel); border: 1px solid var(--line);
+  border-top: 3px solid var(--qc-accent, var(--brand-button));
+  border-radius: var(--radius-l); padding: 20px 22px; overflow: hidden; min-width: 0; display: flex; flex-direction: column;
+  transition: border-color .18s, transform .18s;
+}
+.quick-card:hover { transform: translateY(-2px); border-color: var(--line-strong); border-top-color: var(--qc-accent, var(--brand-button)); }
+.quick-card .qc-title {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+  color: var(--muted); font: 600 12px var(--sans); letter-spacing: 0;
+}
+.quick-card .qc-title::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--qc-accent, var(--brand-button)); }
+.quick-card .qc-value { font-size: 21px; font-weight: 800; line-height: 1.25; letter-spacing: -.01em; color: var(--ink); font-family: var(--mono); }
+.quick-card .qc-value em { font-style: normal; color: var(--brand-button); }
+html[data-theme="dark"] .quick-card .qc-value em { color: var(--brand); }
+.quick-card .qc-sub { flex: 1; margin-top: 8px; font-size: 13px; color: var(--muted); line-height: 1.6; overflow-wrap: anywhere; }
+.quick-card .qc-sub b { color: var(--ink); font-weight: 700; }
+.quick-card .qc-tag {
+  display: inline-block; align-self: flex-start; margin-top: 12px; padding: 3px 8px; border-radius: 5px;
+  border: 1px solid var(--line-strong); color: var(--muted);
+  font: 600 10.5px var(--mono);
+}
+.quick-card .qc-avoid, .quick-card .qc-line { margin-top: 8px; }
+.quick-card .qc-avoid { color: var(--faint); }
+.quick-card .qc-line .k {
+  display: block; margin-bottom: 2px; color: var(--faint);
+  font: 600 11px var(--sans); letter-spacing: 0;
+}
+.quick-card .qc-miss { color: var(--gold); }
+.picker { display: flex; flex-direction: column; gap: 10px; margin: 0 0 16px; padding: 16px 18px; border: 1px solid var(--line); border-radius: var(--radius-l); background: var(--panel-2); }
+.picker-row { display: grid; grid-template-columns: 4.4em minmax(0, 1fr); align-items: start; gap: 8px; }
+.picker-options { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.picker-label { flex: 0 0 4.4em; font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.picker-row .picker-label { padding-top: 8px; }
+@media (min-width: 1181px) {
+  .picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px; }
+}
+.picker-empty {
+  background: var(--panel); border: 1px dashed var(--line-strong); border-radius: var(--radius-l);
+  padding: 22px; color: var(--muted); font-size: 14px;
+}
+.badge-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; max-width: 280px; }
+.badge {
+  display: inline-block; padding: 1px 6px; border-radius: 999px;
+  border: 1px solid var(--line-strong); font: 600 10.5px var(--mono); color: var(--muted); white-space: nowrap;
+}
+.badge-agent { color: var(--ink); }
+.badge-risk { color: var(--gold); border-color: rgba(212, 148, 58, .45); }
+.plan-name { white-space: nowrap; }
+.td-trust { white-space: nowrap; font-size: 12px; }
+.td-trust .sub { display: block; margin-top: 4px; color: var(--faint); font-weight: 400; font-size: 11px; }
+/* 核查日期超过复查间隔时标金色；排在 .td-trust .sub 之后，价格表里才能覆盖它的颜色。 */
+.sub.check-stale { color: var(--gold); }
+@media (max-width: 640px) {
+  .quick-grid { grid-template-columns: 1fr; }
+  .picker-label { flex-basis: 100%; }
+}
+
+/* ---------- 决策入口：进阶条件、操作栏与卡片按钮，手机优先露出主方案 ---------- */
+.picker-advanced summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
+.picker-advanced { min-width: 0; grid-column: 1 / -1; }
+.picker-advanced-grid { display: grid; gap: 10px; }
+.picker-task-controls { grid-column: 1 / -1; }
+.picker-hint { font-size: 12px; color: var(--muted); }
+.picker-payment { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
+.picker-payment summary { cursor: pointer; }
+.picker-payment[open] > .picker-row { margin-top: 12px; }
+.picker-payment .maintenance-meta { margin-top: 8px; }
+#pickerPolicy { margin: 0 0 12px; }
+.service-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+.qc-actions {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px;
+  align-items: stretch; flex-shrink: 0; margin-top: 14px;
+}
+.qc-action {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  width: 100%; min-width: 0; height: 36px; margin: 0; padding: 6px 4px;
+  border: 1px solid var(--line-strong); border-radius: 5px; background: transparent;
+  color: var(--muted); font: 600 12px/1 var(--sans); text-align: center;
+  white-space: nowrap; text-decoration: none; cursor: pointer;
+  transition: border-color .18s, color .18s, background-color .18s;
+}
+.qc-action:not(.on):not(:disabled):hover { border-color: var(--accent-2); color: var(--ink); background: var(--hover); text-decoration: none; }
+.qc-action:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+.qc-action-icon { display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+.picker-alternatives { grid-column: 1 / -1; }
+.picker-alternatives-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); gap: 14px; margin-top: 12px; }
+.qc-payment-note, .qc-verification { margin-top: 10px; font-size: 12px; }
+.qc-payment-note summary, .qc-verification summary { cursor: pointer; color: var(--accent); }
+.qc-verification p { overflow-wrap: anywhere; }
+
+@media (min-width: 1181px) {
+  .picker-advanced-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px; }
+}
+
+@media (max-width: 700px) {
+  #quick { display: flex; flex-direction: column; }
+  #quick { padding-top: 24px !important; }
+  #quick > .section-head { margin-bottom: 12px; }
+  #quick > .section-head p { display: none; }
+  #quick > .section-head { order: 0; }
+  #picker { order: 1; }
+  #quickGrid { order: 2; }
+  #quick > .picker-after { order: 3; }
+  #quick > .service-actions { order: 4; }
+  #serviceFeedback { order: 5; }
+  #pickerRules { order: 5; }
+  #quick > .section-menu { order: 6; }
+  .qc-action { height: 40px; }
+}
+
+/* ---------- 紧凑推荐卡 ---------- */
+.qc-reasons { margin: 12px 0 16px; padding-left: 18px; display: grid; gap: 7px; font-size: 13px; line-height: 1.6; color: var(--muted); }
+.qc-primary { display: flex; margin-top: auto; }
+.qc-primary a { display: inline-flex; align-items: center; justify-content: center; padding: 9px 15px; border-radius: 8px; background: var(--ink); color: var(--paper); font-size: 13px; font-weight: 600; }
+.qc-details { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; font-size: 12px; line-height: 1.65; }
+.qc-details summary { cursor: pointer; color: var(--muted); }
+.qc-details[open] summary { margin-bottom: 12px; }
+.qc-converted { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+@media (min-width: 1000px) {
+  .quick-grid[data-card-count="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .quick-grid[data-card-count="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .quick-grid[data-card-count="1"] { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------- 档位对比与评测摘要 ---------- */
+.qc-tiers { width: 100%; margin: 10px 0 4px; border-collapse: collapse; font-size: 12px; }
+.qc-tiers caption { text-align: left; font-weight: 700; color: var(--muted); padding-bottom: 4px; }
+.qc-tiers th, .qc-tiers td { padding: 5px 6px; border-top: 1px solid var(--line); text-align: left; vertical-align: top; }
+.qc-tiers thead th { color: var(--faint); font-weight: 600; border-top: 0; }
+.qc-tiers tr.is-current th, .qc-tiers tr.is-current td { color: var(--ink); font-weight: 700; background: color-mix(in srgb, var(--accent-2, #34d399) 12%, transparent); }
+.qc-tier-price { white-space: nowrap; }
+/* 推荐区的前三档对比：桌面为表格，手机改为与数据表一致的卡片，不需要横向滚动。 */
+.picker-compare { grid-column: 1 / -1; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.qc-compare { width: 100%; border-collapse: collapse; font-size: 13px; }
+.qc-compare caption { text-align: left; font-weight: 700; color: var(--muted); padding: 10px 12px 2px; }
+.qc-compare th, .qc-compare td { padding: 8px 12px; border-top: 1px solid var(--line); text-align: left; vertical-align: top; }
+.qc-compare thead th { color: var(--faint); font-weight: 600; font-size: 12px; border-top: 0; }
+.qc-compare tbody th { color: var(--ink); font-weight: 700; }
+.qc-compare tr.is-current th, .qc-compare tr.is-current td { background: color-mix(in srgb, var(--accent-2, #34d399) 10%, transparent); }
+.qc-compare-tag { display: inline-block; margin-left: 6px; padding: 0 6px; border: 1px solid var(--line-strong); border-radius: 5px; color: var(--muted); font-size: 11px; font-weight: 600; vertical-align: 1px; }
+.qc-compare .cmp-add { white-space: nowrap; }
+.qc-bench { margin: -6px 0 12px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 12px; line-height: 1.55; color: var(--muted); }
+.qc-bench-title { margin: 0 0 4px; font-weight: 700; color: var(--ink); }
+.qc-bench-title span { margin-left: 6px; font-weight: 400; color: var(--faint); }
+.qc-bench ul { margin: 0; padding-left: 16px; display: grid; gap: 2px; }
+.qc-bench b { color: var(--ink); font-weight: 600; }
+.qc-bench-note { margin: 4px 0 0; color: var(--faint); }
+.qc-bench-note a { margin-left: 4px; }
+
+@media (max-width: 700px) {
+  .qc-tiers { font-size: 11.5px; }
+  .picker-compare { overflow: visible; border: 0; background: transparent; }
+  .qc-compare, .qc-compare tbody { display: block; }
+  .qc-compare caption { display: block; padding: 0 0 8px; }
+  .qc-compare thead { display: none; }
+  .qc-compare tbody { display: grid; gap: 10px; }
+  .qc-compare tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+  .qc-compare tbody th, .qc-compare tbody td { display: block; padding: 0; border: 0; background: transparent; overflow-wrap: anywhere; }
+  .qc-compare tbody th { grid-column: 1 / -1; font-size: 14px; }
+  .qc-compare tbody td::before { content: attr(data-label); display: block; color: var(--faint); font-size: 10px; margin-bottom: 3px; }
+  .qc-compare tr.is-current th, .qc-compare tr.is-current td { background: transparent; }
+  .qc-compare tr.is-current { border-color: var(--line-strong); }
+}

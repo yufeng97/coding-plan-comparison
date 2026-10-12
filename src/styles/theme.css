@@ -1,0 +1,133 @@
+/* ============================================================
+ * Coding Plan 全球比价中心 — 样式
+ * 设计语言：暖纸底 / 墨色文字 / 荧光黄绿点缀 / 领域色系统 /
+ *           Manrope + IBM Plex Mono / 线框优先、阴影克制
+ * 主题：html[data-theme="light"]（默认） / html[data-theme="dark"]
+ * ============================================================ */
+
+:root {
+  color-scheme: light;
+  --paper: #fbfbf8;
+  --panel: #fefefc;
+  --panel-2: #f4f5f0;
+  --line: #e2e4de;
+  --line-strong: #cfd2c9;
+  --ink: #10110f;
+  --text: #2a2c28;
+  --muted: #6f726b;
+  --faint: #70746c;
+  --brand: #b9ff00;
+  --brand-ink: #10110f;
+  --brand-soft: #edffc0;
+  --brand-button: #315f59;
+  --brand-button-hover: #3b7168;
+  --cat-official: #5575f6;
+  --cat-official-soft: #e9edff;
+  --cat-tool: #16b8a6;
+  --cat-tool-soft: #dff8f3;
+  --cat-cloud: #ff973d;
+  --cat-cloud-soft: #fff0df;
+  --cat-team: #8d6bea;
+  --cat-team-soft: #eee8ff;
+  --cat-relay: #d4534a;
+  --cat-official-text: #3654c2;
+  --cat-tool-text: #087e72;
+  --cat-cloud-text: #a74c05;
+  --cat-team-text: #7350bf;
+  --gold: #996100;
+  --green: #287c3e;
+  --red: #b52a25;
+  --info: #2458ae;
+  --bench-gpt: #317a62;
+  --bench-claude: #b35b35;
+  --bench-gemini: #3972cc;
+  --bench-glm: #9267be;
+  --bench-kimi: #bd487a;
+  --bench-deepseek: #397b8d;
+  --bench-qwen: #aa7a15;
+  --bench-minimax: #b34845;
+  --bench-grok: #697489;
+  --bench-composer: #628737;
+  --bench-mimo: #7673b9;
+  --bench-other: #787d76;
+  --accent: #315f59;
+  --accent-2: #3b7168;
+  --hover: rgba(16,17,15,.045);
+  --chip-bg: transparent;
+  --chip-hover-border: rgba(16,17,15,.45);
+  --badge-bg: rgba(16,17,15,.045);
+  --region-bg: rgba(16,17,15,.04);
+  --row-border: rgba(16,17,15,.055);
+  --row-hover: rgba(16,17,15,.03);
+  --surface: rgba(16,17,15,.018);
+  --code-bg: rgba(16,17,15,.055);
+  --ver-na-bg: rgba(16,17,15,.05);
+  --topbar-bg: rgba(251,251,248,.88);
+  --radius-l: 12px;
+  --radius: 10px;
+  --radius-s: 7px;
+  --header-height: 64px;
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --sans: Manrope, "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #131511;
+  --panel: #1a1c18;
+  --panel-2: #20231e;
+  --line: #2e312a;
+  --line-strong: #3d413a;
+  --ink: #eceee8;
+  --text: #d8dbd2;
+  --muted: #9fa39a;
+  --faint: #868a83;
+  --brand: #b9ff00;
+  --brand-ink: #10110f;
+  --brand-soft: rgba(185,255,0,.12);
+  --brand-button: #b9ff00;
+  --brand-button-hover: #cdff4d;
+  --cat-official: #8ba1ff;
+  --cat-official-soft: rgba(139,161,255,.13);
+  --cat-tool: #2fd4bd;
+  --cat-tool-soft: rgba(47,212,189,.12);
+  --cat-cloud: #ffb066;
+  --cat-cloud-soft: rgba(255,176,102,.12);
+  --cat-team: #ab8ff5;
+  --cat-team-soft: rgba(171,143,245,.13);
+  --cat-relay: #e8776f;
+  --cat-official-text: #8ba1ff;
+  --cat-tool-text: #2fd4bd;
+  --cat-cloud-text: #ffb066;
+  --cat-team-text: #ab8ff5;
+  --gold: #e9b117;
+  --green: #4cbf6b;
+  --red: #ef554f;
+  --info: #6d9bff;
+  --bench-gpt: #61cfab;
+  --bench-claude: #ef9b73;
+  --bench-gemini: #81afff;
+  --bench-glm: #b394e0;
+  --bench-kimi: #f08bba;
+  --bench-deepseek: #73bacf;
+  --bench-qwen: #edc263;
+  --bench-minimax: #e88884;
+  --bench-grok: #a7b5c9;
+  --bench-composer: #add17a;
+  --bench-mimo: #aba7ef;
+  --bench-other: #b7bbb3;
+  --accent: #b9ff00;
+  --accent-2: #d3ff5c;
+  --hover: rgba(236,238,232,.05);
+  --chip-bg: transparent;
+  --chip-hover-border: rgba(236,238,232,.4);
+  --badge-bg: rgba(236,238,232,.05);
+  --region-bg: rgba(236,238,232,.05);
+  --row-border: rgba(236,238,232,.07);
+  --row-hover: rgba(236,238,232,.035);
+  --surface: rgba(236,238,232,.02);
+  --code-bg: rgba(236,238,232,.07);
+  --ver-na-bg: rgba(236,238,232,.06);
+  --topbar-bg: rgba(19,21,17,.86);
+}
+

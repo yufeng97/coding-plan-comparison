@@ -4,31 +4,20 @@ const { spawnSync } = require("node:child_process");
 const path = require("node:path");
 
 const suite = [
-  "test-metrics.js",
-  "test-data-regressions.js",
-  "test-app-history.js",
-  "test-app-picker.js",
-  "test-app-payments.js",
-  "test-app-pricing-scope.js",
-  "test-app-charts.js",
-  "test-app-tables.js",
-  "test-app-service.js",
-  "test-app-maintenance.js",
+  "test-architecture.js",
   "test-server.js",
   "test-file-lock.js",
   "test-tools.js",
-  "test-pricing.js",
   "test-pricing-sync.js",
   "test-news.js",
   "test-news-blog.js",
   "test-news-blog-collection.js",
-  "../maintenance/test-maintenance.js",
+  "test-maintenance.js",
   "test-benchmarks.js",
   "test-public-benchmarks.js",
   "test-benchmark-deepswe-cursor.js",
   "test-benchmark-osworld-hle.js",
   "test-runners.js",
-  "test-review-fixes.js",
 ];
 
 for (const file of suite) {
@@ -41,4 +30,14 @@ for (const file of suite) {
     break;
   }
 }
-if (!process.exitCode) console.log("全部 Node 回归通过：" + suite.length + " 个套件");
+if (!process.exitCode) {
+  console.log("全部 Node 回归通过：" + suite.length + " 个套件");
+  /* 直接导入 TypeScript 模块的公式/数据回归、真实 Vue 整页流程与组件测试。 */
+  const cli = path.join(path.dirname(require.resolve("vitest/package.json")), require("vitest/package.json").bin.vitest);
+  const vitest = spawnSync(process.execPath, [cli, "run"], { stdio: "inherit", cwd: path.resolve(__dirname, "..", "..") });
+  if (vitest.error) throw vitest.error;
+  if (vitest.status !== 0) {
+    process.exitCode = vitest.status || 1;
+    console.error("在 TypeScript / Vue 回归处停止；修复后重新运行 npm run test");
+  }
+}
