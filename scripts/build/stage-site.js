@@ -10,12 +10,12 @@ const { swapDirectory } = require("../lib/atomic-swap");
 const repositoryRoot = path.resolve(__dirname, "..", "..");
 const slash = (file) => file.split(path.sep).join("/");
 
-/** 公共白名单与隐藏段检查，词法路径与真实路径（链接、短名展开后）都要满足。 */
+/** 公共白名单与隐藏段检查，词法路径与真实路径（链接、短名展开后）都要满足。root 是文件所在的来源目录（public/ 或 data/generated/）。 */
 function assertPublicFile(root, file) {
   const real = fs.realpathSync.native(file);
   for (const target of [file, real]) {
     const rel = slash(path.relative(root, target));
-    if (!insideRoot(root, target)) throw new Error(`公共文件越出项目目录：${rel}`);
+    if (!insideRoot(root, target)) throw new Error(`公共文件越出来源目录：${rel}`);
     if (!publicSiteFile(rel)) throw new Error(`公共文件不在白名单：${rel}`);
     if (hiddenSegment(rel)) throw new Error(`公共文件包含隐藏目录：${rel}`);
   }

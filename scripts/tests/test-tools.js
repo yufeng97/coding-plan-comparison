@@ -75,11 +75,11 @@ async function main() {
         const site = await stage(root);
         assert.equal(site.files.some((file) => file.includes("alias") || file.includes("secret")), false);
       } finally { fs.unlinkSync(junction); }
-      /* 文件符号链接：真实路径不在白名单时拒绝。Windows 未开启开发者模式时不能创建，跳过这一半 */
+      /* 文件符号链接：真实路径越出来源目录、不在白名单或含隐藏目录时拒绝。Windows 未开启开发者模式时不能创建，跳过这一半 */
       const link = path.join(root, dir, "secret.txt");
       try { fs.symlinkSync(path.join(root, rel, "secret.txt"), link, "file"); }
       catch (error) { if (error && error.code === "EPERM") continue; throw error; }
-      try { await assert.rejects(stage(root), /白名单|隐藏目录/); }
+      try { await assert.rejects(stage(root), /越出来源目录|白名单|隐藏目录/); }
       finally { fs.rmSync(link, { force: true }); }
     }
   }));
