@@ -3,7 +3,7 @@
 import assert from "node:assert";
 import { describe, test, vi } from "vitest";
 import { blendPrice, computeMetrics, fmtTok, isFlagshipModelName, periodRates, windowTokens } from "@domain/metrics";
-import { PLANS, hasOwnClient, isOnSalePlan, isPersonalMonthly, matchModelRoles, offerable, resolvedField } from "../generated/catalog";
+import { PLANS, RATE_USD_CNY, hasOwnClient, isOnSalePlan, isPersonalMonthly, matchModelRoles, offerable, resolvedField } from "../generated/catalog";
 import { auditProfiles } from "../test/runtime";
 
 /** 缺失值必须让数值断言失败，不能被隐式转换为 0。 */
@@ -101,7 +101,7 @@ describe("computeMetrics（credits 制）", () => {
     const c = computeMetrics({ priceM: 1, cur: "USD", creditUSD: 10, apiIn: 0.15, apiOut: 0.47, apiCache: 0.016 });
     assert.ok(c, "应返回结果");
     assert.ok(near(c.rmo, 10), "月倍率应等于面值杠杆 10，实际 " + c.rmo);
-    assert.ok(near(c.costPerM, 6.71 / (10 / blendPrice({ apiIn: 0.15, apiOut: 0.47, apiCache: 0.016 })), 1e-9));
+    assert.ok(near(c.costPerM, RATE_USD_CNY / (10 / blendPrice({ apiIn: 0.15, apiOut: 0.47, apiCache: 0.016 })), 1e-9));
   });
   test("无牌价美元 credits：每 M 按假设均价 ¥10/M → $1 买 $10 credits ≈ ¥1/M", () => {
     const c = computeMetrics({ priceM: 1, cur: "USD", creditUSD: 10 });
@@ -198,7 +198,7 @@ describe("auditProfiles（帮我选）", () => {
     const credits = computeMetrics({ priceM:649, cur:"INR", creditUSD:20, apiCur:"USD", apiIn:1, apiOut:2, apiCache:0.1 });
     const equivalent = computeMetrics({ priceM:20, cur:"USD", creditUSD:20, apiIn:1, apiOut:2, apiCache:0.1 });
     assert.ok(credits && equivalent && near(credits.moMidM, equivalent.moMidM));
-    assert.ok(near(credits.rmo, 20 * 6.71 / credits.priceCNY));
+    assert.ok(near(credits.rmo, 20 * RATE_USD_CNY / credits.priceCNY));
     assert.equal(computeMetrics({ ...weekly, cur:"XYZ" }), null);
   });
 });

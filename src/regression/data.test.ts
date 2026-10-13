@@ -54,7 +54,7 @@ test("明确目标不邻近时仍解析，保留追加权益和限制", async ()
   assert.match(d.resolvedField(plus, "tools"), /Claude Code/);
   assert.match(d.resolvedField(plus, "tools"), /任意 agent 可用/);
   assert.match(d.resolvedField(plan(d, "Google", "Google AI Ultra（20x）"), "models"), /Project Genie/);
-  assert.match(d.resolvedField(plan(d, "OpenAI", "ChatGPT Pro（$500）"), "models"), /Astra Ultrafast/);
+  assert.match(d.resolvedField(plan(d, "OpenAI", "ChatGPT Pro（$500）"), "models"), /Ultrafast（GPT-6 Astra \/ GPT-6\.1 Sol）/);
   const base = fixture({ vendor: "Fixture", plan: "Starter", models: "Claude Opus / Sonnet" });
   const next = fixture({ vendor: "Fixture", plan: "Pro", models: "同 Starter；不含 Opus" });
   d.PLANS.push(base, next);
@@ -233,7 +233,7 @@ test("国家限定档默认不满足，印度明确满足；BYOK不计免费推�
   assert.equal(d.isPurchaseCountryAllowed(start, undefined), false);
   assert.equal(d.isPurchaseCountryAllowed(start, "US"), false);
   assert.equal(d.isPurchaseCountryAllowed(start, "in"), true);
-  assert.equal(d.isPurchaseCountryAllowed(plan(d, "Cursor", "Pro"), undefined), true);
+  assert.equal(d.isPurchaseCountryAllowed(plan(d, "xAI", "X Subscription Premium"), undefined), true);
   assert.equal(d.hasIncludedModelQuota(plan(d, "Kilo Code", "Free（BYOK/零加价）")), false);
   for (const [vendor, name] of [["Zed", "Free"], ["Cline", "开源版 + 按量充值"], ["Roo Code（Roomote）", "自托管（≤10 用户）"]]) {
     assert.equal(d.hasIncludedModelQuota(plan(d, vendor, name)), false, vendor);
@@ -244,7 +244,7 @@ test("国家限定档默认不满足，印度明确满足；BYOK不计免费推�
 
 test("明确附赠编码工具的计划保持编程入口资格", async () => {
   const d = await load();
-  for (const name of ["SuperGrok", "SuperGrok Plus", "SuperGrok Heavy"]) {
+  for (const name of ["SuperGrok（老用户续费）", "SuperGrok Plus（老用户续费）", "SuperGrok Heavy", "X Subscription Premium"]) {
     const p = plan(d, "xAI", name);
     assert.equal(p.codingSurface, true, name);
     assert.match(p.tools, /Grok Build/);
@@ -268,7 +268,7 @@ test("模型继承展开可检索，局部排除不混淆模型可用性", async
   const small = plan(d, "火山引擎方舟（字节）", "方舟 Agent Plan（Small）");
   assert.ok(!d.matchModelRoles(small.models).some((r) => r.id === "kimi-k3"));
   assert.deepEqual(small.modelExcludes, ["Kimi-K3"]);
-  for (const name of ["SuperGrok", "SuperGrok Plus"]) assert.ok(d.hasOwnClient(plan(d, "xAI", name)));
+  for (const name of ["SuperGrok（老用户续费）", "SuperGrok Plus（老用户续费）", "X Subscription Plus"]) assert.ok(d.hasOwnClient(plan(d, "xAI", name)));
   const a = fixture({ vendor: "Model Cycle", plan: "A", id: "model-cycle-a", models: "A", modelBaseRef: "model-cycle-b" });
   const b = fixture({ vendor: "Model Cycle", plan: "B", id: "model-cycle-b", models: "B", modelBaseRef: "model-cycle-a" });
   d.PLANS.push(a, b);
@@ -277,7 +277,8 @@ test("模型继承展开可检索，局部排除不混淆模型可用性", async
 
 test("永久 ID 在改名和重排后保持引用与权益继承", async () => {
   const d = await load();
-  const original = plan(d, "Cursor", "Pro");
+  const original = d.PLANS.find((p) => p.id === "plan-0098");
+  assert.ok(original, "Cursor Pro 的永久 ID");
   const inherited = d.PLANS.find((p) => p.fieldRefs?.models === original.id);
   assert.ok(inherited);
   const before = d.resolvedField(inherited, "models");
@@ -372,8 +373,9 @@ test("校验器提示已结束的限时活动与复制周额度，Vue 首页日�
     "PLANS.find(p=>p.id==='plan-0066').note+='；截至 2026-10-04 的用量说明';",
     "METRICS_RAW.find(m=>m.ref==='plan-0032'&&m.model==='GLM-5.3').wkLowM=METRICS_RAW.find(m=>m.ref==='plan-0031'&&m.model==='GLM-5.3').wkLowM;",
     "METRICS_RAW.find(m=>m.ref==='plan-0032'&&m.model==='GLM-5.3').wkHighM=METRICS_RAW.find(m=>m.ref==='plan-0031'&&m.model==='GLM-5.3').wkHighM;",
-    "META.updated='2026-10-10';",
   ].join("\n"));
+  /* 数据版本已晚于 10-07，双节活动的结束日期在当前版本下即属已结束，不必再改版本日期。 */
+  assert.ok(String(/updated: "(\d{4}-\d{2}-\d{2})"/.exec(dataSource)?.[1]) > "2026-10-07");
   assert.equal(result.exitCode, 0, result.output);
   assert.match(result.output, /已结束的限时活动日期.*plan-0157（09-25~10-07）/);
   assert.doesNotMatch(result.output, /plan-0066（至/, "「截至」是时点说明，不是活动截止");
@@ -409,11 +411,14 @@ test("同一订阅的重复条目、售罄预付包与已停止的 Gemini CLI �
 });
 
 test("核查日期容差按北京时间跨日，注入无效时间报告校验错误", async () => {
-  const mutation = "META.updated='2026-10-10';";
-  const beforeMidnight = validateFixture(mutation, { now: "2026-10-08T15:59:59Z" });
+  /* 以数据版本日 U 为基准（数据每天更新，不能写死日历日期）：版本改为 U+1，上海 U-1 23:59:59 拒绝、U 00:00 起接受。 */
+  const updated = String(/updated: "(\d{4}-\d{2}-\d{2})"/.exec(dataSource)?.[1]);
+  const day = (offset: number) => new Date(Date.parse(updated + "T00:00:00Z") + offset * 86400000).toISOString().slice(0, 10);
+  const mutation = `META.updated='${day(1)}';`;
+  const beforeMidnight = validateFixture(mutation, { now: day(-1) + "T15:59:59Z" });
   assert.equal(beforeMidnight.exitCode, 1, beforeMidnight.output);
-  assert.match(beforeMidnight.output, /META\.updated 2026-10-10 晚于今天/);
-  const afterMidnight = validateFixture(mutation, { now: "2026-10-08T16:00:00Z" });
+  assert.match(beforeMidnight.output, new RegExp(`META\\.updated ${day(1)} 晚于今天`));
+  const afterMidnight = validateFixture(mutation, { now: day(-1) + "T16:00:00Z" });
   assert.equal(afterMidnight.exitCode, 0, afterMidnight.output);
   assert.match(validateFixture("", { now: "invalid" }).output, /校验时间无效/);
   assert.doesNotMatch(validateFixture("", { now: 0 }).output, /校验时间无效/, "Unix epoch 是有效的注入时间");

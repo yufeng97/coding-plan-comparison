@@ -138,13 +138,14 @@ test("图表在其他视图中切换主题和屏宽后，返回套餐视图恢�
 });
 
 test("年付图表的读屏摘要报告当前人民币价格", async ({ page }) => {
-  await page.goto("/?pq=CursorPro&pbilling=Y#s1");
+  await page.goto("/?pq=XSubscription&pbilling=Y#s1");
   const summary = await page.locator("#chartPersonal").getAttribute("aria-label");
   expect(summary).toContain("年付折月，人民币/月");
   const rows = await page.evaluate(`${chartOf("chartPersonal")}.getOption().series[0].data.map(row => ({ plan: row._p.plan, value: row.value }))`);
-  expect(rows).toHaveLength(2);
-  for (const row of rows) expect(summary).toContain(row.plan + " ¥" + row.value);
-  expect(summary).not.toMatch(/\$20|\$60/);
+  expect(rows.map((row) => row.plan)).toEqual(["X Subscription Plus", "X Subscription Premium", "X Subscription Super", "X Subscription Ultra"]);
+  /* 读屏摘要列出最低三档，金额与实际绘制的年付人民币柱值一致。 */
+  for (const row of rows.slice(0, 3)) expect(summary).toContain(row.plan + " ¥" + row.value);
+  expect(summary).not.toMatch(/\$\d/);
 });
 
 test("回到顶部在页首不能取得隐形键盘焦点，滚动后恢复操作", async ({ page }) => {
@@ -210,7 +211,8 @@ for (const width of [375, 768, 1280]) {
       await page.goto("/index.html#s4");
       await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
       await expect.poll(() => page.evaluate("echarts.version")).toBe("6.1.0");
-      await expect(page.locator("#apiDetailBody tr")).toHaveCount(36);
+      /* API 行只增不减（2026-10-13 起 37 行）；逐行完整性由 Vitest 按 API_PRICES 校验。 */
+      await expect.poll(() => page.locator("#apiDetailBody tr").count()).toBeGreaterThanOrEqual(36);
       for (const id of ["chartPersonal", "chartTokens", "chartApi", "chartPower"]) {
         // 库和画布节点出现后，异步锚点布局/resize 仍可能正在完成。
         await expect.poll(() => page.locator("#" + id + " canvas").count()).toBeGreaterThan(0);

@@ -3,6 +3,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
+const vm = require("node:vm");
 const { isISODate, validateData } = require("../build/validate-data");
 const { commitOutputs } = require("../build/sync-pricing-audit");
 const { loadData, canonical, readHistory, mergeHistory, seededHistory } = require("./history");
@@ -37,27 +38,36 @@ function readReviews(root, data, asOf) {
   }).sort((a, b) => a.reviewOn.localeCompare(b.reviewOn) || a.id.localeCompare(b.id));
 }
 
-/* RSS 描述里用读者能懂的字段名；未登记的字段保留原名。 */
-const FIELD_LABELS = {
-  priceM: "月付价", priceY: "年付折月价", annualTotal: "年付全年金额", autoRenewMonthly: "连续包月价", singleMonthPrice: "单月购买价",
-  cur: "币种", seat: "按席位计费", plan: "套餐名", model: "模型名", label: "显示名", quota: "额度", models: "模型", tools: "工具",
-  note: "备注", url: "官网链接", status: "核查状态", availability: "销售状态", accessUnstable: "访问异常",
-  inUSD: "输入 USD/M", outUSD: "输出 USD/M", inCNY: "输入 CNY/M", outCNY: "输出 CNY/M", apiIn: "输入单价", apiOut: "输出单价", apiCache: "缓存命中单价",
-};
+/* RSS 与页面「我的关注」共用 data.js 的 changeDisplay：字段名、取值说法与新收录的要点只维护一处，
+   继承引用与永久 ID 不出现在读者文字里。 */
+function loadChangeDisplay(source) {
+  const box = {};
+  vm.createContext(box);
+  vm.runInContext(source + "\n;globalThis.changeDisplay = changeDisplay;", box, { timeout: 2000 });
+  return box.changeDisplay;
+}
+let repoDisplay = null;
+function repoChangeDisplay() {
+  return repoDisplay ||= loadChangeDisplay(fs.readFileSync(path.join(__dirname, "../../data/sources/data.js"), "utf8"));
+}
 /* 分厂商订阅：路径由厂商名确定性生成（ASCII 片段便于识别，哈希保证唯一），页面从维护摘要读取映射。 */
 function vendorFeedSlug(vendor) {
   const ascii = String(vendor).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 24).replace(/-+$/, "");
   return (ascii || "vendor") + "-" + crypto.createHash("sha256").update(String(vendor)).digest("hex").slice(0, 8);
 }
 /** 条目链接打开数据表并搜索该档（含中转站与待核价格），读者可直接核对当前值。
- * @param {any} maintenance @param {string} site @param {{vendor:string}|null} [feed] 只输出该厂商的变更 */
-function rssOf(maintenance, site, feed = null) {
+ * @param {any} maintenance @param {string} site @param {{vendor:string}|null} [feed] 只输出该厂商的变更
+ * @param {(change: any) => {addition: boolean, fields: {label: string, before: string, after: string}[]}} [display] 读者文字规则，默认取仓库 data.js */
+function rssOf(maintenance, site, feed = null, display = repoChangeDisplay()) {
   const changes = feed ? maintenance.changes.filter((change) => change.vendor === feed.vendor) : maintenance.changes;
   const tableLink = (query) => new URL("?q=" + encodeURIComponent(query) + "&tall=1#table", site).href;
   const items = changes.map((change) => {
-    const details = change.fields.map((field) => (FIELD_LABELS[field] || field) + "：" + JSON.stringify(change.before[field]) + " → " + JSON.stringify(change.after[field])).join("；");
-    const description = "核查日期 " + change.checkedAt + "。" + details + "。来源：" + change.sourceUrls.join("；");
-    return "<item><title>" + xml(change.vendor + " · " + change.name + " 价格/权益更新") + "</title><link>" + xml(tableLink(change.vendor + " " + change.name)) + "</link><guid isPermaLink=\"false\">" + xml(change.changeId) + "</guid><pubDate>" + new Date(change.checkedAt + "T00:00:00Z").toUTCString() + "</pubDate><description>" + xml(description) + "</description></item>";
+    const shown = display(change);
+    const details = shown.fields.length
+      ? shown.fields.map((field) => shown.addition ? field.label + " " + field.after : field.label + "：" + field.before + " → " + field.after).join("；")
+      : "继承关系调整，价格与权益文字不变";
+    const description = "核查日期 " + change.checkedAt + "。" + (shown.addition ? "新收录：" : "") + details + "。来源：" + change.sourceUrls.join("；");
+    return "<item><title>" + xml(change.vendor + " · " + change.name + (shown.addition ? " 新收录" : " 价格/权益更新")) + "</title><link>" + xml(tableLink(change.vendor + " " + change.name)) + "</link><guid isPermaLink=\"false\">" + xml(change.changeId) + "</guid><pubDate>" + new Date(change.checkedAt + "T00:00:00Z").toUTCString() + "</pubDate><description>" + xml(description) + "</description></item>";
   });
   const title = feed ? "Coding Plan · " + feed.vendor + " 已确认价格与权益变更" : "Coding Plan 已确认价格与权益变更";
   // No build timestamp: rerunning on the same facts does not create RSS updates.
@@ -88,6 +98,7 @@ function buildMaintenanceUnlocked(workspace, options = {}) {
   const validation = validateData({ workspace: root, source });
   if (validation.errors.length) throw new Error("维护摘要数据校验失败：\n" + validation.errors.join("\n"));
   const data = loadData(source);
+  const display = loadChangeDisplay(source);
   const history = mergeHistory(readHistory(root), seededHistory(root).changes);
   if (data.PRICE_CHECKS.checkedAt > asOf || history.changes.some((change) => change.checkedAt > asOf)) throw new Error("维护摘要日期早于已有核查事实");
   const records = [];
@@ -119,8 +130,8 @@ function buildMaintenanceUnlocked(workspace, options = {}) {
     [path.join(root, "data/generated/maintenance-data.js"), Buffer.from("/* Generated by scripts/maintenance/build-maintenance.js; verification facts remain in data.js.\n   On-demand data uses var: a late request from before a retry may still execute, and running twice only reassigns the same data. */\nvar MAINTENANCE = " + JSON.stringify(maintenance, null, 2) + ";\n")],
     /* 首屏摘要只含复查间隔与套餐变更 ID，编入类型化目录：导航「我的关注」的未读数和核查日期的超期提示不必等完整维护数据下载。 */
     [path.join(root, "data/generated/maintenance-summary.js"), Buffer.from("/* 自动生成：npm run maintenance:build。导航「我的关注」未读提醒用的套餐变更 ID 与复查间隔；完整变更见 maintenance-data.js（按需加载）。 */\n/** @type {MaintenanceSummary} */\nconst MAINTENANCE_SUMMARY = " + JSON.stringify({ schemaVersion: 1, staleAfterDays: staleDays, changes: history.changes.filter((change) => change.kind === "plan").map((change) => ({ id: change.id, changeId: change.changeId })) }) + ";\n")],
-    [path.join(root, "data/generated/changes.xml"), Buffer.from(rssOf(maintenance, site))],
-    ...feeds.map((feed) => /** @type {[string, Buffer]} */ ([path.join(root, "data/generated", feed.path), Buffer.from(rssOf(maintenance, site, feed))])),
+    [path.join(root, "data/generated/changes.xml"), Buffer.from(rssOf(maintenance, site, null, display))],
+    ...feeds.map((feed) => /** @type {[string, Buffer]} */ ([path.join(root, "data/generated", feed.path), Buffer.from(rssOf(maintenance, site, feed, display))])),
   ]);
   /* 厂商改名或移除后，旧订阅文件不再生成；检查模式报告，生成模式在写入成功后清理。 */
   const feedDir = path.join(root, "data/generated/feeds");

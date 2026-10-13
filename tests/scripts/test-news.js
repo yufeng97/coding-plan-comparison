@@ -169,6 +169,12 @@ async function tests() {
     await assert.rejects(fetchSource(source().url, { fetcher: async () => new Response("x".repeat(MAX_BYTES + 1)), resolver }), /超过 2 MiB/);
     const broken = await collect([source()], async () => new Response('<html>Not a feed</html>')); assert.equal(broken.report.status, "failed");
   });
+  await test("来源声明不认识的字符集时按UTF-8解码，不让整个来源失败", async () => {
+    const odd = await fetchSource(source().url, { resolver, fetcher: async () => new Response("<rss>编程套餐</rss>", { headers: { "content-type": "application/rss+xml; charset=utf8mb4" } }) });
+    assert.equal(odd.text, "<rss>编程套餐</rss>");
+    const latin = await fetchSource(source().url, { resolver, fetcher: async () => new Response(Buffer.from([0x63, 0x61, 0x66, 0xe9]), { headers: { "content-type": "text/plain; charset=iso-8859-1" } }) });
+    assert.equal(latin.text, "café", "TextDecoder 认识的编码仍按声明解码");
+  });
   await test("HTTPS/DNS/私有IPv4与IPv6 guard，注入resolver不能绕过fake/private IP", async () => {
     for (const url of ["http://news.example.com/rss", "https://localhost/rss", "https://127.1/rss", "https://[::1]/rss", "https://[::ffff:127.0.0.1]/rss", "https://10.0.0.1/rss"]) await assert.rejects(validateSourceURL(url, resolver));
     for (const address of ["192.168.1.1", "198.18.0.1", "100.64.0.1", "169.254.169.254", "2001:db8::1", "fc00::1", "fe80::1"]) { assert.equal(publicAddress(address), false); await assert.rejects(validateSourceURL(source().url, async () => [{ address }])); }

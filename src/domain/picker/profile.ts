@@ -32,9 +32,13 @@ export function pickerPlanForMetric(m: Pick<QuotaRow, "ref" | "vendor" | "plan">
     return m.ref != null ? findPlanReference(m.ref) : PLANS.find((p) => p.vendor === m.vendor && p.plan === m.plan) || null;
 }
 
-/* 选了具体工具时，该工具自家厂商的订阅单独出一张对照卡（如点 Cursor 给 Cursor Pro）。
-   自家订阅不一定赢下主计划（比如 Cursor 的旗舰走按量池），但不该从推荐里消失。 */
-export const TOOL_OWN_VENDOR: Record<string, string> = { claude: "Anthropic", codex: "OpenAI", cursor: "Cursor" };
+/* 选了具体工具时，该工具自家厂商的订阅单独出一张对照卡（如点 Claude Code 给 Claude Pro）。
+   自家订阅不一定赢下主计划（比如 Cursor 的第三方旗舰走按量），但不该从推荐里消失。
+   2026-10-12 起 Cursor 的新订阅由 xAI 的 The X Subscription 承载，旧 Cursor 档仅老用户续费。 */
+export const TOOL_OWN_VENDOR: Record<string, string> = { claude: "Anthropic", codex: "OpenAI", cursor: "xAI" };
+
+/** 「帮我选」工具选项的产品名；规则文字、推荐卡与自家订阅卡共用。 */
+export const TOOL_NAMES: Record<string, string> = { claude: "Claude Code", codex: "Codex", cursor: "Cursor" };
 
 export function metricMatchesPlan(m: Pick<QuotaRow, "ref" | "vendor" | "plan">, p: Plan) {
     if (m.ref != null)

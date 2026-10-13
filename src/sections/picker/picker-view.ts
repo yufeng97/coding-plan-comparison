@@ -3,7 +3,7 @@ import { fmtCNY, mainlandAccessText, shortVendor, trunc } from "@domain/core";
 import { fmtTok } from "@domain/metrics";
 import { PICKER_PRIORITY_LABELS } from "@domain/picker/ability";
 import { BUDGET_EPS, pickerMoney } from "@domain/picker/payment";
-import { matchesTool, planProfile, recommendablePlan, tokenEvidence } from "@domain/picker/profile";
+import { matchesTool, planProfile, recommendablePlan, tokenEvidence, TOOL_NAMES, TOOL_OWN_VENDOR } from "@domain/picker/profile";
 import { meteredText, quotaLabel, roleDisplayName, roleUseText, sameWindowText, windowNoteShort, windowSentence } from "@domain/picker/text";
 import { pickerState } from "@state/app";
 import { alternativeProfiles, cheaperTiers, currentPickerSelection, nextTier, ownVendorPlan, peerNote, pickerChoiceReason, pickerEmptyReason, pickerMonthlyCNY, pickerPaymentQuote, pickerPriority, pickerToolRelationship, pickSupplement, priceDecidedMain, priceLine, rankedCandidates, unlockText, upgradeBudgetCeiling } from "@state/picker";
@@ -24,12 +24,11 @@ export type PickerCardModel = {
 };
 const state = pickerState;
 const accent = ["#34d399", "#f59e0b", "#6366f1", "#f472b6"];
-const ownVendors: Record<string, string> = { claude: "Anthropic", codex: "OpenAI", cursor: "Cursor" };
-const tools: Record<string, string> = { claude: "Claude Code", codex: "Codex", cursor: "Cursor" };
+/* 工具与自家厂商的对应只在 domain/picker/profile 维护一处；说明按工具区分。 */
 const ownNotes: Record<string, string> = {
-  Cursor: "Cursor 各档的模型池和额外按量费用不同；请对照具体套餐的总费用、支持工具和额度规则。",
-  Anthropic: "Claude 官方订阅用的是 Claude Code 本身，模型和额度都是第一方；是否最优看第一张卡的对比。",
-  OpenAI: "ChatGPT 官方订阅用 Codex 本身，模型和额度都是第一方；是否最优看第一张卡的对比。",
+  cursor: "Cursor 的新订阅由 X Subscription 承载：Grok 与 Cursor 共用每周额度，第三方模型从 Premium 起按 API 牌价另付；请对照具体档位的总费用、支持工具和额度规则。",
+  claude: "Claude 官方订阅用的是 Claude Code 本身，模型和额度都是第一方；是否最优看第一张卡的对比。",
+  codex: "ChatGPT 官方订阅用 Codex 本身，模型和额度都是第一方；是否最优看第一张卡的对比。",
 };
 const line = (label: string, text: string): PickerLine => ({ label, text });
 const names = (p: Plan, roles: PickerRole[]) => roles.map((role) => roleDisplayName(p, role)).join("、");
@@ -45,8 +44,8 @@ export function mainCard(main: PickerProfile, pool: PickerProfile[]) {
   const p = main.p;
   const daily = state.task === "daily" && main.loose.length > 0;
   const role = daily || !main.headline ? main.loose[0] : main.headline;
-  const compatible = ownVendors[state.tool] && p.vendor !== ownVendors[state.tool];
-  const reasons = [role ? `${compatible ? `${tools[state.tool]} 兼容接入 · ` : ""}${roleDisplayName(p, role)} 适合${daily || !main.headline ? "日常编码" : "复杂编码任务"}` : "附赠编程推理额度"];
+  const compatible = TOOL_OWN_VENDOR[state.tool] && p.vendor !== TOOL_OWN_VENDOR[state.tool];
+  const reasons = [role ? `${compatible ? `${TOOL_NAMES[state.tool]} 兼容接入 · ` : ""}${roleDisplayName(p, role)} 适合${daily || !main.headline ? "日常编码" : "复杂编码任务"}` : "附赠编程推理额度"];
   const evidence = tokenEvidence(p, role);
   reasons.push(evidence ? `按官方额度规则折算，保守参考下限约 ${fmtTok(evidence.tokens)} tokens/月（统一假设，置信${evidence.conf}）`
     : priceDecidedMain(main, pool) ? "同档候选的额度都无法折算，按月费较低选出；可展开其他候选对照模型与评测" : "可用 token 总量未公开，购买前核对额度规则");
@@ -102,7 +101,7 @@ export function upgradeCard(main: PickerProfile) {
   return card(2, "同厂商升级参考", next.p, [over ? `高于当前预算${Number.isFinite(cap) ? `，在下一档 ≤${fmtCNY(cap)} 内` : ""}` : "月费仍在当前预算内", role ? `可使用 ${roleDisplayName(next.p, role)}，主要比较额度差异` : "同厂商更高档位，可对照额度规则", "这是升级替代方案，无需与主计划同时购买"], [line("多出来的是", unlockText(main, next))]);
 }
 export function ownCard(main: PickerProfile | null) {
-  const vendor = ownVendors[state.tool];
+  const vendor = TOOL_OWN_VENDOR[state.tool];
   if (!vendor || main?.p.vendor === vendor) return null;
   const picked = ownVendorPlan(vendor);
   if (!picked) return null;
@@ -120,7 +119,7 @@ export function ownCard(main: PickerProfile | null) {
   const over = quote.available && state.budget !== "any" && quote.monthlyCNY! > (state.budget === "0" ? 0 : Number(state.budget) + BUDGET_EPS);
   const selection = metered ? "复杂任务模型使用按量池，额度和费用不能与独立主力模型额度直接比较；此卡按公开月费展示参考。" : taskMiss ? "该厂商个人档未明确列出匹配所选任务的模型，仅按公开月费展示参考，任务能力需另行核对。" : picked.withinBudget ? state.budget === "any" ? "预算不限，与主计划采用相同规则，按所选任务和公开额度优先选档；额度打平时选月费较低的档位。" : "与主计划采用相同规则，先满足当前预算，再按所选任务和公开额度选档。" : quote.available ? "当前预算放不下任务适配档，展示月费最低的一档作参考。" : "任务适配档未列所选付款方式价格，仅展示套餐权益作参考。";
   lines.push(line("选档依据", selection));
-  if (main && !regionMiss && quote.available && !over) lines.push(line("和主计划", `它没有赢下这组条件的主计划（见第一张卡）。${ownNotes[vendor] || ""}`));
+  if (main && !regionMiss && quote.available && !over) lines.push(line("和主计划", `它没有赢下这组条件的主计划（见第一张卡）。${ownNotes[state.tool] || ""}`));
   const reasons = [metered ? "复杂任务模型在按量池，需核对额度与费用" : taskMiss ? `${shortVendor(vendor)} 个人档都没有匹配所选任务的模型，仅供对照` : `所选工具的原生订阅${role ? ` · ${roleDisplayName(p, role)}` : ""}`, metered ? "套餐月费不等于所有复杂任务的总费用" : taskMiss ? "任务能力需另行核对；此卡仅供参考" : picked.withinBudget ? state.budget === "any" ? "预算不限，按任务与公开额度优先选档" : "预算内按任务与公开额度优先选档" : quote.available ? "预算内没有任务适配档，展示最低月费参考" : "所选付款方式未列公开价，无法按预算选档", regionMiss ? "当前地区不符合；此卡仅供参考" : !quote.available ? "所选付款方式未列价格；此卡仅供参考" : over ? "高于当前预算；此卡仅供参考" : "价格符合预算，比较模型与额度后再选"];
   const result = card(3, `${shortVendor(vendor)} ${regionMiss ? "国际参考" : "自家订阅"}`, p, reasons, lines);
   if (!metered && !taskMiss) result.role = role ?? undefined;

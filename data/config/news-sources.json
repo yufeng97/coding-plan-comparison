@@ -134,6 +134,13 @@
       "authority": "official"
     },
     {
+      "id": "xai-x-subscription-pricing",
+      "name": "xAI The X Subscription 定价文档",
+      "kind": "page",
+      "url": "https://docs.x.ai/x-subscription/pricing",
+      "authority": "official"
+    },
+    {
       "id": "anthropic-news",
       "name": "Anthropic 官方新闻页",
       "kind": "blog",

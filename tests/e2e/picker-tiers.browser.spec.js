@@ -41,14 +41,15 @@ for (const width of [375, 1280]) {
   test(`${width}px picker decisions precede optional evidence and Cursor explains metered complex tasks`, async ({ page }) => {
     await page.setViewportSize({ width, height:900 });
     await page.goto("/?budget=200&region=cn&tool=cursor&task=hard");
-    const own = page.locator('#quickGrid > .quick-card:has([data-plan-id="plan-0098"])');
+    /* Cursor 的自家订阅现为 X Subscription；复杂任务参考选能按量用第三方旗舰的 Premium。 */
+    const own = page.locator('#quickGrid > .quick-card:has([data-plan-id="plan-0215"])');
     await expect(own.locator(".qc-reasons")).toContainText("复杂任务模型在按量池");
     await expect(own.locator(".qc-reasons")).not.toContainText("没有匹配");
     await expect(own.locator(".qc-bench")).toHaveCount(0);
     await expect(own.locator(".qc-actions")).toBeVisible();
     await expect(own.locator(".qc-primary")).toBeVisible();
     const payment = own.locator(":scope > .qc-payment-summary");
-    await expect(payment).toContainText("首次 $20");
+    await expect(payment).toContainText("首次 $30");
     await expect(payment).not.toContainText("12 个月");
     await expect(own.locator(".qc-details .qc-payment-summary")).toBeHidden();
     await own.locator(".qc-details > summary").click();

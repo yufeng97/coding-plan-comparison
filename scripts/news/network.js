@@ -269,7 +269,10 @@ async function fetchSource(raw, options = {}) {
     }
     const bytes = Buffer.concat(chunks);
     const charset = /charset\s*=\s*["']?([^;"'\s]+)/i.exec(response.headers.get("content-type") || "")?.[1] || "utf-8";
-    return { response, text: new TextDecoder(charset).decode(bytes), bytes, finalURL: url.href };
+    /* 来源偶尔声明 TextDecoder 不认识的编码名（如 utf8mb4）；按 UTF-8 解码，不让整个来源失败。 */
+    let decoder;
+    try { decoder = new TextDecoder(charset); } catch { decoder = new TextDecoder("utf-8"); }
+    return { response, text: decoder.decode(bytes), bytes, finalURL: url.href };
   }
   throw new Error("来源重定向次数超限");
   } finally { clearTimeout(timer); }

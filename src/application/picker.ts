@@ -6,13 +6,13 @@ import { renderTable, renderMetricsTable } from './tables';
 import type { PickerState } from '../state/app';
 import { updateAppState } from '../browser/url-state';
 
-import { planProfile } from '../domain/picker/profile';
+import { planProfile, TOOL_NAMES } from '../domain/picker/profile';
 import { cheaperTiers } from '../state/picker';
 import { renderCostCalculator } from './calculator';
 import { fmtCNY, REGION_LABEL } from '../domain/core';
 
 /* 选购条件的文字说明：价格图、额度表、数据表与排行应用条件时显示，费用计算器也沿用工具标签。 */
-export const PICKER_TOOL_LABELS: Record<string, string> = { any: "不限工具", claude: "Claude Code", codex: "Codex", cursor: "Cursor", own: "自家客户端" };
+export const PICKER_TOOL_LABELS: Record<string, string> = { any: "不限工具", ...TOOL_NAMES, own: "自家客户端" };
 
 const SCOPE_BILLING_LABELS: Record<string, string> = { M: "月付标价", A: "自动续费", Y: "年付折月" };
 
@@ -71,32 +71,38 @@ export function auditProfiles() {
     const saved = { ...pickerState };
     Object.assign(pickerState, { budget: "any", region: "cn", tool: "any", task: "both", billing: "M", priority: "quota" });
     try {
-        const by = (vendor: string, plan: string) => PLANS.find((p) => p.vendor === vendor && p.plan === plan);
+        /* 按永久 ID 查找：档位改名（如加注「老用户续费」）不影响断言。 */
+        const by = (id: string) => PLANS.find((p) => p.id === id);
         const idOf = (p: Plan | undefined) => { const h = p ? planProfile(p).headline : null; return h ? h.id : ""; };
-        const expect = (vendor: string, plan: string, id: string) => {
-            const got = idOf(by(vendor, plan));
+        const expect = (planId: string, id: string) => {
+            const plan = by(planId);
+            const got = idOf(plan);
             if (got !== id)
-                console.error("[picker]", vendor, plan, "headline", got || "(none)", "expected", id || "(none)");
+                console.error("[picker]", plan ? plan.vendor + " " + plan.plan : planId, "headline", got || "(none)", "expected", id || "(none)");
         };
-        expect("Anthropic", "Claude Pro", "claude-opus");
-        expect("Anthropic", "Claude Free", "");
-        expect("Anthropic", "Claude Max 5x", "claude-opus");
-        expect("Cursor", "Pro", "");
-        expect("OpenAI", "ChatGPT Plus", "gpt-sol");
-        expect("智谱 BigModel", "GLM Coding V3 Lite", "glm-5");
-        expect("智谱 BigModel", "GLM Coding V3 Pro", "glm-5");
-        expect("智谱 BigModel", "GLM Coding V3 Max", "glm-5");
+        expect("plan-0002", "claude-opus"); // Claude Pro
+        expect("plan-0001", ""); // Claude Free
+        expect("plan-0003", "claude-opus"); // Claude Max 5x
+        expect("plan-0098", ""); // Cursor Pro（老用户续费）
+        expect("plan-0215", ""); // X Subscription Premium：附赠 Grok / Composer，第三方旗舰按量
+        expect("plan-0010", "gpt-sol"); // ChatGPT Plus
+        expect("plan-0157", "glm-5"); // GLM Coding V3 Lite
+        expect("plan-0158", "glm-5"); // GLM Coding V3 Pro
+        expect("plan-0159", "glm-5"); // GLM Coding V3 Max
         /* 不限预算时主计划会跳过中档，「省钱档」行必须能把 GLM V3 Pro 补回来 */
-        const max = by("智谱 BigModel", "GLM Coding V3 Max");
-        if (!max || !cheaperTiers(planProfile(max)).some((x) => x.p.plan === "GLM Coding V3 Pro")) {
+        const max = by("plan-0159");
+        if (!max || !cheaperTiers(planProfile(max)).some((x) => x.p.id === "plan-0158")) {
             console.error("[picker] GLM V3 Max 的省钱档应列出 GLM Coding V3 Pro");
         }
-        const cursorPlan = by("Cursor", "Pro");
+        const cursorPlan = by("plan-0098");
         const cursor = cursorPlan ? planProfile(cursorPlan) : null;
         if (!cursor || !cursor.internalDaily.some((r) => r.id === "grok"))
             console.error("[picker] Cursor Pro 应把 Grok 当成分开的日常额度");
         if (!cursor || cursor.metered.every((r) => r.id !== "claude-opus"))
             console.error("[picker] Cursor Pro 的 Opus 应在按量池");
+        const xPremium = by("plan-0215");
+        if (!xPremium || planProfile(xPremium).metered.every((r) => r.id !== "claude-opus"))
+            console.error("[picker] X Subscription Premium 的 Claude Opus 应在按量部分");
     }
     finally {
         Object.assign(pickerState, saved);

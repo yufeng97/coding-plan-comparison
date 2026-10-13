@@ -1,0 +1,105 @@
+{
+  "checkedAt": "2026-10-13",
+  "incremental": true,
+  "totals": {
+    "plans": 220,
+    "api": 37,
+    "payg": 10
+  },
+  "sources": [
+    {
+      "id": "openai-ultrafast-api-20261013",
+      "url": "https://developers.openai.com/api/docs/pricing",
+      "evidence": "API 定价页 Ultrafast 表（≤272K 输入）：gpt-6.1-sol 输入 $12、缓存输入 $0.60、缓存写 $15、输出 $60；gpt-6-astra 输入 $60、缓存输入 $6、输出 $300（>272K 另有长上下文价）。发行说明：2026-10-08 起 GPT-6.1 Sol 可在 Responses API 使用 service_tier=ultrafast，面向全部 API 用户，独立限流。"
+    },
+    {
+      "id": "openai-codex-speed-20261013",
+      "url": "https://learn.chatgpt.com/docs/agent-configuration/speed",
+      "evidence": "Codex 速度文档：Ultrafast 支持 GPT-6 Astra 与 GPT-6.1 Sol，仅 Pro $500 及符合条件的 Enterprise、Edu 可用；订阅内额度按标准 8 倍计量，购买的 credits 与企业按量按 6 倍计费；其他自助档即使购买 credits 也不能使用。"
+    }
+  ],
+  "records": [
+    {
+      "kind": "plan",
+      "id": "plan-0013",
+      "vendor": "OpenAI",
+      "name": "ChatGPT Pro（$500）",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "openai-codex-speed-20261013"
+      ],
+      "reason": "月价 $500 不变；Ultrafast 自 10-08 起同时支持 GPT-6 Astra 与 GPT-6.1 Sol，订阅内按 8 倍计量、credits 按 6 倍计费。",
+      "patch": {
+        "quota": "同 Pro $200：目前无 5 小时上限；独享 Ultrafast（GPT-6 Astra 与 GPT-6.1 Sol，订阅内按 8x 计量、credits 按 6x）",
+        "models": "同 Pro $100 + Ultrafast（GPT-6 Astra / GPT-6.1 Sol）",
+        "note": "2026-09 底新增档位；Ultrafast 另有符合条件的 Enterprise/Edu 可用"
+      },
+      "old": {
+        "quota": "同 Pro $200：目前无 5 小时上限；Astra Ultrafast 独占（订阅内按 8x 计量、credits 按 6x）",
+        "models": "同 Pro $100 + Astra Ultrafast",
+        "note": "2026-09 底新增档位；Astra Ultrafast 另有部分 Enterprise/Edu 可用"
+      },
+      "current": {
+        "vendor": "OpenAI",
+        "plan": "ChatGPT Pro（$500）",
+        "priceM": 500,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "api",
+      "id": "OpenAI|gpt-6.1-sol",
+      "vendor": "OpenAI",
+      "name": "gpt-6.1-sol",
+      "status": "verified",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "openai-ultrafast-api-20261013"
+      ],
+      "reason": "标准价 $2/$10、缓存 $0.10 不变；补充 10-08 起的 Ultrafast 服务档价格（标准价 6 倍），不改标准价。",
+      "patch": {
+        "note": "2026-09-29 DevDay 发布；缓存输入 $0.10（GPT-6 Sol 的一半）；长上下文(>272K) $4/$15、缓存 $0.20；Fast $4/$20；Ultrafast（2026-10-08 起）$12/$60、缓存 $0.60；Batch/Flex 5 折；官方称编码对齐 Astra、约其 1/5 价"
+      },
+      "old": {
+        "note": "2026-09-29 DevDay 发布；缓存输入 $0.10（GPT-6 Sol 的一半）；长上下文(>272K) $4/$15、缓存 $0.20；Fast $4/$20；Batch/Flex 5 折；官方称编码对齐 Astra、约其 1/5 价"
+      },
+      "current": {
+        "vendor": "OpenAI",
+        "model": "gpt-6.1-sol",
+        "cur": "USD",
+        "inUSD": 2,
+        "outUSD": 10,
+        "apiCache": 0.1
+      }
+    },
+    {
+      "kind": "api",
+      "id": "OpenAI|gpt-6-astra",
+      "vendor": "OpenAI",
+      "name": "gpt-6-astra",
+      "status": "verified",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "openai-ultrafast-api-20261013"
+      ],
+      "reason": "标准价 $10/$50、缓存 $1 不变；补充 Ultrafast 服务档价格。",
+      "patch": {
+        "note": "缓存输入 $1；长上下文档 $20/$75；Fast 模式 $20/$100；Ultrafast $60/$300、缓存 $6；Batch/Flex 5 折"
+      },
+      "old": {
+        "note": "缓存输入 $1；长上下文档 $20/$75；Fast 模式 $20/$100；Batch/Flex 5 折"
+      },
+      "current": {
+        "vendor": "OpenAI",
+        "model": "gpt-6-astra",
+        "cur": "USD",
+        "inUSD": 10,
+        "outUSD": 50,
+        "apiCache": 1
+      }
+    }
+  ]
+}

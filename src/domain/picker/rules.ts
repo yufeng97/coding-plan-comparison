@@ -4,7 +4,7 @@ import { shortVendor, fmtCNY, planTitle, trunc, type MetricRow } from '../core';
 import { toCNY, fmtTok } from '../metrics';
 import { PICKER_PRIORITY_LABELS, abilityValue, abilityHit } from './ability';
 import { PICKER_BILLING_LABELS, renewsAtListPrice, pickerAnnualExact, pickerAnnualNative, PICKER_UNKNOWN_PRICE, pickerMoney, BUDGET_EPS, type PaymentQuote } from './payment';
-import { pickerPlanForMetric, TOOL_OWN_VENDOR, knownTokens, multiplier, recommendablePlan, matchesTool, planProfile, hasSeparateDaily, bandRank, catRank, hasCodingSurface, tokenEvidence, metricForRole, dailyQuotaSignal, type PlanProfile, type RoleMetric } from './profile';
+import { pickerPlanForMetric, TOOL_OWN_VENDOR, TOOL_NAMES, knownTokens, multiplier, recommendablePlan, matchesTool, planProfile, hasSeparateDaily, bandRank, catRank, hasCodingSurface, tokenEvidence, metricForRole, dailyQuotaSignal, type PlanProfile, type RoleMetric } from './profile';
 import { roleDisplayName, tokSpan, roleUseText, tokenEvidenceText } from './text';
 
 /* ============ Coding Plan 比价中心 — 帮我选 ============ */
@@ -67,8 +67,6 @@ export function createPickerRules(pickerState: PickerCriteria) {
         ...m, priceM: pickerPaymentQuote(p).monthlyNative, cur: p.cur,
     };
     }
-
-    const TOOL_NAMES: Record<string, string> = { claude: "Claude Code", codex: "Codex", cursor: "Cursor" };
 
     function pickerToolRelationship(p: Plan) {
         const vendor = TOOL_OWN_VENDOR[pickerState.tool];
@@ -287,7 +285,7 @@ export function createPickerRules(pickerState: PickerCriteria) {
         return evidence ? `约 ${fmtTok(evidence.tokens)}/月 · 置信${evidence.conf}` : "未公开";
     }
 
-    const SUMMARY_TOOLS: Record<string, string> = { any: "不限工具", claude: "Claude Code", codex: "Codex", cursor: "Cursor", own: "自家工具" };
+    const SUMMARY_TOOLS: Record<string, string> = { any: "不限工具", ...TOOL_NAMES, own: "自家工具" };
 
     const SUMMARY_TASKS: Record<string, string> = { hard: "复杂为主", both: "复杂和日常", daily: "日常为主" };
 
@@ -495,7 +493,10 @@ export function createPickerRules(pickerState: PickerCriteria) {
         const profiles = (inRegion.length ? inRegion : all).map(planProfile);
         const suitable = profiles.filter((x) => pickerState.task === "daily" ? x.loose.length
             : pickerState.task === "hard" ? x.headline : x.headline || x.loose.length);
-        const taskPool = suitable.length ? suitable : profiles;
+        /* 没有档位附赠复杂任务模型时，先看能按量使用复杂任务模型的档（如 Cursor 第三方旗舰从 X Subscription Premium 起按牌价另付），
+           再退到全部档位；否则会按文件顺序落到完全不能用这些模型的入门档。 */
+        const meteredHard = pickerState.task === "daily" ? [] : profiles.filter((x) => !x.headline && x.metered.some((r) => r.task === "hard"));
+        const taskPool = suitable.length ? suitable : meteredHard.length ? meteredHard : profiles;
         const priced = taskPool.filter((x) => pickerPaymentQuote(x.p).available);
         const fit = priced.filter((x) => pickerMonthlyCNY(x.p) <= cap + BUDGET_EPS);
         const cheapest = (priced.length ? priced : taskPool).slice().sort((a, b) => pickerMonthlyCNY(a.p) - pickerMonthlyCNY(b.p))[0]!;

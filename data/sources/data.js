@@ -2,19 +2,19 @@
  * Coding Plan 全球比价中心 - 数据文件
  * 调研日期: 2026-09-23（2026-09-29 增补 Kiro / Droid / 讯飞 Astron / 阶跃 Step Plan / Canopy Wave 等），
  * 价格逐条核查状态见 PRICE_CHECKS；待核实历史价仅作参考
- * 汇率: 1 USD ≈ 6.71 CNY（2026-09-23 frankfurter 实测 6.7074，
+ * 汇率: 1 USD ≈ 6.69 CNY（2026-10-12 frankfurter 实测 6.6928，
  *       仅用于图表统一折算展示，实付以官方计价货币为准）
  * ============================================================ */
 
-const RATE_USD_CNY = 6.71;
-/* 同一汇率日期：Frankfurter USD/INR=95.74、USD/CNY=6.7074；保留印度原价。 */
-const RATE_INR_CNY = 6.7074 / 95.74;
+const RATE_USD_CNY = 6.69;
+/* 同一汇率日期：Frankfurter USD/INR=95.78、USD/CNY=6.6928；保留印度原价。 */
+const RATE_INR_CNY = 6.6928 / 95.78;
 
 const META = {
-  updated: "2026-10-09",
+  updated: "2026-10-13",
   rate: RATE_USD_CNY,
-  rateAsOf: "2026-09-23",
-  rateSource: "https://api.frankfurter.dev/v1/2026-09-23?base=USD&symbols=CNY,INR",
+  rateAsOf: "2026-10-12",
+  rateSource: "https://api.frankfurter.dev/v1/2026-10-12?base=USD&symbols=CNY,INR",
 };
 
 /* 模型在「帮我选」里的用法，不是跑分。
@@ -230,7 +230,7 @@ function hasOwnClient(p) {
 /* 类别: official=模型官方订阅  tool=第三方工具订阅  team=团队/企业/云厂商 */
 /* region: intl=国际  cn=国内 */
 /* priceM=月付价格(月)  priceY=年付折算每月  seat=true 表示每席位/每用户价 */
-/* windowPeriod/quotaSharing 仅填有依据的周期与共享关系，缺省表示未知。
+/* windowPeriod/quotaSharing 仅填有依据的周期与共享关系，缺省表示未知；windowPeriod 取最短的公开重置周期（5h / week / month，none 为官方明确无 5 小时上限）。
    includedModelQuota=false 或 modelAccess=byok 表示工具费不含推理额度；
    codingSurface=false 排除无编程入口的档，purchaseCountries 使用 ISO 国别码。
    id 是永久标识，新增档位使用未占用的 ID，不随名称或数组顺序变化。
@@ -255,26 +255,26 @@ const PLANS = [
     url: "https://claude.com/pricing" },
   { id: "plan-0003", vendor: "Anthropic", plan: "Claude Max 5x", cat: "official", region: "intl", priceM: 100, priceY: null, cur: "USD", seat: false,
     windowPeriod: "5h",
-    quota: "5× Pro 用量/5h + 每周上限",
+    quota: "5× Pro 用量/5h + 每周上限；另含每月 $100 Claude Platform API 赠额（不用于交互式 Claude Code，不结转）",
     models: "Claude Opus 5.5 / Sonnet 5.5 / Haiku 4.5（Fable 5.1 占每周限额 50%）",
     tools: "Claude Code、Claude 全平台应用",
     note: "仅月付；高峰期优先访问",
     url: "https://claude.com/pricing" },
   { id: "plan-0004", fieldRefs: {"models":"plan-0003"}, vendor: "Anthropic", plan: "Claude Max 20x", cat: "official", region: "intl", priceM: 200, priceY: null, cur: "USD", seat: false,
     windowPeriod: "5h",
-    quota: "20× Pro 用量/5h + 每周上限",
+    quota: "20× Pro 用量/5h + 每周上限；另含每月 $200 Claude Platform API 赠额（不用于交互式 Claude Code，不结转）",
     models: "同 Max 5x",
     tools: "Claude Code、Claude 全平台应用",
     note: "官方帮助文档确认 $200/月（网页订阅），仅月付；移动端及税费可能不同",
     url: "https://claude.com/pricing" },
   { id: "plan-0005", vendor: "Anthropic", plan: "Claude Team（标准席位）", cat: "team", region: "intl", priceM: 25, priceY: 20, cur: "USD", seat: true,
-    quota: "2–150 席；含 Claude Code；标准席位用量",
+    quota: "2–150 席；含 Claude Code；标准席位用量；每席另含 $20/月 Claude Platform API 赠额，全团队合并封顶 $500/月",
     models: "Claude Opus 5.5 / Sonnet 5.5 / Haiku 4.5",
     tools: "Claude Code、Claude 应用、Projects、管理后台",
     note: "年付 $20/席/月；标准+Premium 席位可混搭",
     url: "https://claude.com/pricing" },
   { id: "plan-0006", fieldRefs: {"tools":"plan-0005"}, vendor: "Anthropic", plan: "Claude Team（Premium 席位）", cat: "team", region: "intl", priceM: 125, priceY: 100, cur: "USD", seat: true,
-    quota: "5× 标准席位用量",
+    quota: "5× 标准席位用量；每席另含 $100/月 Claude Platform API 赠额（与标准席位合并计入团队池，封顶 $500/月）",
     models: "含 Fable 5.1（仅 Premium 席位）+ Opus 5.5 / Sonnet 5.5 / Haiku 4.5",
     tools: "同 Team",
     note: "可与标准席位混搭",
@@ -321,10 +321,10 @@ const PLANS = [
     url: "https://learn.chatgpt.com/docs/pricing" },
   { id: "plan-0013", fieldRefs: {"models":"plan-0011","quota":"plan-0012"}, vendor: "OpenAI", plan: "ChatGPT Pro（$500）", cat: "official", region: "intl", priceM: 500, priceY: null, cur: "USD", seat: false,
     windowPeriod: "none",
-    quota: "同 Pro $200：目前无 5 小时上限；Astra Ultrafast 独占（订阅内按 8x 计量、credits 按 6x）",
-    models: "同 Pro $100 + Astra Ultrafast",
+    quota: "同 Pro $200：目前无 5 小时上限；独享 Ultrafast（GPT-6 Astra 与 GPT-6.1 Sol，订阅内按 8x 计量、credits 按 6x）",
+    models: "同 Pro $100 + Ultrafast（GPT-6 Astra / GPT-6.1 Sol）",
     tools: "Codex 全端 + 云 VM 任务",
-    note: "2026-09 底新增档位；Astra Ultrafast 另有部分 Enterprise/Edu 可用",
+    note: "2026-09 底新增档位；Ultrafast 另有符合条件的 Enterprise/Edu 可用",
     url: "https://learn.chatgpt.com/docs/pricing" },
   { id: "plan-0014", vendor: "OpenAI", plan: "ChatGPT Business", cat: "team", region: "intl", priceM: 25, priceY: 20, cur: "USD", seat: true,
     quota: "标准席位限额同 Plus；另有 $100 Premium 席位（官方未公布与 Pro 档的用量倍率）",
@@ -387,30 +387,30 @@ const PLANS = [
     quota: "约 10 prompts / 2 小时（第三方观察口径）",
     models: "Grok 4.3（受限）",
     tools: "grok.com、X app",
-    note: "仅网页/X 对话。Grok Build 需 SuperGrok 或 X Premium+，不列入免费 Coding 入口",
-    url: "https://x.ai/pricing" },
+    note: "已并入 X Subscription Free（见该条），本条不列入免费 Coding 入口",
+    url: "https://x.ai/pricing", sameAs: "plan-0213" },
   { id: "plan-0024", vendor: "xAI", plan: "SuperGrok Lite", cat: "official", region: "intl", priceM: 10, priceY: null, cur: "USD", seat: false,
     quota: "2× Free 对话时长；15 视频/日",
     models: "Grok 4.3（分阶段）",
     tools: "grok.com、X app",
     note: "历史价尚未得到本次官方确认；请以登录后的 Grok 结账页为准",
     url: "https://x.ai/pricing" },
-  { id: "plan-0025", vendor: "xAI", plan: "SuperGrok", cat: "official", region: "intl", priceM: 30, priceY: null, cur: "USD", seat: false,
+  { id: "plan-0025", vendor: "xAI", plan: "SuperGrok（老用户续费）", cat: "official", region: "intl", priceM: 30, priceY: null, cur: "USD", seat: false,
     codingSurface: true,
     ownClient: true,
     quota: "5× Free 对话时长；含 Grok Build 编码工具",
     models: "Grok 4.3、grok-build-0.1（256K 上下文）",
     tools: "Grok Build、grok.com、X app",
-    note: "官方公开月价已核实；未列公开年费，登录结账页核对地区及税费",
-    url: "https://x.ai/pricing" },
-  { id: "plan-0026", vendor: "xAI", plan: "SuperGrok Plus", cat: "official", region: "intl", priceM: 100, priceY: null, cur: "USD", seat: false,
+    note: "2026-10-12 起不再接受新注册，现有用户可保留原价与权益或切换；新用户改购 X Subscription（Premium $30 含原 SuperGrok 权益）",
+    url: "https://x.ai/pricing", renewalOnly: true },
+  { id: "plan-0026", vendor: "xAI", plan: "SuperGrok Plus（老用户续费）", cat: "official", region: "intl", priceM: 100, priceY: null, cur: "USD", seat: false,
     codingSurface: true,
     ownClient: true,
     quota: "Chat/Imagine/Voice/Build 全线更高用量；高峰优先",
     models: "Grok 4.3",
     tools: "Grok Build、grok.com、X app",
-    note: "官方公开月价已核实；未列公开年费，登录结账页核对地区及税费",
-    url: "https://x.ai/pricing" },
+    note: "2026-10-12 起不再接受新注册，现有用户可保留原价与权益或切换；新用户改购 X Subscription",
+    url: "https://x.ai/pricing", renewalOnly: true },
   { id: "plan-0027", vendor: "xAI", plan: "SuperGrok Heavy", cat: "official", region: "intl", priceM: 300, priceY: null, cur: "USD", seat: false,
     codingSurface: true,
     ownClient: true,
@@ -419,6 +419,62 @@ const PLANS = [
     tools: "Grok Build、多 agent Heavy 模式",
     note: "历史价尚未得到本次官方确认；请以登录后的 Grok 结账页为准",
     url: "https://x.ai/pricing" },
+  { id: "plan-0213", vendor: "xAI", plan: "X Subscription Free", cat: "official", region: "intl", priceM: 0, priceY: 0, cur: "USD", seat: false,
+    codingSurface: true, ownClient: true,
+    quota: "有限额度：Grok 每日访问（Chat/Imagine/Voice/Build 受限）与 Cursor 编程 Agent 入门额度；无 Grok Bot 与云端 Agent",
+    models: "Grok 4.5–4.7 等第一方模型（受限）",
+    tools: "Cursor IDE（Agent 受限）、Grok Build（受限）、grok.com、X app",
+    note: "2026-10-12 起取代 Grok Free 与 Cursor Hobby，作为新用户的免费档；含标准 X 账户功能",
+    url: "https://docs.x.ai/x-subscription/pricing" },
+  { id: "plan-0214", vendor: "xAI", plan: "X Subscription Plus", cat: "official", region: "intl", priceM: 8, priceY: 6.67, annualTotal: 80, cur: "USD", seat: false,
+    windowPeriod: "week", quotaSharing: "shared", codingSurface: true, ownClient: true,
+    quota: "基准额度（Base）：Grok 与 Cursor 共享每周第一方用量池；用尽后可预充值续用或等每周刷新",
+    models: "仅 Grok 模型（Grok 4.5–4.7）；不提供第三方模型",
+    tools: "Cursor IDE / CLI、Grok Build、Grok Chat/Voice/Imagine、Grok API、grok.com、X app",
+    note: "2026-10-12 推出；年付 $80（官方标 $7/月）；不含 Grok Bot、云端 Agent 与 Bugbot；X 认证标记等权益需关联个人 X 账户；标价不含税",
+    url: "https://docs.x.ai/x-subscription/pricing" },
+  { id: "plan-0215", vendor: "xAI", plan: "X Subscription Premium", cat: "official", region: "intl", priceM: 30, priceY: 25, annualTotal: 300, cur: "USD", seat: false,
+    windowPeriod: "week", quotaSharing: "shared", codingSurface: true, ownClient: true,
+    quota: "4× Plus：Grok 与 Cursor 共享每周第一方用量池（含 Grok Bot）；用尽后可预充值续用或等每周刷新",
+    models: "Grok 4.5–4.7、Composer 2.5（每周共享池）；Claude Opus 5.5 / Sonnet 5.5、GPT-6、Gemini 3.8 Flash 等第三方模型在 Cursor 中按量另付（API 牌价，预充值，首次调用起计费）",
+    tools: "Cursor IDE / CLI / 云端 Agent 与自动化、Bugbot 代码审查、Grok Build、Grok Bot、grok.com、X app",
+    note: "2026-10-12 推出，官方称含原 SuperGrok、Cursor Pro 与 X Premium+ 权益（原合计 $90/月）；年付 $300（官方标 $25/月）；第三方模型没有赠额；标价不含税",
+    url: "https://docs.x.ai/x-subscription/pricing" },
+  { id: "plan-0216", fieldRefs: {"models":"plan-0215","tools":"plan-0215"}, vendor: "xAI", plan: "X Subscription Super", cat: "official", region: "intl", priceM: 100, priceY: 83.33, annualTotal: 1000, cur: "USD", seat: false,
+    windowPeriod: "week", quotaSharing: "shared", codingSurface: true, ownClient: true,
+    quota: "15× Plus：Grok 与 Cursor 共享每周第一方用量池（含 Grok Bot）；高峰时段优先访问模型；用尽后可预充值续用",
+    models: "同 Premium",
+    tools: "同 Premium",
+    note: "2026-10-12 推出；年付 $1000（官方标 $84/月）；第三方模型按量另付；标价不含税",
+    url: "https://docs.x.ai/x-subscription/pricing" },
+  { id: "plan-0217", fieldRefs: {"models":"plan-0215","tools":"plan-0215"}, vendor: "xAI", plan: "X Subscription Ultra", cat: "official", region: "intl", priceM: 200, priceY: 166.67, annualTotal: 2000, cur: "USD", seat: false,
+    windowPeriod: "week", quotaSharing: "shared", codingSurface: true, ownClient: true,
+    quota: "50× Plus：Grok 与 Cursor 共享每周第一方用量池（含 Grok Bot）；高峰优先，最早体验新产品与模型；用尽后可预充值续用",
+    models: "同 Premium",
+    tools: "同 Premium",
+    note: "2026-10-12 推出；年付 $2000（官方标 $167/月）；第三方模型按量另付；标价不含税",
+    url: "https://docs.x.ai/x-subscription/pricing" },
+  { id: "plan-0218", fieldRefs: {"models":"plan-0215","tools":"plan-0215"}, vendor: "xAI", plan: "X Subscription Teams（Premium 席位）", cat: "team", region: "intl", priceM: 30, priceY: null, cur: "USD", seat: true,
+    windowPeriod: "week", quotaSharing: "shared", codingSurface: true, ownClient: true,
+    quota: "每席额度同个人 Premium（4× Plus），每席独立周池、席间不共享；团队共享预充值余额",
+    models: "同个人 Premium",
+    tools: "同个人 Premium，另含 SAML/OIDC SSO、集中计费与用量分析、团队隐私设置",
+    note: "2026-10-12 推出；按席月付，团队年付价未公开；第三方模型请求另加 Cursor Token Rate $0.25/百万 tokens（Grok、Composer 等第一方模型免收）；席位档可混搭；标价不含税",
+    url: "https://docs.x.ai/x-subscription/pricing" },
+  { id: "plan-0219", fieldRefs: {"models":"plan-0215","tools":"plan-0215"}, vendor: "xAI", plan: "X Subscription Teams（Super 席位）", cat: "team", region: "intl", priceM: 100, priceY: null, cur: "USD", seat: true,
+    windowPeriod: "week", quotaSharing: "shared", codingSurface: true, ownClient: true,
+    quota: "每席额度同个人 Super（15× Plus），每席独立周池、席间不共享；高峰优先；团队共享预充值余额",
+    models: "同个人 Premium",
+    tools: "同个人 Premium，另含 SAML/OIDC SSO、集中计费与用量分析、团队隐私设置",
+    note: "2026-10-12 推出；按席月付，团队年付价未公开；第三方模型请求另加 Cursor Token Rate $0.25/百万 tokens（Grok、Composer 等第一方模型免收）；席位档可混搭；标价不含税",
+    url: "https://docs.x.ai/x-subscription/pricing" },
+  { id: "plan-0220", fieldRefs: {"models":"plan-0215","tools":"plan-0215"}, vendor: "xAI", plan: "X Subscription Teams（Ultra 席位）", cat: "team", region: "intl", priceM: 200, priceY: null, cur: "USD", seat: true,
+    windowPeriod: "week", quotaSharing: "shared", codingSurface: true, ownClient: true,
+    quota: "每席额度同个人 Ultra（50× Plus），每席独立周池、席间不共享；团队共享预充值余额",
+    models: "同个人 Premium",
+    tools: "同个人 Premium，另含 SAML/OIDC SSO、集中计费与用量分析、团队隐私设置",
+    note: "2026-10-12 推出；按席月付，团队年付价未公开；第三方模型请求另加 Cursor Token Rate $0.25/百万 tokens（Grok、Composer 等第一方模型免收）；席位档可混搭；标价不含税",
+    url: "https://docs.x.ai/x-subscription/pricing" },
 
   { id: "plan-0028", vendor: "Mistral", plan: "Mistral Vibe Free", cat: "official", region: "intl", priceM: 0, priceY: 0, cur: "USD", seat: false,
     quota: "受限编码会话（Vibe）；含 $10/月 API credits",
@@ -849,16 +905,16 @@ const PLANS = [
   { id: "plan-0091", vendor: "GitHub Copilot", plan: "Pro", cat: "tool", region: "intl", priceM: 10, priceY: null, cur: "USD", seat: false,
     windowPeriod: "month",
     quota: "1,500 AI credits/月（基础 1,000 + 弹性 500，约 $15 用量）；补全与 next-edit 无限",
-    models: "Claude Sonnet 4.6/5/5.5、Gemini 3.5–3.8 Flash、GPT-5.3-Codex、GPT-5.6 Luna/Terra、GPT-6 Luna、Kimi K3、Grok 4.5–4.7 等（不含旗舰）",
+    models: "Claude Haiku 4.5/5.5、Sonnet 4.6/5/5.5，Gemini 3.7–3.8 Flash，GPT-5 mini、GPT-5.3-Codex、GPT-5.4/5.4 mini、GPT-5.6 Luna/Terra、GPT-6 Luna，Kimi K3，Grok 4.5–4.7，MAI-Code-1.1-Flash 等（不含旗舰）",
     tools: "IDE 插件、Copilot CLI、Copilot App",
     note: "$10 基础 + $5 弹性 credits；仅月付",
     url: "https://docs.github.com/en/copilot/get-started/plans" },
   { id: "plan-0092", fieldRefs: {"tools":"plan-0091"}, vendor: "GitHub Copilot", plan: "Pro+", cat: "tool", region: "intl", priceM: 39, priceY: null, cur: "USD", seat: false,
     modelBaseRef: "plan-0091",
-    modelIncludes: ["Claude Opus 4.7–5.5", "Fable 5/5.1", "GPT-6 Astra/Sol", "GPT-6.1 Sol"],
+    modelIncludes: ["Claude Opus 4.8/5/5.5","Fable 5/5.1","GPT-5.6 Sol","GPT-6 Astra/Sol","GPT-6.1 Sol"],
     windowPeriod: "month",
     quota: "7,000 AI credits/月（约 $70 用量）",
-    models: "Pro 全部 + Claude Opus 4.7–5.5、Fable 5/5.1、GPT-6 Astra/Sol、GPT-6.1 Sol 等旗舰",
+    models: "Pro 全部 + Claude Opus 4.8/5/5.5、Fable 5/5.1、GPT-5.6 Sol、GPT-6 Astra/Sol、GPT-6.1 Sol 等旗舰",
     tools: "同 Pro",
     note: "4x+ Pro 用量；含审计日志",
     url: "https://docs.github.com/en/copilot/get-started/plans" },
@@ -875,22 +931,22 @@ const PLANS = [
     quota: "1,900 AI credits/席/月",
     models: "含旗舰模型 + Copilot CLI/App",
     tools: "IDE 插件、组织管理",
-    note: "按授予席位计费",
+    note: "按授予席位计费；Copilot 代码审查默认扣发起成员的额度，组织可改为计入仓库所属组织（须启用 AI Credits 付费用量）",
     url: "https://docs.github.com/en/copilot/get-started/plans" },
   { id: "plan-0095", vendor: "GitHub Copilot", plan: "Enterprise", cat: "team", region: "intl", priceM: 39, priceY: null, cur: "USD", seat: true,
     windowPeriod: "month",
     quota: "3,900 AI credits/席/月",
     models: "旗舰模型优先访问 + 自定义模型",
     tools: "codebase 索引、GitHub.com 集成、IP 赔偿、SSO",
-    note: "",
+    note: "Copilot 代码审查默认扣发起成员的额度，组织可改为计入仓库所属组织（须启用 AI Credits 付费用量）",
     url: "https://docs.github.com/en/copilot/get-started/plans" },
 
   { id: "plan-0096", vendor: "Cursor", plan: "Hobby", cat: "tool", region: "intl", priceM: 0, priceY: 0, cur: "USD", seat: false,
     quota: "有限 Agent 请求；可用 Composer",
     models: "Composer 2.5",
     tools: "Cursor IDE",
-    note: "免费档",
-    url: "https://cursor.com/pricing" },
+    note: "已并入 X Subscription Free（Cursor 编程 Agent 入门额度），见该条",
+    url: "https://cursor.com/pricing", sameAs: "plan-0213" },
   { id: "plan-0097", vendor: "Cursor", plan: "Start（印度专属）", cat: "tool", region: "intl", priceM: 649, priceY: null, cur: "INR", seat: false,
     windowPeriod: "month", purchaseCountries: ["IN"],
     quota: "仅 Cursor Models 池（月度重置）；无 Other Models 池、Bugbot、Auto 与按需加购",
@@ -898,44 +954,44 @@ const PLANS = [
     tools: "Cursor IDE",
     note: "印度专属；₹649/月含税，按 INR 原币记录，不能把近似美元换算当官方报价",
     url: "https://cursor.com/docs/models-and-pricing" },
-  { id: "plan-0098", vendor: "Cursor", plan: "Pro", cat: "tool", region: "intl", priceM: 20, priceY: 16, cur: "USD", seat: false,
+  { id: "plan-0098", vendor: "Cursor", plan: "Pro（老用户续费）", cat: "tool", region: "intl", priceM: 20, priceY: 16, cur: "USD", seat: false,
     quotaSharing: "separate",
     quota: "双池：Cursor Models 池（Grok 4.5–4.7、Composer 2.5 大额）+ Other Models 池（第三方按牌价折算）；Tab 无限；超额按 API 牌价按需付费",
     models: "Grok 4.5–4.7、Composer 2.5；Claude Sonnet 5.5 / Opus 5.5 / Fable 5.1、GPT-5.6 / GPT-6、Gemini 3.8 Flash、GLM 5.2、Kimi K3 等按 M token 计价",
     tools: "Cursor IDE、Bugbot、Cloud Agents",
-    note: "官方估算日常 Agent 用户月耗 $60–100；年付省 20%",
-    url: "https://cursor.com/docs/models-and-pricing" },
-  { id: "plan-0099", fieldRefs: {"models":"plan-0098","tools":"plan-0098"}, vendor: "Cursor", plan: "Pro Plus", cat: "tool", region: "intl", priceM: 60, priceY: 48, cur: "USD", seat: false,
+    note: "2026-10-12 起不再接受新注册；现有用户可保留双池额度与原价，并可在旧档之间升降级。新用户改购 X Subscription（第三方模型改为按量另付）",
+    url: "https://cursor.com/docs/models-and-pricing", renewalOnly: true },
+  { id: "plan-0099", fieldRefs: {"models":"plan-0098","tools":"plan-0098"}, vendor: "Cursor", plan: "Pro Plus（老用户续费）", cat: "tool", region: "intl", priceM: 60, priceY: 48, cur: "USD", seat: false,
     quotaSharing: "separate",
     quota: "3× Pro 的 Agent 限额；双池同 Pro",
     models: "同 Pro（含旗舰）",
     tools: "同 Pro",
-    note: "年付省 20%",
-    url: "https://cursor.com/pricing" },
-  { id: "plan-0100", fieldRefs: {"models":"plan-0098","tools":"plan-0098"}, vendor: "Cursor", plan: "Ultra", cat: "tool", region: "intl", priceM: 200, priceY: 160, cur: "USD", seat: false,
+    note: "2026-10-12 起不再接受新注册；现有用户可保留双池额度与原价，并可在旧档之间升降级。新用户改购 X Subscription（第三方模型改为按量另付）",
+    url: "https://cursor.com/pricing", renewalOnly: true },
+  { id: "plan-0100", fieldRefs: {"models":"plan-0098","tools":"plan-0098"}, vendor: "Cursor", plan: "Ultra（老用户续费）", cat: "tool", region: "intl", priceM: 200, priceY: 160, cur: "USD", seat: false,
     quotaSharing: "separate",
     quota: "双池：20× Pro 的 Agent 限额；最高 Grok Bot 用量",
     models: "同 Pro（含旗舰）",
     tools: "同 Pro",
-    note: "年付省 20%",
-    url: "https://cursor.com/pricing" },
-  { id: "plan-0101", fieldRefs: {"models":"plan-0098"}, vendor: "Cursor", plan: "Teams（Standard 席位）", cat: "team", region: "intl", priceM: 40, priceY: 32, cur: "USD", seat: true,
+    note: "2026-10-12 起不再接受新注册；现有用户可保留双池额度与原价，并可在旧档之间升降级。新用户改购 X Subscription（第三方模型改为按量另付）",
+    url: "https://cursor.com/pricing", renewalOnly: true },
+  { id: "plan-0101", fieldRefs: {"models":"plan-0098"}, vendor: "Cursor", plan: "Teams（Standard 席位，老用户续费）", cat: "team", region: "intl", priceM: 40, priceY: 32, cur: "USD", seat: true,
     quotaSharing: "separate", quota: "席位内标准用量（双池）；超额按需计费",
     models: "同个人档全模型 + Cursor Router 自动路由",
     tools: "SAML/OIDC SSO、团队管理",
-    note: "第三方模型加收 $0.25/M token（含 BYOK）",
-    url: "https://cursor.com/docs/account/teams/pricing.md" },
-  { id: "plan-0102", fieldRefs: {"models":"plan-0101","tools":"plan-0101"}, vendor: "Cursor", plan: "Teams（Premium 席位）", cat: "team", region: "intl", priceM: 120, priceY: 96, cur: "USD", seat: true,
+    note: "2026-10-12 起不再接受新团队注册；现有团队仍可加席或调整席位档。第三方模型加收 $0.25/M token（含 BYOK）。新团队改用 X Subscription 团队档",
+    url: "https://cursor.com/docs/account/teams/pricing.md", renewalOnly: true },
+  { id: "plan-0102", fieldRefs: {"models":"plan-0101","tools":"plan-0101"}, vendor: "Cursor", plan: "Teams（Premium 席位，老用户续费）", cat: "team", region: "intl", priceM: 120, priceY: 96, cur: "USD", seat: true,
     quota: "5× Standard 席位用量",
     models: "同 Standard",
     tools: "同 Standard",
-    note: "2026 新席位类型",
-    url: "https://cursor.com/docs/models-and-pricing.md" },
+    note: "2026-10-12 起不再接受新团队注册；现有团队仍可加席或调整席位档。第三方模型加收 $0.25/M token（含 BYOK）。新团队改用 X Subscription 团队档",
+    url: "https://cursor.com/docs/models-and-pricing.md", renewalOnly: true },
   { id: "plan-0103", fieldRefs: {"tools":"plan-0102"}, vendor: "Cursor", plan: "Enterprise", cat: "team", region: "intl", priceM: null, priceY: null, cur: "USD", seat: true,
     quota: "pooled usage 定制",
     models: "全模型",
     tools: "同 Teams",
-    note: "联系销售",
+    note: "联系销售；2026-10-12 起 Enterprise 可在一处管理 Grok 与 Cursor 并共用用量池，无 Grok 账户的现有客户可经客户团队切换",
     url: "https://cursor.com/pricing" },
 
   { id: "plan-0104", vendor: "Cognition Devin Desktop（原 Windsurf）", plan: "Free", cat: "tool", region: "intl", priceM: 0, priceY: 0, cur: "USD", seat: false,
@@ -1726,8 +1782,8 @@ function mainlandAccessOf(p) {
 /** @type {ApiPrice[]} */
 const API_PRICES = [
   /* ---- 国际（USD per 1M tokens） ---- */
-  { vendor: "Anthropic", model: "Claude Sonnet 5.5", label: "Claude Sonnet 5.5", region: "intl", cur: "USD", inUSD: 2, outUSD: 10, apiCache: 0.2,
-    note: "2026-09-28 上线，价格与 Sonnet 5 持平；缓存写 5min $2.50 / 1h $4、读 $0.20；Batch $1/$5；订阅页模型列表仍统称 Sonnet",
+  { vendor: "Anthropic", model: "Claude Sonnet 5.5", label: "Claude Sonnet 5.5", region: "intl", cur: "USD", inUSD: 2, outUSD: 10, apiCache: 0.1,
+    note: "2026-09-28 上线，输入输出与 Sonnet 5 持平；2026-10-07 起缓存读 $0.10（原 $0.20）；缓存写 5min $2.50 / 1h $4；Batch $1/$5；订阅页模型列表仍统称 Sonnet",
     url: "https://platform.claude.com/docs/en/about-claude/pricing" },
   { vendor: "Anthropic", model: "Claude Sonnet 5", label: "Claude Sonnet 5", region: "intl", cur: "USD", inUSD: 2, outUSD: 10, apiCache: 0.2,
     note: "$2/$10 原为至 2026-08-31 介绍价，现已转为标准价（原定 9 月调至 $3/$15 的计划已取消）；缓存读 $0.20；限量 Fable/Mythos 5.1 $10/$50",
@@ -1735,11 +1791,14 @@ const API_PRICES = [
   { vendor: "Anthropic", model: "Claude Opus 5.5", label: "Claude Opus 5.5", region: "intl", cur: "USD", inUSD: 4, outUSD: 20, apiCache: 0.2,
     note: "缓存写入 5min $5 / 1h $8；缓存读 $0.20",
     url: "https://platform.claude.com/docs/en/about-claude/pricing" },
+  { vendor: "Anthropic", model: "Claude Haiku 5.5", label: "Claude Haiku 5.5", region: "intl", cur: "USD", inUSD: 0.1, outUSD: 0.5, apiCache: 0.01,
+    note: "2026-10-07 上线；表中为提示 ≤100K tokens 的单价。提示超过 100K 的请求整次按输入 $0.50 / 缓存读 $0.05 / 输出 $2.50 计；缓存写 5min $0.125；Batch $0.05/$0.25",
+    url: "https://platform.claude.com/docs/en/about-claude/pricing" },
   { vendor: "OpenAI", model: "gpt-6-astra", label: "GPT-6 Astra", region: "intl", cur: "USD", inUSD: 10, outUSD: 50, apiCache: 1,
-    note: "缓存输入 $1；长上下文档 $20/$75；Fast 模式 $20/$100；Batch/Flex 5 折",
+    note: "缓存输入 $1；长上下文档 $20/$75；Fast 模式 $20/$100；Ultrafast $60/$300、缓存 $6；Batch/Flex 5 折",
     url: "https://developers.openai.com/api/docs/pricing" },
   { vendor: "OpenAI", model: "gpt-6.1-sol", label: "GPT-6.1 Sol", region: "intl", cur: "USD", inUSD: 2, outUSD: 10, apiCache: 0.1,
-    note: "2026-09-29 DevDay 发布；缓存输入 $0.10（GPT-6 Sol 的一半）；长上下文(>272K) $4/$15、缓存 $0.20；Fast $4/$20；Batch/Flex 5 折；官方称编码对齐 Astra、约其 1/5 价",
+    note: "2026-09-29 DevDay 发布；缓存输入 $0.10（GPT-6 Sol 的一半）；长上下文(>272K) $4/$15、缓存 $0.20；Fast $4/$20；Ultrafast（2026-10-08 起）$12/$60、缓存 $0.60；Batch/Flex 5 折；官方称编码对齐 Astra、约其 1/5 价",
     url: "https://developers.openai.com/api/docs/pricing" },
   { vendor: "OpenAI", model: "gpt-6-sol", label: "GPT-6 Sol", region: "intl", cur: "USD", inUSD: 2, outUSD: 10, apiCache: 0.2,
     note: "缓存输入 $0.20；长上下文 $4/$15；Fast $4/$20",
@@ -1811,7 +1870,7 @@ const API_PRICES = [
     url: "https://platform.stepfun.com/docs/zh/guides/pricing/details.md" },
   { vendor: "硅基流动 SiliconFlow", model: "zai-org/GLM-5.3", label: "GLM-5.3 [硅基]", region: "cn", cur: "CNY", inCNY: 8, outCNY: 28,
     note: "硅基流动官方实时价：输入 ¥8 / 输出 ¥28 / 缓存命中 ¥2，每百万 tokens；与 BigModel 标准直连价同档。",
-    url: "https://cloud-rd.siliconflow.cn/pricing" , apiCache: 2 },
+    url: "https://cloud-rd.siliconflow.cn/pricing", apiCache: 2 },
   { vendor: "硅基流动 SiliconFlow", model: "moonshotai/Kimi-K2.7-Code", label: "Kimi K2.7-Code [硅基]", region: "cn", cur: "CNY", inCNY: 6.5, outCNY: 27,
     note: "与 Moonshot 直连未命中价一致；Kimi-K2.6 同价",
     url: "https://siliconflow.cn/models" },
@@ -2157,9 +2216,9 @@ const METRICS_RAW = [
     region: "cn",
     ref: "plan-0209",
     reqPer5h: 6000, reqPerWk: 45000, reqPerMo: 90000,
-    apiIn: 2.15, apiOut: 8.59, apiCache: 0.43,
+    apiCur: "USD", apiIn: 0.32, apiOut: 1.28, apiCache: 0.064,
     tps: "未公布", source: "openrouter.ai/qwen/qwen3.7-plus",
-    note: "套餐推荐模型。OpenRouter 挂牌 $0.32/$1.28、缓存 $0.064，按 6.71 折人民币；百炼国内刊例未写入本行。按~20K tokens/请求估算" },
+    note: "套餐推荐模型。OpenRouter 挂牌 $0.32/$1.28、缓存 $0.064，按页面参考汇率折人民币；百炼国内刊例未写入本行。按~20K tokens/请求估算" },
   { vendor: "阿里云百炼", plan: "Coding Plan Pro（限量抢购）", ver: "—", model: "qwen3.8-flash-next",
     region: "cn",
     ref: "plan-0209",
@@ -2334,13 +2393,13 @@ const METRICS_RAW = [
     tps: "未公布", source: "Anthropic 官价",
     note: "同一 $87 usage，按 Claude Sonnet 5 官价 $2/$10、缓存 $0.20 折 tokens。premium 模型另有周公平使用上限" },
 
-  /* ---- GitHub Copilot Pro：1,500 credits = $15，按官方逐模型牌价折算（没有 $1.5/$6 这一档） ---- */
-  { vendor: "GitHub Copilot", plan: "Pro", ver: "—", model: "Gemini 3.5 Flash",
+  /* ---- GitHub Copilot Pro：1,500 credits = $15，按 Copilot 官方逐模型牌价折算 ---- */
+  { vendor: "GitHub Copilot", plan: "Pro", ver: "—", model: "Gemini 3.8 Flash",
     region: "intl",
     ref: "plan-0091",
-    creditUSD: 15, apiIn: 1.5, apiOut: 9, apiCache: 0.15,
+    creditUSD: 15, apiIn: 0.75, apiOut: 3.75, apiCache: 0.075,
     tps: "未公布", source: "docs.github.com/copilot models-and-pricing",
-    note: "输入 $1.50、缓存 $0.15 是 Gemini 3.5 Flash，输出是 $9 不是 $6。Pro 的 1,500 AI credits = $15，按该牌价折 tokens" },
+    note: "Gemini 3.5 Flash 已于 2026-10-02 在 Copilot 弃用，改按 Gemini 3.8 Flash 的 Copilot 促销价折算：输入 $0.75、缓存 $0.075、输出 $3.75（官方写明至 2026-12-31）。Pro 的 1,500 AI credits = $15" },
   { vendor: "GitHub Copilot", plan: "Pro", ver: "—", model: "Claude Sonnet 5",
     region: "intl",
     ref: "plan-0091",
@@ -2510,6 +2569,18 @@ const ESTIMATES = [
 /* date 是来源写明的发生日。checked 表示这只是本站核对到该状态的日子，不是公告日。 */
 /** @type {DynamicItem[]} */
 const DYNAMICS = [
+  { date: "2026-10-13", checked: true, text: "核对 Anthropic 与 GitHub Copilot 并写入套餐数据：Claude Max 5x / 20x 每月另含 $100 / $200 Claude Platform API 赠额，Team 每个标准 / Premium 席位 $20 / $100（全团队封顶 $500），赠额不用于交互式 Claude Code；Sonnet 5.5 缓存读按 $0.10 计价，新增 Haiku 5.5 API 行（≤100K 提示 $0.10 / $0.50）。Copilot Pro / Pro+ 的模型列表移除 10-02 弃用的版本、补列 Haiku 5.5；Pro 的额度折算改用 Gemini 3.8 Flash 的 Copilot 促销价（至 2026-12-31）。", source: "Anthropic 帮助中心 / GitHub Docs", url: "https://support.claude.com/en/articles/17154008-monthly-api-credits-for-max-and-team-plans" },
+  { date: "2026-10-12", text: "xAI 推出 The X Subscription，把 Grok、Grok Bot、Cursor 与 X Premium 合成一个订阅：个人档 Free $0 / Plus $8 / Premium $30 / Super $100 / Ultra $200（每月，年付 $80 / $300 / $1000 / $2000），团队档 Premium / Super / Ultra 每席 $30 / $100 / $200。Grok 与 Cursor 共用每周第一方用量池（Plus 为基准，Premium 4×、Super 15×、Ultra 50×），Plus 仅 Grok 模型、不含 Grok Bot；Premium 起可在 Cursor 用 Claude、GPT 等第三方模型，但从首次调用起按 API 牌价预充值另付，团队档再加 $0.25/百万 tokens。原 SuperGrok、Cursor 与 X Premium 套餐停止新注册，现有用户可保留或自愿切换（切换不可撤销）。", source: "xAI 官方公告与订阅文档", url: "https://x.ai/news/x-subscription" },
+  { date: "2026-10-10", text: "GitHub Copilot 的 JetBrains 插件结束对 IDE 2025.1 的支持，需 2025.2 或以上；新增企业管理员托管的默认模型与 MCP 服务器自动启动开关。属编程入口兼容性变化，不涉及价格与额度。", source: "GitHub 官方更新日志", url: "https://github.blog/changelog/2026-10-10-new-controls-and-chat-improvements-in-copilot-for-jetbrains" },
+  { date: "2026-10-10", checked: true, text: "核查 BigModel / Z.ai GLM Coding Plan：概览页已撤下双节与夜间活动宣传，夜间活动详情仍写明 9 月 3 日至 10 月 7 日；常规非高峰 5 折规则仍在，未见延期公告。", source: "BigModel / Z.ai 官方文档", url: "https://docs.bigmodel.cn/cn/coding-plan/overview.md" },
+  { date: "2026-10-09", text: "Claude Managed Agents 新增动态多 Agent 工作流测试版：Agent 可编写分阶段运行多个 Agent 并汇总结果的工作流程序，由服务器在后台执行（需 managed-agents-2026-04-01 测试头）。属 API 功能更新，不代表 Claude Code 各订阅档新增免费调用或额度。", source: "Claude Platform 官方发行说明", url: "https://platform.claude.com/docs/en/release-notes/overview" },
+  { date: "2026-10-08", text: "OpenAI 在 Responses API 为 GPT-6.1 Sol 开放 Ultrafast 模式（gpt-6.1-sol 配 service_tier=ultrafast），全部 API 用户可用、独立限流，单价为标准档 6 倍（≤272K 输入时 $12 / 缓存 $0.60 / 输出 $60 每百万 tokens）。Codex 与 ChatGPT Work 中仅 Pro $500 及符合条件的 Enterprise / Edu 可用：订阅内额度按 8 倍计量，购买的 credits 与企业按量按 6 倍计费。标准价格不变。", source: "OpenAI API 发行说明与 Codex 速度文档", url: "https://developers.openai.com/api/docs/changelog" },
+  { date: "2026-10-08", text: "GitHub Copilot 代码审查新增组织计费与权限控制：默认仍扣发起成员自身额度（用尽则审查失败）；组织所有者可改为计入仓库所属组织（须启用 AI Credits 付费用量，可设预算），也可只允许组织或企业发放的许可证发起审查。", source: "GitHub 官方更新日志", url: "https://github.blog/changelog/2026-10-08-copilot-code-review-new-organization-billing-options-and-controls" },
+  { date: "2026-10-08", text: "JetBrains 发布开源模型 Mellum2.1：12B MoE（2.5B 激活参数），面向编程 Agent 与子 Agent，Apache 2.0 权重已上 Hugging Face；GGUF 构建与 MTP 推测解码头仍标「即将提供」。自托管需自备算力，JetBrains 订阅档是否提供托管调用未见说明。", source: "JetBrains 官方博客", url: "https://blog.jetbrains.com/ai/2026/10/mellum2-1-gets-to-work-a-fast-open-model-for-coding-agents/" },
+  { date: "2026-10-07", text: "Claude Haiku 5.5 在 GitHub Copilot 正式可用，向 Pro、Pro+、Max、Business 与 Enterprise 逐步开放，可在 VS Code、Copilot CLI、云 Agent、Copilot App、JetBrains 等入口选用，按供应商牌价计入 AI Credits（≤100K 提示 $0.10 / $0.50）；组织管理员可用模型策略控制。", source: "GitHub 官方更新日志", url: "https://github.blog/changelog/2026-10-07-claude-haiku-5-5-in-github-copilot" },
+  { date: "2026-10-02", text: "GitHub Copilot 自 10 月 2 日起在全部入口弃用 Gemini 3.5 Flash、Gemini 3.6 Flash、Kimi K2.7 Code 与 Claude Opus 4.7，官方建议改用 Gemini 3.8 Flash、Kimi K3 与 Claude Opus 5.5。仅指 Copilot 内可选的模型，不是模型原厂 API 退役。", source: "GitHub 官方更新日志", url: "https://github.blog/changelog/2026-10-02-selected-models-in-github-copilot-deprecated" },
+  { date: "2026-09-30", text: "Google 宣布 Gemini 4 Argon：目前只通过 Fairwind 计划向受信网络防御者分阶段开放并用于 Google 内部，面向开发者、企业与消费者（先付费 API 客户与 Google AI Ultra 订阅者）的开放尚无日期。官方给出的输入 $2 / 输出 $10 是未来的介绍价，现在不能据此认为公开 API 或 Google 订阅已包含该模型。", source: "Google 官方博客", url: "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-argon/" },
+  { date: "2026-09-22", text: "Anthropic 发布 Claude Opus 5.5：输入 $4 / 输出 $20、缓存读 $0.20（每百万 tokens），官方称典型负载比 Opus 5 便宜约 40%、输出快 30% 以上，并提高 Pro、Max、Team 与按席 Enterprise 的 5 小时用量上限；可通过 Claude Platform API（claude-opus-5-5）、Amazon Web Services、Google Cloud 与 Microsoft Azure 使用。", source: "Anthropic 官方发布公告", url: "https://www.anthropic.com/claude-opus-5-5" },
   { date: "2026-10-07", text: "Anthropic 发布 Claude Haiku 5.5，面向高频、低成本任务，也可作为编程子 Agent；同日宣布 Sonnet 5.5 缓存读取价格减半，以及 Max / Team 订阅按月 API 赠额（逐步开放）。具体计费门槛与赠额资格以官方文档为准。", source: "Anthropic 官方发布博客", url: "https://www.anthropic.com/claude-haiku-5-5" },
   { date: "2026-10-06", text: "Mistral 发布 Large 4 公开预览，可通过 Mistral Studio 的预览 API 使用，支持编程、Agent 与多模态任务。官方计划于 10 月底发布权重；当前仍为预览阶段。", source: "Mistral 官方发布博客", url: "https://mistral.ai/news/mistral-large-4/" },
   { date: "2026-06-01", text: "GitHub Copilot 以「AI Credits」（1 credit = $0.01）全面取代 premium requests，并新增 $100/月的个人 Max 档。", source: "GitHub Docs", url: "https://docs.github.com/en/copilot/get-started/plans" },
@@ -2551,7 +2622,7 @@ const DYNAMICS = [
   { date: "2026-10-01", checked: true, text: "智谱官网购买页在售连续包季 8 折、连续包年 7 折：Lite ¥82.6、Pro ¥376.6、Max ¥754.6/月（年付折算，划线价 ¥118/538/1078）。此前记录的「年付 7 折活动 08-15 截止」已不成立。", source: "bigmodel.cn/glm-coding（官网直抓）", url: "https://bigmodel.cn/glm-coding" },
   { date: "2026-09-29", text: "OpenAI 发布 GPT-6.1 Sol：标准 API 输入 $2 / 输出 $10、缓存输入 $0.10（每百万 tokens）；官方称复杂编码表现接近 Astra，标准输入输出价格约为其 1/5。已向 ChatGPT Work 与 Codex 的 Plus / Pro / Business / Enterprise / Edu 用户开放，并提供 API 模型 gpt-6.1-sol。", source: "OpenAI 官方发布博客", url: "https://openai.com/index/introducing-gpt-6-1-sol" },
   { date: "2026-09-29", text: "OpenAI 额度文档新增 GPT-6.1 Sol 的 Plus 15–160 条/5h；Pro 重构为 $100/$200/$500 三档，官方注明目前无 5 小时上限，Astra Ultrafast（8x 计量）仅 $500 档。", source: "OpenAI 定价文档", url: "https://learn.chatgpt.com/docs/pricing" },
-  { date: "2026-09-28", text: "Anthropic 上线 Claude Sonnet 5.5：API 价格与 Sonnet 5 持平（$2/$10、缓存读 $0.20、Batch $1/$5）；Cursor Other Models 池与 GitHub Copilot Pro 同步上架。", source: "Anthropic 定价文档", url: "https://platform.claude.com/docs/en/about-claude/pricing" },
+  { date: "2026-09-28", text: "Anthropic 发布 Claude Sonnet 5.5：API 价格与 Sonnet 5 相同（输入 $2 / 输出 $10，发布时缓存读 $0.20），官方称同类工作成本最多低 30%、输出快 30% 以上；可通过 Claude Platform API（claude-sonnet-5-5）、Amazon Web Services、Google Cloud 与 Microsoft Azure 使用。", source: "Anthropic 官方发布公告", url: "https://www.anthropic.com/claude-sonnet-5-5" },
   { date: "2026-10-03", checked: true, text: "OpenAI Codex 定价页核对：与 10-01 口径一致（Plus 各模型 5 小时条数、Pro $100/$200/$500 目前无 5 小时上限、GPT-5.5 确认 10-14 全线退役）。新增确认：GPT-5.6 Sol 促销 credits 价（输入 100 / 缓存 10 / 输出 500 每百万 tokens）官方写明至少延续至 2026-11-21；Speed 档倍率 Fast 2.5×、Astra Ultrafast 订阅内 8×。第三方「Plus 用量 10-30 起 20×降为 10×」传闻在官方页无对应倍率标注，未入库。", source: "OpenAI Codex 定价文档", url: "https://learn.chatgpt.com/docs/pricing" },
   { date: "2026-10-03", checked: true, text: "Anthropic API 定价页核对：与库内一致，无 10 月调价——Opus 5.5 $4/$20（缓存读 $0.20 = 输入价 0.05×，5m 写 $5 / 1h 写 $8）、Sonnet 5.5 与 Sonnet 5 $2/$10 标准价、Haiku 4.5 $1/$5；Opus 5.5 Fast 模式 $8/$40，inference_geo us 区 1.1×。第三方「API 10-01 调价」说法与官方页不符（所列数字即现行价）。", source: "Anthropic 定价文档", url: "https://platform.claude.com/docs/en/about-claude/pricing" },
   { date: "2026-10-03", checked: true, text: "智谱 / Z.ai 核对：官方渠道无新调价公告，双节非高峰 5 折（09-25~10-07）与夜间畅用仍在进行；第三方报道确认 2 月结构性调价（涨幅 30% 起）与 9 月天猫 ¥118/538/1078 三档均已在库。", source: "Z.ai / BigModel 官方文档", url: "https://docs.z.ai/devpack/overview.md" },
@@ -2570,12 +2641,18 @@ const DYNAMICS = [
 const SOURCES = [
   { group: "Anthropic（Claude）", urls: [
     "https://claude.com/pricing",
+    "https://support.claude.com/en/articles/17154008-monthly-api-credits-for-max-and-team-plans",
     "https://www.anthropic.com/claude-haiku-5-5",
+    "https://www.anthropic.com/claude-sonnet-5-5",
+    "https://www.anthropic.com/claude-opus-5-5",
+    "https://platform.claude.com/docs/en/release-notes/overview",
     "https://support.claude.com/en/articles/9797557-usage-limit-best-practices",
   ]},
   { group: "OpenAI（Codex）", urls: [
     "https://learn.chatgpt.com/docs/pricing",
+    "https://learn.chatgpt.com/docs/agent-configuration/speed",
     "https://openai.com/index/introducing-gpt-6-1-sol",
+    "https://developers.openai.com/api/docs/changelog",
   ]},
   { group: "Google（Gemini）", urls: [
     "https://one.google.com/about/ai-premium",
@@ -2583,8 +2660,16 @@ const SOURCES = [
     "https://github.com/google-gemini/gemini-cli",
     "https://the-decoder.com/google-overhauls-its-ai-subscriptions-at-i-o-2026-with-three-tiers-starting-at-10-a-month/",
     "https://www.theverge.com/tech/933233/google-ai-ultra-plan-price-change",
+    "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-argon/",
   ]},
-  { group: "xAI（Grok）", urls: [ "https://x.ai/pricing" ]},
+  { group: "xAI（Grok / The X Subscription）", urls: [
+    "https://x.ai/news/x-subscription",
+    "https://docs.x.ai/x-subscription/pricing",
+    "https://docs.x.ai/x-subscription/usage-limits",
+    "https://docs.x.ai/x-subscription/overview",
+    "https://docs.x.ai/x-subscription/cursor-token-rate",
+    "https://x.ai/pricing",
+  ]},
   { group: "Mistral", urls: [ "https://mistral.ai/pricing", "https://mistral.ai/news/mistral-large-4/" ]},
   { group: "Z.ai", urls: [
     "https://docs.z.ai/devpack/overview.md",
@@ -2594,6 +2679,11 @@ const SOURCES = [
   { group: "GitHub Copilot", urls: [
     "https://github.com/features/copilot/plans",
     "https://docs.github.com/en/copilot/get-started/plans",
+    "https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing",
+    "https://github.blog/changelog/2026-10-02-selected-models-in-github-copilot-deprecated",
+    "https://github.blog/changelog/2026-10-07-claude-haiku-5-5-in-github-copilot",
+    "https://github.blog/changelog/2026-10-08-copilot-code-review-new-organization-billing-options-and-controls",
+    "https://github.blog/changelog/2026-10-10-new-controls-and-chat-improvements-in-copilot-for-jetbrains",
   ]},
   { group: "Cursor", urls: [
     "https://cursor.com/pricing",
@@ -2618,7 +2708,10 @@ const SOURCES = [
     "https://kilo.ai/pricing",
     "https://ampcode.com/pricing",
   ]},
-  { group: "JetBrains AI", urls: [ "https://www.jetbrains.com/ai-ides/buy/" ]},
+  { group: "JetBrains AI", urls: [
+    "https://www.jetbrains.com/ai-ides/buy/",
+    "https://blog.jetbrains.com/ai/2026/10/mellum2-1-gets-to-work-a-fast-open-model-for-coding-agents/",
+  ]},
   { group: "OpenRouter / Lovable / Bolt / Replit", urls: [
     "https://openrouter.ai/pricing",
     "https://docs.lovable.dev/introduction/subscription-plans.md",
@@ -2649,8 +2742,8 @@ const SOURCES = [
     "https://www.tencentcloud.com/products/acc",
     "https://www.huaweicloud.com/product/codearts.html",
   ]},
-  { group: "汇率参考（2026-09-23）", urls: [
-    "https://api.frankfurter.dev/v1/2026-09-23?base=USD&symbols=CNY,INR",
+  { group: "汇率参考（2026-10-12）", urls: [
+    "https://api.frankfurter.dev/v1/2026-10-12?base=USD&symbols=CNY,INR",
   ]},
   { group: "智谱 BigModel GLM Coding Plan", urls: [
     "https://docs.bigmodel.cn/cn/coding-plan/overview.md",
@@ -2737,11 +2830,12 @@ const SOURCES = [
 const UNCERTAIN = [
   "价格逐条核查状态、核查日期与官网链接见来源栏；待核实历史价不参与推荐和排行，未列年付价不等于厂商不存在年付方案。",
   "图中黄色估算柱与额度表的≈估行采用已说明的假设，不能作为厂商承诺的 token 数；官方周 tokens 与请求数、积分和月池分开标注。",
-  "汇率日期与官网原价核查日期分别记录；USD 按6.71折算，INR按同日USD/CNY与USD/INR交叉汇率换算，仅作人民币对比。",
+  "汇率日期与官网原价核查日期分别记录；USD 按页面标注的参考汇率折算，INR 按同日 USD/CNY 与 USD/INR 交叉汇率换算，仅作人民币对比。",
   "讯飞套餐列的是DeepSeek-V4-Flash，现售DeepSeek Flash API为不同版本；额度表用当前Flash牌价做代理估算并标低置信，真实请求上限按抵扣系数2修正，夜间0.8另标。",
   "腾讯云Coding Plan的模型清单与Token Plan独立牌价不可混为同一额度承诺；供应库存的官方页面口径有冲突，不保证每日补货。",
   "Claude Code 每 5 小时 prompt 数：Anthropic 官方不公布固定次数（按 token 计量）；第三方估算 Pro 约 10–45 条/5h、Max 20x 约 200–900 条/5h，仅供参考。",
-  "Cursor 各档「包含用量」官方不再公布具体 credits/token 数值；日常 Agent 用户月耗 $60–100 是消费情景，不是 $20 Pro 订阅包含额度，因此不折成套餐 tokens 或参与成本排行。Windsurf/Devin 新配额制的具体 token 预算官方未公布。",
+  "旧 Cursor 各档（2026-10-12 起仅老用户续费）「包含用量」官方不再公布具体 credits/token 数值；日常 Agent 用户月耗 $60–100 是消费情景，不是 $20 Pro 订阅包含额度，因此不折成套餐 tokens 或参与成本排行。Windsurf/Devin 新配额制的具体 token 预算官方未公布。",
+  "The X Subscription 只公布相对额度（Plus 为基准，Premium 4×、Super 15×、Ultra 50×），没有公布每周 tokens 或 credits 数值，因此不折成套餐 tokens、不参与成本排行；团队年付价、各国结账币种与税费、中国大陆可购买资格尚未核实。Cursor 印度专属 Start（₹649）是否仍向新用户开放，在印度以外无法核实，暂按原记录保留。",
   "JetBrains AI Pro/Ultimate 的具体用量额度为 JS 渲染未能核实。Kilo 个人平台免费，推理按供应商原价或 BYOK，见 kilo.ai/pricing。",
   "Tabnine 独立订阅疑似停售（官网 301 重定向至 Tricentis），无 2026-09 在售价格。",
   "Gemini 3 Pro 文本版未在 API 价格页单列（当前最新为 Gemini 3.1 Pro Preview $2/$12；页面仅单列 3 Pro Image 图像模型 $120/1M）。",
@@ -2763,13 +2857,13 @@ const UNCERTAIN = [
   "88code：2026-09-30 本机访问 www.88code.ai 返回 403，docs.88code.org 连接失败。可达文档快照写明 FREE 已停发；包月为 PLUS ¥198 / PRO ¥398 / MAX ¥698，另有一次性 PayGo ¥66（200 刀）与 ¥666（1988 刀）。现网是否仍可下单未证实。",
   "ZenMux 订阅的滚动 7 天周上限具体 Flows 数值、新用户注册赠金、充值服务费率均未在页面公布（JS 渲染未抓全）；Flows 汇率随时间浮动（25 Flows=$1 为 2026-09-19 快照）。",
   "ChatGPT Pro 三档（$100/$200/$500）的额度差官方未公布：2026-10-01 官方页仅注明 Pro 目前无 5 小时上限、Astra Ultrafast 仅 $500 档；此前的 5x/20x 倍率与条数区间为旧口径，额度表中相关估算行已降为低置信。GPT-6.1 Sol 的 1.1M 上下文来自第三方规格页，官方文档仅给长上下文档价（>272K 输入档）。",
-  "Claude 订阅页模型列表只写「Sonnet」不分版本；Sonnet 5.5（2026-09-28 上线）按 API 定价页与 Cursor/Copilot 模型列表推定为当前订阅档所含版本。"
+  "Claude 订阅页模型列表只写「Sonnet」「Haiku」不分版本；Sonnet 5.5（2026-09-28 上线）按 API 定价页与 Cursor/Copilot 模型列表推定为当前订阅档所含版本。Haiku 5.5（2026-10-07 上线）是否已替换订阅内的 Haiku 4.5 未见官方说明，套餐表仍写 Haiku 4.5。"
 ];
 
 /* 逐条官方核价记录；由 audit/pricing-verification-2026-10-04.json 维护。 */
 /** @type {PriceChecks} */
 const PRICE_CHECKS = {
-  "checkedAt": "2026-10-09",
+  "checkedAt": "2026-10-13",
   "sources": {
     "claude-plans": {
       "url": "https://claude.com/pricing",
@@ -3200,6 +3294,76 @@ const PRICE_CHECKS = {
       "url": "https://platform.stepfun.com/docs/zh/step-plan/overview",
       "evidence": "官网套餐表：Flash Mini/Plus/Pro/Max 月费49/99/199/699元、季付129/269/539/1889元、年付456/936/1860/6666元；月池 400M/1600M/8000M/40000M Credit，1M Credit = ¥1；季付与年付一次付清但 Credits 按月发放、月末清零；加油包 ¥49=400M、¥99=1600M（30 天有效）。",
       "checkedAt": "2026-10-09"
+    },
+    "xai-x-subscription-launch-20261013": {
+      "url": "https://x.ai/news/x-subscription",
+      "evidence": "xAI 官方公告（2026-10-12）：推出 The X Subscription，整合 Grok、Grok Bot、Cursor 与 X Premium，即日起面向新客户；原 SuperGrok、Cursor、X Premium 套餐不再接受新注册，现有用户可保留原套餐、价格与权益，或切换并获按比例退款，暂无强制迁移时间表。Free 含 Grok 每日访问与 Cursor 编程 Agent 入门额度；Premium 及以上仍可在 Cursor 用第三方模型，按 API 牌价经预充值另付。",
+      "checkedAt": "2026-10-13"
+    },
+    "xai-x-subscription-pricing-20261013": {
+      "url": "https://docs.x.ai/x-subscription/pricing",
+      "evidence": "官方定价文档（2026-10-11 更新）：个人档 Free $0、Plus $8/月或 $80/年（官方标 $7/月）、Premium $30/月或 $300/年（$25/月）、Super $100/月或 $1000/年（$84/月）、Ultra $200/月或 $2000/年（$167/月）；额度以 Plus 为基准，Premium 4x、Super 15x、Ultra 50x。Premium 及以上含 Grok Bot，Plus 不含。共享用量池覆盖 Grok Bot 与 Grok、Cursor 中的 Grok 模型；Cursor 第三方模型不在池内，从首次调用起用预充值额度计费。团队档 Premium/Super/Ultra 每席 $30/$100/$200，每席额度与个人同档相同，可混搭席位档，Plus 不提供团队档。标价不含销售税。",
+      "checkedAt": "2026-10-13"
+    },
+    "xai-x-subscription-usage-20261013": {
+      "url": "https://docs.x.ai/x-subscription/usage-limits",
+      "evidence": "官方用量说明（2026-10-11 更新）：每个付费席位每周获得第一方用量池，Grok 与 Cursor 共用、不拆分产品配额；团队自助档每席独立周池、席间不共享，团队共享预充值余额；Enterprise 按合同。第三方模型不在周池内，作为额外用量付费。",
+      "checkedAt": "2026-10-13"
+    },
+    "xai-x-subscription-overview-20261013": {
+      "url": "https://docs.x.ai/x-subscription/overview",
+      "evidence": "官方说明（2026-10-12 更新）：新客户（含仅有免费 X 账户者）从 The X Subscription 开始；现有 Cursor 客户仍可在当前 Cursor 套餐之间升降级而不切换（App Store 计费除外），现有团队仍可加席或调整席位档。无 Grok 账户的 Cursor Enterprise 客户可经客户团队切换，其余 Enterprise 暂不能切换。切换不可撤销。",
+      "checkedAt": "2026-10-13"
+    },
+    "xai-cursor-token-rate-20261013": {
+      "url": "https://docs.x.ai/x-subscription/cursor-token-rate",
+      "evidence": "官方说明：团队档对第三方模型请求另收 Cursor Token Rate $0.25/百万 tokens（叠加模型 API 价），Grok 与 Composer 等第一方模型免收，个人档不收。",
+      "checkedAt": "2026-10-13"
+    },
+    "tools-cursor-pricing-20261013": {
+      "url": "https://cursor.com/pricing",
+      "evidence": "2026-10-13 读取 Cursor 定价页：个人档改为 Free $0、Plus $8、Premium $30、Super $100、Ultra $200（每月），Plus 仅可用 Grok 模型，Premium 起含云端 Agent、Bugbot 代码审查与按 API 牌价付费的第三方模型；Teams $30 起每用户每月，Enterprise 定制。原 Pro $20、Pro Plus $60、Ultra $200 与 Teams $40/$120 已不在定价页展示。",
+      "checkedAt": "2026-10-13"
+    },
+    "tools-github-models-20261013": {
+      "url": "https://docs.github.com/en/copilot/get-started/plans",
+      "evidence": "计划页（2026-10-13）：Pro $10（1,500 credits）、Pro+ $39（7,000）、Max $100（20,000），Business $19、Enterprise $39 每授予席位。Pro 可用 Claude Haiku 4.5/5.5、Sonnet 4.6/5/5.5，Gemini 3.7–3.8 Flash，GPT-5 mini、GPT-5.3-Codex、GPT-5.4/5.4 mini、GPT-5.6 Luna/Terra、GPT-6 Luna，Grok 4.5–4.7，Kimi K3，MAI-Code-1.1-Flash；Pro+ 与 Max 另含 Claude Opus 4.8/5/5.5、Fable 5/5.1、GPT-5.5、GPT-5.6 Sol、GPT-6 Astra/Sol、GPT-6.1 Sol（Max 表中不含 Sonnet 4.6）。模型表已无 Gemini 3.5/3.6 Flash、Kimi K2.7 Code 与 Claude Opus 4.7。",
+      "checkedAt": "2026-10-13"
+    },
+    "tools-github-retirements-20261013": {
+      "url": "https://github.blog/changelog/2026-10-02-selected-models-in-github-copilot-deprecated",
+      "evidence": "官方更新日志：2026-10-02 起在全部 Copilot 体验中弃用 Gemini 3.5 Flash、Gemini 3.6 Flash、Kimi K2.7 Code 与 Claude Opus 4.7，建议改用 Gemini 3.8 Flash、Kimi K3 与 Claude Opus 5.5。",
+      "checkedAt": "2026-10-13"
+    },
+    "tools-github-code-review-billing-20261013": {
+      "url": "https://github.blog/changelog/2026-10-08-copilot-code-review-new-organization-billing-options-and-controls",
+      "evidence": "官方更新日志（2026-10-08）：Copilot 代码审查默认计入发起成员自身额度，额度耗尽则审查失败；组织所有者可改为计入仓库所属组织，须为组织启用 AI Credits 付费用量并可设预算；也可只允许组织或企业发放的许可证发起审查。",
+      "checkedAt": "2026-10-13"
+    },
+    "claude-plans-20261013": {
+      "url": "https://claude.com/pricing",
+      "evidence": "定价页（2026-10-13）：Pro 年付 $17/月（$200 预付）、月付 $20；Max 从 $100/月起，含 $100–$200/月 API 赠额；Team 标准席 $20（年付）/$25（月付）、Premium 席 $100/$125，含最高 $500/月共享 API 赠额；Enterprise 年付 $20/席/月。",
+      "checkedAt": "2026-10-13"
+    },
+    "claude-api-credits-20261013": {
+      "url": "https://support.claude.com/en/articles/17154008-monthly-api-credits-for-max-and-team-plans",
+      "evidence": "帮助中心：Max 5x 每月 $100、Max 20x 每月 $200 Claude Platform API 赠额；Team 标准席位每席 $20、Premium 席位每席 $100，全团队合并封顶 $500/月；Free、Pro、Enterprise 不适用。赠额用于 Claude API、Batches、Managed Agents 与 Agent SDK，不用于交互式 Claude Code 或超额用量，月底不结转，新订阅满 7 天后可领取。",
+      "checkedAt": "2026-10-13"
+    },
+    "claude-api-20261013": {
+      "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+      "evidence": "定价页（2026-10-13）：Sonnet 5.5 输入 $2、输出 $10、缓存命中 $0.10（2026-10-07 起为输入价 0.05 倍，原 $0.20）；Haiku 5.5 提示不超过 100K tokens 时输入 $0.10、缓存命中 $0.01、输出 $0.50，超过 100K 的请求整次按 $0.50 / $0.05 / $2.50 计；Opus 5.5 $4/$20、缓存命中 $0.20 不变。",
+      "checkedAt": "2026-10-13"
+    },
+    "openai-ultrafast-api-20261013": {
+      "url": "https://developers.openai.com/api/docs/pricing",
+      "evidence": "API 定价页 Ultrafast 表（≤272K 输入）：gpt-6.1-sol 输入 $12、缓存输入 $0.60、缓存写 $15、输出 $60；gpt-6-astra 输入 $60、缓存输入 $6、输出 $300（>272K 另有长上下文价）。发行说明：2026-10-08 起 GPT-6.1 Sol 可在 Responses API 使用 service_tier=ultrafast，面向全部 API 用户，独立限流。",
+      "checkedAt": "2026-10-13"
+    },
+    "openai-codex-speed-20261013": {
+      "url": "https://learn.chatgpt.com/docs/agent-configuration/speed",
+      "evidence": "Codex 速度文档：Ultrafast 支持 GPT-6 Astra 与 GPT-6.1 Sol，仅 Pro $500 及符合条件的 Enterprise、Edu 可用；订阅内额度按标准 8 倍计量，购买的 credits 与企业按量按 6 倍计费；其他自助档即使购买 credits 也不能使用。",
+      "checkedAt": "2026-10-13"
     }
   },
   "rows": {
@@ -3213,51 +3377,55 @@ const PRICE_CHECKS = {
     },
     "plan:plan-0002": {
       "status": "verified",
-      "checkedAt": "2026-10-04",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "claude-plans"
+        "claude-plans-20261013"
       ],
-      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
+      "reason": "定价页核对年付 $200（折 $16.67/月）与月付 $20 不变；Pro 不含 Max/Team 的月度 API 赠额。"
     },
     "plan:plan-0003": {
-      "status": "verified",
-      "checkedAt": "2026-10-04",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "claude-max"
+        "claude-plans-20261013",
+        "claude-api-credits-20261013"
       ],
-      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
+      "reason": "月价 $100 不变；补充 10-07 起逐步开放的每月 $100 Claude Platform API 赠额。"
     },
     "plan:plan-0004": {
-      "status": "verified",
-      "checkedAt": "2026-10-04",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "claude-max"
+        "claude-plans-20261013",
+        "claude-api-credits-20261013"
       ],
-      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
+      "reason": "月价 $200 不变；补充每月 $200 Claude Platform API 赠额。"
     },
     "plan:plan-0005": {
-      "status": "verified",
-      "checkedAt": "2026-10-04",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "claude-plans"
+        "claude-plans-20261013",
+        "claude-api-credits-20261013"
       ],
-      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
+      "reason": "标准席 $25（年付 $20）不变；补充每席 $20/月 API 赠额，全团队合并封顶 $500/月。"
     },
     "plan:plan-0006": {
-      "status": "verified",
-      "checkedAt": "2026-10-04",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "claude-plans"
+        "claude-plans-20261013",
+        "claude-api-credits-20261013"
       ],
-      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
+      "reason": "Premium 席 $125（年付 $100）不变；补充每席 $100/月 API 赠额（与标准席位合并计入团队池）。"
     },
     "plan:plan-0007": {
       "status": "verified",
-      "checkedAt": "2026-10-04",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "claude-plans"
+        "claude-plans-20261013"
       ],
-      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
+      "reason": "年付 $20/席/月不变；Enterprise 不适用 Max/Team 的月度 API 赠额。"
     },
     "plan:plan-0008": {
       "status": "verified",
@@ -3300,12 +3468,12 @@ const PRICE_CHECKS = {
       "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
     },
     "plan:plan-0013": {
-      "status": "verified",
-      "checkedAt": "2026-10-04",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "openai-plans"
+        "openai-codex-speed-20261013"
       ],
-      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
+      "reason": "月价 $500 不变；Ultrafast 自 10-08 起同时支持 GPT-6 Astra 与 GPT-6.1 Sol，订阅内按 8 倍计量、credits 按 6 倍计费。"
     },
     "plan:plan-0014": {
       "status": "verified",
@@ -3380,44 +3548,50 @@ const PRICE_CHECKS = {
       "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
     },
     "plan:plan-0023": {
-      "status": "verified",
-      "checkedAt": "2026-10-04",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "xai-plans"
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-overview-20261013",
+        "xai-x-subscription-pricing-20261013"
       ],
-      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
+      "reason": "官方公告：新用户的免费档改为 X Subscription Free（含 Cursor 编程 Agent 入门额度），本条作为同一免费档的旧入口指向新条目，不再单独展示。"
     },
     "plan:plan-0024": {
       "status": "unverified",
-      "checkedAt": "2026-10-04",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "xai-plans"
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-overview-20261013"
       ],
-      "reason": "官方对照表存在档位但没有公开价格；grok.com/plans和定向结账入口无可读取金额。"
+      "reason": "官方 10-12 公告：原 SuperGrok 套餐不再接受新注册，现有用户可保留；本档历史价仍无官方公开金额，继续待核。"
     },
     "plan:plan-0025": {
       "status": "changed",
-      "checkedAt": "2026-10-04",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "xai-plans"
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-overview-20261013"
       ],
-      "reason": "月价确认，官方公开页未列年费，移除未经确认的年付折月价格。"
+      "reason": "官方 10-12 公告：原 SuperGrok 套餐不再接受新注册，现有用户可保留原价与权益；新用户改购 X Subscription。月价 $30 为原有核实值。"
     },
     "plan:plan-0026": {
       "status": "changed",
-      "checkedAt": "2026-10-04",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "xai-plans"
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-overview-20261013"
       ],
-      "reason": "月价确认，官方公开页未列年费，移除未经确认的年付折月价格。"
+      "reason": "官方 10-12 公告：原 SuperGrok 套餐不再接受新注册，现有用户可保留原价与权益；新用户改购 X Subscription。月价 $100 为原有核实值。"
     },
     "plan:plan-0027": {
       "status": "unverified",
-      "checkedAt": "2026-10-04",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "xai-plans"
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-overview-20261013"
       ],
-      "reason": "官方对照表存在档位但没有公开价格；grok.com/plans和定向结账入口无可读取金额。"
+      "reason": "官方 10-12 公告：原 SuperGrok 套餐不再接受新注册，现有用户可保留；本档历史价仍无官方公开金额，继续待核。"
     },
     "plan:plan-0028": {
       "status": "changed",
@@ -3508,12 +3682,12 @@ const PRICE_CHECKS = {
       "reason": "官方确认仅存量续费，但未公开存量价格，不能套用V3当前价。"
     },
     "api:Anthropic|Claude Sonnet 5.5": {
-      "status": "verified",
-      "checkedAt": "2026-10-04",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "claude-api"
+        "claude-api-20261013"
       ],
-      "reason": "核对标准短上下文/低峰原币种单价；单位每百万tokens。"
+      "reason": "输入 $2、输出 $10 不变；缓存命中自 2026-10-07 起由 $0.20 降至 $0.10。"
     },
     "api:Anthropic|Claude Sonnet 5": {
       "status": "verified",
@@ -3533,19 +3707,19 @@ const PRICE_CHECKS = {
     },
     "api:OpenAI|gpt-6-astra": {
       "status": "verified",
-      "checkedAt": "2026-10-04",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "openai-api"
+        "openai-ultrafast-api-20261013"
       ],
-      "reason": "核对标准短上下文/低峰原币种单价；单位每百万tokens。"
+      "reason": "标准价 $10/$50、缓存 $1 不变；补充 Ultrafast 服务档价格。"
     },
     "api:OpenAI|gpt-6.1-sol": {
       "status": "verified",
-      "checkedAt": "2026-10-04",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "openai-api"
+        "openai-ultrafast-api-20261013"
       ],
-      "reason": "核对标准短上下文/低峰原币种单价；单位每百万tokens。"
+      "reason": "标准价 $2/$10、缓存 $0.10 不变；补充 10-08 起的 Ultrafast 服务档价格（标准价 6 倍），不改标准价。"
     },
     "api:OpenAI|gpt-6-sol": {
       "status": "verified",
@@ -4039,67 +4213,65 @@ const PRICE_CHECKS = {
     },
     "plan:plan-0090": {
       "status": "verified",
-      "checkedAt": "2026-10-04",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "tools-github-plans",
-        "tools-github-licenses"
+        "tools-github-models-20261013"
       ],
-      "reason": "官网现售价格、USD 和个人/席位计费口径与旧值一致；付费档当前按月计费。"
+      "reason": "计划页核对：免费档仅自动模型选择并含少量 AI credits，价格不变。"
     },
     "plan:plan-0091": {
-      "status": "verified",
-      "checkedAt": "2026-10-04",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "tools-github-plans",
-        "tools-github-licenses",
-        "tools-github-annual-legacy"
+        "tools-github-models-20261013",
+        "tools-github-retirements-20261013"
       ],
-      "reason": "官网现售月价、USD 与旧值一致；旧 Pro/Pro+ 年付属于存量合同，期满转 Free。"
+      "reason": "月价 $10 与 1,500 credits 不变；按计划页现行模型表更新可用模型：移除 10-02 弃用的 Gemini 3.5/3.6 Flash 与 Kimi K2.7 Code，补列 Claude Haiku 4.5/5.5、GPT-5 mini、GPT-5.4/5.4 mini 与 MAI-Code-1.1-Flash。"
     },
     "plan:plan-0092": {
-      "status": "verified",
-      "checkedAt": "2026-10-04",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "tools-github-plans",
-        "tools-github-licenses",
-        "tools-github-annual-legacy"
+        "tools-github-models-20261013",
+        "tools-github-retirements-20261013"
       ],
-      "reason": "官网现售月价、USD 与旧值一致；旧 Pro/Pro+ 年付属于存量合同，期满转 Free。"
+      "reason": "月价 $39 与 7,000 credits 不变；Claude Opus 4.7 已于 10-02 弃用，旗舰列表改为计划页现行的 Opus 4.8/5/5.5、Fable 5/5.1、GPT-5.6 Sol、GPT-6 Astra/Sol 与 GPT-6.1 Sol。"
     },
     "plan:plan-0093": {
       "status": "verified",
-      "checkedAt": "2026-10-04",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "tools-github-plans",
-        "tools-github-licenses"
+        "tools-github-models-20261013"
       ],
-      "reason": "官网现售价格、USD 和个人/席位计费口径与旧值一致；付费档当前按月计费。"
+      "reason": "月价 $100 与 20,000 credits 不变；模型沿用 Pro+ 同级模型池（计划页 Max 列未含 Sonnet 4.6）。"
     },
     "plan:plan-0094": {
-      "status": "verified",
-      "checkedAt": "2026-10-04",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "tools-github-plans",
-        "tools-github-licenses"
+        "tools-github-models-20261013",
+        "tools-github-code-review-billing-20261013"
       ],
-      "reason": "官网现售价格、USD 和个人/席位计费口径与旧值一致；付费档当前按月计费。"
+      "reason": "席位价 $19 与 1,900 credits/席不变；补充 10-08 代码审查计费选项：默认扣成员额度，组织可改为计入仓库所属组织。"
     },
     "plan:plan-0095": {
-      "status": "verified",
-      "checkedAt": "2026-10-04",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "tools-github-plans",
-        "tools-github-licenses"
+        "tools-github-models-20261013",
+        "tools-github-code-review-billing-20261013"
       ],
-      "reason": "官网现售价格、USD 和个人/席位计费口径与旧值一致；付费档当前按月计费。"
+      "reason": "席位价 $39 与 3,900 credits/席不变；补充 10-08 代码审查计费选项。"
     },
     "plan:plan-0096": {
-      "status": "verified",
-      "checkedAt": "2026-10-04",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "tools-cursor-pricing"
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-overview-20261013",
+        "tools-cursor-pricing-20261013"
       ],
-      "reason": "Hobby 免费，平台固定费 0 与旧值一致。"
+      "reason": "Cursor 定价页的免费档改为 X Subscription Free；本条作为同一免费档的旧入口指向新条目，不再单独展示。"
     },
     "plan:plan-0097": {
       "status": "changed",
@@ -4110,57 +4282,64 @@ const PRICE_CHECKS = {
       "reason": "印度专属现售标价为 ₹649/月含税；旧 $8 是换算近似，不能作为原币厂商标价。"
     },
     "plan:plan-0098": {
-      "status": "verified",
-      "checkedAt": "2026-10-04",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "tools-cursor-docs",
-        "tools-cursor-pricing"
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-overview-20261013",
+        "tools-cursor-pricing-20261013"
       ],
-      "reason": "直接切官网年付后确认折月价，月付与年付旧值均一致。"
+      "reason": "定价页已改为 X Subscription；官方说明原 Cursor 套餐不再接受新注册，现有用户可保留并在旧档间升降级。月付 $20、年付折月 $16 为原有核实值。"
     },
     "plan:plan-0099": {
-      "status": "verified",
-      "checkedAt": "2026-10-04",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "tools-cursor-docs",
-        "tools-cursor-pricing"
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-overview-20261013",
+        "tools-cursor-pricing-20261013"
       ],
-      "reason": "直接切官网年付后确认折月价，月付与年付旧值均一致。"
+      "reason": "定价页已改为 X Subscription；原 Cursor 套餐不再接受新注册，现有用户可保留。月付 $60、年付折月 $48 为原有核实值。"
     },
     "plan:plan-0100": {
-      "status": "verified",
-      "checkedAt": "2026-10-04",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "tools-cursor-docs",
-        "tools-cursor-pricing"
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-overview-20261013",
+        "tools-cursor-pricing-20261013"
       ],
-      "reason": "直接切官网年付后确认折月价，月付与年付旧值均一致。"
+      "reason": "定价页已改为 X Subscription；原 Cursor 套餐不再接受新注册，现有用户可保留。月付 $200、年付折月 $160 为原有核实值。"
     },
     "plan:plan-0101": {
       "status": "changed",
-      "checkedAt": "2026-10-04",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "tools-cursor-docs",
-        "tools-cursor-pricing"
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-overview-20261013",
+        "tools-cursor-pricing-20261013"
       ],
-      "reason": "官网 Standard 支持年付，旧空年付价遗漏可比较价格。"
+      "reason": "定价页团队档已改为 X Subscription（$30 起每席）；官方说明现有团队仍可加席或调整席位档。$40 与年付折月 $32 为原有核实值。"
     },
     "plan:plan-0102": {
       "status": "changed",
-      "checkedAt": "2026-10-04",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "tools-cursor-docs",
-        "tools-cursor-pricing"
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-overview-20261013",
+        "tools-cursor-pricing-20261013"
       ],
-      "reason": "官网 Premium 支持年付，旧空年付价遗漏可比较价格。"
+      "reason": "定价页团队档已改为 X Subscription；现有团队仍可加席或调整席位档。$120 与年付折月 $96 为原有核实值。"
     },
     "plan:plan-0103": {
       "status": "custom",
-      "checkedAt": "2026-10-04",
+      "checkedAt": "2026-10-13",
       "sourceIds": [
-        "tools-cursor-pricing"
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-overview-20261013",
+        "tools-cursor-pricing-20261013"
       ],
-      "reason": "Enterprise 为定制销售报价，没有统一公开单价。"
+      "reason": "Enterprise 仍为定制报价；官方说明 Enterprise 可在一处管理 Grok 与 Cursor 并共用用量池，无 Grok 账户的现有 Cursor Enterprise 客户可经客户团队切换。"
     },
     "plan:plan-0104": {
       "status": "verified",
@@ -5322,6 +5501,105 @@ const PRICE_CHECKS = {
         "cn-ali-plus"
       ],
       "reason": "华北2≤32K标准调用、隐式命中0.8元保持现值，不用显式命中0.4元覆盖。"
+    },
+    "plan:plan-0213": {
+      "status": "verified",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-pricing-20261013",
+        "xai-x-subscription-usage-20261013",
+        "tools-cursor-pricing-20261013"
+      ],
+      "reason": "官方公告与定价文档：新用户免费档为 X Subscription Free，含 Grok 每日访问与 Cursor 编程 Agent 入门额度，额度为 Limited，未公布具体数值。"
+    },
+    "plan:plan-0214": {
+      "status": "verified",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-pricing-20261013",
+        "xai-x-subscription-usage-20261013",
+        "tools-cursor-pricing-20261013"
+      ],
+      "reason": "官方定价文档：月付 $8、年付 $80；额度为基准档，仅 Grok 模型，不含 Grok Bot。"
+    },
+    "plan:plan-0215": {
+      "status": "verified",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-pricing-20261013",
+        "xai-x-subscription-usage-20261013",
+        "tools-cursor-pricing-20261013"
+      ],
+      "reason": "官方定价文档：月付 $30、年付 $300；4× Plus 共享周池，含 Grok Bot；Cursor 第三方模型从首次调用起按 API 牌价另付。"
+    },
+    "plan:plan-0216": {
+      "status": "verified",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-pricing-20261013",
+        "xai-x-subscription-usage-20261013",
+        "tools-cursor-pricing-20261013"
+      ],
+      "reason": "官方定价文档：月付 $100、年付 $1000；15× Plus 共享周池，高峰优先。"
+    },
+    "plan:plan-0217": {
+      "status": "verified",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-pricing-20261013",
+        "xai-x-subscription-usage-20261013",
+        "tools-cursor-pricing-20261013"
+      ],
+      "reason": "官方定价文档：月付 $200、年付 $2000；50× Plus 共享周池。"
+    },
+    "plan:plan-0218": {
+      "status": "verified",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-pricing-20261013",
+        "xai-x-subscription-usage-20261013",
+        "tools-cursor-pricing-20261013",
+        "xai-cursor-token-rate-20261013"
+      ],
+      "reason": "官方定价文档：团队 Premium 席位 $30/席/月，额度同个人 Premium；团队档对第三方模型另收 $0.25/百万 tokens。"
+    },
+    "plan:plan-0219": {
+      "status": "verified",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-pricing-20261013",
+        "xai-x-subscription-usage-20261013",
+        "tools-cursor-pricing-20261013",
+        "xai-cursor-token-rate-20261013"
+      ],
+      "reason": "官方定价文档：团队 Super 席位 $100/席/月，额度同个人 Super。"
+    },
+    "plan:plan-0220": {
+      "status": "verified",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-pricing-20261013",
+        "xai-x-subscription-usage-20261013",
+        "tools-cursor-pricing-20261013",
+        "xai-cursor-token-rate-20261013"
+      ],
+      "reason": "官方定价文档：团队 Ultra 席位 $200/席/月，额度同个人 Ultra。"
+    },
+    "api:Anthropic|Claude Haiku 5.5": {
+      "status": "verified",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "claude-api-20261013"
+      ],
+      "reason": "新收录：提示不超过 100K tokens 时输入 $0.10、缓存命中 $0.01、输出 $0.50；超过 100K 的请求整次按更高一档计价，写在备注。"
     }
   }
 };
@@ -5353,3 +5631,70 @@ function displayPriceReason(reason) {
 }
 /* 用户可见文字里不应出现的内部字段名与开发用语；校验器对改写后的文字检查。 */
 const INTERNAL_TEXT_RE = /\bprice[MY]\b|\bseat\b\s*(?:=|会)|isPersonalMonthly|eligibleProfiles|fieldRefs|modelBaseRef|\bnull\b|\bundefined\b|plan-\d{4}/;
+
+/* ============================================================
+ * 已确认变更的读者文字：页面「我的关注」与 RSS（scripts/maintenance/build-maintenance.js）共用同一套字段名与取值说法。
+ * 继承引用（fieldRefs、modelBaseRef）只影响字段从哪一档读取，不单列给读者；新收录只列价格、额度与官网链接等要点，
+ * 其余结构字段在完整权益里查看。并入主条目显示主条目名称，不露出永久 ID。
+ * ============================================================ */
+/** @type {Record<string, string>} */
+const CHANGE_FIELD_LABELS = {
+  plan: "套餐名", model: "模型名", label: "显示名",
+  priceM: "月付价", priceY: "年付折月价", annualTotal: "年付全年金额", autoRenewMonthly: "连续包月价", singleMonthPrice: "单月购买价",
+  cur: "币种", seat: "按席位计费", quota: "额度", models: "模型", tools: "工具", note: "备注", url: "官网链接",
+  status: "核查状态", availability: "销售状态", renewalOnly: "仅老用户续费", billingUnit: "计价单位", freeCodingEntry: "可当免费编程入口",
+  accessUnstable: "访问异常", sameAs: "并入主条目", cat: "类别", region: "地区", windowPeriod: "额度周期", quotaSharing: "模型额度共享",
+  codingSurface: "编程入口", ownClient: "自家客户端", includedModelQuota: "含模型推理额度", modelAccess: "模型接入方式",
+  purchaseCountries: "限购国家", modelIncludes: "本档追加模型", modelExcludes: "本档不支持的模型",
+  inUSD: "输入 USD/M", outUSD: "输出 USD/M", inCNY: "输入 CNY/M", outCNY: "输出 CNY/M",
+  apiIn: "输入单价", apiOut: "输出单价", apiCache: "缓存命中单价", source: "来源",
+};
+/** @type {Record<string, Record<string, string>>} */
+const CHANGE_VALUE_LABELS = {
+  cat: { official: "模型官方订阅", tool: "第三方工具", cloud: "云厂商", team: "团队/企业" },
+  region: { cn: "国内", intl: "国际" },
+  availability: { "sold-out": "售罄", retired: "已停售", limited: "限量抢购" },
+  billingUnit: { "one-time": "一次性预付", "four-weeks": "每 4 周" },
+  windowPeriod: { "5h": "5 小时窗口", week: "每周", month: "每月", none: "无 5 小时上限", unknown: "未公开" },
+  quotaSharing: { shared: "共用", separate: "分池", unknown: "未公开" },
+  modelAccess: { included: "套餐内含", byok: "自备 Key", metered: "按量另计" },
+  status: { verified: "已核实", changed: "已校正", unverified: "待核实", retired: "已停售", custom: "需询价" },
+};
+/* 省略即有确定含义的结构字段：变更前后缺省时写出这层含义，而不是「未记录」。 */
+/** @type {Record<string, string>} */
+const CHANGE_ABSENT_TEXT = {
+  renewalOnly: "否", accessUnstable: "否", freeCodingEntry: "是", sameAs: "无", availability: "在售", billingUnit: "按月",
+  modelIncludes: "无", modelExcludes: "无", purchaseCountries: "不限",
+};
+/* 新收录的档位只列这些要点，避免把全部结构字段当作「从无到有」的变化。 */
+const ADDITION_FIELDS = ["priceM", "priceY", "annualTotal", "cur", "seat", "quota", "url"];
+/** 一条变更是否为新收录（标识字段及其余字段此前都不存在）。
+ * @param {{ kind: string, fields: string[], before: Record<string, unknown> }} change */
+function isAdditionChange(change) {
+  const key = change.kind === "plan" ? "plan" : "model";
+  return change.fields.includes(key) && change.fields.every((field) => change.before[field] == null);
+}
+/** @param {string} field @param {unknown} value @returns {string} */
+function changeValueText(field, value) {
+  if (value == null) return Object.prototype.hasOwnProperty.call(CHANGE_ABSENT_TEXT, field) ? CHANGE_ABSENT_TEXT[field] : "未记录";
+  if (field === "sameAs" && typeof value === "string") {
+    const target = findPlanReference(value);
+    return target ? target.vendor + " " + target.plan : "另一条目";
+  }
+  if (typeof value === "boolean") return value ? "是" : "否";
+  const named = Object.prototype.hasOwnProperty.call(CHANGE_VALUE_LABELS, field) ? CHANGE_VALUE_LABELS[field] : null;
+  if (named && typeof value === "string" && Object.prototype.hasOwnProperty.call(named, value)) return named[value];
+  if (Array.isArray(value)) return value.map(String).join("、");
+  return typeof value === "object" ? JSON.stringify(value) : String(value);
+}
+/** 变更的读者展示：未登记读者名称的字段（继承引用等）不列出。
+ * @param {{ kind: string, fields: string[], before: Record<string, unknown>, after: Record<string, unknown> }} change
+ * @returns {{ addition: boolean, fields: { label: string, before: string, after: string }[] }} */
+function changeDisplay(change) {
+  const addition = isAdditionChange(change);
+  const order = Object.keys(CHANGE_FIELD_LABELS);
+  /* 按读者关心的顺序排列：名称、价格、额度、模型与工具、备注和链接，再到结构字段。 */
+  const visible = change.fields.filter((field) => Object.prototype.hasOwnProperty.call(CHANGE_FIELD_LABELS, field) && (!addition || ADDITION_FIELDS.includes(field)))
+    .sort((a, b) => order.indexOf(a) - order.indexOf(b));
+  return { addition, fields: visible.map((field) => ({ label: CHANGE_FIELD_LABELS[field], before: changeValueText(field, change.before[field]), after: changeValueText(field, change.after[field]) })) };
+}

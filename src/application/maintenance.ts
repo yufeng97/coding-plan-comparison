@@ -184,19 +184,7 @@ export function maintenanceSourceUrls(urls: readonly unknown[] | null | undefine
     return (urls || []).flatMap((url) => typeof url === "string" && /^https:\/\//i.test(url.trim()) ? [url.trim()] : []);
 }
 
-export function changeValue(value: unknown) {
-    if (value == null)
-        return "未记录";
-    return typeof value === "object" ? JSON.stringify(value) : String(value);
-}
-
-export const CHANGE_FIELD_LABELS: Record<string, string> = { priceM: "月付价", priceY: "年付折月价", annualTotal: "年付全年金额", quota: "额度", models: "模型", tools: "工具", note: "备注", status: "核查状态", inUSD: "输入 USD/M", outUSD: "输出 USD/M", inCNY: "输入 CNY/M", outCNY: "输出 CNY/M", cacheUSD: "缓存 USD/M", cacheCNY: "缓存 CNY/M" };
-
 export function changeKindLabel(kind: string) { return kind === "plan" ? "套餐" : kind === "api" ? "API" : "按量参考"; }
-
-export function changeFields(change: MaintenanceChange): { label: string; before: string; after: string }[] {
-    return change.fields.map((field) => ({ label: CHANGE_FIELD_LABELS[field] || field, before: changeValue(change.before[field]), after: changeValue(change.after[field]) }));
-}
 
 export function planChanges(id: string) { return maintenanceData().changes.filter((c) => c.id === id); }
 

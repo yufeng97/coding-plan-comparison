@@ -49,11 +49,13 @@ test("降级对比窗口允许逐条键盘核对来源，收起详情不占焦�
   await summaries.first().focus();
   await page.keyboard.press("Tab");
   await expect(page.locator("#copyCmpMdBtn")).not.toBeFocused();
-  const nextSource = summaries.last().locator("..").locator("..").getByRole("link",{ name:"核价来源",exact:true });
-  await expect(nextSource).toHaveCount(1);
-  /* 原生 Tab 是否包含链接取决于平台策略；只接受下一档来源或下一条核查 summary。 */
-  if (!await summaries.last().evaluate((summary) => summary === document.activeElement)) {
-    await expect(nextSource).toBeFocused();
+  /* 下一档可能有多个核价来源（「核价来源1」「核价来源2」）。 */
+  const nextSources = summaries.last().locator("..").locator("..").getByRole("link",{ name:/^核价来源\d*/ });
+  const sourceCount = await nextSources.count();
+  expect(sourceCount).toBeGreaterThan(0);
+  /* 原生 Tab 是否包含链接取决于平台策略；只接受按顺序经过下一档的来源，或直接到下一条核查 summary。 */
+  for (let i = 0; i < sourceCount && !await summaries.last().evaluate((summary) => summary === document.activeElement); i++) {
+    await expect(nextSources.nth(i)).toBeFocused();
     await page.keyboard.press("Tab");
   }
   await expect(summaries.last()).toBeFocused();

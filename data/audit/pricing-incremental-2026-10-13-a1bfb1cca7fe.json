@@ -1,0 +1,1171 @@
+{
+  "checkedAt": "2026-10-13",
+  "incremental": true,
+  "totals": {
+    "plans": 220,
+    "api": 37,
+    "payg": 10
+  },
+  "sources": [
+    {
+      "id": "xai-x-subscription-launch-20261013",
+      "url": "https://x.ai/news/x-subscription",
+      "evidence": "xAI 官方公告（2026-10-12）：推出 The X Subscription，整合 Grok、Grok Bot、Cursor 与 X Premium，即日起面向新客户；原 SuperGrok、Cursor、X Premium 套餐不再接受新注册，现有用户可保留原套餐、价格与权益，或切换并获按比例退款，暂无强制迁移时间表。Free 含 Grok 每日访问与 Cursor 编程 Agent 入门额度；Premium 及以上仍可在 Cursor 用第三方模型，按 API 牌价经预充值另付。"
+    },
+    {
+      "id": "xai-x-subscription-pricing-20261013",
+      "url": "https://docs.x.ai/x-subscription/pricing",
+      "evidence": "官方定价文档（2026-10-11 更新）：个人档 Free $0、Plus $8/月或 $80/年（官方标 $7/月）、Premium $30/月或 $300/年（$25/月）、Super $100/月或 $1000/年（$84/月）、Ultra $200/月或 $2000/年（$167/月）；额度以 Plus 为基准，Premium 4x、Super 15x、Ultra 50x。Premium 及以上含 Grok Bot，Plus 不含。共享用量池覆盖 Grok Bot 与 Grok、Cursor 中的 Grok 模型；Cursor 第三方模型不在池内，从首次调用起用预充值额度计费。团队档 Premium/Super/Ultra 每席 $30/$100/$200，每席额度与个人同档相同，可混搭席位档，Plus 不提供团队档。标价不含销售税。"
+    },
+    {
+      "id": "xai-x-subscription-usage-20261013",
+      "url": "https://docs.x.ai/x-subscription/usage-limits",
+      "evidence": "官方用量说明（2026-10-11 更新）：每个付费席位每周获得第一方用量池，Grok 与 Cursor 共用、不拆分产品配额；团队自助档每席独立周池、席间不共享，团队共享预充值余额；Enterprise 按合同。第三方模型不在周池内，作为额外用量付费。"
+    },
+    {
+      "id": "xai-x-subscription-overview-20261013",
+      "url": "https://docs.x.ai/x-subscription/overview",
+      "evidence": "官方说明（2026-10-12 更新）：新客户（含仅有免费 X 账户者）从 The X Subscription 开始；现有 Cursor 客户仍可在当前 Cursor 套餐之间升降级而不切换（App Store 计费除外），现有团队仍可加席或调整席位档。无 Grok 账户的 Cursor Enterprise 客户可经客户团队切换，其余 Enterprise 暂不能切换。切换不可撤销。"
+    },
+    {
+      "id": "xai-cursor-token-rate-20261013",
+      "url": "https://docs.x.ai/x-subscription/cursor-token-rate",
+      "evidence": "官方说明：团队档对第三方模型请求另收 Cursor Token Rate $0.25/百万 tokens（叠加模型 API 价），Grok 与 Composer 等第一方模型免收，个人档不收。"
+    },
+    {
+      "id": "tools-cursor-pricing-20261013",
+      "url": "https://cursor.com/pricing",
+      "evidence": "2026-10-13 读取 Cursor 定价页：个人档改为 Free $0、Plus $8、Premium $30、Super $100、Ultra $200（每月），Plus 仅可用 Grok 模型，Premium 起含云端 Agent、Bugbot 代码审查与按 API 牌价付费的第三方模型；Teams $30 起每用户每月，Enterprise 定制。原 Pro $20、Pro Plus $60、Ultra $200 与 Teams $40/$120 已不在定价页展示。"
+    },
+    {
+      "id": "tools-github-models-20261013",
+      "url": "https://docs.github.com/en/copilot/get-started/plans",
+      "evidence": "计划页（2026-10-13）：Pro $10（1,500 credits）、Pro+ $39（7,000）、Max $100（20,000），Business $19、Enterprise $39 每授予席位。Pro 可用 Claude Haiku 4.5/5.5、Sonnet 4.6/5/5.5，Gemini 3.7–3.8 Flash，GPT-5 mini、GPT-5.3-Codex、GPT-5.4/5.4 mini、GPT-5.6 Luna/Terra、GPT-6 Luna，Grok 4.5–4.7，Kimi K3，MAI-Code-1.1-Flash；Pro+ 与 Max 另含 Claude Opus 4.8/5/5.5、Fable 5/5.1、GPT-5.5、GPT-5.6 Sol、GPT-6 Astra/Sol、GPT-6.1 Sol（Max 表中不含 Sonnet 4.6）。模型表已无 Gemini 3.5/3.6 Flash、Kimi K2.7 Code 与 Claude Opus 4.7。"
+    },
+    {
+      "id": "tools-github-retirements-20261013",
+      "url": "https://github.blog/changelog/2026-10-02-selected-models-in-github-copilot-deprecated",
+      "evidence": "官方更新日志：2026-10-02 起在全部 Copilot 体验中弃用 Gemini 3.5 Flash、Gemini 3.6 Flash、Kimi K2.7 Code 与 Claude Opus 4.7，建议改用 Gemini 3.8 Flash、Kimi K3 与 Claude Opus 5.5。"
+    },
+    {
+      "id": "tools-github-code-review-billing-20261013",
+      "url": "https://github.blog/changelog/2026-10-08-copilot-code-review-new-organization-billing-options-and-controls",
+      "evidence": "官方更新日志（2026-10-08）：Copilot 代码审查默认计入发起成员自身额度，额度耗尽则审查失败；组织所有者可改为计入仓库所属组织，须为组织启用 AI Credits 付费用量并可设预算；也可只允许组织或企业发放的许可证发起审查。"
+    },
+    {
+      "id": "claude-plans-20261013",
+      "url": "https://claude.com/pricing",
+      "evidence": "定价页（2026-10-13）：Pro 年付 $17/月（$200 预付）、月付 $20；Max 从 $100/月起，含 $100–$200/月 API 赠额；Team 标准席 $20（年付）/$25（月付）、Premium 席 $100/$125，含最高 $500/月共享 API 赠额；Enterprise 年付 $20/席/月。"
+    },
+    {
+      "id": "claude-api-credits-20261013",
+      "url": "https://support.claude.com/en/articles/17154008-monthly-api-credits-for-max-and-team-plans",
+      "evidence": "帮助中心：Max 5x 每月 $100、Max 20x 每月 $200 Claude Platform API 赠额；Team 标准席位每席 $20、Premium 席位每席 $100，全团队合并封顶 $500/月；Free、Pro、Enterprise 不适用。赠额用于 Claude API、Batches、Managed Agents 与 Agent SDK，不用于交互式 Claude Code 或超额用量，月底不结转，新订阅满 7 天后可领取。"
+    },
+    {
+      "id": "claude-api-20261013",
+      "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+      "evidence": "定价页（2026-10-13）：Sonnet 5.5 输入 $2、输出 $10、缓存命中 $0.10（2026-10-07 起为输入价 0.05 倍，原 $0.20）；Haiku 5.5 提示不超过 100K tokens 时输入 $0.10、缓存命中 $0.01、输出 $0.50，超过 100K 的请求整次按 $0.50 / $0.05 / $2.50 计；Opus 5.5 $4/$20、缓存命中 $0.20 不变。"
+    }
+  ],
+  "records": [
+    {
+      "kind": "plan",
+      "id": "plan-0213",
+      "vendor": "xAI",
+      "name": "X Subscription Free",
+      "status": "verified",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-pricing-20261013",
+        "xai-x-subscription-usage-20261013",
+        "tools-cursor-pricing-20261013"
+      ],
+      "reason": "官方公告与定价文档：新用户免费档为 X Subscription Free，含 Grok 每日访问与 Cursor 编程 Agent 入门额度，额度为 Limited，未公布具体数值。",
+      "new": {
+        "id": "plan-0213",
+        "vendor": "xAI",
+        "plan": "X Subscription Free",
+        "cat": "official",
+        "region": "intl",
+        "priceM": 0,
+        "priceY": 0,
+        "cur": "USD",
+        "seat": false,
+        "codingSurface": true,
+        "ownClient": true,
+        "quota": "有限额度：Grok 每日访问（Chat/Imagine/Voice/Build 受限）与 Cursor 编程 Agent 入门额度；无 Grok Bot 与云端 Agent",
+        "models": "Grok 4.5–4.7 等第一方模型（受限）",
+        "tools": "Cursor IDE（Agent 受限）、Grok Build（受限）、grok.com、X app",
+        "note": "2026-10-12 起取代 Grok Free 与 Cursor Hobby，作为新用户的免费档；含标准 X 账户功能",
+        "url": "https://docs.x.ai/x-subscription/pricing"
+      },
+      "patch": {},
+      "current": {
+        "vendor": "xAI",
+        "plan": "X Subscription Free",
+        "priceM": 0,
+        "priceY": 0,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0214",
+      "vendor": "xAI",
+      "name": "X Subscription Plus",
+      "status": "verified",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-pricing-20261013",
+        "xai-x-subscription-usage-20261013",
+        "tools-cursor-pricing-20261013"
+      ],
+      "reason": "官方定价文档：月付 $8、年付 $80；额度为基准档，仅 Grok 模型，不含 Grok Bot。",
+      "new": {
+        "id": "plan-0214",
+        "vendor": "xAI",
+        "plan": "X Subscription Plus",
+        "cat": "official",
+        "region": "intl",
+        "priceM": 8,
+        "priceY": 6.67,
+        "annualTotal": 80,
+        "cur": "USD",
+        "seat": false,
+        "windowPeriod": "week",
+        "quotaSharing": "shared",
+        "codingSurface": true,
+        "ownClient": true,
+        "quota": "基准额度（Base）：Grok 与 Cursor 共享每周第一方用量池；用尽后可预充值续用或等每周刷新",
+        "models": "仅 Grok 模型（Grok 4.5–4.7）；不提供第三方模型",
+        "tools": "Cursor IDE / CLI、Grok Build、Grok Chat/Voice/Imagine、Grok API、grok.com、X app",
+        "note": "2026-10-12 推出；年付 $80（官方标 $7/月）；不含 Grok Bot、云端 Agent 与 Bugbot；X 认证标记等权益需关联个人 X 账户；标价不含税",
+        "url": "https://docs.x.ai/x-subscription/pricing"
+      },
+      "patch": {},
+      "current": {
+        "vendor": "xAI",
+        "plan": "X Subscription Plus",
+        "priceM": 8,
+        "priceY": 6.67,
+        "annualTotal": 80,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0215",
+      "vendor": "xAI",
+      "name": "X Subscription Premium",
+      "status": "verified",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-pricing-20261013",
+        "xai-x-subscription-usage-20261013",
+        "tools-cursor-pricing-20261013"
+      ],
+      "reason": "官方定价文档：月付 $30、年付 $300；4× Plus 共享周池，含 Grok Bot；Cursor 第三方模型从首次调用起按 API 牌价另付。",
+      "new": {
+        "id": "plan-0215",
+        "vendor": "xAI",
+        "plan": "X Subscription Premium",
+        "cat": "official",
+        "region": "intl",
+        "priceM": 30,
+        "priceY": 25,
+        "annualTotal": 300,
+        "cur": "USD",
+        "seat": false,
+        "windowPeriod": "week",
+        "quotaSharing": "shared",
+        "codingSurface": true,
+        "ownClient": true,
+        "quota": "4× Plus：Grok 与 Cursor 共享每周第一方用量池（含 Grok Bot）；用尽后可预充值续用或等每周刷新",
+        "models": "Grok 4.5–4.7、Composer 2.5（每周共享池）；Claude Opus 5.5 / Sonnet 5.5、GPT-6、Gemini 3.8 Flash 等第三方模型在 Cursor 中按量另付（API 牌价，预充值，首次调用起计费）",
+        "tools": "Cursor IDE / CLI / 云端 Agent 与自动化、Bugbot 代码审查、Grok Build、Grok Bot、grok.com、X app",
+        "note": "2026-10-12 推出，官方称含原 SuperGrok、Cursor Pro 与 X Premium+ 权益（原合计 $90/月）；年付 $300（官方标 $25/月）；第三方模型没有赠额；标价不含税",
+        "url": "https://docs.x.ai/x-subscription/pricing"
+      },
+      "patch": {},
+      "current": {
+        "vendor": "xAI",
+        "plan": "X Subscription Premium",
+        "priceM": 30,
+        "priceY": 25,
+        "annualTotal": 300,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0216",
+      "vendor": "xAI",
+      "name": "X Subscription Super",
+      "status": "verified",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-pricing-20261013",
+        "xai-x-subscription-usage-20261013",
+        "tools-cursor-pricing-20261013"
+      ],
+      "reason": "官方定价文档：月付 $100、年付 $1000；15× Plus 共享周池，高峰优先。",
+      "new": {
+        "id": "plan-0216",
+        "fieldRefs": {
+          "models": "plan-0215",
+          "tools": "plan-0215"
+        },
+        "vendor": "xAI",
+        "plan": "X Subscription Super",
+        "cat": "official",
+        "region": "intl",
+        "priceM": 100,
+        "priceY": 83.33,
+        "annualTotal": 1000,
+        "cur": "USD",
+        "seat": false,
+        "windowPeriod": "week",
+        "quotaSharing": "shared",
+        "codingSurface": true,
+        "ownClient": true,
+        "quota": "15× Plus：Grok 与 Cursor 共享每周第一方用量池（含 Grok Bot）；高峰时段优先访问模型；用尽后可预充值续用",
+        "models": "同 Premium",
+        "tools": "同 Premium",
+        "note": "2026-10-12 推出；年付 $1000（官方标 $84/月）；第三方模型按量另付；标价不含税",
+        "url": "https://docs.x.ai/x-subscription/pricing"
+      },
+      "patch": {},
+      "current": {
+        "vendor": "xAI",
+        "plan": "X Subscription Super",
+        "priceM": 100,
+        "priceY": 83.33,
+        "annualTotal": 1000,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0217",
+      "vendor": "xAI",
+      "name": "X Subscription Ultra",
+      "status": "verified",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-pricing-20261013",
+        "xai-x-subscription-usage-20261013",
+        "tools-cursor-pricing-20261013"
+      ],
+      "reason": "官方定价文档：月付 $200、年付 $2000；50× Plus 共享周池。",
+      "new": {
+        "id": "plan-0217",
+        "fieldRefs": {
+          "models": "plan-0215",
+          "tools": "plan-0215"
+        },
+        "vendor": "xAI",
+        "plan": "X Subscription Ultra",
+        "cat": "official",
+        "region": "intl",
+        "priceM": 200,
+        "priceY": 166.67,
+        "annualTotal": 2000,
+        "cur": "USD",
+        "seat": false,
+        "windowPeriod": "week",
+        "quotaSharing": "shared",
+        "codingSurface": true,
+        "ownClient": true,
+        "quota": "50× Plus：Grok 与 Cursor 共享每周第一方用量池（含 Grok Bot）；高峰优先，最早体验新产品与模型；用尽后可预充值续用",
+        "models": "同 Premium",
+        "tools": "同 Premium",
+        "note": "2026-10-12 推出；年付 $2000（官方标 $167/月）；第三方模型按量另付；标价不含税",
+        "url": "https://docs.x.ai/x-subscription/pricing"
+      },
+      "patch": {},
+      "current": {
+        "vendor": "xAI",
+        "plan": "X Subscription Ultra",
+        "priceM": 200,
+        "priceY": 166.67,
+        "annualTotal": 2000,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0218",
+      "vendor": "xAI",
+      "name": "X Subscription Teams（Premium 席位）",
+      "status": "verified",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-pricing-20261013",
+        "xai-x-subscription-usage-20261013",
+        "tools-cursor-pricing-20261013",
+        "xai-cursor-token-rate-20261013"
+      ],
+      "reason": "官方定价文档：团队 Premium 席位 $30/席/月，额度同个人 Premium；团队档对第三方模型另收 $0.25/百万 tokens。",
+      "new": {
+        "id": "plan-0218",
+        "fieldRefs": {
+          "models": "plan-0215",
+          "tools": "plan-0215"
+        },
+        "vendor": "xAI",
+        "plan": "X Subscription Teams（Premium 席位）",
+        "cat": "team",
+        "region": "intl",
+        "priceM": 30,
+        "priceY": null,
+        "cur": "USD",
+        "seat": true,
+        "windowPeriod": "week",
+        "quotaSharing": "shared",
+        "codingSurface": true,
+        "ownClient": true,
+        "quota": "每席额度同个人 Premium（4× Plus），每席独立周池、席间不共享；团队共享预充值余额",
+        "models": "同个人 Premium",
+        "tools": "同个人 Premium，另含 SAML/OIDC SSO、集中计费与用量分析、团队隐私设置",
+        "note": "2026-10-12 推出；按席月付，团队年付价未公开；第三方模型请求另加 Cursor Token Rate $0.25/百万 tokens（Grok、Composer 等第一方模型免收）；席位档可混搭；标价不含税",
+        "url": "https://docs.x.ai/x-subscription/pricing"
+      },
+      "patch": {},
+      "current": {
+        "vendor": "xAI",
+        "plan": "X Subscription Teams（Premium 席位）",
+        "priceM": 30,
+        "priceY": null,
+        "cur": "USD",
+        "seat": true
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0219",
+      "vendor": "xAI",
+      "name": "X Subscription Teams（Super 席位）",
+      "status": "verified",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-pricing-20261013",
+        "xai-x-subscription-usage-20261013",
+        "tools-cursor-pricing-20261013",
+        "xai-cursor-token-rate-20261013"
+      ],
+      "reason": "官方定价文档：团队 Super 席位 $100/席/月，额度同个人 Super。",
+      "new": {
+        "id": "plan-0219",
+        "fieldRefs": {
+          "models": "plan-0215",
+          "tools": "plan-0215"
+        },
+        "vendor": "xAI",
+        "plan": "X Subscription Teams（Super 席位）",
+        "cat": "team",
+        "region": "intl",
+        "priceM": 100,
+        "priceY": null,
+        "cur": "USD",
+        "seat": true,
+        "windowPeriod": "week",
+        "quotaSharing": "shared",
+        "codingSurface": true,
+        "ownClient": true,
+        "quota": "每席额度同个人 Super（15× Plus），每席独立周池、席间不共享；高峰优先；团队共享预充值余额",
+        "models": "同个人 Premium",
+        "tools": "同个人 Premium，另含 SAML/OIDC SSO、集中计费与用量分析、团队隐私设置",
+        "note": "2026-10-12 推出；按席月付，团队年付价未公开；第三方模型请求另加 Cursor Token Rate $0.25/百万 tokens（Grok、Composer 等第一方模型免收）；席位档可混搭；标价不含税",
+        "url": "https://docs.x.ai/x-subscription/pricing"
+      },
+      "patch": {},
+      "current": {
+        "vendor": "xAI",
+        "plan": "X Subscription Teams（Super 席位）",
+        "priceM": 100,
+        "priceY": null,
+        "cur": "USD",
+        "seat": true
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0220",
+      "vendor": "xAI",
+      "name": "X Subscription Teams（Ultra 席位）",
+      "status": "verified",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-pricing-20261013",
+        "xai-x-subscription-usage-20261013",
+        "tools-cursor-pricing-20261013",
+        "xai-cursor-token-rate-20261013"
+      ],
+      "reason": "官方定价文档：团队 Ultra 席位 $200/席/月，额度同个人 Ultra。",
+      "new": {
+        "id": "plan-0220",
+        "fieldRefs": {
+          "models": "plan-0215",
+          "tools": "plan-0215"
+        },
+        "vendor": "xAI",
+        "plan": "X Subscription Teams（Ultra 席位）",
+        "cat": "team",
+        "region": "intl",
+        "priceM": 200,
+        "priceY": null,
+        "cur": "USD",
+        "seat": true,
+        "windowPeriod": "week",
+        "quotaSharing": "shared",
+        "codingSurface": true,
+        "ownClient": true,
+        "quota": "每席额度同个人 Ultra（50× Plus），每席独立周池、席间不共享；团队共享预充值余额",
+        "models": "同个人 Premium",
+        "tools": "同个人 Premium，另含 SAML/OIDC SSO、集中计费与用量分析、团队隐私设置",
+        "note": "2026-10-12 推出；按席月付，团队年付价未公开；第三方模型请求另加 Cursor Token Rate $0.25/百万 tokens（Grok、Composer 等第一方模型免收）；席位档可混搭；标价不含税",
+        "url": "https://docs.x.ai/x-subscription/pricing"
+      },
+      "patch": {},
+      "current": {
+        "vendor": "xAI",
+        "plan": "X Subscription Teams（Ultra 席位）",
+        "priceM": 200,
+        "priceY": null,
+        "cur": "USD",
+        "seat": true
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0023",
+      "vendor": "xAI",
+      "name": "Grok Free",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-overview-20261013",
+        "xai-x-subscription-pricing-20261013"
+      ],
+      "reason": "官方公告：新用户的免费档改为 X Subscription Free（含 Cursor 编程 Agent 入门额度），本条作为同一免费档的旧入口指向新条目，不再单独展示。",
+      "patch": {
+        "sameAs": "plan-0213",
+        "note": "已并入 X Subscription Free（见该条），本条不列入免费 Coding 入口"
+      },
+      "old": {
+        "sameAs": null,
+        "note": "仅网页/X 对话。Grok Build 需 SuperGrok 或 X Premium+，不列入免费 Coding 入口"
+      },
+      "current": {
+        "vendor": "xAI",
+        "plan": "Grok Free",
+        "priceM": 0,
+        "priceY": 0,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0024",
+      "vendor": "xAI",
+      "name": "SuperGrok Lite",
+      "status": "unverified",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-overview-20261013"
+      ],
+      "reason": "官方 10-12 公告：原 SuperGrok 套餐不再接受新注册，现有用户可保留；本档历史价仍无官方公开金额，继续待核。",
+      "patch": {},
+      "current": {
+        "vendor": "xAI",
+        "plan": "SuperGrok Lite",
+        "priceM": 10,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0025",
+      "vendor": "xAI",
+      "name": "SuperGrok",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-overview-20261013"
+      ],
+      "reason": "官方 10-12 公告：原 SuperGrok 套餐不再接受新注册，现有用户可保留原价与权益；新用户改购 X Subscription。月价 $30 为原有核实值。",
+      "patch": {
+        "plan": "SuperGrok（老用户续费）",
+        "renewalOnly": true,
+        "note": "2026-10-12 起不再接受新注册，现有用户可保留原价与权益或切换；新用户改购 X Subscription（Premium $30 含原 SuperGrok 权益）"
+      },
+      "old": {
+        "plan": "SuperGrok",
+        "renewalOnly": null,
+        "note": "官方公开月价已核实；未列公开年费，登录结账页核对地区及税费"
+      },
+      "current": {
+        "vendor": "xAI",
+        "plan": "SuperGrok（老用户续费）",
+        "priceM": 30,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0026",
+      "vendor": "xAI",
+      "name": "SuperGrok Plus",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-overview-20261013"
+      ],
+      "reason": "官方 10-12 公告：原 SuperGrok 套餐不再接受新注册，现有用户可保留原价与权益；新用户改购 X Subscription。月价 $100 为原有核实值。",
+      "patch": {
+        "plan": "SuperGrok Plus（老用户续费）",
+        "renewalOnly": true,
+        "note": "2026-10-12 起不再接受新注册，现有用户可保留原价与权益或切换；新用户改购 X Subscription"
+      },
+      "old": {
+        "plan": "SuperGrok Plus",
+        "renewalOnly": null,
+        "note": "官方公开月价已核实；未列公开年费，登录结账页核对地区及税费"
+      },
+      "current": {
+        "vendor": "xAI",
+        "plan": "SuperGrok Plus（老用户续费）",
+        "priceM": 100,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0027",
+      "vendor": "xAI",
+      "name": "SuperGrok Heavy",
+      "status": "unverified",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-overview-20261013"
+      ],
+      "reason": "官方 10-12 公告：原 SuperGrok 套餐不再接受新注册，现有用户可保留；本档历史价仍无官方公开金额，继续待核。",
+      "patch": {},
+      "current": {
+        "vendor": "xAI",
+        "plan": "SuperGrok Heavy",
+        "priceM": 300,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0096",
+      "vendor": "Cursor",
+      "name": "Hobby",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-overview-20261013",
+        "tools-cursor-pricing-20261013"
+      ],
+      "reason": "Cursor 定价页的免费档改为 X Subscription Free；本条作为同一免费档的旧入口指向新条目，不再单独展示。",
+      "patch": {
+        "sameAs": "plan-0213",
+        "note": "已并入 X Subscription Free（Cursor 编程 Agent 入门额度），见该条"
+      },
+      "old": {
+        "sameAs": null,
+        "note": "免费档"
+      },
+      "current": {
+        "vendor": "Cursor",
+        "plan": "Hobby",
+        "priceM": 0,
+        "priceY": 0,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0098",
+      "vendor": "Cursor",
+      "name": "Pro",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-overview-20261013",
+        "tools-cursor-pricing-20261013"
+      ],
+      "reason": "定价页已改为 X Subscription；官方说明原 Cursor 套餐不再接受新注册，现有用户可保留并在旧档间升降级。月付 $20、年付折月 $16 为原有核实值。",
+      "patch": {
+        "plan": "Pro（老用户续费）",
+        "renewalOnly": true,
+        "note": "2026-10-12 起不再接受新注册；现有用户可保留双池额度与原价，并可在旧档之间升降级。新用户改购 X Subscription（第三方模型改为按量另付）"
+      },
+      "old": {
+        "plan": "Pro",
+        "renewalOnly": null,
+        "note": "官方估算日常 Agent 用户月耗 $60–100；年付省 20%"
+      },
+      "current": {
+        "vendor": "Cursor",
+        "plan": "Pro（老用户续费）",
+        "priceM": 20,
+        "priceY": 16,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0099",
+      "vendor": "Cursor",
+      "name": "Pro Plus",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-overview-20261013",
+        "tools-cursor-pricing-20261013"
+      ],
+      "reason": "定价页已改为 X Subscription；原 Cursor 套餐不再接受新注册，现有用户可保留。月付 $60、年付折月 $48 为原有核实值。",
+      "patch": {
+        "plan": "Pro Plus（老用户续费）",
+        "renewalOnly": true,
+        "note": "2026-10-12 起不再接受新注册；现有用户可保留双池额度与原价，并可在旧档之间升降级。新用户改购 X Subscription（第三方模型改为按量另付）"
+      },
+      "old": {
+        "plan": "Pro Plus",
+        "renewalOnly": null,
+        "note": "年付省 20%"
+      },
+      "current": {
+        "vendor": "Cursor",
+        "plan": "Pro Plus（老用户续费）",
+        "priceM": 60,
+        "priceY": 48,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0100",
+      "vendor": "Cursor",
+      "name": "Ultra",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-overview-20261013",
+        "tools-cursor-pricing-20261013"
+      ],
+      "reason": "定价页已改为 X Subscription；原 Cursor 套餐不再接受新注册，现有用户可保留。月付 $200、年付折月 $160 为原有核实值。",
+      "patch": {
+        "plan": "Ultra（老用户续费）",
+        "renewalOnly": true,
+        "note": "2026-10-12 起不再接受新注册；现有用户可保留双池额度与原价，并可在旧档之间升降级。新用户改购 X Subscription（第三方模型改为按量另付）"
+      },
+      "old": {
+        "plan": "Ultra",
+        "renewalOnly": null,
+        "note": "年付省 20%"
+      },
+      "current": {
+        "vendor": "Cursor",
+        "plan": "Ultra（老用户续费）",
+        "priceM": 200,
+        "priceY": 160,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0101",
+      "vendor": "Cursor",
+      "name": "Teams（Standard 席位）",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-overview-20261013",
+        "tools-cursor-pricing-20261013"
+      ],
+      "reason": "定价页团队档已改为 X Subscription（$30 起每席）；官方说明现有团队仍可加席或调整席位档。$40 与年付折月 $32 为原有核实值。",
+      "patch": {
+        "plan": "Teams（Standard 席位，老用户续费）",
+        "renewalOnly": true,
+        "note": "2026-10-12 起不再接受新团队注册；现有团队仍可加席或调整席位档。第三方模型加收 $0.25/M token（含 BYOK）。新团队改用 X Subscription 团队档"
+      },
+      "old": {
+        "plan": "Teams（Standard 席位）",
+        "renewalOnly": null,
+        "note": "第三方模型加收 $0.25/M token（含 BYOK）"
+      },
+      "current": {
+        "vendor": "Cursor",
+        "plan": "Teams（Standard 席位，老用户续费）",
+        "priceM": 40,
+        "priceY": 32,
+        "cur": "USD",
+        "seat": true
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0102",
+      "vendor": "Cursor",
+      "name": "Teams（Premium 席位）",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-overview-20261013",
+        "tools-cursor-pricing-20261013"
+      ],
+      "reason": "定价页团队档已改为 X Subscription；现有团队仍可加席或调整席位档。$120 与年付折月 $96 为原有核实值。",
+      "patch": {
+        "plan": "Teams（Premium 席位，老用户续费）",
+        "renewalOnly": true,
+        "note": "2026-10-12 起不再接受新团队注册；现有团队仍可加席或调整席位档。第三方模型加收 $0.25/M token（含 BYOK）。新团队改用 X Subscription 团队档"
+      },
+      "old": {
+        "plan": "Teams（Premium 席位）",
+        "renewalOnly": null,
+        "note": "2026 新席位类型"
+      },
+      "current": {
+        "vendor": "Cursor",
+        "plan": "Teams（Premium 席位，老用户续费）",
+        "priceM": 120,
+        "priceY": 96,
+        "cur": "USD",
+        "seat": true
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0103",
+      "vendor": "Cursor",
+      "name": "Enterprise",
+      "status": "custom",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "xai-x-subscription-launch-20261013",
+        "xai-x-subscription-overview-20261013",
+        "tools-cursor-pricing-20261013"
+      ],
+      "reason": "Enterprise 仍为定制报价；官方说明 Enterprise 可在一处管理 Grok 与 Cursor 并共用用量池，无 Grok 账户的现有 Cursor Enterprise 客户可经客户团队切换。",
+      "patch": {
+        "note": "联系销售；2026-10-12 起 Enterprise 可在一处管理 Grok 与 Cursor 并共用用量池，无 Grok 账户的现有客户可经客户团队切换"
+      },
+      "old": {
+        "note": "联系销售"
+      },
+      "current": {
+        "vendor": "Cursor",
+        "plan": "Enterprise",
+        "priceM": null,
+        "priceY": null,
+        "cur": "USD",
+        "seat": true
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0090",
+      "vendor": "GitHub Copilot",
+      "name": "Free",
+      "status": "verified",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "tools-github-models-20261013"
+      ],
+      "reason": "计划页核对：免费档仅自动模型选择并含少量 AI credits，价格不变。",
+      "patch": {},
+      "current": {
+        "vendor": "GitHub Copilot",
+        "plan": "Free",
+        "priceM": 0,
+        "priceY": 0,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0091",
+      "vendor": "GitHub Copilot",
+      "name": "Pro",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "tools-github-models-20261013",
+        "tools-github-retirements-20261013"
+      ],
+      "reason": "月价 $10 与 1,500 credits 不变；按计划页现行模型表更新可用模型：移除 10-02 弃用的 Gemini 3.5/3.6 Flash 与 Kimi K2.7 Code，补列 Claude Haiku 4.5/5.5、GPT-5 mini、GPT-5.4/5.4 mini 与 MAI-Code-1.1-Flash。",
+      "patch": {
+        "models": "Claude Haiku 4.5/5.5、Sonnet 4.6/5/5.5，Gemini 3.7–3.8 Flash，GPT-5 mini、GPT-5.3-Codex、GPT-5.4/5.4 mini、GPT-5.6 Luna/Terra、GPT-6 Luna，Kimi K3，Grok 4.5–4.7，MAI-Code-1.1-Flash 等（不含旗舰）"
+      },
+      "old": {
+        "models": "Claude Sonnet 4.6/5/5.5、Gemini 3.5–3.8 Flash、GPT-5.3-Codex、GPT-5.6 Luna/Terra、GPT-6 Luna、Kimi K3、Grok 4.5–4.7 等（不含旗舰）"
+      },
+      "current": {
+        "vendor": "GitHub Copilot",
+        "plan": "Pro",
+        "priceM": 10,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0092",
+      "vendor": "GitHub Copilot",
+      "name": "Pro+",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "tools-github-models-20261013",
+        "tools-github-retirements-20261013"
+      ],
+      "reason": "月价 $39 与 7,000 credits 不变；Claude Opus 4.7 已于 10-02 弃用，旗舰列表改为计划页现行的 Opus 4.8/5/5.5、Fable 5/5.1、GPT-5.6 Sol、GPT-6 Astra/Sol 与 GPT-6.1 Sol。",
+      "patch": {
+        "modelIncludes": [
+          "Claude Opus 4.8/5/5.5",
+          "Fable 5/5.1",
+          "GPT-5.6 Sol",
+          "GPT-6 Astra/Sol",
+          "GPT-6.1 Sol"
+        ],
+        "models": "Pro 全部 + Claude Opus 4.8/5/5.5、Fable 5/5.1、GPT-5.6 Sol、GPT-6 Astra/Sol、GPT-6.1 Sol 等旗舰"
+      },
+      "old": {
+        "modelIncludes": [
+          "Claude Opus 4.7–5.5",
+          "Fable 5/5.1",
+          "GPT-6 Astra/Sol",
+          "GPT-6.1 Sol"
+        ],
+        "models": "Pro 全部 + Claude Opus 4.7–5.5、Fable 5/5.1、GPT-6 Astra/Sol、GPT-6.1 Sol 等旗舰"
+      },
+      "current": {
+        "vendor": "GitHub Copilot",
+        "plan": "Pro+",
+        "priceM": 39,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0093",
+      "vendor": "GitHub Copilot",
+      "name": "Max",
+      "status": "verified",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "tools-github-models-20261013"
+      ],
+      "reason": "月价 $100 与 20,000 credits 不变；模型沿用 Pro+ 同级模型池（计划页 Max 列未含 Sonnet 4.6）。",
+      "patch": {},
+      "current": {
+        "vendor": "GitHub Copilot",
+        "plan": "Max",
+        "priceM": 100,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0094",
+      "vendor": "GitHub Copilot",
+      "name": "Business",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "tools-github-models-20261013",
+        "tools-github-code-review-billing-20261013"
+      ],
+      "reason": "席位价 $19 与 1,900 credits/席不变；补充 10-08 代码审查计费选项：默认扣成员额度，组织可改为计入仓库所属组织。",
+      "patch": {
+        "note": "按授予席位计费；Copilot 代码审查默认扣发起成员的额度，组织可改为计入仓库所属组织（须启用 AI Credits 付费用量）"
+      },
+      "old": {
+        "note": "按授予席位计费"
+      },
+      "current": {
+        "vendor": "GitHub Copilot",
+        "plan": "Business",
+        "priceM": 19,
+        "priceY": null,
+        "cur": "USD",
+        "seat": true
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0095",
+      "vendor": "GitHub Copilot",
+      "name": "Enterprise",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "tools-github-models-20261013",
+        "tools-github-code-review-billing-20261013"
+      ],
+      "reason": "席位价 $39 与 3,900 credits/席不变；补充 10-08 代码审查计费选项。",
+      "patch": {
+        "note": "Copilot 代码审查默认扣发起成员的额度，组织可改为计入仓库所属组织（须启用 AI Credits 付费用量）"
+      },
+      "old": {
+        "note": ""
+      },
+      "current": {
+        "vendor": "GitHub Copilot",
+        "plan": "Enterprise",
+        "priceM": 39,
+        "priceY": null,
+        "cur": "USD",
+        "seat": true
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0002",
+      "vendor": "Anthropic",
+      "name": "Claude Pro",
+      "status": "verified",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "claude-plans-20261013"
+      ],
+      "reason": "定价页核对年付 $200（折 $16.67/月）与月付 $20 不变；Pro 不含 Max/Team 的月度 API 赠额。",
+      "patch": {},
+      "current": {
+        "vendor": "Anthropic",
+        "plan": "Claude Pro",
+        "priceM": 20,
+        "priceY": 16.67,
+        "annualTotal": 200,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0003",
+      "vendor": "Anthropic",
+      "name": "Claude Max 5x",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "claude-plans-20261013",
+        "claude-api-credits-20261013"
+      ],
+      "reason": "月价 $100 不变；补充 10-07 起逐步开放的每月 $100 Claude Platform API 赠额。",
+      "patch": {
+        "quota": "5× Pro 用量/5h + 每周上限；另含每月 $100 Claude Platform API 赠额（不用于交互式 Claude Code，不结转）"
+      },
+      "old": {
+        "quota": "5× Pro 用量/5h + 每周上限"
+      },
+      "current": {
+        "vendor": "Anthropic",
+        "plan": "Claude Max 5x",
+        "priceM": 100,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0004",
+      "vendor": "Anthropic",
+      "name": "Claude Max 20x",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "claude-plans-20261013",
+        "claude-api-credits-20261013"
+      ],
+      "reason": "月价 $200 不变；补充每月 $200 Claude Platform API 赠额。",
+      "patch": {
+        "quota": "20× Pro 用量/5h + 每周上限；另含每月 $200 Claude Platform API 赠额（不用于交互式 Claude Code，不结转）"
+      },
+      "old": {
+        "quota": "20× Pro 用量/5h + 每周上限"
+      },
+      "current": {
+        "vendor": "Anthropic",
+        "plan": "Claude Max 20x",
+        "priceM": 200,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0005",
+      "vendor": "Anthropic",
+      "name": "Claude Team（标准席位）",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "claude-plans-20261013",
+        "claude-api-credits-20261013"
+      ],
+      "reason": "标准席 $25（年付 $20）不变；补充每席 $20/月 API 赠额，全团队合并封顶 $500/月。",
+      "patch": {
+        "quota": "2–150 席；含 Claude Code；标准席位用量；每席另含 $20/月 Claude Platform API 赠额，全团队合并封顶 $500/月"
+      },
+      "old": {
+        "quota": "2–150 席；含 Claude Code；标准席位用量"
+      },
+      "current": {
+        "vendor": "Anthropic",
+        "plan": "Claude Team（标准席位）",
+        "priceM": 25,
+        "priceY": 20,
+        "cur": "USD",
+        "seat": true
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0006",
+      "vendor": "Anthropic",
+      "name": "Claude Team（Premium 席位）",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "claude-plans-20261013",
+        "claude-api-credits-20261013"
+      ],
+      "reason": "Premium 席 $125（年付 $100）不变；补充每席 $100/月 API 赠额（与标准席位合并计入团队池）。",
+      "patch": {
+        "quota": "5× 标准席位用量；每席另含 $100/月 Claude Platform API 赠额（与标准席位合并计入团队池，封顶 $500/月）"
+      },
+      "old": {
+        "quota": "5× 标准席位用量"
+      },
+      "current": {
+        "vendor": "Anthropic",
+        "plan": "Claude Team（Premium 席位）",
+        "priceM": 125,
+        "priceY": 100,
+        "cur": "USD",
+        "seat": true
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0007",
+      "vendor": "Anthropic",
+      "name": "Claude Enterprise",
+      "status": "verified",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "claude-plans-20261013"
+      ],
+      "reason": "年付 $20/席/月不变；Enterprise 不适用 Max/Team 的月度 API 赠额。",
+      "patch": {},
+      "current": {
+        "vendor": "Anthropic",
+        "plan": "Claude Enterprise",
+        "priceM": null,
+        "priceY": 20,
+        "cur": "USD",
+        "seat": true
+      }
+    },
+    {
+      "kind": "api",
+      "id": "Anthropic|Claude Sonnet 5.5",
+      "vendor": "Anthropic",
+      "name": "Claude Sonnet 5.5",
+      "status": "changed",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "claude-api-20261013"
+      ],
+      "reason": "输入 $2、输出 $10 不变；缓存命中自 2026-10-07 起由 $0.20 降至 $0.10。",
+      "patch": {
+        "apiCache": 0.1,
+        "note": "2026-09-28 上线，输入输出与 Sonnet 5 持平；2026-10-07 起缓存读 $0.10（原 $0.20）；缓存写 5min $2.50 / 1h $4；Batch $1/$5；订阅页模型列表仍统称 Sonnet"
+      },
+      "old": {
+        "apiCache": 0.2,
+        "note": "2026-09-28 上线，价格与 Sonnet 5 持平；缓存写 5min $2.50 / 1h $4、读 $0.20；Batch $1/$5；订阅页模型列表仍统称 Sonnet"
+      },
+      "current": {
+        "vendor": "Anthropic",
+        "model": "Claude Sonnet 5.5",
+        "cur": "USD",
+        "inUSD": 2,
+        "outUSD": 10,
+        "apiCache": 0.1
+      }
+    },
+    {
+      "kind": "api",
+      "id": "Anthropic|Claude Haiku 5.5",
+      "vendor": "Anthropic",
+      "name": "Claude Haiku 5.5",
+      "status": "verified",
+      "checkedAt": "2026-10-13",
+      "sourceIds": [
+        "claude-api-20261013"
+      ],
+      "reason": "新收录：提示不超过 100K tokens 时输入 $0.10、缓存命中 $0.01、输出 $0.50；超过 100K 的请求整次按更高一档计价，写在备注。",
+      "patch": {},
+      "current": {
+        "vendor": "Anthropic",
+        "model": "Claude Haiku 5.5",
+        "cur": "USD",
+        "inUSD": 0.1,
+        "outUSD": 0.5,
+        "apiCache": 0.01
+      }
+    }
+  ]
+}

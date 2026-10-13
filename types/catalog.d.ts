@@ -25,7 +25,8 @@ interface Plan {
   tools: string;
   note: string;
   url: string;
-  windowPeriod?: "5h" | "month" | "none" | "unknown";
+  /** 最短的公开重置周期：5h 滚动窗口、每周池、月池；none 表示官方明确无 5 小时上限。 */
+  windowPeriod?: "5h" | "week" | "month" | "none" | "unknown";
   quotaSharing?: "shared" | "separate" | "unknown";
   codingSurface?: boolean;
   /** 明确自带编程入口；不依赖工具文案匹配。 */

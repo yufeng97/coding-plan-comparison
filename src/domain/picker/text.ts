@@ -56,7 +56,7 @@ export function roleDisplayName(p: Plan, role: ModelRole | null | undefined) {
 
 export function quotaLabel(p: Plan) {
     const period = quotaWindowPeriod(p);
-    return period === "5h" ? "5 小时窗口" : period === "month" ? "月度额度" : "额度规则";
+    return period === "5h" ? "5 小时窗口" : period === "week" ? "每周额度" : period === "month" ? "月度额度" : "额度规则";
 }
 
 export function tokenEvidenceText(p: Plan, role: ModelRole | null | undefined) {
@@ -91,6 +91,8 @@ export function windowSentence(p: Plan, role: ModelRole | null | undefined) {
     const q = String(resolvedField(p, "quota")).replace(/\s+/g, " ");
     if (period === "none")
         return `目前没有 5 小时上限；总体用量仍以官方仪表盘为准。原文：${trunc(q, 96)}`;
+    if (period === "week")
+        return `额度按每周额度池计量，没有 5 小时窗口；具体刷新时间和超额规则请核对官网。原文：${trunc(q, 96)}`;
     if (period === "month")
         return `额度按月计量；具体重置和超额规则请核对官网。原文：${trunc(q, 96)}`;
     if (period === "unknown")
@@ -138,6 +140,8 @@ export function windowNoteShort(prof: Pick<PlanProfile, "windowPeriod" | "sharin
         return "官方说明日常模型与复杂任务模型分池计算额度。";
     if (prof.shared)
         return "日常模型和复杂任务模型共用同一个 5 小时窗口，日常使用会消耗这份额度。";
+    if (prof.windowPeriod === "week" && prof.sharing === "shared")
+        return "日常模型和复杂任务模型共用每周额度池，没有 5 小时窗口。";
     if (prof.windowPeriod === "month" && prof.sharing === "shared")
         return "日常模型和复杂任务模型共用月度额度池。";
     if (prof.sharing === "shared")
