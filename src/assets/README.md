@@ -6,7 +6,7 @@
 
 - 发布产物里的 `libs/echarts-<hash>.js` 由构建从 npm 包 `echarts`（版本见 package.json）生成，**按需精简**：只含 BarChart + Grid / Tooltip / Legend / Title / AxisPointer 组件与 CanvasRenderer，产物带上游许可证注释。仓库不再保存打包后的文件，依赖更新随下次构建生效。
 - 入口在 `src/entries/echarts.ts`；页面用到新的图表类型或组件时，先在入口里注册。
-- **构建与页面加载**：`scripts/build/vite-assets.mjs` 从 npm 生成并按内容哈希命名；地址保留在 `index.html` 的 `chartLibraryTemplate` 中，首屏不执行。接近图表或导航到相关章节时由 `src/application/runtime.ts` 的加载器插入脚本，Vue 图表组件负责绘制与销毁；失败可局部重试，文字明细先行显示。Vue 服务端渲染不下载或运行 ECharts。
+- **构建与页面加载**：`scripts/build/vite-assets.mjs` 从 npm 生成并按内容哈希命名；地址保留在 `index.html` 的 `chartLibraryTemplate` 中，首屏不执行。接近图表或导航到相关章节时由 `src/browser/charts/host.ts` 的 `ensureChartLibrary` 插入脚本，Vue 图表组件负责绘制与销毁；失败可局部重试，文字明细先行显示。Vue 服务端渲染不下载或运行 ECharts。
 
 ## fonts/（Manrope + IBM Plex Mono 子集）
 
@@ -14,7 +14,7 @@
 - 2026-10-06 根据仓库中的原始字节离线去重，39 个文件合并为 21 个，字体总大小从 452,796 字节降至 227,880 字节（减少约 49.7%）；未重新下载或改变字体内容。
 - 家族与字重：Manrope 500/600/700/800、IBM Plex Mono 400/500/600（`display=swap`）。
 - **更新**：`npm run vendor:fonts`（需要联网）。下载在独立暂存目录中完成，全部 WOFF2 校验成功后才替换整组文件；网络或替换失败时保留/恢复旧字体。新字体文件名含内容哈希，旧子集随成功替换清理。 源码在 `src/assets/fonts/`；构建时 Vite 按内容哈希重新命名并发布到 `libs/fonts/`。
-- 图标在此**没有**字体文件：Remix Icon 已替换为内联 SVG（见 `src/application/runtime.ts` 的 `ICON_SVG` 与 Vue 模板）。
+- 图标在此**没有**字体文件：Remix Icon 已替换为直接写在 Vue 模板里的内联 SVG（如 `src/sections/site/SiteStats.vue`、`src/components/ThemeButton.vue`）。
 
 ## 许可证
 

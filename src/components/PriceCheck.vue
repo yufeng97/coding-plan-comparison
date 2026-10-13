@@ -17,7 +17,8 @@ const urls = computed(() => priceCheckSources(props.plan, props.kind));
     </template>
   </template>
   <template v-else>—</template>
-  <span class="sub" :class="{ 'check-stale': check && checkIsStale(check.checkedAt) }">{{ priceCheckLabel(plan, kind) }}{{ check ? ` · ${check.checkedAt}${checkAgeText(check.checkedAt)}` : "" }}</span>
+  <!-- 状态、日期与天数各自不断行，窄列里只在三段之间换行。 -->
+  <span class="sub price-check-status" :class="{ 'check-stale': check && checkIsStale(check.checkedAt) }"><span class="nowrap">{{ priceCheckLabel(plan, kind) }}</span><template v-if="check"> · <span class="nowrap">{{ check.checkedAt }}</span><span class="nowrap">{{ checkAgeText(check.checkedAt) }}</span></template></span>
   <details v-if="check?.status === 'unverified'" class="price-check-details">
     <summary>核查说明</summary><p>{{ displayPriceReason(check.reason) }}</p>
   </details>

@@ -164,7 +164,7 @@ test("回到顶部在页首不能取得隐形键盘焦点，滚动后恢复操�
   await expect(page.locator(".hero h1")).toBeFocused();
 });
 
-test("resize跳过同尺寸和离屏画布，滚入后更新尺寸且图例保持选择", async ({ page }) => {
+test("resize跳过同尺寸画布，离屏画布只同步尺寸，滚入后重排轴标签且图例保持选择", async ({ page }) => {
   const errors = trackErrors(page);
   await page.goto("/#s4");
   await page.evaluate(() => {
@@ -186,10 +186,13 @@ test("resize跳过同尺寸和离屏画布，滚入后更新尺寸且图例保�
   await page.setViewportSize({ width: 375, height: 900 });
   await page.locator("#chartApi").scrollIntoViewIfNeeded();
   await expect.poll(() => page.evaluate(`${chartOf("chartApi")}.getWidth() === document.getElementById('chartApi').clientWidth`)).toBe(true);
+  /* 屏幕外的画布立即按新宽度缩放，不让旧宽度撑出横向滚动；轴标签与窄屏布局（setOption）留到滚入阅读区再补齐。 */
+  await expect.poll(() => page.evaluate(`${chartOf("chartPersonal")}.getWidth() === document.getElementById('chartPersonal').clientWidth`)).toBe(true);
   expect(await page.evaluate("window.reviewResizeCounts.chartPersonal || 0")).toBe(0);
-  expect(await page.evaluate(`${chartOf("chartPersonal")}.getWidth() > document.getElementById('chartPersonal').clientWidth`)).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
   await page.locator("#sectionMenu").evaluate((menu) => { /** @type {HTMLDetailsElement} */ (menu).open = true; });
   await page.locator('.topnav a[href="#s1"]').click();
+  await expect.poll(() => page.evaluate("window.reviewResizeCounts.chartPersonal || 0")).toBeGreaterThan(0);
   await expect.poll(() => page.evaluate(`${chartOf("chartPersonal")}.getWidth() === document.getElementById('chartPersonal').clientWidth`)).toBe(true);
   await page.locator("#sectionMenu").evaluate((menu) => { /** @type {HTMLDetailsElement} */ (menu).open = true; });
   await page.locator('.topnav a[href="#s4"]').click();

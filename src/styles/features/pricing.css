@@ -7,6 +7,8 @@
 .free-card:hover { border-color: var(--line-strong); }
 .free-card .fc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .free-card .fc-vendor { font-size: 14.5px; font-weight: 800; color: var(--ink); }
+.fc-cost { color: var(--ink); font-weight: 700; margin: 6px 0; }
+.checked-date { display: inline-block; margin-left: 10px; font-size: 11px; color: var(--muted); }
 .free-card .fc-plan { font: 600 12px var(--mono); color: var(--muted); }
 .free-card .fc-region { font: 600 10.5px var(--mono); padding: 2px 7px; border-radius: 5px; border: 1px solid var(--line-strong); color: var(--faint); }
 .free-card .fc-quota { margin-top: 9px; font-size: 13px; color: var(--text); line-height: 1.6; }
@@ -27,6 +29,9 @@
 #planTable.show-all-cols { min-width: 1080px; }
 .card-text .mini-table, .mini-table { min-width: 0; }
 td.td-vendor { color: var(--ink); font-weight: 700; white-space: nowrap; }
+.plan-name { white-space: nowrap; }
+.td-trust { white-space: nowrap; font-size: 12px; }
+.td-trust .sub { display: block; margin-top: 4px; font-size: 11px; }
 td.td-plan { color: var(--ink); white-space: normal; }
 td.td-price { color: var(--gold); font-weight: 700; white-space: nowrap; font-family: var(--mono); font-size: 12.5px; }
 td.td-price .sub { color: var(--faint); font-weight: 400; }
@@ -51,6 +56,9 @@ td.td-price .sub { color: var(--faint); font-weight: 400; }
   white-space: normal; overflow-wrap: anywhere;
 }
 .payg-row td { background: var(--surface); }
+/* 低置信估算组的第一行：分组上边线（手机卡片改为加粗卡片上边框）。 */
+@media (min-width: 768px) { #metricsTable tbody tr.confidence-break td { border-top: 2px solid var(--line-strong); } }
+@media (max-width: 767px) { #metricsTable tbody tr.confidence-break { border-top: 3px solid var(--line-strong); } }
 #metricsTable tbody tr.payg-row td:first-child,
 #metricsTable tbody tr.est-row td:first-child { background: linear-gradient(var(--surface), var(--surface)), var(--panel); }
 #metricsTable tbody tr.payg-row td:first-child { box-shadow: inset 3px 0 0 var(--accent-2); }
@@ -59,15 +67,15 @@ td.td-price .sub { color: var(--faint); font-weight: 400; }
 .metrics-vendor { color: var(--ink); }
 .metrics-plan { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; line-height: 1.5; }
 .table-sort-hint { color: var(--muted); font-size: 12px; }
-.tps-cell { color: var(--faint); font-size: 11.5px; font-family: var(--mono); }
-.model-cell { color: var(--accent-2); font-size: 11.5px; }
+td.tps-cell { color: var(--faint); font-size: 11.5px; font-family: var(--mono); }
+td.model-cell { color: var(--accent-2); font-size: 11.5px; }
 #metricsTable td.model-cell { min-width: 140px; max-width: 240px; white-space: normal; overflow-wrap: anywhere; }
 .model-price { display: block; max-width: 220px; margin-top: 2px; color: var(--faint); font-size: 10.5px; line-height: 1.5; white-space: normal; }
 .model-price > span { white-space: nowrap; }
 .model-reference-note { color: var(--faint); font-size: 10px; }
-.tok-cell { color: var(--muted); font-weight: 600; font-family: var(--mono); font-size: 12px; }
-.val-cell { color: var(--gold); font-weight: 600; font-family: var(--mono); font-size: 12px; }
-.rate-cell { font-weight: 700; font-size: 12.5px; font-family: var(--mono); }
+td.tok-cell { color: var(--muted); font-weight: 600; font-family: var(--mono); font-size: 12px; }
+td.val-cell { color: var(--gold); font-weight: 600; font-family: var(--mono); font-size: 12px; }
+td.rate-cell { font-weight: 700; font-size: 12.5px; font-family: var(--mono); }
 .rate-hi { color: var(--green); }
 .rate-mid { color: var(--gold); }
 .rate-lo { color: var(--red); }
@@ -90,7 +98,7 @@ td.td-price .sub { color: var(--faint); font-weight: 400; }
 }
 .conf-hi { background: var(--cat-tool-soft); color: var(--cat-tool-text); }
 .conf-mid { background: var(--cat-cloud-soft); color: var(--gold); }
-.conf-lo { background: rgba(217,59,54,.09); color: var(--red); }
+.conf-lo { background: var(--red-soft); color: var(--red); }
 
 /* ---------- 表格空状态 ---------- */
 .table-empty { padding: 32px 16px; text-align: center; color: var(--muted); white-space: normal !important; }
@@ -118,6 +126,9 @@ table.is-empty thead { display: none; }
 
 /* 排行明细表 */
 #rankDetailTable { min-width: 640px; }
+.cost-value { font-family: var(--mono); font-weight: 800; }
+/* 没有对应额度的单元格（credits 制、按量参照行等）。 */
+.token-empty { color: var(--faint); }
 
 @media (max-width: 700px) {
   .plan-detail-fields > div { grid-template-columns: 1fr; gap: 4px; }
@@ -147,6 +158,7 @@ table.is-empty thead { display: none; }
 #tokenInsight { display: flex; flex-direction: column; gap: 16px; }
 .token-insight-list { max-height: 600px; overflow: auto; min-height: 0; flex: none; }
 .token-insight-note { margin: 0; flex: none; }
+.token-insight-meta { display: block; color: var(--muted); font-size: 11px; font-family: var(--sans); font-weight: 400; }
 
 /* ---------- 窄屏（≤767px）：数据表与额度表改为卡片 ---------- */
 @media (max-width: 767px) {
@@ -157,7 +169,8 @@ table.is-empty thead { display: none; }
   #planTable thead, #metricsTable thead { display: block; margin-bottom: 12px; }
   #planTable thead tr, #metricsTable thead tr { display: flex; flex-wrap: wrap; gap: 8px; }
   #planTable thead th, #metricsTable thead th { display: none; }
-  #planTable thead th.sortable, #metricsTable thead th.sortable { display: block; position: static; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); white-space: normal; }
+  #planTable thead th.sortable, #metricsTable thead th.sortable { display: block; position: static; padding: 0; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); white-space: normal; }
+  #planTable thead .sort-btn, #metricsTable thead .sort-btn { padding: 8px 10px; }
   #metricsTable.is-compact thead th.col-more { display: none; }
   #planTable tbody, #metricsTable tbody { display: grid; gap: 12px; }
   #planTable tbody tr, #metricsTable tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; padding: 12px; background: var(--panel); gap: 10px 12px; }

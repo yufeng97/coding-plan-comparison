@@ -34,6 +34,7 @@
     "test:browser": "playwright test",
     "vendor:fonts": "node scripts/build/vendor-fonts.js",
     "build:site": "node scripts/build/stage-site.js",
+    "size:check": "node scripts/build/check-bundle-size.js",
     "deploy": "node scripts/build/deploy-site.js",
     "pretest:unit": "npm run catalog:check",
     "test:unit": "vitest run"

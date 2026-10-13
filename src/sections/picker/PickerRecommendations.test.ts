@@ -88,13 +88,13 @@ test("controls own chip selection, payment disclosure and URL state", async () =
   const wrapper = await controls.render();
   await wrapper.get('[data-pick="billing"] [data-value="Y"]').trigger("click");
   expect(runtime.pickerState.billing).toBe("Y");
-  expect(wrapper.get('[data-pick="billing"] [data-value="Y"]').attributes("aria-pressed")).toBe("true");
+  expect(wrapper.get('[data-pick="billing"] [data-value="Y"]').attributes("aria-checked")).toBe("true");
   expect(wrapper.get("#pickerPaymentSummary").text()).toBe("付款：年付（按折月预算）");
   expect(wrapper.get("#pickerBillingNote").text()).toContain("首次一次支付全年");
   Object.assign(runtime.pickerState, { tool: "codex", priority: "ability" });
   await flushPromises();
   expect(wrapper.get('[data-pick="tool"] [data-value="codex"]').classes()).toContain("active");
-  expect(wrapper.get('[data-pick="priority"] [data-value="ability"]').attributes("aria-pressed")).toBe("true");
+  expect(wrapper.get('[data-pick="priority"] [data-value="ability"]').attributes("aria-checked")).toBe("true");
 });
 
 test("shared payment modes open the disclosure initially and preserve a manual collapse", async () => {
@@ -119,5 +119,5 @@ test("native card and workload buttons call the shared actions with their curren
   expect(showDetails).toHaveBeenCalledExactlyOnceWith(button.attributes("data-view-plan"), button.element);
   await wrapper.get("#checkWorkloadBtn").trigger("click");
   expect(runtime.calcState.budget).toBe("100");
-  expect(runtime.serviceUiState.feedback).toContain("已带入当前月均预算");
+  expect(runtime.calcUiState.feedback).toContain("已带入当前月均预算");
 });

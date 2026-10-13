@@ -119,8 +119,8 @@ for (const width of [375, 1280]) {
     await expect(cards).toHaveCount(18);
     await page.locator('[data-free-region="cn"]').click();
     await page.locator('[data-free-kind="included"]').click();
-    await expect(page.locator('[data-free-region="cn"]')).toHaveAttribute("aria-pressed", "true");
-    await expect(page.locator('[data-free-kind="included"]')).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator('[data-free-region="cn"]')).toHaveAttribute("aria-checked", "true");
+    await expect(page.locator('[data-free-kind="included"]')).toHaveAttribute("aria-checked", "true");
     const expected = catalog.PLANS.filter((p) => catalog.isFreeCodingEntry(p) && p.region === "cn" && catalog.hasIncludedModelQuota(p)).length;
     await expect(cards).toHaveCount(expected);
     await expect(page.locator("#freeCount")).toHaveText(`显示 ${expected} / 18 个免费入口`);

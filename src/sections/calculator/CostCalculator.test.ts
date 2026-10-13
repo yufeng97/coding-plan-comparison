@@ -39,7 +39,7 @@ test("真实用量只解析本地 JSON，导入假设更新结果且错误可以
   await calculator.wrapper.get("#usageImportBtn").trigger("click");
   expect(calculator.wrapper.get("#usageImportFeedback").text()).not.toBe("");
   await calculator.wrapper.get("#usageImportText").setValue(JSON.stringify({ daily: [{ date: "2026-10-01", inputTokens: 800000, outputTokens: 200000, cacheReadTokens: 0 }] }));
-  app.importUsageText(calculator.wrapper.get<HTMLTextAreaElement>("#usageImportText").element.value);
+  await calculator.wrapper.get("#usageImportBtn").trigger("click");
   await flushPromises();
   expect(calculator.wrapper.get("#usageImportFeedback").text()).toContain("已导入 1 个有用量的日子");
   expect(app.calcState.tokens).toBe("10000");
@@ -59,9 +59,14 @@ test("同值预设、情景和用量导入仍替换被覆盖字段的无效草�
   await calculator.wrapper.get('[data-cost-scenario="typical"]').trigger("click");
   expect(calculator.wrapper.get<HTMLInputElement>("#costCache").element.value).toBe("95");
   const usage = JSON.stringify({ daily: [{ date: "2026-10-01", inputTokens: 800000, outputTokens: 200000 }] });
-  app.importUsageText(usage); await flushPromises();
+  const importUsage = async () => {
+    await calculator.wrapper.get("#usageImportText").setValue(usage);
+    await calculator.wrapper.get("#usageImportBtn").trigger("click");
+    await flushPromises();
+  };
+  await importUsage();
   await calculator.wrapper.get("#costTokens").setValue("0");
-  app.importUsageText(usage); await flushPromises();
+  await importUsage();
   expect(calculator.wrapper.get<HTMLInputElement>("#costTokens").element.value).toBe("10000");
   expect(calculator.wrapper.get("#costResult").text()).toContain("预计月费");
 });
@@ -107,4 +112,34 @@ test("混合日月记录导入失败说明原因，并保留已有计算条件",
   expect(calculator.wrapper.get("#usageImportFeedback").text()).toContain("不能混合按日记录与按月记录");
   expect(app.calcState).toEqual(before);
   expect(calculator.wrapper.get("#costResult").text()).toContain("预计月费");
+});
+
+test("选择日志文件夹只读取其中的 JSON / JSONL，其他文件忽略", async () => {
+  await calculator.render();
+  const usage = JSON.stringify({ daily: [{ date: "2026-10-01", inputTokens: 800000, outputTokens: 200000 }] });
+  const folder = calculator.wrapper.get<HTMLInputElement>("#usageImportFolder");
+  expect(folder.attributes("webkitdirectory")).toBeDefined();
+  Object.defineProperty(folder.element, "files", { configurable: true, value: [
+    { name: "notes.txt", size: 5, text: async () => "hello" },
+    { name: "session.jsonl", size: usage.length, text: async () => usage },
+  ] });
+  await folder.trigger("change");
+  await flushPromises();
+  expect(calculator.wrapper.get("#usageImportFeedback").text()).toContain("已导入 1 个有用量的日子");
+  Object.defineProperty(folder.element, "files", { configurable: true, value: [{ name: "readme.md", size: 3, text: async () => "abc" }] });
+  await folder.trigger("change");
+  await flushPromises();
+  expect(calculator.wrapper.get("#usageImportFeedback").text()).toContain("没有 .json 或 .jsonl 文件");
+});
+
+test("无效输入逐项标出：说明点名字段与范围，aria-invalid 指向对应输入框", async () => {
+  await calculator.render();
+  await calculator.wrapper.get("#costDays").setValue("99");
+  expect(calculator.wrapper.get("#costDays").attributes("aria-invalid")).toBe("true");
+  expect(calculator.wrapper.get("#costTokens").attributes("aria-invalid")).toBeUndefined();
+  expect(calculator.wrapper.get("#costResult").text()).toContain("每月使用天数（1–31 的整数）");
+  expect(calculator.wrapper.get("#costSummaryLive").text()).toContain("每月使用天数");
+  expect(calculator.wrapper.get("#costResult").attributes("aria-live")).toBeUndefined();
+  await calculator.wrapper.get("#costDays").setValue("20");
+  expect(calculator.wrapper.get("#costSummaryLive").text()).toMatch(/预计月费约 .*月预算/);
 });

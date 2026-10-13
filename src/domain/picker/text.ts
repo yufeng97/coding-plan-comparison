@@ -3,6 +3,7 @@ import { publicModelIncluded } from '../benchmarks';
 import { splitModelAccess, trunc, escRe } from '../core';
 import { fmtTok, type MetricsResult } from '../metrics';
 import { provenance } from '../provenance';
+import { fmtCpm } from '../table-format';
 import { quotaWindowPeriod, tokenEvidence, metricForRole, dailyRoleBit, type PlanProfile } from './profile';
 
 /* 套餐画像的文字说明：模型用途、额度窗口、token 区间与满额使用成本。 */
@@ -81,7 +82,8 @@ export function fullUseCostRange(c: Pick<MetricsResult, "priceCNY" | "moLow" | "
 
 export function fullUseCostRangeText(c: Pick<MetricsResult, "priceCNY" | "moLow" | "moHigh">) {
     const range = fullUseCostRange(c);
-    return range ? `参考区间 ¥${range[0].toFixed(3)}–¥${range[1].toFixed(3)}/M` : "";
+    /* 与额度表、排行明细同一套小数位（fmtCpm）。 */
+    return range ? `参考区间 ${fmtCpm(range[0])}–${fmtCpm(range[1])}/M` : "";
 }
 
 export function windowSentence(p: Plan, role: ModelRole | null | undefined) {

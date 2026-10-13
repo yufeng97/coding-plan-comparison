@@ -32,6 +32,12 @@ const importNames = computed(() => importInfo.value.fresh.slice(0, 5).map(planTi
 const unreadCountText = computed(() => `${plans.value.length} 档关注` + (loaded.value ? ` · ${unread.value.length} 条未读变更` : ""));
 const storageNote = computed(() => view.storageMessage || "只在当前浏览器保存关注与已读记录；不上传，不跨设备同步，清理浏览器数据后会消失。");
 const selectedPlan = computed(() => PLANS.find((p) => p.id === maintenance.planId) || null);
+/* 两百多档按厂商分组（目录里厂商首次出现的顺序），选项只写档位名，读屏会连同分组名朗读。 */
+const plansByVendor = (() => {
+  const groups = new Map<string, Plan[]>();
+  for (const plan of PLANS) groups.set(plan.vendor, [...(groups.get(plan.vendor) ?? []), plan]);
+  return [...groups].map(([vendor, plans]) => ({ vendor, plans }));
+})();
 const planStatus = fromData("maintenance", () => selectedPlan.value ? maintenancePlanStatus(selectedPlan.value) : "");
 const reviews = fromData("maintenance", () => dueReviews());
 const records = fromData("maintenance", () => maintenanceRecords(maintenance.recordFilter));
@@ -103,7 +109,9 @@ watch(() => follow.planIds.length, async () => {
       <h2>查看套餐历史</h2>
       <label class="maintenance-select" for="maintenancePlan">选择套餐<select id="maintenancePlan" ref="planSelect" :value="maintenance.planId" @change="maintenance.planId = targetValue($event)">
         <option value="">选择套餐</option>
-        <option v-for="plan in PLANS" :key="plan.id" :value="plan.id">{{ planTitle(plan) }}</option>
+        <optgroup v-for="group in plansByVendor" :key="group.vendor" :label="group.vendor">
+          <option v-for="plan in group.plans" :key="plan.id" :value="plan.id">{{ plan.plan }}</option>
+        </optgroup>
       </select></label>
       <div id="maintenanceHistory">
         <template v-if="selectedPlan">

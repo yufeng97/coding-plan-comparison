@@ -4,20 +4,21 @@ import { META, RATE_INR_CNY } from "@generated/catalog";
 import { RATE, safeLink } from "@domain/core";
 import { APP_DEFAULTS, boundedSearch, PERSONAL_DEFAULT_LIMIT, personalState, pickerState, tableState } from "@state/app";
 import { chartCache, queuedChartRenders } from "@browser/charts/host";
-import { personalViewHooks, renderPersonalChart } from "@browser/charts/personal";
+import { personalView, personalViewHooks, renderPersonalChart } from "@browser/charts/personal";
 import { updateAppState } from "@browser/url-state";
 import { navigateToSection } from "@app/navigation";
 import { applyPickerScope } from "@app/picker";
 import { renderTable } from "@app/tables";
 import { targetValue } from "@browser/dom";
-import { excludedList, personalView } from "./chart-models";
+import { excludedList } from "./chart-models";
+import ChipRadioGroup from "../../components/ChipRadioGroup.vue";
 import PickerScope from "../../components/PickerScope.vue";
 import { useChartLifecycle } from "../../composables/chart-lifecycle";
 useChartLifecycle("chartPersonal");
 const state = personalState;
-const categories = [["all", "全部类别"], ["official", "模型官方订阅"], ["tool", "第三方工具订阅"], ["cloud", "云厂商/API 套餐"]];
-const regions = [["all", "全部地区"], ["cn", "国内"], ["intl", "国际"]];
-const billings = [["M", "月付"], ["Y", "年付（折月）"]];
+const categories = [["all", "全部类别"], ["official", "模型官方订阅"], ["tool", "第三方工具订阅"], ["cloud", "云厂商/API 套餐"]] as const;
+const regions = [["all", "全部地区"], ["cn", "国内"], ["intl", "国际"]] as const;
+const billings = [["M", "月付"], ["Y", "年付（折月）"]] as const;
 const searchText = ref(state.q), searchInput = ref<HTMLInputElement | null>(null);
 const displayedSearch = ref(state.q);
 const model = computed(() => personalView(displayedSearch.value));
@@ -53,9 +54,9 @@ function showExcluded() {
 <template>
   <div class="controls">
     <input type="search" id="chartSearch" ref="searchInput" class="search-input" maxlength="200" placeholder="搜索厂商 / 计划 / 模型…" aria-label="搜索个人订阅图表" :value="searchText" @input="search(targetValue($event))">
-    <div class="chip-group" id="chipCat" role="group" aria-label="类别"><button v-for="[id, label] in categories" :key="id" type="button" class="chip" :class="{ active: state.cat === id }" :data-cat="id" :aria-pressed="state.cat === id" @click="change('cat', id)">{{ label }}</button></div>
-    <div class="chip-group" id="chipRegion" role="group" aria-label="地区"><button v-for="[id, label] in regions" :key="id" type="button" class="chip" :class="{ active: state.region === id }" :data-region="id" :aria-pressed="state.region === id" @click="change('region', id)">{{ label }}</button></div>
-    <div class="chip-group" id="chipBilling" role="group" aria-label="计费周期"><button v-for="[id, label] in billings" :key="id" type="button" class="chip" :class="{ active: state.billing === id }" :data-billing="id" :aria-pressed="state.billing === id" :disabled="state.fromPicker" :aria-describedby="state.fromPicker ? 'personalScope' : undefined" @click="change('billing', id)">{{ label }}</button></div>
+    <ChipRadioGroup id="chipCat" class="chip-group" label="类别" data-key="cat" :options="categories" :model-value="state.cat" @select="change('cat', $event)" />
+    <ChipRadioGroup id="chipRegion" class="chip-group" label="地区" data-key="region" :options="regions" :model-value="state.region" @select="change('region', $event)" />
+    <ChipRadioGroup id="chipBilling" class="chip-group" label="计费周期" data-key="billing" :options="billings" :model-value="state.billing" :disabled="state.fromPicker" :describedby="state.fromPicker ? 'personalScope' : undefined" @select="change('billing', $event)" />
     <button type="button" class="chip" id="personalResetBtn" @click.stop="reset">清除筛选</button>
     <div class="legend-inline" id="chartLegend"><span v-for="[id, label] in categories.slice(1)" :key="id"><i :style="{ background: `var(--cat-${id})` }"></i>{{ label }}</span><span><i style="background: var(--cat-relay)"></i>中转站</span></div>
     <PickerScope name="personal" />

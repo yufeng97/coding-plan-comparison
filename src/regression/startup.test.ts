@@ -337,6 +337,8 @@ test("初始分享锚点等待图表时容许布局滚动，用户滚轮或PageU
     const page = await openPage({ mock: { "@browser/charts/host": () => ({ chartLibraryReady: () => ready, ensureChartLibrary: () => gate }) } });
     const before = page.timeline.filter((entry) => entry.startsWith("scroll:")).length;
     page.byId("s4").getBoundingClientRect = () => ({ top: 0 }) as DOMRect;
+    /* 章节菜单的最后一项「重要动态」在 #s4 之后，仍位于阅读线下方。 */
+    page.byId("dynamics").getBoundingClientRect = () => ({ top: 5000 }) as DOMRect;
     page.runtime.navigateToSection("#s3b", false, false, true);
     window.scrollY = 4000;
     page.fireWindow("scroll");

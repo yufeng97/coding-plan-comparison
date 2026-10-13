@@ -4,13 +4,15 @@
   :root { --header-height: 88px; }
   .topbar-inner { gap: 8px; padding: 8px 14px; }
   .theme-btn { order: 2; margin-left: auto; }
+  /* 章节下拉与主题按钮同在第一行右侧；切到其他视图时下拉隐藏，主题按钮仍靠右。 */
+  .section-jump { order: 2; margin-left: auto; }
+  .section-jump:not([hidden]) + .theme-btn { margin-left: 0; }
   .primary-nav { order: 3; flex-basis: 100%; margin-right: 0; }
   .primary-nav a { flex: 1; text-align: center; white-space: nowrap; padding: 5px 9px; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .chip, .quick-card, .free-card { transition: none; }
-  .quick-card:hover { transform: none; }
+  .chip, .quick-card, .free-card, .scroll-progress span { transition: none; }
 }
 @media (max-width: 700px) {
   .hero-inner, .section { padding-left: 16px; padding-right: 16px; }
@@ -25,24 +27,25 @@
   .controls { gap: 8px; }
   .controls .search-input { width: 100%; }
   .controls .select { flex: 1 1 140px; }
+  .control-group { flex: 1 1 100%; }
   /* iOS Safari 聚焦字号小于 16px 的输入框会自动放大页面；窄屏统一用 16px。 */
   :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) { font-size: 16px; }
   .table-count { flex: 1 1 100%; margin-left: 0; }
   .chip { min-height: 40px; }
   .picker { padding: 12px; gap: 10px; }
-  .picker-row { gap: 6px; }
+  /* 窄屏每行统一「标签在左、选项在右」：两字标签的列按内容收窄，选项左右内边距收紧，
+     375px 起预算五档排成一行；不改成上下排列，免得把主推荐挤出手机首屏。 */
+  .picker-row { grid-template-columns: max-content minmax(0, 1fr); gap: 6px; }
+  .picker-row .picker-label { padding-top: 10px; }
   .picker-options { gap: 6px; }
   .picker-label { color: var(--ink); }
-  .picker-row .chip { padding: 6px 8px; }
-  .picker-row[data-pick="budget"] { grid-template-columns: minmax(0, 1fr); }
-  .picker-row[data-pick="budget"] .picker-label { padding-top: 0; }
-  .picker-row[data-pick="budget"] { gap: 4px; }
-  .picker-row[data-pick="budget"] .chip { padding-left: 8px; padding-right: 8px; }
+  .picker-row .chip { padding: 6px; }
   .legend-inline { margin-left: 0; gap: 8px 12px; }
   .chart-card { padding-left: 6px; padding-right: 6px; }
   .card-text { padding: 16px; }
   .quick-card { padding: 18px; }
   .theme-btn { width: 40px; height: 40px; }
+  .section-jump > summary { min-height: 40px; }
   .cmp-modal { padding: 12px; max-height: 92dvh; }
   .cmp-head { flex-wrap: wrap; }
   .cmp-head-actions { margin-left: auto; }
@@ -52,6 +55,8 @@
   /* 对比浮动条居中占宽，回到顶部按钮上移避让 */
   .to-top { bottom: 24px; right: 18px; }
   .has-compare .to-top { bottom: 110px; }
+  .toast { bottom: 76px; }
+  .has-compare .toast { bottom: 160px; }
   .dynamics-list li { flex-direction: column; gap: 6px; min-width: 0; }
   .dyn-src { white-space: normal; overflow-wrap: anywhere; }
 }
@@ -59,4 +64,11 @@
 /* 窄屏加大对比、关注按钮的点击区域；推荐卡按钮复用它们，所以放在功能样式之后。 */
 @media (max-width: 767px) {
   .cmp-add, .watch-plan { min-height: 40px; padding: 7px 10px; }
+}
+
+/* 触屏与窄屏：折叠标题约 30px、卡片里的来源链接 32px 高（WCAG 2.2 目标尺寸不低于 24px）；
+   折叠标题不再加高，首屏的介绍与付款方式折叠不会把主推荐挤下去。 */
+@media (max-width: 767px), (pointer: coarse) {
+  summary { padding-block: 5px; }
+  .fc-link, .dyn-src { display: inline-flex; align-items: center; min-height: 32px; }
 }

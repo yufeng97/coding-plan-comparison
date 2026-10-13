@@ -16,12 +16,13 @@ import { targetValue } from "@browser/dom";
 import { fromData } from "../../composables/optional-data";
 import PlanLinks from "../../components/PlanLinks.vue";
 import SourceLink from "../../components/SourceLink.vue";
+import ChipRadioGroup from "../../components/ChipRadioGroup.vue";
 import { useChartLifecycle } from "../../composables/chart-lifecycle";
 useChartLifecycle("chartPublicBenchmark");
 
 const state = publicBenchmarkState;
 const chartState = publicBenchmarkChartState;
-const CHART_METRICS = [{ id: "score", label: "排名分数" }, { id: "cost", label: "每任务成本" }] as const;
+const CHART_METRICS = [["score", "排名分数"], ["cost", "每任务成本"]] as const;
 const CHART_LIMITS = ["10", "20", "all"];
 const SEARCH_DELAY = 150;
 
@@ -220,11 +221,7 @@ function downloadJson() {
 
   <div id="publicBenchmarkChartWrap" class="public-benchmark-chart" :hidden="!selected || !rows.length">
     <div class="public-chart-toolbar">
-      <div class="chip-group" role="group" aria-label="评测图表指标">
-        <button v-for="metric in CHART_METRICS" :key="metric.id" type="button" class="chip" :class="{ active: chartState.metric === metric.id }"
-          :data-public-chart="metric.id" :aria-pressed="chartState.metric === metric.id" :disabled="metric.id === 'cost' && !hasCost"
-          @click="chartState.metric = metric.id">{{ metric.label }}</button>
-      </div>
+      <ChipRadioGroup class="chip-group" label="评测图表指标" data-key="public-chart" :options="CHART_METRICS" :model-value="chartState.metric" :disabled-options="hasCost ? [] : ['cost']" @select="chartState.metric = $event" />
       <label class="public-chart-limit" for="publicBenchmarkChartLimit">图表条数<select id="publicBenchmarkChartLimit" class="select" :value="chartState.limit" @change="chooseChartLimit(targetValue($event))">
         <option value="10">前 10 条</option>
         <option value="20">前 20 条</option>
@@ -242,16 +239,21 @@ function downloadJson() {
   </div>
 
   <p id="publicBenchmarkEmpty" class="benchmark-empty" :hidden="rows.length > 0 || !loaded">{{ selected ? "当前协议没有匹配的模型或配置。请调整关键词，或清除搜索。" : "公开数据暂不可用；本站不会用本地验收示例填充模型分数。" }}</p>
-  <div id="publicBenchmarkWrap" class="table-wrap public-benchmark-wrap" tabindex="0" role="region" aria-label="公开模型评测成绩，窄屏可横向滚动" :hidden="!rows.length">
+  <div id="publicBenchmarkWrap" class="table-wrap public-benchmark-wrap" tabindex="0" role="region" aria-label="公开模型评测成绩" :hidden="!rows.length">
     <table id="publicBenchmarkTable">
       <caption id="publicBenchmarkCaption">{{ selected ? `${selected.name} · ${selected.metric} · ${selected.scope}` : "公开模型评测" }}</caption>
-      <thead><tr><th scope="col">本协议名次</th><th scope="col">模型与配置</th><th scope="col">分数</th><th scope="col">评测每任务成本</th><th scope="col">来源与核查</th></tr></thead>
+      <!-- 行标题只放模型名与配置摘要（读屏在每格前朗读它）；适用套餐、评测说明单列一格。 -->
+      <thead><tr><th scope="col">本协议名次</th><th scope="col">模型与配置</th><th scope="col">分数</th><th scope="col">评测每任务成本</th><th scope="col">适用套餐与说明</th><th scope="col">来源与核查</th></tr></thead>
       <tbody id="publicBenchmarkBody">
         <tr v-for="row in tableRows" :key="row.id">
-          <td class="public-score-rank">{{ row.rank }}</td>
+          <td class="public-score-rank" data-label="本协议名次">{{ row.rank }}</td>
           <th scope="row">
             <strong>{{ row.name }}</strong>
             <span class="public-score-config">{{ row.configSummary }}</span>
+          </th>
+          <td class="public-score-value" data-label="分数">{{ row.scoreText }}<span class="public-score-uncertainty" :title="row.uncertainty || undefined">{{ row.uncertaintyLabel }}</span></td>
+          <td class="public-score-cost" data-label="评测每任务成本">{{ row.costText }}</td>
+          <td class="public-model-plans-cell" data-label="适用套餐与说明">
             <div v-if="row.plans.length" class="public-model-plans">可用套餐：<PlanLinks :plans="row.plans.slice(0, 3)" />
               <details v-if="row.plans.length > 3"><summary>另外 {{ row.plans.length - 3 }} 档</summary><PlanLinks :plans="row.plans.slice(3)" /></details>
             </div>
@@ -264,10 +266,8 @@ function downloadJson() {
               <p v-if="row.uncertainty">区间 / 不确定性：{{ row.uncertainty }}</p>
               <p>{{ row.costNote || "评测每任务成本；来源未提供其他费用说明。未公布费用不能记作零，也不能换算为订阅月费。" }}</p>
             </details>
-          </th>
-          <td class="public-score-value">{{ row.scoreText }}<span class="public-score-uncertainty" :title="row.uncertainty || undefined">{{ row.uncertaintyLabel }}</span></td>
-          <td>{{ row.costText }}</td>
-          <td><SourceLink :url="row.sourceUrl" label="成绩来源" /><span class="public-score-config" :title="row.checkedAt">核查 {{ row.checkedDate }}</span></td>
+          </td>
+          <td class="public-score-source" data-label="来源与核查"><SourceLink :url="row.sourceUrl" label="成绩来源" /><span class="public-score-config" :title="row.checkedAt">核查 {{ row.checkedDate }}</span></td>
         </tr>
       </tbody>
     </table>

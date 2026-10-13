@@ -24,7 +24,8 @@ export function bindScrollProgress() {
     const update = () => {
         const h = document.documentElement;
         const max = h.scrollHeight - h.clientHeight;
-        bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + "%";
+        /* transform 只触发合成；宽度保持 100%，按比例缩放。 */
+        bar.style.transform = "scaleX(" + (max > 0 ? Math.min(1, h.scrollTop / max) : 0) + ")";
     };
     window.addEventListener("scroll", onScrollFrame(update), { passive: true });
     update();

@@ -10,30 +10,31 @@
 .qc-payment-summary { margin-top: 8px; color: var(--muted); font-size: 12px; line-height: 1.6; }
 #pickerBillingNote { grid-column: 1 / -1; margin: 0; line-height: 1.6; }
 
+/* 帮我选紧接首屏，上边距比普通章节小。 */
+#quick { padding-top: 36px; }
+
 /* ---------- 快速决策卡 ---------- */
 .quick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); gap: 14px; margin-bottom: 10px; }
 .quick-card {
   position: relative; background: var(--panel); border: 1px solid var(--line);
   border-top: 3px solid var(--qc-accent, var(--brand-button));
   border-radius: var(--radius-l); padding: 20px 22px; overflow: hidden; min-width: 0; display: flex; flex-direction: column;
-  transition: border-color .18s, transform .18s;
+  transition: border-color .18s;
 }
-.quick-card:hover { transform: translateY(-2px); border-color: var(--line-strong); border-top-color: var(--qc-accent, var(--brand-button)); }
+/* 卡片本身不可点击，悬停只加深边框，不做上浮。 */
+.quick-card:hover { border-color: var(--line-strong); border-top-color: var(--qc-accent, var(--brand-button)); }
 .quick-card .qc-title {
   display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
   color: var(--muted); font: 600 12px var(--sans); letter-spacing: 0;
 }
+/* 套餐名是卡片标题（h3），读屏可按标题浏览推荐；字号与正文相同。 */
+.quick-card .qc-plan { margin: 0; font-size: inherit; font-weight: 700; line-height: 1.5; color: var(--ink); }
 .quick-card .qc-title::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--qc-accent, var(--brand-button)); }
 .quick-card .qc-value { font-size: 21px; font-weight: 800; line-height: 1.25; letter-spacing: -.01em; color: var(--ink); font-family: var(--mono); }
 .quick-card .qc-value em { font-style: normal; color: var(--brand-button); }
 html[data-theme="dark"] .quick-card .qc-value em { color: var(--brand); }
 .quick-card .qc-sub { flex: 1; margin-top: 8px; font-size: 13px; color: var(--muted); line-height: 1.6; overflow-wrap: anywhere; }
 .quick-card .qc-sub b { color: var(--ink); font-weight: 700; }
-.quick-card .qc-tag {
-  display: inline-block; align-self: flex-start; margin-top: 12px; padding: 3px 8px; border-radius: 5px;
-  border: 1px solid var(--line-strong); color: var(--muted);
-  font: 600 10.5px var(--mono);
-}
 .quick-card .qc-avoid, .quick-card .qc-line { margin-top: 8px; }
 .quick-card .qc-avoid { color: var(--faint); }
 .quick-card .qc-line .k {
@@ -53,26 +54,18 @@ html[data-theme="dark"] .quick-card .qc-value em { color: var(--brand); }
   background: var(--panel); border: 1px dashed var(--line-strong); border-radius: var(--radius-l);
   padding: 22px; color: var(--muted); font-size: 14px;
 }
-.badge-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; max-width: 280px; }
-.badge {
-  display: inline-block; padding: 1px 6px; border-radius: 999px;
-  border: 1px solid var(--line-strong); font: 600 10.5px var(--mono); color: var(--muted); white-space: nowrap;
-}
-.badge-agent { color: var(--ink); }
-.badge-risk { color: var(--gold); border-color: rgba(212, 148, 58, .45); }
-.plan-name { white-space: nowrap; }
-.td-trust { white-space: nowrap; font-size: 12px; }
-.td-trust .sub { display: block; margin-top: 4px; color: var(--faint); font-weight: 400; font-size: 11px; }
-/* 核查日期超过复查间隔时标金色；排在 .td-trust .sub 之后，价格表里才能覆盖它的颜色。 */
-.sub.check-stale { color: var(--gold); }
+/* 推荐卡标题行：用途标签与关注按钮。 */
+.qc-title-label { min-width: 0; flex: 1; overflow-wrap: anywhere; }
+.qc-title .qc-watch { margin-left: auto; min-height: 30px; font-size: 11px; padding: 3px 7px; font-weight: 500; letter-spacing: 0; }
+.qc-usage-guide { margin: 14px 0 0; }
+.qc-usage-guide summary { cursor: pointer; font-size: 12px; color: var(--muted); line-height: 1.6; }
+.qc-usage-guide .qc-line { margin-top: 10px; }
 @media (max-width: 640px) {
   .quick-grid { grid-template-columns: 1fr; }
   .picker-label { flex-basis: 100%; }
 }
 
 /* ---------- 决策入口：进阶条件、操作栏与卡片按钮，手机优先露出主方案 ---------- */
-.picker-advanced summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
-.picker-advanced { min-width: 0; grid-column: 1 / -1; }
 .picker-advanced-grid { display: grid; gap: 10px; }
 .picker-task-controls { grid-column: 1 / -1; }
 .picker-hint { font-size: 12px; color: var(--muted); }
@@ -82,6 +75,9 @@ html[data-theme="dark"] .quick-card .qc-value em { color: var(--brand); }
 .picker-payment .maintenance-meta { margin-top: 8px; }
 #pickerPolicy { margin: 0 0 12px; }
 .service-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+/* 常用条件的三个操作成组：左侧小标签，组间用分隔线和分享按钮区分。 */
+.preset-actions { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; padding-left: 10px; border-left: 1px solid var(--line-strong); }
+.preset-actions-label { color: var(--muted); font-size: 12px; font-weight: 600; }
 .qc-actions {
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px;
   align-items: stretch; flex-shrink: 0; margin-top: 14px; margin-bottom: 8px;
@@ -109,7 +105,7 @@ html[data-theme="dark"] .quick-card .qc-value em { color: var(--brand); }
 
 @media (max-width: 700px) {
   #quick { display: flex; flex-direction: column; }
-  #quick { padding-top: 24px !important; }
+  #quick { padding-top: 24px; }
   #quick > .section-head { margin-bottom: 12px; }
   #quick > .section-head p { display: none; }
   #quick > .section-head { order: 0; }
@@ -121,6 +117,8 @@ html[data-theme="dark"] .quick-card .qc-value em { color: var(--brand); }
   #pickerRules { order: 5; }
   #quick > .section-menu { order: 6; }
   .qc-action { height: 40px; }
+  .qc-title { align-items: center; }
+  .qc-title .qc-watch { min-height: 36px; }
 }
 
 /* ---------- 紧凑推荐卡 ---------- */

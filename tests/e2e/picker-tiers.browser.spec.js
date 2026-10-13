@@ -25,7 +25,7 @@ for (const width of [375, 1280]) {
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     const budget = page.locator('#picker [data-pick="budget"]');
-    await budget.getByRole("button", { name:"≤ ¥500", exact:true }).click();
+    await budget.getByRole("radio", { name:"≤ ¥500", exact:true }).click();
     const affordable = page.locator('#quickGrid > .quick-card:has([data-plan-id="plan-0002"])');
     await expect(affordable.locator(".qc-value")).toContainText("$20");
     await expect(affordable.locator(".qc-reasons")).toContainText("预算内按任务与公开额度");
@@ -33,7 +33,7 @@ for (const width of [375, 1280]) {
     await expect(page.locator('#quickGrid > .quick-card:has([data-plan-id="plan-0004"])')).toHaveCount(0);
     await expect(page).toHaveURL((url) => url.searchParams.get("budget") === "500"
       && url.searchParams.get("tool") === "claude" && (url.searchParams.get("region") || "cn") === "cn");
-    await expect(page.locator('#picker [data-pick="region"] [data-value="cn"]')).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator('#picker [data-pick="region"] [data-value="cn"]')).toHaveAttribute("aria-checked", "true");
     await page.reload();
     await expect(page.locator('#quickGrid > .quick-card:has([data-plan-id="plan-0002"]) .qc-value')).toContainText("$20");
   });
