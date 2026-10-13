@@ -155,6 +155,9 @@ function decompressBody(buffer, encoding, maxBytes, sizeLabel) {
   });
 }
 
+/** Fetch forbids a body for these statuses; passing one to the Response constructor throws a TypeError. */
+const NULL_BODY_STATUSES = new Set([204, 205, 304]);
+
 /** Connect only to the addresses just validated. A caller-supplied fetcher does not use this path.
  * @param {URL} url
  * @param {Array<{address:string}>} addresses
@@ -187,17 +190,26 @@ function pinnedRequest(url, addresses, options) {
       });
       response.on("error", fail);
       response.on("end", () => {
-        decompressBody(Buffer.concat(chunks), response.headers["content-encoding"], options.maxBytes, options.sizeLabel).then((decoded) => {
-          if (decoded.length > options.maxBytes) throw new Error("来源响应超过 " + options.sizeLabel);
-          const headers = new Headers();
-          for (const [key, value] of Object.entries(response.headers)) {
-            if (value == null || key === "content-encoding" || key === "content-length") continue;
-            const items = Array.isArray(value) ? value : [value];
-            for (const item of items) headers.append(key, item);
-          }
-          headers.set("content-length", String(decoded.length));
-          // Node accepts Buffer as a fetch body; the DOM BodyInit type does not list Buffer.
-          succeed(new Response(/** @type {any} */ (decoded), { status: response.statusCode || 0, headers }));
+        const status = response.statusCode || 0;
+        /* Conditional requests for cached sources get 304. Null-body statuses carry no body and skip decompression:
+           an empty body with a Content-Encoding header would otherwise read as a truncated stream. */
+        const empty = NULL_BODY_STATUSES.has(status);
+        const body = empty ? Promise.resolve(Buffer.alloc(0)) : decompressBody(Buffer.concat(chunks), response.headers["content-encoding"], options.maxBytes, options.sizeLabel);
+        body.then((decoded) => {
+          /* Route every error to fail(): one thrown here would be an unhandled rejection and end the collector process. */
+          try {
+            if (status < 200 || status > 599) throw new Error("来源返回无效的 HTTP 状态：" + status);
+            if (decoded.length > options.maxBytes) throw new Error("来源响应超过 " + options.sizeLabel);
+            const headers = new Headers();
+            for (const [key, value] of Object.entries(response.headers)) {
+              if (value == null || key === "content-encoding" || key === "content-length") continue;
+              const items = Array.isArray(value) ? value : [value];
+              for (const item of items) headers.append(key, item);
+            }
+            if (!empty) headers.set("content-length", String(decoded.length));
+            // Node accepts Buffer as a fetch body; the DOM BodyInit type does not list Buffer.
+            succeed(new Response(empty ? null : /** @type {any} */ (decoded), { status, headers }));
+          } catch (error) { fail(error); }
         }, fail);
       });
     });

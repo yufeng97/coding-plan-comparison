@@ -230,6 +230,32 @@ async function tests() {
     const lookup = pinnedLookup("news.example.com", [{ address: "1.1.1.1" }]);
     await new Promise((resolve, reject) => lookup("news.example.com", { family: 6, all: true }, (error) => error ? resolve() : reject(new Error("IPv6 不应返回 IPv4"))));
   });
+  await test("默认连接收到 304 / 204 时按无正文响应返回，异常立即失败而不等到超时", async () => {
+    /** @param {number} status @param {Record<string,string>} headers */
+    const reply = (status, headers) => /** @type {any} */ ((/** @type {any} */ _options, /** @type {any} */ callback) => {
+      const response = /** @type {any} */ (new EventEmitter()), request = /** @type {any} */ (new EventEmitter());
+      request.end = () => {
+        response.statusCode = status;
+        response.headers = headers;
+        callback(response);
+        response.emit("end");
+      };
+      return request;
+    });
+    const pinned = async () => [{ address: "1.1.1.1" }];
+    const started = Date.now();
+    /* 条件请求命中缓存：304 带 ETag，部分服务器还会带 Content-Encoding 头而没有正文。 */
+    const cached = await fetchSource("https://news.example.com/rss", { resolver: pinned, transport: reply(304, { etag: '"v1"', "content-encoding": "gzip" }), headers: { "if-none-match": '"v1"' }, timeoutMs: 2000 });
+    assert.equal(cached.response.status, 304);
+    assert.equal(cached.response.headers.get("etag"), '"v1"');
+    assert.equal(cached.text, "");
+    const empty = await fetchSource("https://news.example.com/rss", { resolver: pinned, transport: reply(204, {}), timeoutMs: 2000 });
+    assert.equal(empty.response.status, 204);
+    assert.equal(empty.text, "");
+    /* 构造响应时出错（这里是非法响应头）直接失败，不变成未处理的 rejection。 */
+    await assert.rejects(fetchSource("https://news.example.com/rss", { resolver: pinned, transport: reply(200, { "x-bad": "a\nb" }), timeoutMs: 2000 }), TypeError);
+    assert.ok(Date.now() - started < 1500, "三次请求都立即结束，不靠超时");
+  });
   await test("损坏 inbox 被隔离且不改有效队列", () => fixture(async (root) => {
     const news = path.join(root, "data/audit/news");
     fs.mkdirSync(news, { recursive: true });
