@@ -5,7 +5,7 @@
 - 主站：[coding-plan-comparison-tau.vercel.app](https://coding-plan-comparison-tau.vercel.app/)；备用：[GitHub Pages](https://yufeng97.github.io/coding-plan-comparison/)（内容相同，一处较慢时可换另一处）
 - 纠错与收录：[项目 Issues](https://github.com/yufeng97/coding-plan-comparison/issues)，网站按贡献类型预填标题与证据模板
 
-固定导航按「选套餐 / 模型评测 / 我的关注」三项任务浏览；来源说明与提交纠错在页脚。每条价格附官网核查日期和来源；国际档标注有官方说明的中国大陆可用性（如官方支持地区不含中国大陆），没有官方说明的标「未核实」。
+固定导航按「选套餐 / 模型评测 / 我的关注」三项任务浏览，页头的「章节」下拉在选套餐视图里随时跳到任一章节；来源说明与提交纠错在页脚。每条价格附官网核查日期和来源；国际档标注有官方说明的中国大陆可用性（如官方支持地区不含中国大陆），没有官方说明的标「未核实」。
 
 ## 文档
 
@@ -21,7 +21,7 @@
 「帮我选」直接展示工具、任务与「额度 / 模型能力 / 价格」优先条件，付款方式用当前口径摘要并可展开修改；推荐卡下方并排列出前 3 档的月费、主力模型、额度参考下限与 DeepSWE v1.1 名次，推荐规则收在「推荐规则与口径」里。卡片首层保留首次付款、续期简句、理由和操作；12 个月费用情景、评测与档位表合并在可展开详情中。具体 GLM / GPT Sol、Luna、Astra 版本以本档明确模型列表为准，Cursor 的复杂模型按量池另行提示总费用。「我的关注」优先显示关注与变更，核查统计和公开 JSON 下载收在后方详情中。
 
 - **模型官方订阅**：Anthropic Claude、OpenAI Codex（ChatGPT）、Google Gemini/Antigravity、xAI Grok、Mistral、智谱 BigModel 与 Z.ai 的 GLM Coding Plan（V1/V2/V3）、月之暗面 Kimi、MiniMax、小米 MiMo、阶跃 Step Plan 等
-- **第三方工具与中转站**：GitHub Copilot、Cursor、Windsurf/Devin、Zed、Cline、Roo Code、Kilo Code、Amp、JetBrains AI、Augment、OpenRouter、Lovable、Bolt.new、Replit、AWS Kiro、Factory Droid、Canopy Wave、OpenCode、Command Code、腾讯 CodeBuddy、字节 Trae、百度文心快码，以及 R4 Coder、ZenMux、PackyCode、AICodeMirror、88code、DuckCoding、AIGoCode、DevPass、Chutes 等 API 中转站
+- **第三方工具与中转站**：GitHub Copilot、Cursor、Windsurf/Devin、Zed、Cline、Roo Code、Kilo Code、Amp、JetBrains AI、Augment、OpenRouter、Lovable、Bolt.new、Replit、AWS Kiro、Factory Droid、Canopy Wave、OpenCode、Command Code、腾讯 CodeBuddy、字节 Trae、百度文心快码、ZenMux（API 聚合平台），以及 R4 Coder、PackyCode、AICodeMirror、88code、DuckCoding、AIGoCode、DevPass、Chutes 等 API 中转站
 - **云厂商/企业档**：AWS Q Developer、Google Gemini Code Assist、阿里云通义灵码（Qoder CN）、腾讯云、华为云 CodeArts、讯飞星辰 Astron Coding Plan 等
 - **API 按量计费**：36 款主流编程模型的输入/输出单价（USD 与 CNY 原币，统一折算对比）
 
@@ -39,7 +39,7 @@
 
 **对比与完整权益**：推荐卡和数据表均可加入 2–4 档**并排对比**（只选 1 档时提示继续选择），逐档移出或清空后键盘焦点回到可用控件。对比窗口支持独立复制 Markdown、导出 CSV，保留选择顺序；筛选表也可导出 CSV / 复制 Markdown。两种导出均保留计价单位、数据更新日期、汇率、核价来源和完整继承权益。点击「完整权益」查看未截断的套餐资料；窗口支持键盘关闭、焦点恢复及无原生 dialog 环境的降级。差异字段与相同计价单位下的最低价会标出；空筛选结果禁用导出并提供恢复入口。
 
-**按工作量估算**：可从 ccusage 导入真实用量（`npx ccusage@latest daily --json`），或直接选择 Claude Code / Codex 的 `.jsonl` 会话日志（可多选，按消息或会话累计快照去重，只在本页解析），自动换算输入占比、缓存命中率和每月使用天数；缓存单价留空时按官方缓存命中价计费（不含缓存写入与存储费），未录入官方缓存价的模型按普通输入价计算。结果下方列出套餐额度对照、同模型按量费用与订阅回本点：credits 月池按当前输入／缓存比例及官方 API 单价折算，其他套餐按页面基准参考下限筛选，并分别标明依据。推荐旁的「按我的用量核对」带入预算及可精确匹配的模型，并展开 API 区计算器。可以用轻度使用、日常开发、高强度使用预设起步，再修改每天请求数、每次输入加输出的总 tokens、使用天数、输入占比、输入缓存命中率和人民币月预算。保守／典型／乐观情景明确采用不同输入与缓存假设，各自展示预计月费及工作量上下浮动 20% 的范围；预设与情景是示例，手动编辑后相应高亮取消。缓存单价选填并标明原币，留空时采用官方缓存命中价，未录入官方价的模型按普通输入价计算；模型、币种和核价来源沿用同一份价格数据。套餐参考月量会说明模型是否匹配及折算假设；跨模型或假设不同的 token 数不用于保证额度够用。排行与额度表另外显示参考额度上下界对应的满额折算成本区间，主值仍按区间中点排序。所有计算在本页完成，保存条件使用本地存储，不上传用户输入。
+**按工作量估算**：可从 ccusage 导入真实用量（`npx ccusage@latest daily --json`），或直接选择 Claude Code / Codex 的 `.jsonl` 会话日志（可多选或整个选择日志文件夹，按消息或会话累计快照去重，只在本页解析，较大的内容在后台 Worker 中解析），自动换算输入占比、缓存命中率和每月使用天数；缓存单价留空时按官方缓存命中价计费（不含缓存写入与存储费），未录入官方缓存价的模型按普通输入价计算。结果下方列出套餐额度对照、同模型按量费用与订阅回本点：credits 月池按当前输入／缓存比例及官方 API 单价折算，其他套餐按页面基准参考下限筛选，并分别标明依据。推荐旁的「按我的用量核对」带入预算及可精确匹配的模型，并展开 API 区计算器。可以用轻度使用、日常开发、高强度使用预设起步，再修改每天请求数、每次输入加输出的总 tokens、使用天数、输入占比、输入缓存命中率和人民币月预算。保守／典型／乐观情景明确采用不同输入与缓存假设，各自展示预计月费及工作量上下浮动 20% 的范围；预设与情景是示例，手动编辑后相应高亮取消。缓存单价选填并标明原币，留空时采用官方缓存命中价，未录入官方价的模型按普通输入价计算；模型、币种和核价来源沿用同一份价格数据。套餐参考月量会说明模型是否匹配及折算假设；跨模型或假设不同的 token 数不用于保证额度够用。排行与额度表另外显示参考额度上下界对应的满额折算成本区间，主值仍按区间中点排序。所有计算在本页完成，保存条件使用本地存储，不上传用户输入。
 
 **加载与阅读**：发布页通过 Vue 服务端渲染生成默认推荐、价格表与免费入口，脚本执行前即可阅读；浏览器挂载同一套 Vue 组件，按当前链接和本机状态接管页面。TypeScript 入口由 Vite 打包为带内容哈希的模块。手机默认收起长介绍，直接展示预算、地区、工具、任务与推荐优先条件；付款方式可展开。推荐卡、用量核对、分享与保存操作按同一阅读和键盘顺序排列。价格数据、推荐、表格及文字明细先显示，ECharts 在接近图表或跳转图表章节时加载。图表失败可局部重试，主脚本失败显示重新加载入口。
 
@@ -60,6 +60,7 @@ npm test             # tests/scripts/ 的 Node 工具、架构约束 + TypeScrip
 npm run test:unit    # 公式、数据、真实 Vue 整页和组件测试（Vitest）
 npm run test:browser # 构建后用 Chromium / Firefox / WebKit 运行 tests/e2e/ 的端到端回归
 npm run build:site   # Vite + Vue SSR 生成发布产物 .site-build/
+npm run size:check   # 检查发布产物的 brotli 体积预算（首屏 HTML、主入口、样式、ECharts）
 ```
 
 前端使用 Vue 3 + Vite + TypeScript：`src/App.vue` 排列整页，页头页脚在 `src/layouts/`，`src/sections/` 按帮我选、价格、对比、费用计算、评测、关注、贡献和站点说明分组，跨区块复用的组件与组合式函数在 `src/components/`、`src/composables/`。`src/domain/` 保存无浏览器依赖的业务规则，`src/state/` 管共享状态与绑定状态的选择器，`src/browser/` 封装 DOM、URL、存储、图表与资源加载，`src/application/` 协调跨功能动作与页面启动，单独打包的经典脚本入口在 `src/entries/`。组件按需从具体模块导入，`check:architecture` 与 CI 检查分层方向、循环依赖和测试代码隔离。源码、Vue 模板与测试统一使用严格 TypeScript，审计数据的结构类型由 `types/catalog.d.ts` 共用。说明见 [架构与发布](docs/architecture.md#前端结构与迁移)。

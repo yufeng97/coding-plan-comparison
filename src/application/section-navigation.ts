@@ -23,6 +23,13 @@ export function activatePageForTarget(target: Element | null) {
     const hero = qs(".hero");
     if (hero)
         hero.hidden = view !== "compare";
+    /* 页头的「章节」下拉只列选套餐视图的章节，其他视图隐藏并收起。 */
+    const jump = byId<HTMLDetailsElement>("sectionJump");
+    if (jump) {
+        jump.hidden = view !== "compare";
+        if (jump.hidden)
+            jump.open = false;
+    }
     qsa("[data-site-view]").forEach((link) => {
         const selected = link.dataset.siteView === view;
         link.classList.toggle("active", selected);

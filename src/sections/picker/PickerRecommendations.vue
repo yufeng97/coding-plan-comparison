@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from "vue";
 import { MODEL_ROLES_ASOF, planTitle } from "@domain/core";
-import { pickerAbilityCache } from "@domain/picker/ability";
 import { roleDisplayName } from "@domain/picker/text";
-import { pickerState } from "@state/app";
-import { dataRevision } from "@state/maintenance";
 import { abilityText, candidateRole, priceLine, quotaEvidenceText } from "@state/picker";
+import { dataRevision } from "@state/maintenance";
 import { focusTableControl } from "@browser/interaction";
 import { openWorkloadCalculator } from "@app/calculator";
 import PickerCard from "./PickerCard.vue";
@@ -13,10 +11,9 @@ import ServiceActions from "./ServiceActions.vue";
 import CompareButton from "../../components/CompareButton.vue";
 import { pickerView, pickerPolicy, priorityLabel } from "./picker-view";
 
+/* 选购条件在 pickerView 内读取、自动收集依赖；评测摘要随 dataRevision.benchmark 更新（缓存由 state/picker 同步作废）。 */
 const view = computed(() => {
   void dataRevision.benchmark;
-  Object.values(pickerState);
-  pickerAbilityCache.clear();
   return pickerView();
 });
 const policy = computed(pickerPolicy);
@@ -42,7 +39,22 @@ watch(view, async () => {
   <div id="quickGrid" ref="grid" class="quick-grid" :data-card-count="view.cards.length" @focusin="rememberFocus">
     <div v-if="view.empty" class="picker-empty">{{ view.empty }}</div>
     <PickerCard v-for="card in view.cards" :key="`${card.title}:${card.plan.id}`" :model="card" />
-    <div v-if="view.ranked.length > 1" class="picker-compare table-wrap" tabindex="0" role="region" aria-label="候选对比，可横向滚动"><table class="qc-compare"><caption>前 {{ view.ranked.length }} 档对比 · {{ priorityLabel() }}</caption><thead><tr><th v-for="label in columns" :key="label" scope="col">{{ label }}</th></tr></thead><tbody><tr v-for="(profile, index) in view.ranked" :key="profile.p.id" :class="{ 'is-current': index === 0 }"><th scope="row" data-label="套餐">{{ planTitle(profile.p) }}<span v-if="index === 0" class="qc-compare-tag">主计划</span></th><td data-label="所选付款月均">{{ priceLine(profile.p) }}</td><td data-label="主力模型">{{ candidateRole(profile) ? roleDisplayName(profile.p, candidateRole(profile)) : '—' }}</td><td data-label="月额度参考下限">{{ quotaEvidenceText(profile) }}</td><td data-label="DeepSWE v1.1">{{ abilityText(profile) }}</td><td data-label="对比"><CompareButton :plan="profile.p" scope="quickGrid" class="qc-action" /></td></tr></tbody></table></div>
+    <div v-if="view.ranked.length > 1" class="picker-compare table-wrap" tabindex="0" role="region" aria-label="候选对比，可横向滚动">
+      <table class="qc-compare">
+        <caption>前 {{ view.ranked.length }} 档对比 · {{ priorityLabel() }}</caption>
+        <thead><tr><th v-for="label in columns" :key="label" scope="col">{{ label }}</th></tr></thead>
+        <tbody>
+          <tr v-for="(profile, index) in view.ranked" :key="profile.p.id" :class="{ 'is-current': index === 0 }">
+            <th scope="row" data-label="套餐">{{ planTitle(profile.p) }}<span v-if="index === 0" class="qc-compare-tag">主计划</span></th>
+            <td data-label="所选付款月均">{{ priceLine(profile.p) }}</td>
+            <td data-label="主力模型">{{ candidateRole(profile) ? roleDisplayName(profile.p, candidateRole(profile)) : '—' }}</td>
+            <td data-label="月额度参考下限">{{ quotaEvidenceText(profile) }}</td>
+            <td data-label="DeepSWE v1.1">{{ abilityText(profile) }}</td>
+            <td data-label="对比"><CompareButton :plan="profile.p" scope="quickGrid" class="qc-action" /></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
     <details v-if="view.alternatives.length" class="picker-alternatives method-box"><summary>其他候选（{{ view.alternatives.length }} 档，均在预算内）</summary><div class="picker-alternatives-grid"><PickerCard v-for="card in view.alternatives" :key="card.plan.id" :model="card" /></div></details>
   </div>
   <div class="picker-after"><button id="checkWorkloadBtn" type="button" class="chip workload-check" @click.stop="openWorkloadCalculator()">按我的用量核对</button><p id="pickerNote" class="chart-note" role="status" aria-live="polite" aria-atomic="true">{{ view.note }}</p></div>

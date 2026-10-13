@@ -66,7 +66,7 @@ test("价格表所选支付月均排序控件升降往返，目录价格表头�
   assert.equal(app.tableState.sortKey, "selectedMonthly");
   assert.equal(app.tableState.sortDir, -1);
   assert.deepEqual(monthly(), sorted.slice().reverse());
-  assert.match(document.querySelector("#planTable [data-sort=priceM]")!.getAttribute("aria-label")!, /价格 \/ 周期/);
+  assert.match(document.querySelector("#planTable [data-sort=priceM]")!.textContent!, /价格 \/ 周期/);
   const shared = "/?" + app.appQueryString();
   app.applyPickerScope("table");
   await page.settle();

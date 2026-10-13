@@ -114,7 +114,7 @@ test("推荐偏好只改变排序，价格优先最低月费、能力按 DeepSWE
   page.fire(chip, "click");
   await page.settle();
   assert.equal(new URLSearchParams(location.search).get("priority"), "price");
-  assert.equal(chip.getAttribute("aria-pressed"), "true");
+  assert.equal(chip.getAttribute("aria-checked"), "true");
   const url = location.href;
   page.healthy();
   page = await openPage({ url });

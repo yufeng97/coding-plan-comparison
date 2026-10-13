@@ -6,7 +6,6 @@ import { renderTable, renderMetricsTable } from './tables';
 import type { PickerState } from '../state/app';
 import { updateAppState } from '../browser/url-state';
 
-import { pickerAbilityCache } from '../domain/picker/ability';
 import { planProfile } from '../domain/picker/profile';
 import { cheaperTiers } from '../state/picker';
 import { renderCostCalculator } from './calculator';
@@ -62,7 +61,6 @@ export function setPicker(rowKey: keyof PickerState, value: string) {
 
 export function renderPicker() {
     /* Vue derives recommendation cards from shared reactive state. Only notify applied scopes. */
-    pickerAbilityCache.clear();
     renderCostCalculator();
     refreshPickerScopes();
 }

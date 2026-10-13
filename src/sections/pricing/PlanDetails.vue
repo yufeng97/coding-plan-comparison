@@ -8,6 +8,7 @@ import { planDetailsView } from "@app/plan-details";
 import { closeCmpModal, PLAN_COLUMNS } from "@app/tables";
 import PlanHistory from "../follow/PlanHistory.vue";
 import WatchButton from "../../components/WatchButton.vue";
+import CompareButton from "../../components/CompareButton.vue";
 const planId = ref(""), dialog = ref<HTMLDialogElement | null>(null), backdrop = ref<HTMLElement | null>(null);
 const followFeedback = ref("");
 const isOpen = () => !!dialog.value && (dialog.value.open === true || dialog.value.hasAttribute("open"));
@@ -88,15 +89,22 @@ function keydown(event: KeyboardEvent) {
   if (event.shiftKey && document.activeElement === first) { event.preventDefault(); focusTableControl(last); }
   else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); focusTableControl(first); }
 }
+/* 与对比窗口一致：点在窗口框外（遮罩上）关闭。降级模式的遮罩是单独元素，已绑定 close。 */
+function outsideClick(event: MouseEvent) {
+  const element = dialog.value;
+  if (!element || event.target !== element) return;
+  const rect = element.getBoundingClientRect();
+  if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) close();
+}
 onMounted(() => { planDetailsView.show = show; });
 onBeforeUnmount(() => { finishClose(); planDetailsView.show = undefined; });
 </script>
 <template>
   <div id="planDetailsBackdrop" ref="backdrop" class="cmp-fallback-backdrop" hidden aria-hidden="true" @click="close"></div>
-  <dialog id="planDetailsModal" ref="dialog" class="cmp-modal plan-details-modal" tabindex="-1" aria-labelledby="planDetailsTitle" @close="finishClose" @cancel.prevent="close" @keydown="keydown">
-    <div class="cmp-head"><h3 id="planDetailsTitle">{{ plan ? planTitle(plan) : "完整套餐权益" }}</h3><button type="button" class="chip" id="planDetailsCloseBtn" @click="close">关闭 ✕</button></div>
+  <dialog id="planDetailsModal" ref="dialog" class="cmp-modal plan-details-modal" tabindex="-1" aria-labelledby="planDetailsTitle" @close="finishClose" @cancel.prevent="close" @keydown="keydown" @click="outsideClick">
+    <div class="cmp-head"><h3 id="planDetailsTitle">{{ plan ? planTitle(plan) : "完整套餐权益" }}</h3><button type="button" class="chip" id="planDetailsCloseBtn" @click="close">关闭 <span aria-hidden="true">✕</span></button></div>
     <div id="planDetailsBody" v-if="plan"><dl class="plan-detail-fields"><div v-for="field in fields" :key="field.label"><dt>{{ field.label }}</dt><dd v-if="field.links && field.links.length"><template v-for="(link, index) in field.links" :key="link.href + index"><template v-if="index"> · </template><a :href="link.href" target="_blank" rel="noopener">{{ link.text }}</a></template></dd><dd v-else-if="field.links">—</dd><dd v-else>{{ field.value }}</dd></div></dl>
-      <div class="maintenance-plan-actions"><WatchButton :plan="plan" /><a v-if="safeLink(plan.url)" :href="safeLink(plan.url)" target="_blank" rel="noopener">官网购买与权益规则 ↗</a></div>
+      <div class="maintenance-plan-actions"><CompareButton :plan="plan" scope="planDetails" /><WatchButton :plan="plan" /><a v-if="safeLink(plan.url)" :href="safeLink(plan.url)" target="_blank" rel="noopener">官网购买与权益规则 ↗</a></div>
       <p id="planFollowFeedback" class="table-feedback" role="status" aria-live="polite">{{ followFeedback }}</p><PlanHistory :key="plan.id" :plan-id="plan.id" />
     </div>
   </dialog>

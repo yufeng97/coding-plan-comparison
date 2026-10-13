@@ -196,9 +196,11 @@ test("应用条件的两张表与图表使用所选付款金额，取消恢复�
   assert.ok(applied.rows.length);
   for (const row of applied.rows) near(row.c.priceCNY, 94.4);
   near(app.personalChartPrice(plan(page, "plan-0157")), 94.4);
-  app.resetTableFilters();
-  app.resetMetricsFilters();
-  app.resetPersonalFilters();
+  /* 三处范围都恢复默认（等同各区「清除筛选」），再确认回到完整范围。 */
+  Object.assign(app.tableState, app.APP_DEFAULTS.table);
+  Object.assign(app.metricsState, app.APP_DEFAULTS.metrics);
+  Object.assign(app.personalState, app.APP_DEFAULTS.personal);
+  app.renderPersonalChart();
   await page.settle();
   assert.equal(app.tableState.fromPicker || app.personalState.fromPicker || app.metricsState.fromPicker, false);
   assert.ok(app.computeTableRows().length > 1);

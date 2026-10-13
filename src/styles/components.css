@@ -6,12 +6,12 @@
 .chip {
   padding: 6px 13px; min-height: 34px; border-radius: var(--radius-s); font-size: 12.5px; font-weight: 600; cursor: pointer;
   background: var(--chip-bg); color: var(--muted);
-  border: 1px solid var(--line-strong); transition: all .15s;
+  border: 1px solid var(--line-strong); transition: color .15s, background-color .15s, border-color .15s;
   text-decoration: none;
 }
 a.chip:hover { text-decoration: none; }
 .chip:hover { color: var(--ink); border-color: var(--chip-hover-border); }
-.chip:disabled, .cmp-add:disabled { opacity: .5; cursor: not-allowed; }
+.chip:disabled, .cmp-add:disabled, .cmp-add[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
 .chip.active {
   background: var(--brand-button); border-color: var(--brand-button); color: #fff;
 }
@@ -22,16 +22,22 @@ html[data-theme="dark"] .chip.active { background: var(--brand); border-color: v
 .legend-inline i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
 .chart-legend { display: flex; gap: 8px; flex-wrap: wrap; padding: 0 6px 6px; }
 .chart-legend .chip { font-size: 12px; }
-.search-input, .select {
-  background: var(--panel); border: 1px solid var(--line-strong); color: var(--ink);
-  padding: 8px 12px; border-radius: var(--radius-s); font-size: 13px; outline: none;
-  font-family: var(--sans); min-width: 0; max-width: 100%; min-height: 36px;
+/* 输入框、下拉与文本框共用一套外观：各区块只设宽度、内边距与字体，不另定边框、底色与焦点样式。 */
+:is(.search-input, .select, .maintenance-select select, .cost-form input, .cost-form select, .usage-import-field textarea, .contribution-preview textarea) {
+  background: var(--panel); border: 1px solid var(--control-border); color: var(--ink);
+  border-radius: var(--radius-s); outline: none;
 }
-.search-input:focus, .select:focus { border-color: var(--brand-button); }
-.search-input:focus-visible, .select:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 3px; }
-html[data-theme="dark"] .search-input:focus, html[data-theme="dark"] .select:focus { border-color: var(--brand); }
+:is(.search-input, .select, .maintenance-select select, .cost-form input, .cost-form select, .usage-import-field textarea, .contribution-preview textarea):focus { border-color: var(--brand-button); }
+html[data-theme="dark"] :is(.search-input, .select, .maintenance-select select, .cost-form input, .cost-form select, .usage-import-field textarea, .contribution-preview textarea):focus { border-color: var(--brand); }
+:is(.search-input, .select, .maintenance-select select, .cost-form input, .cost-form select, .usage-import-field textarea, .contribution-preview textarea):focus-visible { outline: 2px solid var(--accent-2); outline-offset: 3px; }
+:is(.select, .maintenance-select select, .cost-form select) option { background: var(--panel); color: var(--ink); }
+.search-input, .select {
+  padding: 8px 12px; font-size: 13px; font-family: var(--sans);
+  min-width: 0; max-width: 100%; min-height: 36px;
+}
 .search-input { width: 250px; }
-.select option { background: var(--panel); color: var(--ink); }
+/* 计算器里不合法的输入：边框与说明同时提示，aria-invalid 供读屏识别。 */
+:is(.cost-form input, .search-input)[aria-invalid="true"] { border-color: var(--red); }
 .table-count { color: var(--faint); font-size: 12px; font-family: var(--mono); margin-left: auto; }
 
 /* ---------- 数据表外框、表头与单元格 ---------- */
@@ -46,9 +52,14 @@ thead th {
   padding: 9px 12px; font-weight: 700; font-size: 11.5px; white-space: nowrap;
   border-bottom: 1px solid var(--line-strong);
 }
-thead th.sortable { cursor: pointer; user-select: none; }
-thead th.sortable:hover { color: var(--ink); }
-thead th.sortable:focus-visible { outline: 2px solid var(--accent-2); outline-offset: -2px; border-radius: 4px; }
+/* 可排序表头：th 只承载列名与 aria-sort，点击与键盘操作交给整格大小的按钮。 */
+thead th.sortable { padding: 0; }
+.sort-btn {
+  display: block; width: 100%; padding: 9px 12px; border: 0; background: none;
+  color: inherit; font: inherit; text-align: inherit; white-space: inherit; cursor: pointer; user-select: none;
+}
+.sort-btn:hover { color: var(--ink); }
+.sort-btn:focus-visible { outline: 2px solid var(--accent-2); outline-offset: -2px; border-radius: 4px; }
 thead th.sort-active { color: var(--brand-button); }
 html[data-theme="dark"] thead th.sort-active { color: var(--brand); }
 tbody td {
@@ -58,7 +69,8 @@ tbody td {
 tbody tr:hover td { background: var(--row-hover); }
 
 /* ---------- 分类标签 ---------- */
-.tag { display: inline-block; padding: 2px 8px; border-radius: 5px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+/* 窄列里允许换行时只在空格与标点处断开（keep-all），不把「云厂商」拆成单字。 */
+.tag { display: inline-block; padding: 2px 8px; border-radius: 5px; font-size: 11px; font-weight: 600; white-space: nowrap; word-break: keep-all; }
 .tag-official { background: var(--cat-official-soft); color: var(--cat-official-text); }
 .tag-tool { background: var(--cat-tool-soft); color: var(--cat-tool-text); }
 .tag-cloud { background: var(--cat-cloud-soft); color: var(--cat-cloud-text); }
@@ -95,8 +107,44 @@ html[data-theme="dark"] .method-box summary:hover { color: var(--brand); }
 }
 .watch-plan.on { color: var(--accent); border-color: var(--accent); }
 .watch-plan:hover { border-color: var(--accent); color: var(--text); }
-.watch-plan:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.watch-plan:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 3px; }
+
+/* ---------- 套餐徽章（PlanBadges）：推荐卡、数据表、对比窗口共用 ---------- */
+.badge-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; max-width: 280px; }
+.badge {
+  display: inline-block; padding: 1px 6px; border-radius: 999px;
+  border: 1px solid var(--line-strong); font: 600 10.5px var(--mono); color: var(--muted); white-space: nowrap;
+}
+.badge-agent { color: var(--ink); }
+.badge-risk { color: var(--gold); border-color: var(--risk-border); }
+
+/* ---------- 次要文字与价格核查（PriceCheck / PlanPrice） ---------- */
+/* .sub 是全站通用的次要说明：各表格只调整排版，不再各自定义颜色与字重。 */
+.sub { color: var(--faint); font-size: 12px; font-weight: 400; }
+.price-check-status { display: block; margin-top: 4px; font-size: 11px; }
+/* 核查日期超过复查间隔时标金色。 */
+.sub.check-stale { color: var(--gold); }
+.price-check-details { margin-top: 5px; white-space: normal; max-width: 260px; }
+.price-check-details summary { cursor: pointer; color: var(--accent-2); font-size: 11px; }
+.price-check-details summary:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+.price-check-details p { margin: 5px 0 0; font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; }
 
 /* ---------- 状态提示 ---------- */
 .table-feedback { min-height: 0; color: var(--muted); font-size: 12px; margin-bottom: 10px; }
 .table-feedback:empty { display: none; }
+
+/* 不在触发点附近的操作结果（如底部对比条里的加入、移出与清空）用浮动提示，读屏经 role=status 获知。 */
+.toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 170;
+  max-width: min(92vw, 520px); padding: 8px 14px; border: 1px solid var(--line-strong); border-radius: 10px;
+  background: var(--panel); color: var(--text); font-size: 12.5px; box-shadow: 0 8px 24px rgba(16, 17, 15, .18);
+}
+.toast:empty { display: none; }
+.has-compare .toast { bottom: 84px; }
+
+/* 控件分组：工具栏按「筛选 / 视图与排序 / 导出」成组换行，不再在组内随意折断。 */
+.control-group { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+/* 记录数与排序说明独占一行，放在各组控件之后。 */
+.controls-table > .table-count, .controls-table > .table-status { flex: 1 1 100%; margin: 0; }
+.table-status { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.table-status .table-count { margin-left: 0; }

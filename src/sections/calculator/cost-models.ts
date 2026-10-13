@@ -6,7 +6,7 @@ import { tokSpan } from "@domain/picker/text";
 import { provenance } from "@domain/provenance";
 import { costModelKey, fmtCalcCNY, quotaUsesRequestTokenAssumption } from "@domain/workload";
 import { calcState, pickerState } from "@state/app";
-import { chooseMain, eligibleProfiles, pickerPaymentQuote } from "@state/picker";
+import { currentPickerSelection, pickerPaymentQuote } from "@state/picker";
 
 /** Browser control ids for the workload calculator. Calculation rules only use field names. */
 export const COST_CONTROLS = {
@@ -15,7 +15,7 @@ export const COST_CONTROLS = {
 } as const;
 
 export function costQuotaParagraphs(api: typeof API_PRICES[number], monthlyM: number) {
-  const main = chooseMain(eligibleProfiles());
+  const main = currentPickerSelection().main;
   if (!main) return [];
   const taskRole = pickerState.task === "daily" ? main.loose[0] : main.headline || main.loose[0];
   const confidence: Record<string, number> = { "高": 3, "中": 2, "低": 1 };

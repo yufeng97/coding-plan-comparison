@@ -8,6 +8,7 @@ import { metricChartLabel, weeklyTokenRange } from './tokens';
 import { provenance } from '../../domain/provenance';
 import { fmtTok } from '../../domain/metrics';
 import { fullUseCostRangeText } from '../../domain/picker/text';
+import { fmtCpm } from '../../domain/table-format';
 
 /* ---------- 性价比排行图（每 M tokens 成本） ---------- */
 
@@ -19,7 +20,7 @@ export function renderRankChart() {
     const all = rankRows();
     const rows = rankChartRows(all);
     describeChart("chartRank", "每百万 tokens 成本排行（" + rankPaymentLabel() + " ÷ 参考月量区间中点，¥，越低越划算）前三：" +
-        rows.slice(0, 3).map((r) => planLabel(r.m) + " ¥" + r.c.costPerM.toFixed(3)).join("、") + "。先列依据官方额度规则折算的档位（实色柱），再列第三方或请求次数估算（斜纹柱），不确定区间见提示及完整明细。");
+        rows.slice(0, 3).map((r) => planLabel(r.m) + " " + fmtCpm(r.c.costPerM)).join("、") + "。先列依据官方额度规则折算的档位（实色柱），再列第三方或请求次数估算（斜纹柱），不确定区间见提示及完整明细。");
     const el = byId("chartRank")!;
     /* 两组之间插入一行分隔标签，柱值为空。 */
     const firstEstimate = rows.findIndex((r) => rankIsEstimate(r.m));
@@ -56,7 +57,7 @@ export function renderRankChart() {
                 const rate = r.c.rmo == null ? "—" : `${r.c.rmo.toFixed(1)}×`;
                 const range = fullUseCostRangeText(r.c);
                 return `<b>${esc(planLabel(r.m))}</b>（${esc(displayModelName(r.m.model))}）<br/>
-            💵每 M tokens：<b style="color:${cpColor}">¥${cp.toFixed(3)}</b><br/>
+            每 M tokens：<b style="color:${cpColor}">${fmtCpm(cp)}</b><br/>
             ${range ? esc(range) + "（用尽对应额度）<br/>" : ""}
             ${esc(rankRowPaymentLabel(r.m))}：${fmtCNY(r.c.priceCNY)} ｜ 月倍率：<b>${rate}</b><br/>
             月 tokens：${mo}<br/>
@@ -73,7 +74,7 @@ export function renderRankChart() {
         },
         series: [{
                 type: "bar", data, barWidth: 18,
-                label: { show: true, position: "right", color: PAL.text, fontSize: 12, formatter: (d: { value: number | null }) => typeof d.value === "number" ? "¥" + d.value.toFixed(3) : "" },
+                label: { show: true, position: "right", color: PAL.text, fontSize: 12, formatter: (d: { value: number | null }) => typeof d.value === "number" ? fmtCpm(d.value) : "" },
             }],
     }, true);
     chart.resize();

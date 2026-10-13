@@ -43,6 +43,9 @@ export const themeView = reactive<{ mode: ThemeMode; effective: 'dark' | 'light'
 /* 分享、复制推荐摘要与常用条件的操作栏：最近一次提示与是否已保存常用条件。 */
 export const serviceUiState = reactive({ feedback: '', presetSaved: false });
 
+/* 费用计算器顶部的提示：「按我的用量核对」带入了什么条件。页面会跳到计算器，提示必须显示在那里而不是推荐区。 */
+export const calcUiState = reactive({ feedback: '' });
+
 /* 额度表模型筛选的合法取值（与额度表模型下拉的数据源一致），供 URL 白名单校验 */
 export const MODEL_FILTER_VALUES = new Set([
     ...METRICS_RAW.map((m) => m.model),

@@ -45,7 +45,7 @@ test("比较和导出保留一次性/席位/4周单位、数据日期/汇率和�
   assert.ok(compare.querySelector(".cmp-diff-row"));
   assert.equal(app.isPersonalMonthly(fourWeek), false, "4周费用不能当作自然月月费");
   Object.assign(app.personalState, { cat: "all", region: "all", q: "", limit: null });
-  app.resetTableFilters();
+  Object.assign(app.tableState, app.APP_DEFAULTS.table);
   await page.settle();
   app.renderPersonalChart();
   assert.equal(page.charts.get("chartPersonal")!.option.series[0].data.some((d: { _p: Plan }) => app.isFourWeekPlan(d._p)), false, "个人月费图不应混入4周档");
@@ -254,13 +254,17 @@ test("表格排序键盘操作与aria说明一致，明细开关同步展开状�
   const app = page.runtime;
   const price = document.querySelector<HTMLElement>("#planTable th[data-sort=priceM]")!;
   const annual = document.querySelector<HTMLElement>("#planTable th[data-sort=priceY]")!;
-  assert.equal(price.tabIndex, 0);
+  /* 表头只给列名与 aria-sort，操作交给整格按钮；排序方向说明是按钮描述，不并入列名。 */
+  const sortButton = (th: HTMLElement) => th.querySelector<HTMLButtonElement>("button.sort-btn")!;
+  const hint = (th: HTMLElement) => document.getElementById(sortButton(th).getAttribute("aria-describedby")!)!.textContent!;
+  assert.equal(sortButton(price).type, "button");
+  assert.equal(price.hasAttribute("aria-label"), false, "列名不能带上操作说明");
   assert.equal(price.getAttribute("aria-sort"), "ascending");
   assert.equal(annual.getAttribute("aria-sort"), null);
-  assert.match(price.getAttribute("aria-label")!, /当前从低到高.*激活后从高到低/);
-  assert.equal((await key(page, price, "Enter")).defaultPrevented, true);
+  assert.match(hint(price), /当前从低到高.*激活后从高到低/);
+  await click(page, sortButton(price));
   assert.equal(price.getAttribute("aria-sort"), "descending");
-  await key(page, annual, " ");
+  await click(page, sortButton(annual));
   assert.equal(app.tableState.sortKey + ":" + app.tableState.sortDir, "priceY:1");
   assert.equal(price.getAttribute("aria-sort"), null);
   assert.equal(annual.getAttribute("aria-sort"), "ascending");
@@ -274,10 +278,9 @@ test("表格排序键盘操作与aria说明一致，明细开关同步展开状�
     assert.equal(button.getAttribute("aria-expanded"), "false");
   }
   const weekly = document.querySelector<HTMLElement>("#metricsTable th[data-sort=twk]")!;
-  assert.equal(weekly.tabIndex, 0);
   assert.equal(weekly.getAttribute("aria-sort"), null);
-  assert.match(weekly.getAttribute("aria-label")!, /激活后从高到低/);
-  await key(page, weekly, " ");
+  assert.match(hint(weekly), /激活后从高到低/);
+  await click(page, sortButton(weekly));
   assert.equal(app.metricsState.sortKey + ":" + app.metricsState.sortDir, "twk:-1");
   assert.equal(weekly.getAttribute("aria-sort"), "descending");
   assert.match(page.byId("metricsNote").textContent!, /按Tokens\/周从高到低排序/);
@@ -344,7 +347,8 @@ test("推荐和数据表同步同一方案的选择、上限与重绘焦点", as
   await page.settle();
   assert.equal(app.cmpState.items.length, app.CMP_MAX);
   assert.equal(cardButton().disabled, false, "已选项仍能移出");
-  assert.ok(Array.from(page.byId("tableBody").querySelectorAll<HTMLButtonElement>(".cmp-add")).some((button) => button.disabled));
+  /* 已满时其他档的按钮标 aria-disabled（仍可聚焦、读到原因），不是 disabled。 */
+  assert.ok(Array.from(page.byId("tableBody").querySelectorAll<HTMLButtonElement>(".cmp-add")).some((button) => button.getAttribute("aria-disabled") === "true" && !button.disabled));
   await click(page, tableButton);
   assert.equal(cardButton().getAttribute("aria-pressed"), "false");
   assert.equal(cardButton().disabled, false);
@@ -442,9 +446,9 @@ test("价格表与额度表给手机卡片提供字段标签，单价明确区�
   assert.equal(price.dataset.label, "价格 / 周期");
   assert.match(price.textContent!, /免费|¥|\$/);
   const metricRow = page.byId("metricsBody").querySelector("tr")!;
-  assert.equal(metricRow.querySelector<HTMLElement>('[data-column="cpm"]')!.dataset.label, "💵每M tokens");
+  assert.equal(metricRow.querySelector<HTMLElement>('[data-column="cpm"]')!.dataset.label, "每M tokens");
   assert.equal(metricRow.querySelector<HTMLElement>('[data-column="tmo"]')!.dataset.label, "每月 tokens");
-  const hint = app.listPriceHint({ apiIn: 1.35, apiOut: 8.1, apiCache: 0.27, cur: "CNY" });
+  const hint = app.listPriceParts({ apiIn: 1.35, apiOut: 8.1, apiCache: 0.27, cur: "CNY" }).join(" / ");
   assert.match(hint, /输入 ¥1\.35/);
   assert.match(hint, /输出 ¥8\.1/);
   assert.match(hint, /缓存 ¥0\.27/);
@@ -455,7 +459,7 @@ test("价格表与额度表给手机卡片提供字段标签，单价明确区�
 test("额度默认范围与排行同样排除轻量和续费档，可明确切换查看历史数据", async () => {
   const page = await openPage();
   const app = page.runtime;
-  app.resetMetricsFilters();
+  Object.assign(app.metricsState, app.APP_DEFAULTS.metrics);
   await page.settle();
   const current = app.metricsTableRows().rows;
   assert.equal(current.every((r) => app.metricOfferOk(r.m) && app.isFlagshipModelName(r.m.model)), true);
@@ -467,8 +471,7 @@ test("额度默认范围与排行同样排除轻量和续费档，可明确切�
   assert.equal(all.some((r) => /老用户|续费/.test(r.m.plan)), true);
   assert.match(page.byId("metricsNote").textContent!, /含历史与仅老用户续费档/);
   assert.equal(page.byId<HTMLButtonElement>("metricsResetBtn").disabled, false);
-  app.resetMetricsFilters();
-  await page.settle();
+  await click(page, page.byId("metricsResetBtn"));
   assert.equal(app.metricsState.tier + ":" + app.metricsState.offer, "flagship:current");
   page.healthy();
 });
@@ -502,8 +505,7 @@ test("完整价格表分批显示，筛选排序重置页数；导出和对比�
   assert.equal(rows(page, "tableBody").length, 20);
   assert.match(page.byId("tableCount").textContent!, new RegExp("已显示 20 / " + total));
   assert.equal(page.byId("tableMoreBtn").hidden, false);
-  app.showMoreTableRows();
-  await page.settle();
+  await click(page, page.byId("tableMoreBtn"));
   assert.equal(rows(page, "tableBody").length, 40);
   assert.equal((document.activeElement as HTMLElement).dataset.planId, app.computeTableRows()[20].id);
   app.exportTableCsv();
@@ -539,8 +541,7 @@ test("额度表分批展示完整排序结果，更多记录不改变筛选结�
   assert.equal(rows(page, "metricsBody").length, 20);
   assert.equal(page.byId("metricsMoreBtn").hidden, false);
   assert.equal(page.byId("metricsCount").textContent, `已显示 20 / ${total} 行`);
-  app.showMoreMetricsRows();
-  await page.settle();
+  await click(page, page.byId("metricsMoreBtn"));
   assert.equal(rows(page, "metricsBody").length, 40);
   assert.equal(document.activeElement, rows(page, "metricsBody")[20]);
   assert.equal(shown(), sorted);
@@ -565,9 +566,8 @@ test("两张表手机每批5行、桌面每批20行，跨断点重绘重新应�
     await page.flushTimers();
   };
   assert.deepEqual(counts(), [5, 5]);
-  app.showMoreTableRows();
-  app.showMoreMetricsRows();
-  await page.settle();
+  await click(page, page.byId("tableMoreBtn"));
+  await click(page, page.byId("metricsMoreBtn"));
   assert.deepEqual(counts(), [10, 10]);
   await resize(1280);
   assert.deepEqual(counts(), [20, 20]);

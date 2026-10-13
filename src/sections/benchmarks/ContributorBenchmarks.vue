@@ -39,9 +39,10 @@ function choose(key: "task" | "tool" | "model", value: string) {
         <option v-for="model in choices.model" :key="model" :value="model">{{ model }}</option>
       </select></label>
     </div>
-    <div id="benchmarkResults" aria-live="polite">
+    <!-- 只有结果说明是播报区：筛选变化时读出条数或空态，不把整份记录列表朗读一遍。 -->
+    <div id="benchmarkResults">
+      <p :class="{ 'benchmark-empty': !runs.length }" role="status" aria-live="polite">{{ runs.length ? `符合条件 ${runs.length} 条贡献者解答记录。不同任务、环境与币种分别展示，不合并成成功率或性能排名。` : emptyText }}</p>
       <template v-if="runs.length">
-        <p>符合条件 {{ runs.length }} 条贡献者解答记录。不同任务、环境与币种分别展示，不合并成成功率或性能排名。</p>
         <ul class="benchmark-runs">
           <li v-for="run in runs" :key="run.id" class="benchmark-run">
             <h3>{{ run.title }}</h3>
@@ -57,7 +58,6 @@ function choose(key: "task" | "tool" | "model", value: string) {
           </li>
         </ul>
       </template>
-      <p v-else class="benchmark-empty">{{ emptyText }}</p>
     </div>
     <p class="maintenance-meta">生成费用取自真实 API 账单；订阅内使用不分摊单次费用。生成时间与验收运行时间分别记录；验收次数指同一解答的重复检查，不能当成模型独立尝试次数或成功率。</p>
   </div>

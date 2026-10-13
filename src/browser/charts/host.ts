@@ -8,6 +8,8 @@ export interface ChartPalette {
     text: string; dim: string; catLabel: string; faint: string; gold: string; green: string;
     red: string; info: string; axisLine: string; splitLine: string; tipBg: string;
     tipBorder: string; tipText: string;
+    /** 系列色（--chart-*）：API 输入/输出、国际/国内与每周 tokens 的官方/估算，图例与图表同源。 */
+    chartInput: string; chartOutput: string; chartIntl: string; chartCn: string; chartOfficial: string; chartEstimate: string;
 }
 
 /* 类别色值以 src/styles/theme.css 的 --cat-* 变量为单一数据源：图表、HTML 图例、类别标签共用。
@@ -46,17 +48,72 @@ export function isNarrowChart(hostEl: HTMLElement, measuredWidth: number = 0) {
 /* 名称放到柱子上方后，每行多留一行文字的高度。 */
 export function chartRowHeight(hostEl: HTMLElement, per: number) { return isNarrowChart(hostEl) ? per + 16 : per; }
 
+/* 轴标签按 ECharts 默认字体（sans-serif）量宽；量不了时按全角 1em、半角 0.55em 估算。 */
+let measureContext: CanvasRenderingContext2D | null | undefined;
+function labelTextWidth(text: string, fontSize: number) {
+    if (measureContext === undefined) {
+        try {
+            measureContext = document.createElement("canvas").getContext("2d");
+        }
+        catch (err) {
+            measureContext = null;
+        }
+    }
+    if (measureContext && typeof measureContext.measureText === "function") {
+        measureContext.font = fontSize + "px sans-serif";
+        return measureContext.measureText(text).width;
+    }
+    return Array.from(text).reduce((sum, ch) => sum + (ch.charCodeAt(0) < 0x2e80 ? 0.55 : 1) * fontSize, 0);
+}
+
+/** 「套餐 · 模型」这类标签超宽时保留最后一个「 · 」之后的模型名，套餐名从中间省略：
+ *  开头保留厂商、末尾保留 Pro / Max 等档位，否则末尾截断会把区分同档的信息截掉。ECharts 的 truncate 仍然兜底。 */
+export function fitAxisLabel(label: string, maxWidth: number, fontSize: number) {
+    const text = String(label ?? "");
+    if (labelTextWidth(text, fontSize) <= maxWidth)
+        return text;
+    const at = text.lastIndexOf(" · ");
+    if (at <= 0)
+        return text;
+    const tail = text.slice(at), head = Array.from(text.slice(0, at));
+    const budget = maxWidth - labelTextWidth("…" + tail, fontSize);
+    if (budget < fontSize * 3)
+        return text;
+    /* 约四成留给开头（厂商），其余留给末尾（档位名）。 */
+    let start = "", end = "";
+    for (const ch of head) {
+        if (labelTextWidth(start + ch, fontSize) > budget * 0.4)
+            break;
+        start += ch;
+    }
+    for (let i = head.length - 1; i >= start.length; i--) {
+        if (labelTextWidth(start + head[i] + end, fontSize) > budget)
+            break;
+        end = head[i] + end;
+    }
+    /* 末尾部分从词边界开始（空格或括号），不把「Pro」截成「o」。 */
+    const cut = head.length - end.length;
+    if (cut > 0 && !/[\s（(]/.test(head[cut - 1]!)) {
+        const boundary = Array.from(end).findIndex((ch, index) => index > 0 && /[\s（(]/.test(ch));
+        if (boundary > 0)
+            end = Array.from(end).slice(boundary).join("");
+    }
+    return start.trimEnd() + "…" + end.trimStart() + tail;
+}
+
 export function chartAxisLabel(hostEl: HTMLElement, fontSize: number = 12.5, measuredWidth: number = 0) {
     const width = chartHostWidth(hostEl, measuredWidth);
     const narrow = isNarrowChart(hostEl, width);
     chartNarrowMode.set(hostEl.id, narrow);
     if (narrow) {
+        const labelWidth = Math.max(120, width - 40);
         return { color: PAL.catLabel, fontSize: 11, inside: true, align: "left", verticalAlign: "bottom",
-            padding: [0, 0, 11, 2], width: Math.max(120, width - 40), overflow: "truncate", margin: 0 };
+            padding: [0, 0, 11, 2], width: labelWidth, overflow: "truncate", margin: 0,
+            formatter: (label: string) => fitAxisLabel(label, labelWidth, 11) };
     }
-    return { color: PAL.catLabel, fontSize,
-        width: Math.max(60, Math.min(width < NARROW_CHART_WIDTH ? 110 : 260, width * 0.34)),
-        overflow: "truncate", margin: 8 };
+    const labelWidth = Math.max(60, Math.min(width < NARROW_CHART_WIDTH ? 110 : 260, width * 0.34));
+    return { color: PAL.catLabel, fontSize, width: labelWidth, overflow: "truncate", margin: 8,
+        formatter: (label: string) => fitAxisLabel(label, labelWidth, fontSize) };
 }
 
 /** 图表 id → ECharts 实例。 */
@@ -79,6 +136,7 @@ export function releaseChart(id: string) {
         delete chartCache[id];
     }
     pendingChartResizes.delete(id);
+    offscreenResized.delete(id);
     chartNarrowMode.delete(id);
 }
 
@@ -198,22 +256,41 @@ export const pendingChartResizes = new Set<string>();
 
 const CHART_AXIS_FONT_SIZE: Record<string, number> = { chartPersonal: 12.5, chartTeam: 12.5, chartTokens: 11.5, chartApi: 11, chartPower: 11, chartRank: 11.5, chartPublicBenchmark: 12 };
 
-/* 缩放只更新实际尺寸变化的可见画布，不重新筛数据或重建图例。
-   离屏画布保留待处理标记，滚入阅读区时再补齐尺寸和轴标签宽度。 */
+/** 已在屏幕外按新尺寸缩放、但轴标签宽度与窄屏布局尚未补齐的画布。 */
+const offscreenResized = new Set<string>();
+
+/* 缩放只更新实际尺寸变化的画布，不重新筛数据或重建图例。
+   可见画布同时按新宽度重排轴标签与窄/宽布局；屏幕外画布只同步尺寸，避免旧宽度把整页撑出横向滚动，
+   轴标签与布局保留待处理标记，滚入阅读区时再补齐。 */
 export function resizeVisibleCharts(renderers: Record<string, () => void> = {}) {
     pendingChartResizes.forEach((id) => {
         const chart = chartCache[id], el = byId(id);
         if (!chart || !el) {
             pendingChartResizes.delete(id);
+            offscreenResized.delete(id);
             return;
         }
         if (el.hidden)
             return;
         const rect = el.getBoundingClientRect();
-        if (rect.bottom < 0 || rect.top > window.innerHeight || rect.width <= 0 || rect.height <= 0)
+        if (rect.width <= 0 || rect.height <= 0)
             return;
+        const sizeChanged = Math.abs(chart.getWidth() - rect.width) >= 1 || Math.abs(chart.getHeight() - rect.height) >= 1;
+        if (rect.bottom < 0 || rect.top > window.innerHeight) {
+            if (!sizeChanged)
+                return;
+            try {
+                chart.resize();
+                offscreenResized.add(id);
+            }
+            catch (err) {
+                console.error("[chart resize] " + id, err);
+            }
+            return;
+        }
         pendingChartResizes.delete(id);
-        if (Math.abs(chart.getWidth() - rect.width) < 1 && Math.abs(chart.getHeight() - rect.height) < 1)
+        const labelsStale = offscreenResized.delete(id);
+        if (!sizeChanged && !labelsStale)
             return;
         try {
             const render = renderers[id];
@@ -269,19 +346,31 @@ export function refreshPalette() {
     const cs = getComputedStyle(document.documentElement);
     const color = (name: string, fallback: string) => (cs.getPropertyValue(name) || "").trim() || fallback;
     PAL = light ? {
-        text: "#10110f", dim: "#6f726b", catLabel: "#3a3d38", faint: color("--faint", "#70746c"),
+        text: "#10110f", dim: "#6f726b", catLabel: "#3a3d38", faint: color("--faint", "#6b6f66"),
         gold: color("--gold", "#996100"), green: color("--green", "#287c3e"),
         red: color("--red", "#b52a25"), info: color("--info", "#2458ae"),
         axisLine: "rgba(16,17,15,.22)", splitLine: "rgba(16,17,15,.07)",
         tipBg: "rgba(255,255,255,.98)", tipBorder: "rgba(16,17,15,.18)", tipText: "#10110f",
+        chartInput: color("--chart-input", "#4f46e5"), chartOutput: color("--chart-output", "#c0266d"),
+        chartIntl: color("--chart-intl", "#0e7490"), chartCn: color("--chart-cn", "#047857"),
+        chartOfficial: color("--chart-official", "#287c3e"), chartEstimate: color("--chart-estimate", "#996100"),
     } : {
         text: "#eceee8", dim: "#9fa39a", catLabel: "#c8ccc2", faint: color("--faint", "#868a83"),
         gold: color("--gold", "#e9b117"), green: color("--green", "#4cbf6b"),
         red: color("--red", "#ef554f"), info: color("--info", "#6d9bff"),
         axisLine: "rgba(236,238,232,.2)", splitLine: "rgba(236,238,232,.08)",
         tipBg: "rgba(22,24,21,.97)", tipBorder: "rgba(236,238,232,.16)", tipText: "#eceee8",
+        chartInput: color("--chart-input", "#818cf8"), chartOutput: color("--chart-output", "#f472b6"),
+        chartIntl: color("--chart-intl", "#22d3ee"), chartCn: color("--chart-cn", "#34d399"),
+        chartOfficial: color("--chart-official", "#4cbf6b"), chartEstimate: color("--chart-estimate", "#e9b117"),
     };
     refreshCategoryColors();
+}
+
+/** 十六进制颜色加透明度（ECharts 的 opacity 会连描边一起变淡，半透明填充改用 rgba）。 */
+export function withAlpha(color: string, alpha: number) {
+    const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(color.trim());
+    return m ? `rgba(${parseInt(m[1]!, 16)}, ${parseInt(m[2]!, 16)}, ${parseInt(m[3]!, 16)}, ${alpha})` : color;
 }
 
 export function axisStyle() {

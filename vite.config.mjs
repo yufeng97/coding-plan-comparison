@@ -45,6 +45,12 @@ export default defineConfig({
     /* Windows 上监听句柄会让 build:site 无法整目录替换 .site-build；产物、测试报告与审计资料都不需要热更新。 */
     watch: { ignored: ["**/.site-*/**", "**/test-results/**", "**/playwright-report/**", "**/data/audit/**"] },
   },
+  /* 用量导入的后台解析 Worker：与入口一样只允许公共源，产物放在 js/（发布白名单内）。 */
+  worker: {
+    format: "es",
+    plugins: () => [publicSourcesOnly({ root })],
+    rolldownOptions: { output: { entryFileNames: "js/[name]-[hash].js", chunkFileNames: "js/[name]-[hash].js", assetFileNames: assetFileName } },
+  },
   build: {
     outDir: ".site-build",
     emptyOutDir: true,

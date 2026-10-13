@@ -3,9 +3,11 @@
   position: fixed; top: 0; left: 0; right: 0; height: 2px;
   z-index: 200; background: transparent; pointer-events: none;
 }
+/* 进度用 transform 缩放，滚动时只合成不重排。 */
 .scroll-progress span {
-  display: block; height: 100%; width: 0;
-  background: var(--brand-button); transition: width .1s linear;
+  display: block; height: 100%; width: 100%;
+  transform: scaleX(0); transform-origin: left center;
+  background: var(--brand-button); transition: transform .1s linear;
 }
 html[data-theme="dark"] .scroll-progress span { background: var(--brand); }
 
@@ -25,6 +27,8 @@ html[data-theme="dark"] .scroll-progress span { background: var(--brand); }
 }
 .to-top i { font-size: 20px; line-height: 1; }
 .to-top.is-on { opacity: 1; pointer-events: auto; visibility: visible; transform: none; }
+/* 底部有对比条时上移：对比条在 701–916px 会伸到按钮下方，各宽度统一避让（窄屏两行对比条见 responsive.css）。 */
+.has-compare .to-top { bottom: 84px; }
 .to-top:hover { background: var(--brand-button); color: #fff; border-color: var(--brand-button); }
 html[data-theme="dark"] .to-top:hover { color: var(--brand-ink); }
 
@@ -56,6 +60,26 @@ html[data-theme="light"] .brand-mark { color: #315f59; background: var(--brand);
 .topnav a[aria-current="location"], .primary-nav a[aria-current="page"] { color: var(--ink); background: var(--brand-soft); }
 .nav-badge { display: inline-block; min-width: 16px; margin-left: 4px; padding: 0 5px; border-radius: 8px; background: var(--red); color: #fff; font-size: 10.5px; font-weight: 700; line-height: 16px; text-align: center; vertical-align: 1px; }
 .nav-badge[hidden] { display: none; }
+/* 页头的「章节」下拉：滚到任何位置都能跳到选套餐视图的其他章节。 */
+.section-jump { position: relative; }
+.section-jump > summary {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 6px 10px;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-s);
+  color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; list-style: none; user-select: none;
+}
+.section-jump > summary::-webkit-details-marker { display: none; }
+.section-jump > summary::after { content: ""; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: translateY(-2px) rotate(45deg); }
+.section-jump[open] > summary::after { transform: translateY(1px) rotate(-135deg); }
+.section-jump > summary:hover { color: var(--ink); border-color: var(--chip-hover-border); }
+.section-jump-list {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 120;
+  display: grid; min-width: 168px; max-height: min(70vh, 460px); overflow: auto; padding: 6px;
+  background: var(--panel); border: 1px solid var(--line-strong); border-radius: var(--radius);
+  box-shadow: 0 10px 28px rgba(16, 17, 15, .16);
+}
+.section-jump-list a { padding: 8px 10px; border-radius: var(--radius-s); color: var(--text); font-size: 13px; text-decoration: none; }
+.section-jump-list a:hover { background: var(--hover); color: var(--ink); text-decoration: none; }
+.section-jump-list a[aria-current="location"] { background: var(--brand-soft); color: var(--ink); font-weight: 700; }
 .section-menu { margin-top: 18px; }
 .section-menu > summary { cursor: pointer; color: var(--muted); font-size: 13px; }
 .section-menu .topnav { margin-top: 10px; flex-wrap: wrap; overflow: visible; }
@@ -63,7 +87,7 @@ html[data-theme="light"] .brand-mark { color: #315f59; background: var(--brand);
 .theme-btn {
   display: inline-grid; place-items: center; width: 34px; height: 34px;
   background: transparent; border: 1px solid var(--line-strong); color: var(--muted);
-  border-radius: var(--radius-s); font-size: 15px; cursor: pointer; transition: all .18s;
+  border-radius: var(--radius-s); font-size: 15px; cursor: pointer; transition: color .18s, background-color .18s, border-color .18s;
 }
 .theme-btn:hover { color: var(--ink); border-color: var(--chip-hover-border); background: var(--hover); }
 
@@ -124,8 +148,11 @@ html[data-theme="light"] .brand-mark { color: #315f59; background: var(--brand);
 .sec-no::after { content: ""; display: inline-block; width: 18px; height: 1px; background: var(--line-strong); vertical-align: 3px; margin-left: 10px; }
 .section-head :is(h1, h2) { font-size: 21px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
 .section-head :is(h1, h2) .sec-no { color: var(--faint); }
-/* 构建期预渲染的默认内容：带筛选参数的链接在脚本按链接条件重绘前不显示，避免先闪出默认推荐。 */
-html.has-query [data-prerendered] { visibility: hidden; }
+/* 构建期预渲染的默认内容：带页面状态参数的链接在脚本按链接条件重绘前隐藏正文（页头照常显示），避免先闪出默认推荐。 */
+html.has-query [data-prerendered] main { visibility: hidden; }
+/* 脚本接管前，预渲染的按钮与输入框不能响应：挡住无效点击；超过 1 秒仍未接管时淡化，提示还在加载。链接与折叠不受影响。 */
+@keyframes js-pending-dim { to { opacity: .55; } }
+html.js-pending [data-prerendered] :is(button, input, select, textarea) { pointer-events: none; animation: js-pending-dim .2s 1s forwards; }
 
 /* 进阶分析章节的小标记：提示这些口径需要先读计算假设。 */
 .sec-tag { display: inline-block; margin-left: 10px; padding: 1px 7px; border: 1px solid var(--line-strong); border-radius: 5px; color: var(--muted); font: 600 11px var(--sans); letter-spacing: 0; vertical-align: 4px; }

@@ -12,10 +12,13 @@
   --panel-2: #f4f5f0;
   --line: #e2e4de;
   --line-strong: #cfd2c9;
+  /* 输入框、下拉与文本框靠边框识别：与 paper / panel / panel-2 均保持 3:1 以上。 */
+  --control-border: #858980;
   --ink: #10110f;
   --text: #2a2c28;
-  --muted: #62665e;
-  --faint: #656960;
+  /* muted 与 faint 拉开一级：faint 在 panel-2 上仍有 4.5:1，muted 约 7:1。 */
+  --muted: #545850;
+  --faint: #6b6f66;
   --brand: #b9ff00;
   --brand-ink: #10110f;
   --brand-soft: #edffc0;
@@ -37,7 +40,20 @@
   --gold: #996100;
   --green: #287c3e;
   --red: #b52a25;
+  --red-soft: rgba(181,42,37,.09);
+  --risk-border: rgba(153,97,0,.45);
   --info: #2458ae;
+  /* 图表与推荐卡的强调色：亮色取深一档，图形与背景至少 3:1；JS 的 refreshPalette 从这里读取。 */
+  --chart-input: #4f46e5;
+  --chart-output: #c0266d;
+  --chart-intl: #0e7490;
+  --chart-cn: #047857;
+  --chart-official: var(--green);
+  --chart-estimate: var(--gold);
+  --card-main: #287c3e;
+  --card-daily: #b45309;
+  --card-upgrade: #4f46e5;
+  --card-reference: #c0266d;
   --bench-gpt: #317a62;
   --bench-claude: #b35b35;
   --bench-gemini: #3972cc;
@@ -78,6 +94,7 @@ html[data-theme="dark"] {
   --panel-2: #20231e;
   --line: #2e312a;
   --line-strong: #3d413a;
+  --control-border: #727770;
   --ink: #eceee8;
   --text: #d8dbd2;
   --muted: #9fa39a;
@@ -103,7 +120,19 @@ html[data-theme="dark"] {
   --gold: #e9b117;
   --green: #4cbf6b;
   --red: #ef554f;
+  --red-soft: rgba(239,85,79,.12);
+  --risk-border: rgba(233,177,23,.45);
   --info: #6d9bff;
+  --chart-input: #818cf8;
+  --chart-output: #f472b6;
+  --chart-intl: #22d3ee;
+  --chart-cn: #34d399;
+  --chart-official: var(--green);
+  --chart-estimate: var(--gold);
+  --card-main: #34d399;
+  --card-daily: #f59e0b;
+  --card-upgrade: #818cf8;
+  --card-reference: #f472b6;
   --bench-gpt: #61cfab;
   --bench-claude: #ef9b73;
   --bench-gemini: #81afff;

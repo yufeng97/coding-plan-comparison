@@ -61,6 +61,9 @@ jobs:
       - name: 校验公共网站部署产物
         if: success()
         run: npm run build:site
+      - name: 产物体积预算（brotli）
+        if: success()
+        run: npm run size:check
 
   # 依赖公告检查单独运行：前面步骤失败时也照常执行；新公告或 registry 故障只让本作业显示失败，
   # 不阻塞 check、不让没有代码变化的 main 变红，也不阻挡等待 CI 成功的 Pages 发布。

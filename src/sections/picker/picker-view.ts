@@ -6,7 +6,7 @@ import { BUDGET_EPS, pickerMoney } from "@domain/picker/payment";
 import { matchesTool, planProfile, recommendablePlan, tokenEvidence } from "@domain/picker/profile";
 import { meteredText, quotaLabel, roleDisplayName, roleUseText, sameWindowText, windowNoteShort, windowSentence } from "@domain/picker/text";
 import { pickerState } from "@state/app";
-import { alternativeProfiles, cheaperTiers, chooseMain, eligibleProfiles, nextTier, ownVendorPlan, peerNote, pickerChoiceReason, pickerEmptyReason, pickerMonthlyCNY, pickerPaymentQuote, pickerPriority, pickerToolRelationship, pickSupplement, priceDecidedMain, priceLine, rankedCandidates, unlockText, upgradeBudgetCeiling } from "@state/picker";
+import { alternativeProfiles, cheaperTiers, currentPickerSelection, nextTier, ownVendorPlan, peerNote, pickerChoiceReason, pickerEmptyReason, pickerMonthlyCNY, pickerPaymentQuote, pickerPriority, pickerToolRelationship, pickSupplement, priceDecidedMain, priceLine, rankedCandidates, unlockText, upgradeBudgetCeiling } from "@state/picker";
 
 /* 推荐卡片的视图模型只含文字与数据，卡片 DOM 由 Vue 组件渲染。 */
 
@@ -134,8 +134,9 @@ export function ownCard(main: PickerProfile | null) {
   return result;
 }
 export function pickerView() {
-  const pool = eligibleProfiles() as PickerProfile[];
-  const main = chooseMain(pool) as PickerProfile | null;
+  const selection = currentPickerSelection();
+  const pool = selection.pool as PickerProfile[];
+  const main = selection.main as PickerProfile | null;
   const own = ownCard(main);
   const cards = main ? [mainCard(main, pool), dailyCard(main, pool), upgradeCard(main), own].filter((value): value is PickerCardModel => value !== null) : own ? [own] : [];
   const shown = new Set(cards.map((x) => x.plan.id));
@@ -169,10 +170,15 @@ export function usageLines(p: Plan): PickerLine[] {
   const window = p.windowPeriod === "unknown" || !p.windowPeriod ? "重置窗口尚未确认，不能按固定时间估计恢复。" : `公开窗口：${resolvedField(p, "quota")}；实际恢复以账户页面和官方规则为准。`;
   return [line("支持模型", resolvedField(p, "models")), line("支持工具", resolvedField(p, "tools")), line("购买资格", qualification), line("打满后", `${window} 先暂停可延后任务并查看剩余额度；使用其他已确认套餐时先核对共享池与费用。自备 Key、工具订阅或按量加购可能另收费，未知推理费用不计作免费。`)];
 }
+/** 档位表按哪个模型系列列出同厂商各档：卡片已定的角色优先，否则按所选任务取日常或复杂任务主力模型。 */
+export function tierRole(model: PickerCardModel) {
+  const main = model.tiers;
+  return model.role || (main ? state.task === "daily" ? main.loose[0] || main.headline : main.headline || main.loose[0] : null) || null;
+}
 export function tierRows(model: PickerCardModel) {
   if (!model.tiers) return [];
   const main = model.tiers;
-  const role = model.role || (state.task === "daily" ? main.loose[0] || main.headline : main.headline || main.loose[0]);
+  const role = tierRole(model);
   if (!role) return [];
   const cap = state.budget === "any" ? Infinity : Number(state.budget);
   const profiles = PLANS.filter((p) => p.vendor === main.p.vendor && isPersonalMonthly(p) && recommendablePlan(p) && (model.ignoreRegion || state.region === "all" || p.region === state.region) && matchesTool(p, state.tool) && pickerPaymentQuote(p).available).map((p) => planProfile(p) as PickerProfile);

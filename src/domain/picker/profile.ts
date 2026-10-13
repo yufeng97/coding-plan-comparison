@@ -81,9 +81,24 @@ export function bandRank(band: string | undefined) { return band === "A" ? 3 : b
 
 export function catRank(p: Plan) { return p.cat === "official" ? 3 : p.cat === "tool" ? 2 : p.cat === "cloud" ? 1 : 0; }
 
+/* 以下派生值只取决于目录里的静态套餐字段，在推荐排序的比较函数里会被反复调用：按套餐对象缓存。
+   目录对象在页面生命周期内不变；测试若改写套餐字段，应使用新对象。 */
+const MULTIPLIER_CACHE = new WeakMap<Plan, number>();
+const PROFILE_CACHE = new WeakMap<Plan, PlanProfile>();
+const ROLE_METRIC_CACHE = new WeakMap<Plan, Map<string, RoleMetric | null>>();
+
 /* 计划名里的 5x / 20x 优先（× 和 x 都算）。额度原文里的「5× Pro」也算加窗；「5× Free」只是入门档基线。
    额度文案统一走 resolvedField，继承行（「同某档」）也能命中倍率写法。 */
 export function multiplier(p: Plan) {
+    let value = MULTIPLIER_CACHE.get(p);
+    if (value === undefined) {
+        value = multiplierUncached(p);
+        MULTIPLIER_CACHE.set(p, value);
+    }
+    return value;
+}
+
+function multiplierUncached(p: Plan) {
     const fromPlan = String(p.plan || "").match(/(\d+)\s*[x×]/i);
     if (fromPlan)
         return Number(fromPlan[1]);
@@ -147,6 +162,16 @@ const CONFIDENCE_RANK: Record<string, number> = { "高": 3, "中": 2, "低": 1 }
 export function metricForRole(p: Plan, role: ModelRole | null | undefined): RoleMetric | null {
     if (!role)
         return null;
+    let byRole = ROLE_METRIC_CACHE.get(p);
+    if (!byRole)
+        ROLE_METRIC_CACHE.set(p, byRole = new Map());
+    if (!byRole.has(role.id))
+        byRole.set(role.id, metricForRoleUncached(p, role));
+    return byRole.get(role.id) ?? null;
+}
+
+/* 遍历全部额度行找出该套餐、该角色置信度最高的一行；比较函数里每次比较都会用到，结果按套餐与角色缓存。 */
+function metricForRoleUncached(p: Plan, role: ModelRole): RoleMetric | null {
     const rows = METRICS_ALL
         .filter((m) => metricMatchesPlan(m, p) && role.re.test(m.model || ""))
         .map((m) => ({ m, c: computeMetrics(m), conf: provenance(m).conf }))
@@ -170,6 +195,15 @@ export function knownTokens(p: Plan, role: ModelRole | null | undefined) {
 }
 
 export function planProfile(p: Plan): PlanProfile {
+    let profile = PROFILE_CACHE.get(p);
+    if (!profile) {
+        profile = planProfileUncached(p);
+        PROFILE_CACHE.set(p, profile);
+    }
+    return profile;
+}
+
+function planProfileUncached(p: Plan): PlanProfile {
     const access = modelRoleAccess(p);
     const hasQuota = hasIncludedModelQuota(p);
     const included = hasQuota ? access.included : [];

@@ -47,7 +47,7 @@ test("免费入口组合地区与类型，卡片保留推理费用和官网来�
   const matching = app.PLANS.filter((plan) => app.isFreeCodingEntry(plan) && plan.region === "intl" && app.freeKind(plan) === "byok");
   expect(free.wrapper.findAll(".free-card")).toHaveLength(matching.length);
   expect(free.wrapper.get("#freeCount").text()).toContain(`显示 ${matching.length} / ${total}`);
-  expect(free.wrapper.get('[data-free-kind="byok"]').attributes("aria-pressed")).toBe("true");
+  expect(free.wrapper.get('[data-free-kind="byok"]').attributes("aria-checked")).toBe("true");
   for (const card of free.wrapper.findAll(".free-card")) {
     expect(card.get(".fc-cost").text()).toContain("推理另计");
     expect(card.get("a.fc-link").attributes("href")).toMatch(/^https:\/\//);

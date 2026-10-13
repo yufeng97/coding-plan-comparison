@@ -30,7 +30,7 @@ test("价格表默认隐藏中转站与待核历史价，原生筛选与排序�
   await tables.wrapper.get("#selectRegion").setValue("cn");
   expect(runtime.tableState.region).toBe("cn");
   expect(location.search).toContain("tregion=cn");
-  await tables.wrapper.get('#planTable th[data-sort="priceM"]').trigger("keydown", { key: "Enter" });
+  await tables.wrapper.get('#planTable th[data-sort="priceM"] button').trigger("click");
   expect(runtime.tableState.sortDir).toBe(-1);
   expect(tables.wrapper.get('#planTable th[data-sort="priceM"]').attributes("aria-sort")).toBe("descending");
   await tables.wrapper.get("#tableExtraToggle").trigger("click");
@@ -158,7 +158,7 @@ test.each([".watch-plan", 'td[data-column="url"] a'])("响应式分页保留第 
   expect(document.activeElement).toBe(selected);
 });
 
-test("分页继续浏览会聚焦第一条新增记录；对比已满时聚焦新增行", async () => {
+test("分页继续浏览会聚焦第一条新增记录；对比已满时仍聚焦新增行的对比按钮并说明已满", async () => {
   await tables.render();
   const reveal = vi.spyOn(HTMLElement.prototype, "scrollIntoView");
   await tables.wrapper.get("#tableMoreBtn").trigger("click");
@@ -169,11 +169,13 @@ test("分页继续浏览会聚焦第一条新增记录；对比已满时聚焦�
   for (const button of compareButtons().slice(0, 4)) button.click();
   await flushPromises();
   expect(runtime.cmpState.items.length).toBe(4);
-  expect(compareButtons()[5]!.disabled).toBe(true);
+  expect(compareButtons()[5]!.getAttribute("aria-disabled")).toBe("true");
+  expect(compareButtons()[5]!.disabled).toBe(false);
   await tables.wrapper.get("#tableMoreBtn").trigger("click");
   await flushPromises();
-  expect(document.activeElement).toBe(plans()[40]);
-  expect(reveal.mock.contexts).toContain(plans()[40]);
+  expect(document.activeElement).toBe(compareButtons()[40]);
+  expect(compareButtons()[40]!.getAttribute("aria-label")).toContain("已满");
+  expect(reveal.mock.contexts).toContain(compareButtons()[40]);
   await tables.wrapper.get("#metricsMoreBtn").trigger("click");
   await flushPromises();
   const firstNewMetric = document.querySelectorAll<HTMLTableRowElement>("#metricsBody tr")[20];
@@ -217,7 +219,7 @@ test("额度表保留 16 列与按量参照，排序和紧凑列提示一致，�
   await tables.render();
   expect(tables.wrapper.findAll("#metricsTable thead th").length).toBe(16);
   expect(tables.wrapper.get("#metricsNote").text()).toContain("官方按量");
-  await tables.wrapper.get('#metricsTable th[data-sort="rmo"]').trigger("keydown", { key: " " });
+  await tables.wrapper.get('#metricsTable th[data-sort="rmo"] button').trigger("click");
   expect(runtime.metricsState.sortKey).toBe("rmo");
   expect(runtime.metricsState.sortDir).toBe(-1);
   expect(tables.wrapper.get("#metricsSortHint").text()).toContain("明细列，展开查看");
