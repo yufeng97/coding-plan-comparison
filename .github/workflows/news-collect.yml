@@ -15,6 +15,9 @@ jobs:
   collect:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -34,7 +37,19 @@ jobs:
           key: ${{ steps.cache-key.outputs.prefix }}${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             ${{ steps.cache-key.outputs.prefix }}
-            news-inbox-${{ github.ref_name }}-
+      - name: 隔离损坏的待审队列
+        id: quarantine
+        run: node -e "const fs=require('node:fs'); const {quarantineCorruptInbox}=require('./scripts/news/collect-news'); const dest=quarantineCorruptInbox('data/audit/news'); if(dest){console.log('已隔离损坏队列：'+dest); if(process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT,'corrupt=true\n');}"
+      - name: 删除已损坏的旧缓存，避免下一轮再次恢复
+        if: steps.quarantine.outputs.corrupt == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CACHE_PREFIX: ${{ steps.cache-key.outputs.prefix }}
+        run: |
+          ids=$(gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/caches" -f key="$CACHE_PREFIX" -f per_page=100 --jq '.actions_caches[].id')
+          for id in $ids; do
+            gh api --method DELETE "repos/${GITHUB_REPOSITORY}/actions/caches/${id}"
+          done
       - name: 采集候选（不修改价格、不提交或部署）
         id: collect
         continue-on-error: true
@@ -52,7 +67,9 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: coding-plan-news-${{ github.run_id }}-${{ github.run_attempt }}
-          path: data/audit/news/*.json
+          path: |
+            data/audit/news/*.json
+            data/audit/news-corrupt/*.json
           retention-days: 30
           if-no-files-found: error
       - name: 来源部分失败时仍明确标记失败

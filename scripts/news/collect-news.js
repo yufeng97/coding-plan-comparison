@@ -401,6 +401,28 @@ function resolveNewsPaths(workspace, outputPath = "data/audit/news/latest.json",
   return { workspace: root, output, dir, stateFile, inboxFile, healthFile };
 }
 
+/** Move an unreadable inbox out of the cache directory. A valid queue is left in place.
+ * Local collection still refuses to replace a damaged inbox; CI calls this before collect so the bad file cannot stay the next baseline.
+ * @param {string} newsDir @returns {string|null} */
+function quarantineCorruptInbox(newsDir) {
+  const dir = path.resolve(newsDir);
+  const inboxFile = path.join(dir, "inbox.json");
+  let stat;
+  try { stat = fs.lstatSync(inboxFile); }
+  catch (error) {
+    if (error && error.code === "ENOENT") return null;
+    throw error;
+  }
+  if (!stat.isFile() || stat.isSymbolicLink()) throw new Error("inbox.json 必须是普通文件");
+  try { validateInbox(JSON.parse(fs.readFileSync(inboxFile, "utf8"))); return null; }
+  catch { /* 隔离损坏内容，不把它当成下一轮基线。 */ }
+  const destDir = path.join(path.dirname(dir), "news-corrupt");
+  fs.mkdirSync(destDir, { recursive: true });
+  const dest = path.join(destDir, "inbox-" + crypto.randomBytes(8).toString("hex") + ".json");
+  fs.renameSync(inboxFile, dest);
+  return dest;
+}
+
 /** Prevent collection from overwriting a concurrent human review. Existing locks require manual inspection.
  * @template T @param {string} dir @param {()=>Promise<T>|T} action @returns {Promise<T>} */
 async function withNewsLock(dir, action) {
@@ -482,4 +504,4 @@ async function main(args = process.argv.slice(2), overrides = {}) {
   return report.errors.length ? 1 : 0;
 }
 if (require.main === module) main().then((code) => { process.exitCode = code; }).catch((error) => { console.error("资讯采集失败：" + error.message); process.exitCode = 1; });
-module.exports = { DEFAULT_KEYWORDS, normalizeURL, readKnownVendors, readPlanReferences, matchVendors, validateState, collectNews, runCollection, parseArguments, main, commitOutputs, resolveNewsPaths, withNewsLock, hnRequestURL };
+module.exports = { DEFAULT_KEYWORDS, normalizeURL, readKnownVendors, readPlanReferences, matchVendors, validateState, collectNews, runCollection, parseArguments, main, commitOutputs, resolveNewsPaths, withNewsLock, quarantineCorruptInbox, hnRequestURL };

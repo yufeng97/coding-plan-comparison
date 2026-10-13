@@ -5,6 +5,7 @@ const path = require("node:path");
 const os = require("node:os");
 const { spawn, spawnSync } = require("node:child_process");
 const { acquireFileLock, withFileLock, withFileLockSync } = require("../../scripts/lib/file-lock");
+const { realTempRoot } = require("../../scripts/lib/temp-dir");
 
 let passed = 0;
 async function test(label, action) {
@@ -98,6 +99,7 @@ async function main() {
     assert.throws(() => acquireFileLock(file), /人工检查/);
     assert.deepEqual(fs.readFileSync(file), original);
     release(); assert.equal(fs.existsSync(file), false);
+    assert.equal(fs.readdirSync(path.dirname(file)).some((name) => name.startsWith(".lock-release-")), false);
     const nextRelease = acquireFileLock(file), next = fs.readFileSync(file);
     assert.notEqual(JSON.parse(next.toString()).ownerId, metadata.ownerId);
     release(); assert.deepEqual(fs.readFileSync(file), next);
@@ -139,6 +141,25 @@ async function main() {
       assert.equal(fs.readFileSync(file, "utf8"), bytes);
     }
   });
+  await test("释放读到旧所有者后路径被换成新锁，不得删除新锁", file => {
+    const release = acquireFileLock(file);
+    const realRead = fs.readFileSync;
+    let armed = true;
+    fs.readFileSync = /** @type {typeof fs.readFileSync} */ ((target, options) => {
+      const data = realRead(target, options);
+      if (armed && target === file) {
+        armed = false;
+        fs.unlinkSync(file);
+        fs.writeFileSync(file, JSON.stringify({ ownerId: "intruder", pid: process.pid }));
+      }
+      return data;
+    });
+    try {
+      assert.throws(release, /所有权已变化/);
+      assert.equal(JSON.parse(realRead(file, "utf8")).ownerId, "intruder");
+      assert.equal(fs.readdirSync(path.dirname(file)).some((name) => name.startsWith(".lock-release-")), false);
+    } finally { fs.readFileSync = realRead; }
+  });
   await test("同一PID重新取得锁后，旧所有者释放不能删除新所有者的锁", file => {
     const oldRelease = acquireFileLock(file);
     fs.unlinkSync(file);
@@ -172,6 +193,29 @@ async function main() {
       assert.ok(error instanceof AggregateError); assert.equal(error.errors[0], failure); return true;
     });
     assert.equal(fs.readFileSync(file, "utf8"), replacement);
+  });
+  await test("临时目录是符号链接时仍在真实目录下创建", () => {
+    const base = fs.mkdtempSync(path.join(realTempRoot(), "coding-plan-tmp-base-"));
+    const link = path.join(base, "linked-tmp");
+    try {
+      try { fs.symlinkSync(fs.realpathSync(os.tmpdir()), link, "dir"); }
+      catch (error) {
+        if (error && (error.code === "EPERM" || error.code === "EACCES" || error.code === "ENOTSUP")) return;
+        throw error;
+      }
+      const original = os.tmpdir;
+      os.tmpdir = () => link;
+      try {
+        const root = realTempRoot();
+        assert.equal(root, fs.realpathSync(link));
+        assert.notEqual(root, link);
+        const dir = fs.mkdtempSync(path.join(root, "coding-plan-owned-"));
+        assert.equal(path.dirname(dir), root);
+        fs.rmSync(dir, { recursive: true, force: true });
+      } finally { os.tmpdir = original; }
+    } finally {
+      fs.rmSync(base, { recursive: true, force: true });
+    }
   });
   console.log("文件锁回归通过：" + passed + " 项");
 }

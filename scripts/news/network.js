@@ -1,6 +1,8 @@
 "use strict";
 const dns = require("node:dns/promises");
+const https = require("node:https");
 const net = require("node:net");
+const zlib = require("node:zlib");
 const MAX_BYTES = 2 * 1024 * 1024;
 
 function publicIPv4(address) {
@@ -82,23 +84,146 @@ async function resolveHost(hostname, options = {}) {
   return addresses;
 }
 
-/** DNS preflight only: this does not constrain the later TCP connection made by fetch.
+/** Resolve and reject private answers. Returns the URL plus the addresses the connection may use.
  * @param {string} raw
  * @param {(hostname:string)=>Promise<Array<{address:string}>>} resolver */
-async function validateSourceURL(raw, resolver = resolveHost) {
+async function inspectSourceURL(raw, resolver = resolveHost) {
   const url = publicURL(raw, true), hostname = url.hostname.replace(/^\[|\]$/g, "");
   const addresses = net.isIP(hostname) ? [{ address: hostname }] : await resolver(hostname);
-  if (!addresses.length || addresses.some((entry) => !publicAddress(entry.address))) throw new Error("来源 DNS 预检指向私有或非公开地址（预检不限制随后的 TCP 连接）");
-  return url;
+  if (!addresses.length || addresses.some((entry) => !entry || !publicAddress(entry.address))) throw new Error("来源 DNS 预检指向私有或非公开地址");
+  return { url, addresses };
 }
 
 /** @param {string} raw
- * @param {{fetcher?:typeof fetch,resolver?:(hostname:string)=>Promise<Array<{address:string}>>,headers?:Record<string,string>,timeoutMs?:number,maxBytes?:number}} options */
+ * @param {(hostname:string)=>Promise<Array<{address:string}>>} resolver */
+async function validateSourceURL(raw, resolver = resolveHost) {
+  return (await inspectSourceURL(raw, resolver)).url;
+}
+
+/** Lookup that can only return addresses already accepted for this hostname.
+ * @param {string} hostname
+ * @param {Array<{address:string}>} addresses */
+function pinnedLookup(hostname, addresses) {
+  const expected = hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  const records = addresses.map((entry) => {
+    const family = net.isIP(entry.address);
+    if (family !== 4 && family !== 6) throw new Error("已校验地址无效");
+    return { address: entry.address, family };
+  });
+  return (host, options, callback) => {
+    const asked = String(host || "").replace(/^\[|\]$/g, "").toLowerCase();
+    const family = typeof options === "number" ? options : options?.family || 0;
+    const all = typeof options === "object" && !!options?.all;
+    if (asked !== expected) {
+      callback(Object.assign(new Error("拒绝连接未校验的主机"), { code: "ENOTFOUND" }));
+      return;
+    }
+    const matched = records.filter((record) => !family || record.family === family);
+    if (!matched.length) {
+      callback(Object.assign(new Error("已校验地址与请求的地址族不一致"), { code: "ENOTFOUND" }));
+      return;
+    }
+    if (all) callback(null, matched.map((record) => ({ address: record.address, family: record.family })));
+    else callback(null, matched[0].address, matched[0].family);
+  };
+}
+
+/** @param {Buffer} buffer @param {string | undefined} encoding @param {number} maxBytes @param {string} sizeLabel @returns {Promise<Buffer>} */
+function decompressBody(buffer, encoding, maxBytes, sizeLabel) {
+  const kind = String(encoding || "").toLowerCase().split(",")[0].trim();
+  if (!kind || kind === "identity") {
+    if (buffer.length > maxBytes) return Promise.reject(new Error("来源响应超过 " + sizeLabel));
+    return Promise.resolve(buffer);
+  }
+  const stream = kind === "gzip" || kind === "x-gzip" ? zlib.createGunzip()
+    : kind === "deflate" ? zlib.createInflate()
+    : kind === "br" ? zlib.createBrotliDecompress()
+    : null;
+  if (!stream) return Promise.reject(new Error("不支持的来源压缩：" + kind));
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let size = 0, failed = false;
+    const rejectOnce = (error) => { if (failed) return; failed = true; stream.destroy(); reject(error); };
+    stream.on("data", (chunk) => {
+      size += chunk.length;
+      if (size > maxBytes) { rejectOnce(new Error("来源响应超过 " + sizeLabel)); return; }
+      chunks.push(chunk);
+    });
+    stream.on("error", rejectOnce);
+    stream.on("end", () => { if (!failed) resolve(Buffer.concat(chunks)); });
+    stream.end(buffer);
+  });
+}
+
+/** Fetch forbids a body for these statuses; passing one to the Response constructor throws a TypeError. */
+const NULL_BODY_STATUSES = new Set([204, 205, 304]);
+
+/** Connect only to the addresses just validated. A caller-supplied fetcher does not use this path.
+ * @param {URL} url
+ * @param {Array<{address:string}>} addresses
+ * @param {{headers?:Record<string,string>,signal?:AbortSignal,maxBytes:number,sizeLabel:string,transport?:any}} options */
+function pinnedRequest(url, addresses, options) {
+  const transport = options.transport || https.request;
+  const signal = options.signal;
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) { reject(signal.reason); return; }
+    let settled = false;
+    const fail = (error) => { if (settled) return; settled = true; reject(signal?.aborted ? signal.reason : error); };
+    const succeed = (value) => { if (settled) return; settled = true; resolve(value); };
+    const request = transport({
+      hostname: url.hostname, port: url.port || 443, path: url.pathname + url.search, method: "GET",
+      headers: options.headers || {}, servername: url.hostname, signal,
+      lookup: pinnedLookup(url.hostname, addresses),
+    }, (response) => {
+      const declared = Number(response.headers["content-length"]);
+      if (Number.isFinite(declared) && declared > options.maxBytes) {
+        response.destroy();
+        fail(new Error("来源响应超过 " + options.sizeLabel));
+        return;
+      }
+      const chunks = [];
+      let size = 0;
+      response.on("data", (chunk) => {
+        size += chunk.length;
+        if (size > options.maxBytes) { response.destroy(); fail(new Error("来源响应超过 " + options.sizeLabel)); return; }
+        chunks.push(chunk);
+      });
+      response.on("error", fail);
+      response.on("end", () => {
+        const status = response.statusCode || 0;
+        /* Conditional requests for cached sources get 304. Null-body statuses carry no body and skip decompression:
+           an empty body with a Content-Encoding header would otherwise read as a truncated stream. */
+        const empty = NULL_BODY_STATUSES.has(status);
+        const body = empty ? Promise.resolve(Buffer.alloc(0)) : decompressBody(Buffer.concat(chunks), response.headers["content-encoding"], options.maxBytes, options.sizeLabel);
+        body.then((decoded) => {
+          /* Route every error to fail(): one thrown here would be an unhandled rejection and end the collector process. */
+          try {
+            if (status < 200 || status > 599) throw new Error("来源返回无效的 HTTP 状态：" + status);
+            if (decoded.length > options.maxBytes) throw new Error("来源响应超过 " + options.sizeLabel);
+            const headers = new Headers();
+            for (const [key, value] of Object.entries(response.headers)) {
+              if (value == null || key === "content-encoding" || key === "content-length") continue;
+              const items = Array.isArray(value) ? value : [value];
+              for (const item of items) headers.append(key, item);
+            }
+            if (!empty) headers.set("content-length", String(decoded.length));
+            // Node accepts Buffer as a fetch body; the DOM BodyInit type does not list Buffer.
+            succeed(new Response(empty ? null : /** @type {any} */ (decoded), { status, headers }));
+          } catch (error) { fail(error); }
+        }, fail);
+      });
+    });
+    request.on("error", fail);
+    request.end();
+  });
+}
+
+/** @param {string} raw
+ * @param {{fetcher?:typeof fetch,resolver?:(hostname:string)=>Promise<Array<{address:string}>>,headers?:Record<string,string>,timeoutMs?:number,maxBytes?:number,transport?:any}} options */
 async function fetchSource(raw, options = {}) {
   const maxBytes = options.maxBytes ?? MAX_BYTES;
   if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > 16 * 1024 * 1024) throw new Error("来源响应限额无效");
   const sizeLabel = maxBytes === MAX_BYTES ? "2 MiB" : maxBytes + " bytes";
-  const fetcher = options.fetcher || fetch;
   const controller = new AbortController(), signal = controller.signal;
   const resolver = options.resolver || ((hostname) => resolveHost(hostname, { signal }));
   const timer = setTimeout(() => controller.abort(new Error("来源请求超时")), options.timeoutMs || 15000);
@@ -113,8 +238,11 @@ async function fetchSource(raw, options = {}) {
   }
   let current = raw;
   try { for (let redirects = 0; redirects <= 5; redirects++) {
-    const url = await bounded(validateSourceURL(current, resolver));
-    const response = await bounded(fetcher(url.href, { redirect: "manual", headers: options.headers || {}, signal }));
+    const checked = await bounded(inspectSourceURL(current, resolver));
+    const url = checked.url;
+    const response = await bounded(options.fetcher
+      ? options.fetcher(url.href, { redirect: "manual", headers: options.headers || {}, signal })
+      : pinnedRequest(url, checked.addresses, { headers: options.headers || {}, signal, maxBytes, sizeLabel, transport: options.transport }));
     if ([301, 302, 303, 307, 308].includes(response.status)) {
       const location = response.headers.get("location");
       if (response.body) await bounded(response.body.cancel());
@@ -147,4 +275,4 @@ async function fetchSource(raw, options = {}) {
   } finally { clearTimeout(timer); }
 }
 
-module.exports = { publicURL, publicAddress, validateSourceURL, fetchSource, resolveHost, MAX_BYTES };
+module.exports = { publicURL, publicAddress, validateSourceURL, fetchSource, resolveHost, pinnedLookup, MAX_BYTES };

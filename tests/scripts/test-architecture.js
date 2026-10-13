@@ -1,13 +1,14 @@
 "use strict";
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
-const os = require("node:os");
 const path = require("node:path");
 const { checkArchitecture } = require("../../scripts/build/check-architecture");
+const { realTempRoot } = require("../../scripts/lib/temp-dir");
 
 /** @param {Record<string, string>} files @param {(root: string) => void} check */
 function fixture(files, check) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "coding-plan-architecture-"));
+  const temporaryRoot = realTempRoot();
+  const root = fs.mkdtempSync(path.join(temporaryRoot, "coding-plan-architecture-"));
   try {
     for (const [name, content] of Object.entries(files)) {
       const file = path.join(root, name);
@@ -16,7 +17,7 @@ function fixture(files, check) {
     }
     check(root);
   } finally {
-    if (path.dirname(root) !== fs.realpathSync(os.tmpdir()) || !path.basename(root).startsWith("coding-plan-architecture-")) throw new Error("拒绝清理未知架构测试目录");
+    if (path.dirname(root) !== temporaryRoot || !path.basename(root).startsWith("coding-plan-architecture-")) throw new Error("拒绝清理未知架构测试目录");
     fs.rmSync(root, { recursive: true, force: true });
   }
 }

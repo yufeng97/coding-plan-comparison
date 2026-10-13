@@ -10,6 +10,7 @@ const { seededHistory, changeOf, mergeHistory } = require("../../scripts/mainten
 const { validateData } = require("../../scripts/build/validate-data");
 const { buildMaintenance } = require("../../scripts/maintenance/build-maintenance");
 const { rewindToFullAudit } = require("./full-audit-baseline");
+const { realTempRoot } = require("../../scripts/lib/temp-dir");
 const workspace = path.resolve(__dirname, "../..");
 const inputs = ["pricing-root.json", "pricing-relays.json", "pricing-tools.json", "pricing-cn.json"];
 
@@ -21,7 +22,8 @@ function dataOf(source) {
 }
 
 function fixture(run) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "coding-plan-sync-test-"));
+  const temporaryRoot = realTempRoot();
+  const root = fs.mkdtempSync(path.join(temporaryRoot, "coding-plan-sync-test-"));
   try {
     /* 候选数据校验同时检查实际 Vue/TypeScript 应用入口；临时工作区复制完整公共源码布局。 */
     for (const item of ["index.html", "src", "data/sources", "data/generated", "types"]) fs.cpSync(path.join(workspace, item), path.join(root, item), { recursive: true });
@@ -51,7 +53,7 @@ function fixture(run) {
     const allOutputs = () => [...outputs, ...fs.readdirSync(path.join(root, "data/audit")).filter((name) => /^pricing-incremental-/.test(name)).map((name) => "data/audit/" + name)].sort().map((file) => [file, fs.existsSync(path.join(root, file)) ? fs.readFileSync(path.join(root, file)).toString("base64") : null]);
     run({ root, outputs, snapshot, changeAudit, stages, checkedAt, incremental, writeIncremental, allOutputs });
   } finally {
-    if (path.dirname(root) !== fs.realpathSync(os.tmpdir()) || !path.basename(root).startsWith("coding-plan-sync-test-")) throw new Error("拒绝清理未知核价测试目录");
+    if (path.dirname(root) !== temporaryRoot || !path.basename(root).startsWith("coding-plan-sync-test-")) throw new Error("拒绝清理未知核价测试目录");
     fs.rmSync(root, { recursive: true, force: true });
   }
 }

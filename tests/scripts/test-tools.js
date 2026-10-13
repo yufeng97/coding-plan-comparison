@@ -2,15 +2,16 @@
 "use strict";
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
-const os = require("node:os");
 const path = require("node:path");
 const { updateFonts, get: fontGet } = require("../../scripts/build/vendor-fonts");
 const { stageSite } = require("../../scripts/build/stage-site");
 const { deployment, deploySite, resolveDeploymentToken } = require("../../scripts/build/deploy-site");
 const { fetchRates, applyRates, updateRates, parseArgs: parseRateArgs } = require("../../scripts/build/update-rates");
+const { realTempRoot } = require("../../scripts/lib/temp-dir");
 
 async function fixture(fn) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "coding-plan-tools-test-"));
+  const temporaryRoot = realTempRoot();
+  const root = fs.mkdtempSync(path.join(temporaryRoot, "coding-plan-tools-test-"));
   const write = (rel, content) => { const file = path.join(root, rel); fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, content); };
   write("index.html", '<link rel="stylesheet" href="src/assets/fonts/fonts.css"><script src="js/extra.js"></script>');
   write("src/assets/fonts/fonts.css", '@font-face {src:url("gf-0.woff2")}');
@@ -22,7 +23,7 @@ async function fixture(fn) {
   write(".vercel/project.json", '{"projectId":"prj_fixture","orgId":"team_fixture","projectName":"fixture"}');
   try { await fn(root, write); }
   finally {
-    if (path.dirname(root) !== fs.realpathSync(os.tmpdir()) || !path.basename(root).startsWith("coding-plan-tools-test-")) throw new Error("拒绝清理未知测试目录");
+    if (path.dirname(root) !== temporaryRoot || !path.basename(root).startsWith("coding-plan-tools-test-")) throw new Error("拒绝清理未知测试目录");
     fs.rmSync(root, { recursive: true, force: true });
   }
 }
@@ -574,7 +575,8 @@ async function main() {
     await assert.rejects(fetchRates({ date: "2026/10/09", fetcher: response(ok) }), /YYYY-MM-DD/);
     assert.deepEqual(parseRateArgs(["--date", "2026-10-09", "--dry-run"]), { dryRun: true, date: "2026-10-09" });
     assert.throws(() => parseRateArgs(["--bogus"]), /用法/);
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "coding-plan-tools-test-"));
+    const temporaryRoot = realTempRoot();
+    const root = fs.mkdtempSync(path.join(temporaryRoot, "coding-plan-tools-test-"));
     try {
       /* 校验器除数据外还检查页面入口与样式、字体等应用文件是否存在。 */
       for (const name of ["index.html", "src", "data/sources", "public"]) fs.cpSync(path.join(repo, name), path.join(root, name), { recursive: true });
@@ -589,7 +591,7 @@ async function main() {
       await assert.rejects(updateRates(root, { fetcher: response({ ...ok, date: "2026-09-01" }) }), /拒绝回退/);
       assert.equal(fs.existsSync(path.join(root, "data/audit/.pricing.lock")), false, "完成后释放锁");
     } finally {
-      if (path.dirname(root) !== fs.realpathSync(os.tmpdir())) throw new Error("拒绝清理未知测试目录");
+      if (path.dirname(root) !== temporaryRoot) throw new Error("拒绝清理未知测试目录");
       fs.rmSync(root, { recursive: true, force: true });
     }
   });

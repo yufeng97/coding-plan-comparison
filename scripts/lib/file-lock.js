@@ -7,6 +7,7 @@ const { randomUUID } = require("node:crypto");
 /**
  * Existing locks, including abandoned or corrupt ones, require manual inspection.
  * Removing a stale lock after probing its PID can delete a concurrent owner's new lock.
+ * Release renames the lock aside and deletes that private path only after the owner id still matches.
  * @param {string} filename
  * @param {{busyMessage?:string}} options
  * @returns {()=>void}
@@ -47,7 +48,28 @@ function acquireFileLock(filename, options = {}) {
       throw new Error("锁文件丢失或损坏，未清理未知所有者的锁：" + file, { cause: error });
     }
     if (current?.ownerId !== ownerId) throw new Error("锁所有权已变化，保留当前所有者的锁：" + file);
-    fs.unlinkSync(file);
+    /* 先改到私有名字再核对，避免按原路径 unlink 删掉刚换上的新锁。 */
+    const retiring = path.join(path.dirname(file), ".lock-release-" + ownerId);
+    try { fs.renameSync(file, retiring); }
+    catch (error) {
+      throw new Error("锁文件丢失或损坏，未清理未知所有者的锁：" + file, { cause: error });
+    }
+    let moved;
+    try {
+      if (!fs.lstatSync(retiring).isFile()) throw new Error("锁路径已被替换");
+      moved = JSON.parse(fs.readFileSync(retiring, "utf8"));
+    } catch (error) {
+      try { if (!fs.existsSync(file)) fs.renameSync(retiring, file); } catch { /* 保留改走的锁供人工检查 */ }
+      throw new Error("锁文件丢失或损坏，未清理未知所有者的锁：" + retiring, { cause: error });
+    }
+    if (moved?.ownerId !== ownerId) {
+      let restored = false;
+      try {
+        if (!fs.existsSync(file)) { fs.renameSync(retiring, file); restored = true; }
+      } catch { restored = false; }
+      throw new Error(restored ? "锁所有权已变化，保留当前所有者的锁：" + file : "锁所有权已变化，原路径已被占用，当前锁保留在：" + retiring);
+    }
+    fs.unlinkSync(retiring);
   };
 }
 

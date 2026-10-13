@@ -5,9 +5,12 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { plainText, parseFeed, parseHN } = require("../../scripts/news/feed");
-const { fetchSource, publicURL, publicAddress, validateSourceURL, MAX_BYTES } = require("../../scripts/news/network");
-const { collectNews, runCollection, normalizeURL, readKnownVendors, parseArguments, main, withNewsLock } = require("../../scripts/news/collect-news");
+const { EventEmitter } = require("node:events");
+const zlib = require("node:zlib");
+const { fetchSource, publicURL, publicAddress, validateSourceURL, pinnedLookup, MAX_BYTES } = require("../../scripts/news/network");
+const { collectNews, runCollection, normalizeURL, readKnownVendors, parseArguments, main, withNewsLock, quarantineCorruptInbox } = require("../../scripts/news/collect-news");
 const { stableId, validateInbox, contentHash } = require("../../scripts/news/inbox");
+const { realTempRoot } = require("../../scripts/lib/temp-dir");
 const { applyReview, runReview, triageData, parseArguments: reviewArguments } = require("../../scripts/news/review-news");
 
 const NOW = new Date("2026-10-07T00:00:00Z");
@@ -23,13 +26,14 @@ let passed = 0;
 async function test(name, fn) { await fn(); passed++; console.log("  ✓ " + name); }
 
 async function fixture(fn) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "coding-plan-news-test-"));
+  const temporaryRoot = realTempRoot();
+  const root = fs.mkdtempSync(path.join(temporaryRoot, "coding-plan-news-test-"));
   const write = (relative, value) => { const file = path.join(root, relative); fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, value); };
   write("data/sources/data.js", 'const PLANS=[{id:"plan-existing",vendor:"Existing",url:"https://existing.example.com/pricing"}]; const API_PRICES=[{vendor:"API Only",source:"https://api-only.example.com/pricing"}]; const PAYG_REFERENCES=[{vendor:"Payg Only",url:"https://payg-only.example.com/pricing"}];');
   write("data/config/news-sources.json", JSON.stringify(config(source())));
   try { await fn(root, write); }
   finally {
-    if (path.dirname(root) !== fs.realpathSync(os.tmpdir()) || !path.basename(root).startsWith("coding-plan-news-test-")) throw new Error("拒绝清理未知资讯测试路径");
+    if (path.dirname(root) !== temporaryRoot || !path.basename(root).startsWith("coding-plan-news-test-")) throw new Error("拒绝清理未知资讯测试路径");
     fs.rmSync(root, { recursive: true, force: true });
   }
 }
@@ -170,6 +174,109 @@ async function tests() {
     for (const address of ["192.168.1.1", "198.18.0.1", "100.64.0.1", "169.254.169.254", "2001:db8::1", "fc00::1", "fe80::1"]) { assert.equal(publicAddress(address), false); await assert.rejects(validateSourceURL(source().url, async () => [{ address }])); }
     await assert.rejects(validateSourceURL(source().url, async () => [{ address: "8.8.8.8" }, { address: "10.0.0.1" }]));
     assert.equal(publicAddress("2606:4700:4700::1111"), true); assert.equal(publicAddress("::ffff:8.8.8.8"), true); assert.doesNotThrow(() => publicURL(source().url, true));
+  });
+  await test("默认连接只使用已校验地址，重定向逐跳重钉，压缩正文按明文解码", async () => {
+    const calls = [];
+    /** @type {any} */
+    const transport = (/** @type {any} */ options, /** @type {any} */ callback) => {
+      calls.push(options);
+      const response = /** @type {any} */ (new EventEmitter());
+      const request = /** @type {any} */ (new EventEmitter());
+      request.end = () => {
+        const hop = calls.length;
+        if (hop === 1) {
+          response.statusCode = 302;
+          response.headers = { location: "https://cdn.example.com/feed" };
+          callback(response);
+          response.emit("end");
+          return;
+        }
+        response.statusCode = 200;
+        response.headers = { "content-type": "text/plain; charset=utf-8", "content-encoding": "gzip" };
+        callback(response);
+        response.emit("data", zlib.gzipSync(Buffer.from("pinned-ok")));
+        response.emit("end");
+      };
+      return request;
+    };
+    const addresses = { "news.example.com": "1.1.1.1", "cdn.example.com": "8.8.8.8" };
+    const result = await fetchSource("https://news.example.com/rss", {
+      resolver: async (hostname) => [{ address: addresses[hostname] }],
+      transport,
+    });
+    assert.equal(result.text, "pinned-ok");
+    assert.equal(calls.length, 2);
+    for (const [index, host] of [["news.example.com", "1.1.1.1"], ["cdn.example.com", "8.8.8.8"]].entries()) {
+      const lookup = calls[index].lookup;
+      await new Promise((resolve, reject) => lookup(host[0], { all: true }, (error, records) => error ? reject(error) : resolve(assert.deepEqual(records, [{ address: host[1], family: 4 }]))));
+      await new Promise((resolve) => lookup("evil.example", { all: true }, (error) => { assert.ok(error); resolve(); }));
+    }
+    let connected = 0;
+    await assert.rejects(fetchSource("https://news.example.com/rss", {
+      resolver: async (hostname) => hostname === "news.example.com" ? [{ address: "1.1.1.1" }] : [{ address: "10.1.0.1" }],
+      transport: (/** @type {any} */ _options, /** @type {any} */ callback) => {
+        connected++;
+        const response = /** @type {any} */ (new EventEmitter()), request = /** @type {any} */ (new EventEmitter());
+        request.end = () => {
+          response.statusCode = 302;
+          response.headers = { location: "https://intranet.example/secret" };
+          callback(response);
+          response.emit("end");
+        };
+        return request;
+      },
+    }), /非公开|私有/);
+    assert.equal(connected, 1);
+    const lookup = pinnedLookup("news.example.com", [{ address: "1.1.1.1" }]);
+    await new Promise((resolve, reject) => lookup("news.example.com", { family: 6, all: true }, (error) => error ? resolve() : reject(new Error("IPv6 不应返回 IPv4"))));
+  });
+  await test("默认连接收到 304 / 204 时按无正文响应返回，异常立即失败而不等到超时", async () => {
+    /** @param {number} status @param {Record<string,string>} headers */
+    const reply = (status, headers) => /** @type {any} */ ((/** @type {any} */ _options, /** @type {any} */ callback) => {
+      const response = /** @type {any} */ (new EventEmitter()), request = /** @type {any} */ (new EventEmitter());
+      request.end = () => {
+        response.statusCode = status;
+        response.headers = headers;
+        callback(response);
+        response.emit("end");
+      };
+      return request;
+    });
+    const pinned = async () => [{ address: "1.1.1.1" }];
+    const started = Date.now();
+    /* 条件请求命中缓存：304 带 ETag，部分服务器还会带 Content-Encoding 头而没有正文。 */
+    const cached = await fetchSource("https://news.example.com/rss", { resolver: pinned, transport: reply(304, { etag: '"v1"', "content-encoding": "gzip" }), headers: { "if-none-match": '"v1"' }, timeoutMs: 2000 });
+    assert.equal(cached.response.status, 304);
+    assert.equal(cached.response.headers.get("etag"), '"v1"');
+    assert.equal(cached.text, "");
+    const empty = await fetchSource("https://news.example.com/rss", { resolver: pinned, transport: reply(204, {}), timeoutMs: 2000 });
+    assert.equal(empty.response.status, 204);
+    assert.equal(empty.text, "");
+    /* 构造响应时出错（这里是非法响应头）直接失败，不变成未处理的 rejection。 */
+    await assert.rejects(fetchSource("https://news.example.com/rss", { resolver: pinned, transport: reply(200, { "x-bad": "a\nb" }), timeoutMs: 2000 }), TypeError);
+    assert.ok(Date.now() - started < 1500, "三次请求都立即结束，不靠超时");
+  });
+  await test("损坏 inbox 被隔离且不改有效队列", () => fixture(async (root) => {
+    const news = path.join(root, "data/audit/news");
+    fs.mkdirSync(news, { recursive: true });
+    fs.writeFileSync(path.join(news, "inbox.json"), "{broken");
+    fs.writeFileSync(path.join(news, "state.json"), "{\"schemaVersion\":1}\n");
+    const quarantined = quarantineCorruptInbox(news);
+    assert.ok(quarantined && quarantined.includes("news-corrupt"));
+    assert.equal(fs.existsSync(path.join(news, "inbox.json")), false);
+    assert.equal(fs.readFileSync(quarantined, "utf8"), "{broken");
+    assert.equal(fs.readFileSync(path.join(news, "state.json"), "utf8"), "{\"schemaVersion\":1}\n");
+    const valid = { schemaVersion: 1, updatedAt: NOW.toISOString(), windowDays: 14, items: [], stats: { total: 0, pending: 0, accepted: 0, rejected: 0, deferred: 0, needsReReview: 0, awaitingReview: 0, agedBacklog: 0, unknownVendorCandidates: 0 } };
+    fs.writeFileSync(path.join(news, "inbox.json"), JSON.stringify(valid));
+    assert.equal(quarantineCorruptInbox(news), null);
+    assert.equal(fs.existsSync(path.join(news, "inbox.json")), true);
+  }));
+  await test("资讯缓存恢复键只使用完整 ref 哈希前缀", () => {
+    const workflow = fs.readFileSync(path.join(__dirname, "../../.github/workflows/news-collect.yml"), "utf8");
+    assert.match(workflow, /news-inbox-v2-/);
+    assert.doesNotMatch(workflow, /news-inbox-\$\{\{ github\.ref_name \}\}/);
+    assert.match(workflow, /quarantineCorruptInbox/);
+    assert.match(workflow, /actions\/caches/);
   });
   await test("重定向逐跳公开DNS校验，拒绝私有目标且不调用fetch，合法相对跳转保留base", async () => {
     let calls = 0;
