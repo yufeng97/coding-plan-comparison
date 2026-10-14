@@ -1,0 +1,183 @@
+{
+  "sources": [
+    {
+      "id": "meta-muse-code-plans-20261014",
+      "url": "https://dev.meta.ai/products/muse-code",
+      "evidence": "Muse Code 产品页「Muse Code subscription」：Everyday Usage $5.00/month，「Access to Muse Spark, Muse Wonder and Muse Image」「Send 10-50 prompts every 5 hours, including image and video uploads」，含语音模式与网页搜索；High Usage $15.00/month，「5x more usage than the Everyday Usage plan」；Power Usage $50.00/month，「Access to the most powerful Muse models, including Muse Wonder Full」「20x more usage than the Everyday Usage plan」，含新功能抢先体验与更大文件上传；Maximum Usage $200.00/month，「80x more usage than the Everyday Usage plan」。页面未列免费档、年付或团队档；安装命令 curl -fsSL https://dev.meta.ai/install.sh | bash。"
+    },
+    {
+      "id": "meta-muse-code-subscriptions-20261014",
+      "url": "https://dev.meta.ai/docs/muse-code/subscriptions",
+      "evidence": "订阅文档：用量到限可升级或等待刷新，Maximum Usage 只能等待刷新；额外 API 密钥用量按量计费。升级立即生效并按剩余周期折算，降级下个计费周期生效。订阅按首次订阅日每月自动续费，取消不退款（法律要求除外）。「Subscription benefits and availability may vary by region.」须年满 18 岁或所在国成年年龄。"
+    },
+    {
+      "id": "meta-muse-code-docs-20261014",
+      "url": "https://dev.meta.ai/docs/muse-code/",
+      "evidence": "「Muse Code is Meta's coding agent for the terminal and CI, built for Muse Spark.」默认模型 muse-spark-1.2；「Muse Code runs on macOS, Linux, and Windows from one codebase.」可用浏览器登录或 API 密钥认证，META_API_KEY 优先于浏览器会话。"
+    },
+    {
+      "id": "meta-models-20261014",
+      "url": "https://dev.meta.ai/docs/models",
+      "evidence": "模型文档：「Muse Wonder is in preview.」Muse Wonder 在 Model API 只提供 Standard 模式，在 Muse Code 按量与全部订阅档可用；Muse Wonder Full 不开放 Model API，「available only in Muse Code with a subscription」，限 Power Usage 与 Maximum Usage；muse-wonder-1.0 与 muse-spark-1.3 均为 1,048,576 tokens 上下文。「Model availability can vary by country.」"
+    },
+    {
+      "id": "meta-api-pricing-20261014",
+      "url": "https://dev.meta.ai/docs/pricing-rate-limits",
+      "evidence": "每 1M tokens：Muse Wonder（muse-wonder-1.0）输入 $4.00、缓存输入 $0.20、输出 $20.00，Contributor 模式不可用；Muse Spark（1.3 / 1.2 / 1.1）输入 $1.25、缓存 $0.15、输出 $4.25；Muse Spark Contributor（1.3 / 1.2）输入 $0.10、缓存 $0.002、输出 $0.20，条件是允许 Meta 用你的内容训练模型。「No long-context premium」；网页搜索 $2.50/千次另计。"
+    },
+    {
+      "id": "meta-geo-policy-20261014",
+      "url": "https://dev.meta.ai/legal/geographic-use-policy",
+      "evidence": "Geographic Use Policy（Last updated: October 12, 2026）：受限地区含「People's Republic of China (including Hong Kong SAR and Macau SAR)」；「If you access the Services through a Coding Harness Subscription, you are considered to be using the Contributor Services by default regardless of which Meta Model you select」，要用 Standard 须在账户中更改设置。政策未定义 Coding Harness Subscription。"
+    },
+    {
+      "id": "meta-newsroom-20261014",
+      "url": "https://about.fb.com/news/2026/10/introducing-muse-wonder-models/",
+      "evidence": "Meta 新闻稿（2026-10-12）：「Muse Wonder is available today for developers and builders through the Meta Model API and Muse Code」；「Muse Wonder Full is available today for Muse Code subscribers.」Muse Wonder 之后接入消费端 Muse，先面向订阅用户。"
+    }
+  ],
+  "records": [
+    {
+      "kind": "api",
+      "id": "Meta|Muse Wonder",
+      "vendor": "Meta",
+      "name": "Muse Wonder",
+      "status": "verified",
+      "checkedAt": "2026-10-14",
+      "sourceIds": ["meta-api-pricing-20261014", "meta-models-20261014"],
+      "reason": "新收录：输入 $4.00、缓存 $0.20、输出 $20.00，无长上下文加价；Model API 文档标为预览，不提供 Contributor 折扣。",
+      "patch": {}
+    },
+    {
+      "kind": "api",
+      "id": "Meta|Muse Spark 1.3",
+      "vendor": "Meta",
+      "name": "Muse Spark 1.3",
+      "status": "verified",
+      "checkedAt": "2026-10-14",
+      "sourceIds": ["meta-api-pricing-20261014"],
+      "reason": "新收录：1.3 / 1.2 / 1.1 同价，输入 $1.25、缓存 $0.15、输出 $4.25；Contributor 模式 $0.10 / $0.20 写在备注。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0221",
+      "vendor": "Meta",
+      "name": "Muse Code Everyday Usage",
+      "status": "verified",
+      "checkedAt": "2026-10-14",
+      "sourceIds": ["meta-muse-code-plans-20261014", "meta-muse-code-subscriptions-20261014", "meta-muse-code-docs-20261014"],
+      "reason": "新收录：官方 $5/月，每 5 小时 10–50 条提示，含 Muse Spark、Muse Wonder 与 Muse Image。",
+      "patch": {},
+      "new": {
+        "id": "plan-0221",
+        "vendor": "Meta",
+        "plan": "Muse Code Everyday Usage",
+        "cat": "official",
+        "region": "intl",
+        "priceM": 5,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false,
+        "windowPeriod": "5h",
+        "codingSurface": true,
+        "ownClient": true,
+        "quota": "每 5 小时 10–50 条提示（含图片与视频上传）；用尽可升级或等待刷新",
+        "models": "Muse Spark、Muse Wonder、Muse Image；不含 Muse Wonder Full",
+        "tools": "Muse Code（终端与 CI 编程 Agent，macOS / Linux / Windows）；语音模式、网页搜索",
+        "note": "官方 $5/月，按首次订阅日自动续费，未列年付；升级立即生效并按剩余周期折算，降级下个周期生效，取消不退款。订阅外的 API 密钥用量按量计费；权益与可用性因地区而异",
+        "url": "https://dev.meta.ai/products/muse-code"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0222",
+      "vendor": "Meta",
+      "name": "Muse Code High Usage",
+      "status": "verified",
+      "checkedAt": "2026-10-14",
+      "sourceIds": ["meta-muse-code-plans-20261014", "meta-muse-code-subscriptions-20261014"],
+      "reason": "新收录：官方 $15/月，用量为 Everyday 的 5 倍。",
+      "patch": {},
+      "new": {
+        "id": "plan-0222",
+        "vendor": "Meta",
+        "plan": "Muse Code High Usage",
+        "cat": "official",
+        "region": "intl",
+        "priceM": 15,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false,
+        "windowPeriod": "5h",
+        "codingSurface": true,
+        "ownClient": true,
+        "quota": "Everyday 的 5 倍用量（以 Everyday 每 5 小时额度为基准）；更多多模态输入",
+        "models": "Muse Spark、Muse Wonder、Muse Image；不含 Muse Wonder Full",
+        "tools": "Muse Code（终端与 CI 编程 Agent，macOS / Linux / Windows）；语音模式、网页搜索",
+        "note": "官方 $15/月，按首次订阅日自动续费，未列年付",
+        "url": "https://dev.meta.ai/products/muse-code"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0223",
+      "vendor": "Meta",
+      "name": "Muse Code Power Usage",
+      "status": "verified",
+      "checkedAt": "2026-10-14",
+      "sourceIds": ["meta-muse-code-plans-20261014", "meta-muse-code-subscriptions-20261014", "meta-models-20261014"],
+      "reason": "新收录：官方 $50/月，用量为 Everyday 的 20 倍，含只在订阅中提供的 Muse Wonder Full。",
+      "patch": {},
+      "new": {
+        "id": "plan-0223",
+        "vendor": "Meta",
+        "plan": "Muse Code Power Usage",
+        "cat": "official",
+        "region": "intl",
+        "priceM": 50,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false,
+        "windowPeriod": "5h",
+        "codingSurface": true,
+        "ownClient": true,
+        "quota": "Everyday 的 20 倍用量（以 Everyday 每 5 小时额度为基准）；更大文件上传",
+        "models": "Muse Wonder Full、Muse Wonder、Muse Spark、Muse Image",
+        "tools": "Muse Code（终端与 CI 编程 Agent，macOS / Linux / Windows）；语音模式、网页搜索",
+        "note": "官方 $50/月，按首次订阅日自动续费，未列年付；Muse Wonder Full 只在 Power 及以上订阅提供，不开放 API；含新功能抢先体验",
+        "url": "https://dev.meta.ai/products/muse-code"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0224",
+      "vendor": "Meta",
+      "name": "Muse Code Maximum Usage",
+      "status": "verified",
+      "checkedAt": "2026-10-14",
+      "sourceIds": ["meta-muse-code-plans-20261014", "meta-muse-code-subscriptions-20261014", "meta-models-20261014"],
+      "reason": "新收录：官方 $200/月，用量为 Everyday 的 80 倍；最高档，用尽只能等待刷新。",
+      "patch": {},
+      "new": {
+        "id": "plan-0224",
+        "vendor": "Meta",
+        "plan": "Muse Code Maximum Usage",
+        "cat": "official",
+        "region": "intl",
+        "priceM": 200,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false,
+        "windowPeriod": "5h",
+        "codingSurface": true,
+        "ownClient": true,
+        "quota": "Everyday 的 80 倍用量（以 Everyday 每 5 小时额度为基准）；用尽只能等待刷新",
+        "models": "Muse Wonder Full、Muse Wonder、Muse Spark、Muse Image",
+        "tools": "Muse Code（终端与 CI 编程 Agent，macOS / Linux / Windows）；语音模式、网页搜索",
+        "note": "官方 $200/月，按首次订阅日自动续费，未列年付；最高档，用尽后只能等待刷新",
+        "url": "https://dev.meta.ai/products/muse-code"
+      }
+    }
+  ]
+}

@@ -2,6 +2,38 @@
 
 > 按数据核查和代码修复批次记录。
 
+## 2026-10-14：新厂商——Meta Muse Code
+
+新增厂商 Meta，收录其编程 Agent Muse Code 的四档订阅与两款模型的 API 价格。全部按 dev.meta.ai 的产品页、订阅文档、模型与定价文档、地理使用政策和 Meta 新闻稿逐条核对。增量核价输入为 `data/audit/incremental-2026-10-14-meta.json`（6 条记录、7 个来源）。
+
+- **订阅**（永久 ID plan-0221 至 plan-0224，均为美元月付，按首次订阅日自动续费，未列年付与团队档）
+  - Everyday Usage $5：每 5 小时 10–50 条提示，含 Muse Spark、Muse Wonder 与 Muse Image。
+  - High Usage $15、Power Usage $50、Maximum Usage $200：用量分别为 Everyday 的 5 / 20 / 80 倍。
+  - Power 起含 Muse Wonder Full，它不开放 API、只在订阅中提供。
+  - 升级立即生效，降级下个周期生效；Maximum 用尽只能等待刷新。
+  - Muse Code 是终端与 CI 编程 Agent（macOS / Linux / Windows），也可改用 Model API 密钥按量计费。
+  - 官方只公布相对倍数，没有 token 数，额度表不做折算。
+- **API**
+  - Muse Wonder：$4 / $20、缓存 $0.20，文档标为预览，不提供 Contributor 折扣。
+  - Muse Spark 1.3：$1.25 / $4.25、缓存 $0.15；Contributor 模式 $0.10 / $0.20，条件是内容可用于训练 Meta 模型。
+  - 两者都是 1M 上下文，无长上下文加价。
+- **数据使用与地区**
+  - Meta 地理使用政策写明，经 Coding Harness Subscription 访问默认按 Contributor 服务处理，需在账户设置改为 Standard。政策未定义该术语、也未点名 Muse Code，写在不确定说明与动态里。
+  - 同一政策把中国（含香港、澳门）列为受限地区，登记为中国大陆不可用。
+- **推荐规则**：新增 Muse Wonder（复杂任务）、Muse Wonder Full（复杂任务，同套餐里更吃额度的上限模型）与 Muse Spark（日常）三个模型角色。Everyday / High 的模型清单写明「不含 Muse Wonder Full」，推荐不会把它算进低档。
+- **其他**
+  - 动态新增 10-12 的 Muse Wonder 发布与 10-14 的收录记录。
+  - 来源目录新增 Meta 分组；资讯采集新增 Muse Code 订阅页与 Model API 定价页两个官方页面监测（共 26 个来源）。
+  - 中英文 README 的厂商列表加入 Meta Muse Code。
+- **工具修复**：核价同步给新厂商新增计划时，原来插在数组的 `]` 之前，会多出一个空行并丢掉尾逗号。现在与同厂商新增一样接在最后一档之后，补了回归断言；本次数据按修复后的写法整理，重跑同步不再产生改动。
+- **统计**：58 家厂商（+1）、224 档订阅计划（+4）、40 行 API 定价（+2，39 款模型）。
+- **测试调整**：「同档候选额度都无法折算时按月费较低选出」的回归原来固定用「国际 ¥100、不限工具」。收录 $5 的 Muse Code Everyday 后，该条件下只剩它一个候选，不再出现平局；改为按固定顺序查找当期数据中第一组平局条件再断言，规则本身不变。
+- **验证**
+  - `npm run check`、`validate`、`typecheck`、`maintenance:check`、`benchmark:check`、`readme:check` 通过。
+  - `npm test`：16 个 Node 套件与 Vitest 409 项通过。
+  - `npm run test:browser`：Chromium、Firefox、WebKit 共 420 项通过。
+  - `build:site` 生成 94 个公共文件（新增 Meta 厂商订阅源）。`size:check` 在预算内，主入口 164.4 / 170 KiB，余量在缩小。
+
 ## 2026-10-14：数据更新（二）——GPT-5.5 退役复核与当日其余巡检条目
 
 同日第二批，均逐条打开官方页面核对。套餐价格与额度均无变化。
