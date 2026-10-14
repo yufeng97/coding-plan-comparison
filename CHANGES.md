@@ -2,6 +2,30 @@
 
 > 按数据核查和代码修复批次记录。
 
+## 2026-10-14：数据更新——Gemini 4 Argon 全面开放（Google 订阅、API 与 GitHub Copilot）
+
+数据版本 2026-10-13 → 2026-10-14。08:30 的每日巡检已抓到并起草两条上线事件，本次逐条打开官方页面复核后入库。Google 订阅页的价格由脚本渲染，用真实浏览器读取。增量核价输入为 `data/audit/incremental-2026-10-14.json`（10 条记录、7 个新来源）。
+
+- **Gemini 4 Argon API**（Google，10-13 全球开放）
+  - 新增 API 行：付费层介绍价输入 $2、输出 $10（含 thinking）、缓存 $0.10，至 11-30；12-01 起 $4 / $20 / $0.20。
+  - 备注写明：Batch 与 Flex 半价、Priority $3.60 / $18；免费层不可用；1M 统一输入输出上下文；只支持隐式缓存。
+  - 复核日历加入 12-01 介绍价结束提醒。
+- **Google AI 订阅**（各档月价 $4.99 / $19.99 / $99.99 / $199.99 不变）
+  - Ultra 5x / 20x：模型加入 Argon。可在 Antigravity app、CLI 与 IDE 扩展使用，独立 Antigravity IDE 不支持。
+  - Pro：含 Argon，但只在 Gemini 应用与搜索 AI 模式中。Antigravity 模型表与 API 定价页都写明 Pro 不含，所以只写在备注，不列为 Pro 的编程模型。
+  - Plus：官网卡片现列 Gemini 3.6 Flash，模型由 Gemini 3.1 Pro 改为 Gemini 3.6 Flash；Plus 不含 Argon。
+- **GitHub Copilot**（价格与 credits 不变）
+  - Argon 10-13 正式可用，Pro+、Max、Business、Enterprise 的模型清单加入 Argon，按供应商牌价扣 AI credits。
+  - 计划页标明 Pro 不含。
+- **推荐规则**：新增 Gemini 4 Argon 的模型角色（复杂任务，与 Gemini Pro 同档），Ultra 与 Copilot Pro+ 等档的推荐卡据此识别 Argon。
+- **动态**：新增 Google 与 Copilot 的 Argon 上线各一条，以及 10-14 的核对记录；9-30 的受限发布记录保留为历史。
+- **统计**：220 档订阅计划、38 行 API 定价（+1，37 款模型）、68 条动态（+3）。
+- **验证**
+  - `npm run check`、`validate`、`typecheck`、`maintenance:check`、`benchmark:check`、`readme:check` 通过。
+  - `npm test` 的 16 个 Node 套件与 Vitest 409 项通过。
+  - `npm run test:browser` 在 Chromium、Firefox、WebKit 共 420 项通过。
+  - `npm run build:site` 生成 93 个公共文件。`size:check` 在预算内：首屏 HTML 55.8 KiB、主入口 161.6 KiB（预算 170）。
+
 ## 2026-10-14：中英文 README 与每日自动更新——汇率与评测定时采集、Claude 价格巡检、自动发布主站
 
 - **README 中英文版本**

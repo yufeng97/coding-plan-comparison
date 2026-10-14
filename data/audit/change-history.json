@@ -2,6 +2,157 @@
   "schemaVersion": 1,
   "changes": [
     {
+      "changeId": "change-1a9c094306a4b8d518ea71bd",
+      "id": "plan-0092",
+      "kind": "plan",
+      "vendor": "GitHub Copilot",
+      "name": "Pro+",
+      "checkedAt": "2026-10-14",
+      "sourceUrls": [
+        "https://docs.github.com/en/copilot/get-started/plans",
+        "https://github.blog/changelog/2026-10-13-gemini-4-argon-in-github-copilot"
+      ],
+      "fields": [
+        "modelIncludes",
+        "models"
+      ],
+      "before": {
+        "modelIncludes": [
+          "Claude Opus 4.8/5/5.5",
+          "Fable 5/5.1",
+          "GPT-5.6 Sol",
+          "GPT-6 Astra/Sol",
+          "GPT-6.1 Sol"
+        ],
+        "models": "Pro 全部 + Claude Opus 4.8/5/5.5、Fable 5/5.1、GPT-5.6 Sol、GPT-6 Astra/Sol、GPT-6.1 Sol 等旗舰"
+      },
+      "after": {
+        "modelIncludes": [
+          "Claude Opus 4.8/5/5.5",
+          "Fable 5/5.1",
+          "GPT-5.6 Sol",
+          "GPT-6 Astra/Sol",
+          "GPT-6.1 Sol",
+          "Gemini 4 Argon"
+        ],
+        "models": "Pro 全部 + Claude Opus 4.8/5/5.5、Fable 5/5.1、GPT-5.6 Sol、GPT-6 Astra/Sol、GPT-6.1 Sol、Gemini 4 Argon 等旗舰"
+      },
+      "plan": "Pro+"
+    },
+    {
+      "changeId": "change-451f08c4ebe113de4e4de9bc",
+      "id": "plan-0094",
+      "kind": "plan",
+      "vendor": "GitHub Copilot",
+      "name": "Business",
+      "checkedAt": "2026-10-14",
+      "sourceUrls": [
+        "https://docs.github.com/en/copilot/get-started/plans",
+        "https://github.blog/changelog/2026-10-13-gemini-4-argon-in-github-copilot"
+      ],
+      "fields": [
+        "models"
+      ],
+      "before": {
+        "models": "含旗舰模型 + Copilot CLI/App"
+      },
+      "after": {
+        "models": "含旗舰模型（含 Gemini 4 Argon）+ Copilot CLI/App"
+      },
+      "plan": "Business"
+    },
+    {
+      "changeId": "change-82f1725e0bd394f2390d9e76",
+      "id": "plan-0018",
+      "kind": "plan",
+      "vendor": "Google",
+      "name": "Google AI Ultra（5x）",
+      "checkedAt": "2026-10-14",
+      "sourceUrls": [
+        "https://antigravity.google/docs/models",
+        "https://one.google.com/about/google-ai-plans/"
+      ],
+      "fields": [
+        "models",
+        "note"
+      ],
+      "before": {
+        "models": "Gemini 3.1 Pro、Deep Think、Gemini Agent",
+        "note": "2026-05-19 I/O 起 $249.99 降至 $99.99；20TB 存储"
+      },
+      "after": {
+        "models": "Gemini 4 Argon、Gemini 3.1 Pro、Deep Think、Gemini Agent",
+        "note": "2026-05-19 I/O 起 $249.99 降至 $99.99；20TB 存储；Gemini 4 Argon 可在 Antigravity app、CLI 与 IDE 扩展使用（独立 Antigravity IDE 不支持）"
+      },
+      "plan": "Google AI Ultra（5x）"
+    },
+    {
+      "changeId": "change-d7a069852d2ffc239d61c0e5",
+      "id": "plan-0017",
+      "kind": "plan",
+      "vendor": "Google",
+      "name": "Google AI Pro",
+      "checkedAt": "2026-10-14",
+      "sourceUrls": [
+        "https://ai.google.dev/gemini-api/docs/pricing",
+        "https://antigravity.google/docs/models",
+        "https://one.google.com/about/google-ai-plans/"
+      ],
+      "fields": [
+        "note"
+      ],
+      "before": {
+        "note": "美国月付 $19.99、年付 $199.99（折月约 $16.67）；含 $10/月 GCP credits"
+      },
+      "after": {
+        "note": "美国月付 $19.99、年付 $199.99（折月约 $16.67）；含 $10/月 GCP credits；Gemini 4 Argon 只在 Gemini 应用与搜索 AI 模式中提供，Antigravity 与 API 不含"
+      },
+      "plan": "Google AI Pro"
+    },
+    {
+      "changeId": "change-d94cb07f37527fd06c9cc1b0",
+      "id": "plan-0016",
+      "kind": "plan",
+      "vendor": "Google",
+      "name": "Google AI Plus",
+      "checkedAt": "2026-10-14",
+      "sourceUrls": [
+        "https://one.google.com/about/google-ai-plans/"
+      ],
+      "fields": [
+        "models"
+      ],
+      "before": {
+        "models": "Gemini 3.1 Pro、Deep Research"
+      },
+      "after": {
+        "models": "Gemini 3.6 Flash、Deep Research"
+      },
+      "plan": "Google AI Plus"
+    },
+    {
+      "changeId": "change-e25a4e2dcaa833a4ffc9b3c7",
+      "id": "plan-0095",
+      "kind": "plan",
+      "vendor": "GitHub Copilot",
+      "name": "Enterprise",
+      "checkedAt": "2026-10-14",
+      "sourceUrls": [
+        "https://docs.github.com/en/copilot/get-started/plans",
+        "https://github.blog/changelog/2026-10-13-gemini-4-argon-in-github-copilot"
+      ],
+      "fields": [
+        "models"
+      ],
+      "before": {
+        "models": "旗舰模型优先访问 + 自定义模型"
+      },
+      "after": {
+        "models": "旗舰模型优先访问（含 Gemini 4 Argon）+ 自定义模型"
+      },
+      "plan": "Enterprise"
+    },
+    {
       "changeId": "change-0b06380cd89f6485db9eda14",
       "id": "plan-0096",
       "kind": "plan",
