@@ -147,18 +147,19 @@ test("归一化后为空的图表搜索保持20档，显示全部和收起仍可
 });
 
 test("年付图表读屏摘要与人民币柱值一致，缺少年付价时排除该档", async () => {
-  const page = await openPage({ url: "/index.html?pq=CursorPro&pbilling=Y#s1" });
+  const page = await openPage({ url: "/index.html?pq=XSubscription&pbilling=Y#s1" });
   const app = page.runtime;
   const label = () => page.byId("chartPersonal").getAttribute("aria-label")!;
   const prices = () => chart(page, "chartPersonal").option.series[0].data as { _p: Plan; value: number }[];
   assert.match(label(), /年付折月，人民币\/月/);
-  assert.ok(prices().length > 0);
-  for (const row of prices()) assert.ok(label().includes(row._p.plan + " ¥" + row.value), "摘要使用实际绘制的年付人民币价格");
-  assert.doesNotMatch(label(), /\$20|\$60/);
-  app.PLANS.find((p) => p.vendor === "Cursor" && p.plan === "Pro")!.priceY = null;
+  assert.ok(prices().some((row) => row._p.plan === "X Subscription Premium"));
+  /* 读屏摘要列出最低三档，金额与实际绘制的年付人民币柱值一致。 */
+  for (const row of prices().slice(0, 3)) assert.ok(label().includes(row._p.plan + " ¥" + row.value), "摘要使用实际绘制的年付人民币价格");
+  assert.doesNotMatch(label(), /\$\d/, "摘要只用折算后的人民币，不混入美元月价");
+  app.PLANS.find((p) => p.vendor === "xAI" && p.plan === "X Subscription Premium")!.priceY = null;
   app.renderPersonalChart();
-  assert.equal(prices().some((row) => row._p.plan === "Pro"), false);
-  assert.doesNotMatch(label(), /Cursor Pro ¥/);
+  assert.equal(prices().some((row) => row._p.plan === "X Subscription Premium"), false);
+  assert.doesNotMatch(label(), /X Subscription Premium ¥/);
   assert.match(page.byId("notePersonal").textContent!, /未列公开年付价的档位已排除/);
   page.healthy();
 });
@@ -240,7 +241,7 @@ test("tokens图区间由两组DOM图例完整切换，重绘保留隐藏状态�
   const details = page.byId("apiDetailBody");
   const rows = Array.from(details.querySelectorAll("tr"));
   assert.equal(rows.length, chart(page, "chartApi").option.yAxis.data.length);
-  assert.equal(rows.length, 36, "全部36项API报价都应可在明细表访问");
+  assert.equal(rows.length, app.API_PRICES.length, "全部 API 报价都应可在明细表访问");
   const solRow = rows.find((row) => row.querySelector("th")!.textContent!.includes("GPT-6.1 Sol"))!;
   assert.deepEqual(Array.from(solRow.querySelectorAll("td")).slice(1, 4).map((td) => td.textContent!.trim()), ["$2", "$10", "1M"], "明细保留输入/输出每百万价格及10美元购买力");
   assert.ok(details.querySelector('a[href^="https://"]'));

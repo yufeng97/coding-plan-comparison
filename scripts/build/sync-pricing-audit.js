@@ -147,8 +147,21 @@ function syncPricingAuditUnlocked(workspace, options = {}) {
         if (property.initializer.getText(ast) !== text) edits.push({ start: property.initializer.getStart(ast), end: property.initializer.end, text });
       } else added.push(`${key}: ${text}`);
     }
-    if (added.length) edits.push({ start: node.end - 1, end: node.end - 1,
-      text: (node.properties.length && !node.properties.hasTrailingComma ? ", " : " ") + added.join(", ") + " " });
+    if (!added.length) return;
+    /* 紧跟最后一个属性写入，避免在「url: "…" }」的空格后留下「 , 」。 */
+    const last = node.properties[node.properties.length - 1];
+    edits.push(last ? { start: last.end, end: last.end, text: ", " + added.join(", ") }
+      : { start: node.end - 1, end: node.end - 1, text: " " + added.join(", ") + " " });
+  }
+  /* 新计划按文件现有格式书写：身份与价格一行、结构化标记一行，额度/模型/工具/备注/链接各占一行。 */
+  const HEAD_FIELDS = ["id", "fieldRefs", "vendor", "plan", "cat", "region", "priceM", "priceY", "annualTotal", "autoRenewMonthly", "singleMonthPrice", "cur", "seat", "availability", "billingUnit", "renewalOnly", "freeCodingEntry", "accessUnstable", "sameAs"];
+  const TEXT_FIELDS = ["quota", "models", "tools", "note", "url"];
+  function planLiteral(plan) {
+    const entries = (keys) => keys.filter((key) => Object.hasOwn(plan, key)).map((key) => key + ": " + JSON.stringify(plan[key]));
+    const flags = entries(Object.keys(plan).filter((key) => !HEAD_FIELDS.includes(key) && !TEXT_FIELDS.includes(key)));
+    const text = entries(TEXT_FIELDS);
+    return ["  { " + entries(HEAD_FIELDS).join(", ") + ",", ...(flags.length ? ["    " + flags.join(", ") + ","] : []),
+      ...text.map((line, i) => "    " + line + (i === text.length - 1 ? " }" : ","))].join("\n");
   }
   const seen = new Set();
   const rows = options.incremental ? structuredClone(data.PRICE_CHECKS.rows) : {};
@@ -213,7 +226,17 @@ function syncPricingAuditUnlocked(workspace, options = {}) {
   }
   if (newPlans.length) {
     const planArray = declarations.get("PLANS").initializer;
-    edits.push({ start: planArray.end - 1, end: planArray.end - 1, text: (planArray.elements.length && !planArray.elements.hasTrailingComma ? "," : "") + "\n" + newPlans.map((plan) => JSON.stringify(plan)).join(",\n") + "\n" });
+    /* 同厂商已有计划时插在该厂商最后一档之后，保持厂商分组（「同上」与相邻档的模型继承按位置判断）；新厂商追加到末尾。 */
+    const groups = new Map();
+    for (const plan of newPlans) {
+      const index = data.PLANS.findLastIndex((p) => p.vendor === plan.vendor);
+      groups.set(index, [...(groups.get(index) || []), plan]);
+    }
+    for (const [index, plans] of groups) {
+      const text = plans.map(planLiteral).join(",\n");
+      if (index >= 0) edits.push({ start: planArray.elements[index].end, end: planArray.elements[index].end, text: ",\n" + text });
+      else edits.push({ start: planArray.end - 1, end: planArray.end - 1, text: (planArray.elements.length && !planArray.elements.hasTrailingComma ? "," : "") + "\n" + text + "\n" });
+    }
   }
   const expected = data.PLANS.length + data.API_PRICES.length + data.PAYG_REFERENCES.length + newPlans.length;
   if (!options.incremental && records.length !== expected) throw new Error(`审计覆盖不完整：${records.length}/${expected}`);

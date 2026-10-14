@@ -1,6 +1,6 @@
 import { MAINTENANCE_SUMMARY, PRICE_CHECKS } from '../generated/catalog';
 import { fmtTok } from './metrics';
-import { cpmTier } from './core';
+import { cpmTier, currencySymbol } from './core';
 
 /* 引号 doubling 之外，还要防 CSV 公式注入：以 = + - @ 开头的单元格加 ' 前缀，Excel 不会当公式执行。所有 CSV 导出共用。 */
 export function csvCell(v: unknown) {
@@ -111,11 +111,12 @@ export function fmtUnit(n: number) {
     return String(Math.round(n * 10000) / 10000);
 }
 
-/** 模型牌价的三段文字（输入 / 输出 / 缓存，每百万 tokens）；额度表逐段不换行显示。 */
-export function listPriceParts(m: Pick<QuotaRow, "apiIn" | "apiOut" | "apiCache"> & { cur: string }) {
+/** 模型牌价的三段文字（输入 / 输出 / 缓存，每百万 tokens）；额度表逐段不换行显示。
+ * 牌价可与套餐不同币种（apiCur），符号按牌价自身的币种取。 */
+export function listPriceParts(m: Pick<QuotaRow, "apiIn" | "apiOut" | "apiCache" | "apiCur"> & { cur: string }) {
     if (typeof m.apiIn !== "number")
         return [];
-    const sym = m.cur === "USD" ? "$" : "¥";
+    const sym = currencySymbol(m.apiCur || m.cur);
     return [`输入 ${sym}${fmtUnit(m.apiIn)}`, `输出 ${sym}${fmtUnit(m.apiOut)}`, `缓存 ${sym}${fmtUnit(m.apiCache)}`];
 }
 

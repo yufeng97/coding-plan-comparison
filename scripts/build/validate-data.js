@@ -119,7 +119,7 @@ function validateData(options = {}) {
     check(p.priceM !== undefined, `PLANS 缺 priceM 字段(应为数字或 null): ${key}`);
     check(typeof p.quota === "string" && p.quota.length > 4, `PLANS quota 缺失/过短: ${key}`);
     check(typeof p.url === "string" && p.url.startsWith("http"), `PLANS url 非法: ${key}`);
-    check(p.windowPeriod == null || ["5h", "month", "none", "unknown"].includes(p.windowPeriod), `PLANS windowPeriod 非法: ${key}`);
+    check(p.windowPeriod == null || ["5h", "week", "month", "none", "unknown"].includes(p.windowPeriod), `PLANS windowPeriod 非法: ${key}`);
     check(p.quotaSharing == null || ["shared", "separate", "unknown"].includes(p.quotaSharing), `PLANS quotaSharing 非法: ${key}`);
     check(p.codingSurface == null || typeof p.codingSurface === "boolean", `PLANS codingSurface 非法: ${key}`);
     check(p.includedModelQuota == null || typeof p.includedModelQuota === "boolean", `PLANS includedModelQuota 非法: ${key}`);

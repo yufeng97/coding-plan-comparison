@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 "use strict";
-/* 更新参考汇率：从 Frankfurter（欧洲央行参考汇率）取 USD→CNY / INR，改写 data/sources/data.js 的 RATE_* 与 META 汇率字段。
- * 页面上的汇率由组件从这些常量渲染，没有另需改写的静态文本。候选源码先通过完整数据校验再原子写入；
+/* 更新参考汇率：从 Frankfurter（欧洲央行参考汇率）取 USD→CNY / INR，改写 data/sources/data.js 的 RATE_* 与 META 汇率字段，
+ * 以及来源目录里的「汇率参考（日期）」分组。页面上的汇率由组件从这些常量渲染。候选源码先通过完整数据校验再原子写入；
  * 与核价同步、维护摘要共用 data/audit/.pricing.lock。不改任何原币价格，也不在构建或 CI 中自动运行。 */
 const fs = require("node:fs");
 const path = require("node:path");
@@ -45,6 +45,9 @@ function applyRates(source, rates) {
   next = replaceOnce(next, /rateAsOf: "\d{4}-\d{2}-\d{2}",/, `rateAsOf: "${rates.date}",`, " META.rateAsOf");
   next = replaceOnce(next, /rateSource: "https:\/\/api\.frankfurter\.dev\/v1\/[^"]+",/, `rateSource: "${rates.source}",`, " META.rateSource");
   next = replaceOnce(next, /汇率: 1 USD ≈ [\d.]+ CNY（\d{4}-\d{2}-\d{2} frankfurter 实测 [\d.]+，/, `汇率: 1 USD ≈ ${usdCny} CNY（${rates.date} frankfurter 实测 ${rates.cny}，`, "文件头汇率说明");
+  /* 来源目录的汇率分组随汇率日期一起更新，否则页脚会继续列出旧日期的接口地址。 */
+  next = replaceOnce(next, /\{ group: "汇率参考（\d{4}-\d{2}-\d{2}）", urls: \[\n(\s*)"https:\/\/api\.frankfurter\.dev\/v1\/[^"]+",/,
+    `{ group: "汇率参考（${rates.date}）", urls: [\n$1"${rates.source}",`, " SOURCES 汇率参考分组");
   return { source: next, usdCny };
 }
 

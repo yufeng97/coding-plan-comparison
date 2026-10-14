@@ -19,14 +19,15 @@ function pending(app: Runtime, product: Plan | typeof app.API_PRICES[number] | t
   app.PRICE_CHECKS.rows[key] = { ...app.priceCheckOf(product, kind)!, status: "unverified", reason };
 }
 
-test("258 条核价记录完整对应计划、API 与 PAYG，日期与官方来源可追溯", async () => {
+test("核价记录完整对应计划、API 与 PAYG，日期与官方来源可追溯", async () => {
   const page = await openPage(), app = page.runtime;
   const rows = [
     ...app.PLANS.map((p: Plan) => ({ key: "plan:" + p.id, check: app.priceCheckOf(p) })),
     ...app.API_PRICES.map((p: ApiPrice) => ({ key: "api:" + p.vendor + "|" + p.model, check: app.priceCheckOf(p, "api") })),
     ...app.PAYG_REFERENCES.map((p: PaygReference) => ({ key: "payg:" + p.vendor + "|" + p.model, check: app.priceCheckOf(p, "payg") })),
   ];
-  assert.equal(rows.length, 258);
+  /* 10-04 全量核查的 258 条只会增加不会删除（永久 ID 不复用、停售档保留）。 */
+  assert.ok(rows.length >= 258, String(rows.length));
   assert.equal(new Set(rows.map((r) => r.key)).size, rows.length);
   assert.equal(Object.keys(app.PRICE_CHECKS.rows).length, rows.length);
   for (const { key, check } of rows) {
@@ -70,19 +71,22 @@ test("Cursor 印度套餐保留 ₹649 原价、汇率依据与跨币种排序",
   assert.equal(p.priceM, 649);
   assert.equal(p.cur, "INR");
   assert.equal(app.planPriceLabel(p), "₹649/月");
-  near(app.RATE_INR_CNY, 6.7074 / 95.74);
-  near(app.cnyOf(p, "M"), 649 * 6.7074 / 95.74);
+  /* INR 用同一日期的 USD/CNY 与 USD/INR 交叉换算，数值取自数据文件里的汇率说明。 */
+  const sameDay = /USD\/INR=([\d.]+)、USD\/CNY=([\d.]+)/.exec(fs.readFileSync(path.resolve("data/sources/data.js"), "utf8"))!;
+  near(app.RATE_INR_CNY, Number(sameDay[2]) / Number(sameDay[1]));
+  near(app.cnyOf(p, "M"), 649 * Number(sameDay[2]) / Number(sameDay[1]));
+  const shown = Math.round(649 * app.RATE_INR_CNY * 10) / 10;
   Object.assign(app.tableState, { search: "Cursor", extra: true });
   await page.settle();
   const row = page.byId("tableBody").querySelector(`[data-plan-id="${p.id}"]`)!.closest("tr")!;
-  assert.match(row.textContent!, /₹649\/月.*≈¥45\.5\/月/s);
+  assert.match(row.textContent!, new RegExp(`₹649/月.*≈¥${shown}/月`, "s"));
   const csv = app.tableRowsCsv([p]), md = app.tableRowsMarkdown([p]);
   assert.match(csv, /参考汇率（INR\/CNY）/);
   assert.match(md, /1 INR ≈ [\d.]+ CNY/);
   for (const text of [csv, md]) for (const value of ["₹649/月", String(app.RATE_INR_CNY), app.META.rateAsOf, app.META.rateSource]) assert.ok(text.includes(value), value);
   Object.assign(app.personalState, { cat: "all", region: "all", q: "", limit: null, billing: "M" });
   app.renderPersonalChart();
-  assert.equal(page.charts.get("chartPersonal")!.option.series[0].data.find((d: { _p: Plan }) => d._p.id === p.id).value, 45.5);
+  assert.equal(page.charts.get("chartPersonal")!.option.series[0].data.find((d: { _p: Plan }) => d._p.id === p.id).value, shown);
   assert.match(app.personalTooltip(p), /₹649/);
   Object.assign(app.tableState, { search: "", cat: "all", region: "all", sortKey: "priceM", sortDir: 1 });
   assert.deepEqual(app.computeTableRows().filter((p: Plan) => ["plan-0097", "pricing-test-usd"].includes(p.id)).map((p: Plan) => p.id), ["plan-0097", "pricing-test-usd"]);
@@ -175,15 +179,16 @@ test("待核 PAYG 按 vendor/model 映射，明细按历史牌价降低置信", 
 
 test("免费入口排除待核状态，对比不将历史价格突出为最低价", async () => {
   const page = await openPage({ prepare(app) {
-    for (const id of ["plan-0096", "plan-0098"]) pending(app, app.findPlanReference(id)!);
+    /* plan-0213 是当前的 Cursor / Grok 免费档（X Subscription Free），原 Cursor Hobby 已并入它。 */
+    for (const id of ["plan-0213", "plan-0098"]) pending(app, app.findPlanReference(id)!);
   } });
   const app = page.runtime;
-  assert.equal(app.isFreeCodingEntry(plan(page, "plan-0096")), false);
-  assert.equal(Array.from(page.byId("freeGrid").querySelectorAll(".fc-vendor")).some((el) => el.textContent === "Cursor"), false);
+  assert.equal(app.isFreeCodingEntry(plan(page, "plan-0213")), false);
+  assert.equal(Array.from(page.byId("freeGrid").querySelectorAll(".fc-vendor")).some((el) => el.textContent === "xAI" || el.textContent === "Cursor"), false);
   app.cmpState.items = [plan(page, "plan-0098"), plan(page, "plan-0099")];
   await page.settle();
   assert.doesNotMatch(page.byId("cmpTable").innerHTML, /cmp-best-price|同周期最低价/);
-  assert.match(page.byId("cmpTable").textContent!, /历史价 · 待核实.*2026-10-04/s);
+  assert.match(page.byId("cmpTable").textContent!, new RegExp("历史价 · 待核实.*" + app.priceCheckOf(plan(page, "plan-0098"))!.checkedAt, "s"));
   page.healthy();
 });
 

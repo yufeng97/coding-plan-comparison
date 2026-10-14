@@ -2,7 +2,28 @@
 
 > 按数据核查和代码修复批次记录。
 
-## 2026-10-12：钉死资讯连接、隔离坏队列，并收紧文件锁释放
+## 2026-10-13：数据更新——The X Subscription、Copilot 模型清单、Claude API 赠额与 12 条积压动态
+
+数据版本 2026-10-09 → 2026-10-13。每日巡检自 10-10 起只生成草稿、未改正式数据，本次逐条打开官方页面复核后入库；增量核价输入为 `data/audit/incremental-2026-10-13.json` 与 `incremental-2026-10-13-openai.json`（37 条记录、14 个新来源）。
+
+- **The X Subscription（xAI，10-12 推出）**：用新永久 ID 收录 8 档。个人档 Free $0、Plus $8、Premium $30、Super $100、Ultra $200（年付 $80/$300/$1000/$2000，按全年金额记录、折月 6.67/25/83.33/166.67）；团队档 Premium/Super/Ultra 每席 $30/$100/$200（团队年付价未公开，不照搬个人年付）。Grok 与 Cursor 共用每周第一方用量池（Plus 为基准，Premium 4×、Super 15×、Ultra 50×），Plus 仅 Grok 模型；Cursor 的第三方模型从 Premium 起按 API 牌价预充值另付，团队档再加 $0.25/百万 tokens。官方未公布每周 tokens 数，不生成额度估算、不参与成本排行。
+- **旧档处理**：官方写明原 SuperGrok 与 Cursor 套餐不再接受新注册、现有用户可保留，SuperGrok、SuperGrok Plus 与 Cursor Pro / Pro Plus / Ultra / Teams 两种席位标为「老用户续费」，退出推荐与个人价格图，仍在完整价格表供老用户核对，原价与核查历史保留。Grok Free 与 Cursor Hobby 指向新的 X Subscription Free（同一免费档的旧入口），免费入口改为后者。SuperGrok Lite / Heavy 价格仍无官方公开金额，保持待核；Cursor 印度 Start（₹649）在印度以外无法核实是否仍开放，保留原记录并写入不确定性说明。「帮我选」选 Cursor 时的自家订阅卡改为 X Subscription。
+- **GitHub Copilot**：价格与 credits 不变。按计划页现行模型表更新 Pro / Pro+：去掉 10-02 弃用的 Gemini 3.5 / 3.6 Flash、Kimi K2.7 Code 与 Claude Opus 4.7，补列 Claude Haiku 4.5/5.5、GPT-5 mini、GPT-5.4 系列与 MAI-Code-1.1-Flash，旗舰改为 Opus 4.8/5/5.5。Pro 的额度折算改用 Gemini 3.8 Flash 的 Copilot 促销价（$0.75/$3.75、缓存 $0.075，至 2026-12-31），不再用已弃用的 Gemini 3.5 Flash。Business / Enterprise 备注补充 10-08 的代码审查组织计费选项。
+- **Anthropic**：Max 5x / 20x 每月另含 $100 / $200 Claude Platform API 赠额，Team 每个标准 / Premium 席位 $20 / $100（全团队封顶 $500），不用于交互式 Claude Code、不结转。Sonnet 5.5 缓存读改为 $0.10（10-07 起）；新增 Claude Haiku 5.5 API 行（提示 ≤100K tokens 时 $0.10 / $0.50、缓存 $0.01，超过 100K 的请求按更高一档，写在备注）。
+- **OpenAI**：GPT-6.1 Sol 自 10-08 起支持 Ultrafast（API 为标准价 6 倍：$12 / $60、缓存 $0.60）；ChatGPT Pro $500 档的额度与模型说明改为 Ultrafast 同时支持 GPT-6 Astra 与 GPT-6.1 Sol（订阅内 8 倍计量、credits 6 倍）。标准价格不变。
+- **动态**：发布巡检积压的 12 条已核实动态——X Subscription 发布、Copilot 的 Haiku 5.5 上架 / 模型弃用 / 代码审查计费 / JetBrains 最低版本、OpenAI Ultrafast、Claude Managed Agents 动态工作流、JetBrains Mellum2.1、Gemini 4 Argon（仍限受信网络防御者）、GLM 双节活动撤下的核查记录，以及 Opus 5.5 发布的历史补录；9-28 的 Sonnet 5.5 发布动态改用官方发布公告作来源，只保留发布当日的价格事实。另加一条 10-13 核查记录说明本次写入的套餐数据。来源目录补齐对应官方页面，资讯监测新增 X Subscription 定价文档（共 24 个来源）。
+- **汇率与评测**：参考汇率更新为 2026-10-12 欧洲央行参考汇率（1 USD = 6.6928 CNY，页面取 6.69；INR 按同日交叉汇率）。公开评测重新采集并逐条核对：编程类榜单（DeepSWE、CursorBench、SWE-bench）无变化；HLE Diamond 新增 Muse Wonder 两条（high 34.7%、max 40.6%），GPT-6.1 Sol max 由 61.1% 更正为 61.3%，共 472 条成绩。
+- 统计：220 档订阅计划（+8）、28 个免费档、18 个可用免费编程入口、37 行 API 定价（+1）、65 条动态。
+- 验证（与下一条代码修复一起）：`npm run typecheck`（含目录一致性与架构检查，108 个模块）、`npm run check`、`npm run validate`、`maintenance:check`、`benchmark:check` 通过；`npm test` 的 14 个 Node 套件与 Vitest 28 个文件共 409 项通过；`npm run test:browser` 在 Chromium／Firefox／WebKit 共 420 项通过；`npm run build:site` 生成 93 个公共文件，`npm run size:check` 各项在预算内（首屏 HTML 54.6、主入口 159.8、样式 11.5、ECharts 149.7 KiB；主入口比 10-12 增加 6.4 KiB，来自随首屏打包的审计目录）。
+
+## 2026-10-13：代码审查修复——变更记录的读者文字、自家订阅卡选档、维护工具与数据驱动的测试
+
+- **变更记录不再露出内部字段**：这是变更历史第一次出现「新收录」的套餐，原 RSS 把它写成「价格/权益更新」，并逐项列出 `fieldRefs：null → {"models":"plan-0215"}`、`windowPeriod`、`sameAs` 等内部字段名与永久 ID；页面「我的关注」另有一份字段名表，同样缺这些字段。现在两处共用 `data.js` 的 `changeDisplay`：新收录只列月付价、年付、币种、额度与官网链接，标题写「新收录」；并入主条目写主条目名称；「仅老用户续费」等省略即有含义的字段写「否 → 是」而不是「未记录 → 是」；继承引用不对读者单列。
+- **「帮我选」自家订阅卡**：`picker-view` 自己维护了一份工具 → 厂商对应表，和推荐规则里的 `TOOL_OWN_VENDOR` 各存一份，改一处另一处不生效；现在只在 `domain/picker/profile` 维护，工具名同理。没有档位附赠复杂任务模型时，自家订阅卡原按文件顺序落到第一档（选 Cursor 时会是只有 Grok 的 X Subscription Plus），现在先选能按量使用复杂任务模型的档（Premium），预算不够时照常提示高于预算。
+- **每周额度周期**：`windowPeriod` 新增 `week`（只有每周池、没有 5 小时窗口），额度表 5h 列显示「周度池；无5h额度」，推荐卡写明共用每周额度池；类型、校验器、额度换算与文字同步支持。
+- **额度表牌价币种**：模型牌价的货币符号原来取自套餐币种，人民币套餐里的美元牌价会显示成 `¥0.32`、印度卢比显示成 `¥`；现在按牌价自身币种（`apiCur`）显示。百炼 qwen3.7-plus 的 OpenRouter 美元挂牌原先按 6.71 预先折成人民币写死，改为记原币，随页面汇率折算。
+- **维护工具**：核价同步补充字段时不再写出 `url: "…" , sameAs` 这样的多余空格；新增套餐按文件现有格式写在同厂商最后一档之后（原先以单行 JSON 追加到 `PLANS` 末尾）。汇率更新工具同时改写来源目录的「汇率参考」分组，页脚不再保留旧日期的接口地址；不确定性说明里写死的「USD 按 6.71」改为指向页面参考汇率。资讯采集遇到 TextDecoder 不认识的字符集声明（如 `utf8mb4`）时按 UTF-8 解码，不再让整个来源失败。
+- **测试不再写死会随日常数据变化的值**：汇率（6.71、6.7074/95.74）、数据版本日期附近的注入时间、核价条数（258）、API 行数（36）与具体套餐名改为从数据推导或改用永久 ID；全量核查基线夹具会把 10-04 之后新收录的条目按当前核价状态补入，全量同步回归继续可用。新增 `src/regression/review-2026-10-13.test.ts` 与核价同步、维护摘要、资讯采集各 1 项回归。
 
 - 资讯抓取的默认连接只使用刚刚通过公网校验的地址，重定向每一跳重新校验；自行传入的 `fetcher` 仍只用于测试，不钉死连接。
 - 资讯 Actions 缓存不再用分支名做恢复前缀。损坏的 `inbox.json` 在 Actions 中移出缓存目录并删除该前缀下的旧缓存，原字节进入 artifact；本机采集仍拒绝覆盖损坏队列。

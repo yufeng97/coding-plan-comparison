@@ -25,7 +25,7 @@ const costRange = computed(() => props.row.payg ? "" : fullUseCostRangeText(prop
   <template v-else-if="column === 'price'">{{ row.payg ? "按量" : fmtCNY(row.c.priceCNY) }}</template>
   <template v-else-if="column === 'tps'">{{ row.m.tps || "—" }}</template>
   <template v-else-if="column === 'cpm'"><span class="cost-value" :style="{ color: cpmColor(row.c.costPerM) }" :title="costTitle">{{ fmtCpm(row.c.costPerM) }}</span><template v-if="costRange"><br><span class="sub">{{ costRange }}</span></template></template>
-  <template v-else-if="column === 't5h'"><template v-if="row.payg">—</template><TokenRange v-else :low="row.c.fLow" :high="row.c.fHigh" :empty-label="row.m.windowPeriod === 'none' ? '无5h上限' : row.m.windowPeriod === 'month' ? '月度池；无5h额度' : '未公布'" /></template>
+  <template v-else-if="column === 't5h'"><template v-if="row.payg">—</template><TokenRange v-else :low="row.c.fLow" :high="row.c.fHigh" :empty-label="row.m.windowPeriod === 'none' ? '无5h上限' : row.m.windowPeriod === 'week' ? '周度池；无5h额度' : row.m.windowPeriod === 'month' ? '月度池；无5h额度' : '未公布'" /></template>
   <template v-else-if="column === 'twk'"><template v-if="row.payg">—</template><TokenRange v-else :low="row.c.wkLowM" :high="row.c.wkHighM" /></template>
   <template v-else-if="column === 'tmo'"><span v-if="row.payg" class="token-empty">无套餐额度</span><TokenRange v-else :low="row.c.moLow" :high="row.c.moHigh" /></template>
   <template v-else-if="column === 'val5h'">{{ row.payg ? "—" : fmtVal(row.c.val5h, row.m.cur) }}</template>

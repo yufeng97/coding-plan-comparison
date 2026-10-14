@@ -20,13 +20,13 @@ function fixture(run) {
     fs.mkdirSync(path.join(root, "data/audit"));
     fs.mkdirSync(path.join(root, "data/config"));
     fs.copyFileSync(path.join(workspace, "data/audit/pricing-verification-2026-10-04.json"), path.join(root, "data/audit/pricing-verification-2026-10-04.json"));
-    /* 用例按 10-04 全量台账的快照断言；增量核查后的仓库数据先回放到该基线。 */
-    rewindToFullAudit(root, workspace);
+    /* 用例按 10-04 全量台账的快照断言；增量核查后的仓库数据先回放到该基线（之后新收录的条目按当前状态补入）。 */
+    const baseline = rewindToFullAudit(root, workspace);
     const snapshot = () => outputs.map((file) => fs.existsSync(path.join(root, file)) ? fs.readFileSync(path.join(root, file)).toString("base64") : null);
     const calendar = (events) => fs.writeFileSync(path.join(root, "data/config/review-calendar.json"), JSON.stringify({ schemaVersion: 1, events }));
     // Maintenance outputs copied from data/generated must not affect the initial output snapshot.
     for (const generated of ["maintenance-data.js", "maintenance-summary.js", "maintenance.json", "changes.xml", "feeds"]) fs.rmSync(path.join(root, "data/generated", generated), { recursive: true, force: true });
-    run({ root, snapshot, calendar });
+    run({ root, snapshot, calendar, baseline });
   } finally {
     if (path.dirname(root) !== temporaryRoot || !path.basename(root).startsWith("coding-plan-maintenance-test-")) throw new Error("拒绝清理未知维护测试目录");
     fs.rmSync(root, { recursive: true, force: true });
@@ -55,20 +55,25 @@ test("10-04真实台账只生成22条可证差异，保持日期与稳定永久�
   assert.equal(changeOf({ priceM: 20 }, { priceM: 20 }, { id: "plan-test", kind: "plan", vendor: "Example", name: "Pro", checkedAt: "2026-10-04", sourceUrls: ["https://example.com"] }), null);
 });
 
-test("Oct8摘要统计真实逐行年龄，待核与过期独立，生成不改核价事实", ({ root }) => {
+test("Oct8摘要统计真实逐行年龄，待核与过期独立，生成不改核价事实", ({ root, baseline }) => {
+  /* 10-04 全量台账为 258 条（219 条已核实、24 条待核）；之后新收录的条目按补入基线时的状态计入。 */
+  const added = baseline.added;
+  const total = 258 + added.length;
+  const verified = 219 + added.filter((record) => ["verified", "changed"].includes(record.status)).length;
+  const unverified = 24 + added.filter((record) => record.status === "unverified").length;
   const file = path.join(root, "data/sources/data.js");
   const before = fs.readFileSync(file);
   const { maintenance } = buildMaintenance(root, { asOf: "2026-10-08" });
   assert.equal(maintenance.generatedAt, "2026-10-08");
   assert.equal(maintenance.checkedThrough, "2026-10-04");
-  assert.deepEqual(maintenance.summary, { total: 258, verified: 219, unverified: 24, stale: 0 });
+  assert.deepEqual(maintenance.summary, { total, verified, unverified, stale: 0 });
   assert.ok(maintenance.records.every((record) => record.ageDays === 4 && !record.stale && record.sourceUrls.length));
   assert.ok(fs.readFileSync(file).equals(before));
   const at13 = buildMaintenance(root, { asOf: "2026-10-17" }).maintenance;
   assert.equal(at13.summary.stale, 0);
   const at14 = buildMaintenance(root, { asOf: "2026-10-18" }).maintenance;
-  assert.equal(at14.summary.stale, 258);
-  assert.equal(at14.summary.unverified, 24);
+  assert.equal(at14.summary.stale, total);
+  assert.equal(at14.summary.unverified, unverified);
 });
 
 test("变更事实被改动不能沿用旧ID，JSON键顺序不影响身份，生成前拒绝篡改历史", ({ root, snapshot }) => {
@@ -129,6 +134,21 @@ test("JSON/classicJS事实相同，file协议可读取，RSS只含真实changes�
   assert.ok(rss.includes("#table") && !rss.includes("?plan="));
   const escaped = rssOf({ changes: [{ ...json.changes[0], vendor: "A&B", name: "<Pro>", before: { note: "old" }, after: { note: "<script>" }, fields: ["note"] }] }, "https://example.com/");
   assert.ok(escaped.includes("A&amp;B") && escaped.includes("&lt;Pro&gt;") && escaped.includes("&lt;script&gt;") && !escaped.includes("<script>"));
+});
+
+test("RSS与关注卡共用读者文字：新收录只列要点，并入主条目显示名称，不露出内部字段名和永久ID", () => {
+  const identity = (id, name) => ({ id, kind: "plan", vendor: "xAI", name, checkedAt: "2026-10-04", sourceUrls: ["https://x.ai/news/x-subscription"] });
+  const addition = changeOf({}, { id: "plan-0215", vendor: "xAI", plan: "X Subscription Premium", priceM: 30, priceY: 25, annualTotal: 300, cur: "USD", seat: false,
+    fieldRefs: { models: "plan-0215" }, windowPeriod: "week", quotaSharing: "shared", codingSurface: true, quota: "4× Plus：每周共享池", models: "Grok 4.5–4.7", url: "https://docs.x.ai/x-subscription/pricing" },
+  identity("plan-0215", "X Subscription Premium"), true);
+  const merged = changeOf({ note: "免费档" }, { note: "已并入 X Subscription Free", sameAs: "plan-0213" }, identity("plan-0096", "Hobby"), true);
+  const renewal = changeOf({ plan: "SuperGrok" }, { plan: "SuperGrok（老用户续费）", renewalOnly: true }, identity("plan-0025", "SuperGrok（老用户续费）"), true);
+  const rss = rssOf({ changes: [addition, merged, renewal] }, "https://example.com/");
+  assert.match(rss, /<title>xAI · X Subscription Premium 新收录<\/title>/);
+  assert.match(rss, /新收录：月付价 30；年付折月价 25；年付全年金额 300；币种 USD；按席位计费 否；额度 4× Plus：每周共享池；官网链接 https:\/\/docs\.x\.ai\/x-subscription\/pricing。/);
+  assert.match(rss, /并入主条目：无 → xAI X Subscription Free/);
+  assert.match(rss, /套餐名：SuperGrok → SuperGrok（老用户续费）；仅老用户续费：否 → 是/);
+  for (const internal of ["fieldRefs", "windowPeriod", "quotaSharing", "codingSurface", "renewalOnly", "sameAs", "plan-0213", "plan-0215", "未记录"]) assert.ok(!rss.includes(internal), "RSS 不应出现：" + internal);
 });
 
 test("生成第四文件失败回滚全部新产物，已有产物更新失败恢复原值", ({ root, snapshot }) => {

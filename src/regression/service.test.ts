@@ -22,9 +22,11 @@ test("官方缓存价与未录入缓存价在费用结果、单位和占位提�
   const app = page.runtime;
   Object.assign(app.calcState, { model: "Anthropic|Claude Sonnet 5.5", cache: "100", cachePrice: "" });
   await page.settle();
-  assert.match(page.byId("costResult").textContent!, /缓存命中按官方单价 \$0\.2\/1M 计费/);
+  const official = app.API_PRICES.find((a) => a.vendor === "Anthropic" && a.model === "Claude Sonnet 5.5")!.apiCache!;
+  assert.ok(official > 0);
+  assert.ok(page.byId("costResult").textContent!.includes(`缓存命中按官方单价 $${official}/1M 计费`));
   assert.equal(page.byId("costCacheUnit").textContent, "美元");
-  assert.match(page.byId<HTMLInputElement>("costCachePrice").placeholder, /留空采用官方 \$0\.2/);
+  assert.ok(page.byId<HTMLInputElement>("costCachePrice").placeholder.includes(`留空采用官方 $${official}`));
   Object.assign(app.calcState, { model: "阿里云百炼|qwen3-coder-next", cache: "100", cachePrice: "" });
   await page.settle();
   assert.match(page.byId("costResult").textContent!, /未录入官方缓存单价，缓存命中率暂不生效/);

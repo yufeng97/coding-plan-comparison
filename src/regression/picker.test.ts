@@ -81,7 +81,7 @@ test("Pro无5h上限不触发Go Plus加购，平台免费及非编程订阅不�
     assert.equal(dailyCard(profile, app.eligibleProfiles()), null, "已包含权益不应重复套餐和月费出第二卡");
     assert.match(app.windowSentence(pro, profile.headline), /没有 5 小时上限/);
   }
-  for (const [vendor, name] of [["xAI", "SuperGrok"], ["Canopy Wave", "Coding Plan Pro Bundle"]] as const) {
+  for (const [vendor, name] of [["xAI", "X Subscription Premium"], ["Canopy Wave", "Coding Plan Pro Bundle"]] as const) {
     assert.ok(app.PLANS.find((p) => p.vendor === vendor && p.plan === name), vendor + " 测试方案存在");
     assert.equal(app.eligibleProfiles().some((x: Profile) => x.p.vendor === vendor && x.p.plan === name), true, vendor + " 编程入口不应被通用工具正则误排除");
   }
@@ -100,12 +100,13 @@ test("Pro无5h上限不触发Go Plus加购，平台免费及非编程订阅不�
 test("附加模型权益可检索，窗口缺省展示不编造5h额度", async () => {
   const page = await openPage();
   const app = page.runtime;
-  app.tableState.search = "Astra Ultrafast";
+  app.tableState.search = "GPT-6.1 Sol Ultrafast";
   await page.settle();
   assert.equal(app.computeTableRows().some((p: Plan) => p.vendor === "OpenAI" && p.priceM === 500), true);
-  assert.match(page.byId("tableBody").textContent!, /Astra Ultrafast/);
+  assert.match(page.byId("tableBody").textContent!, /Ultrafast（GPT-6 Astra \/ GPT-6\.1 Sol）/);
   const placeholder = (period: string) => fiveHourCell({ windowPeriod: period }, { fLow: null });
   assert.match(await placeholder("none"), /无5h上限/);
+  assert.match(await placeholder("week"), /周度池；无5h额度/);
   assert.match(await placeholder("month"), /月度池；无5h额度/);
   assert.match(await placeholder("unknown"), /未公布/);
   assert.equal(app.fmtVal(null, "USD"), "—");
@@ -113,6 +114,10 @@ test("附加模型权益可检索，窗口缺省展示不编造5h额度", async 
   const mimo = app.windowNoteShort(app.planProfile(app.PLANS.find((p) => p.vendor === "小米 MiMo" && p.plan === "Token Plan Lite")!));
   assert.match(mimo, /共用月度额度池/);
   assert.doesNotMatch(mimo, /共享情况未公开|5 小时/);
+  const weekly = app.PLANS.find((p) => p.vendor === "xAI" && p.plan === "X Subscription Plus")!;
+  assert.match(app.windowNoteShort(app.planProfile(weekly)), /共用每周额度池，没有 5 小时窗口/);
+  assert.match(app.windowSentence(weekly, app.planProfile(weekly).loose[0]), /每周额度池计量，没有 5 小时窗口/);
+  assert.equal(app.quotaLabel(weekly), "每周额度");
   await setPicker(page, { region: "cn", budget: "200", tool: "cursor", task: "daily" });
   assert.doesNotMatch(grid().textContent!, /没赢|没拿下|复杂任务主计划/);
   page.healthy();
@@ -140,7 +145,7 @@ test("付费主计划可配免费推理入口，合计预算和地区工具资�
   }
   /* 有预算也优先采用能免费覆盖的入口；付费参考不能被错误标成超预算。 */
   await setPicker(page, { budget: "500", region: "all", tool: "cursor", task: "both" });
-  assert.match(grid().textContent!, /Cursor Hobby/);
+  assert.match(grid().textContent!, /X Subscription Free/);
   assert.doesNotMatch(grid().textContent!, /日常用 Grok 4、Composer，另付/);
   await setPicker(page, { budget: "100", region: "all", tool: "codex", task: "both" });
   const base = { vendor: "Free Fixture", plan: "Free", cat: "tool", region: "intl", priceM: 0, cur: "USD", quota: "持续附赠推理额度", models: "GPT-6 Luna", tools: "Codex" };
@@ -237,7 +242,8 @@ test("继承模型保留日常与新增旗舰，明确否定K3和自家入口保
   const search = app.computeTableRows().filter((p: Plan) => p.vendor === "GitHub Copilot").map((p: Plan) => p.plan);
   assert.ok(search.includes("Pro+") && search.includes("Max"));
   Object.assign(app.pickerState, { budget: "any", region: "intl", tool: "own", task: "daily" });
-  assert.deepEqual(app.eligibleProfiles().filter((x: Profile) => x.p.vendor === "xAI").map((x: Profile) => x.p.plan), ["SuperGrok", "SuperGrok Plus"]);
+  /* 旧 SuperGrok 档 2026-10-12 起仅老用户续费，不再进入推荐候选；新购走 X Subscription。 */
+  assert.deepEqual(app.eligibleProfiles().filter((x: Profile) => x.p.vendor === "xAI").map((x: Profile) => x.p.plan), ["X Subscription Plus", "X Subscription Premium", "X Subscription Super", "X Subscription Ultra"]);
   assert.equal(app.nextTier(app.planProfile(plan(app, "plan-0091")))?.p.plan, "Pro+");
   const base = fixture({ id: "role-base", vendor: "Role Fixture", plan: "Base", models: "Claude Sonnet / Haiku（不含 Opus）" });
   const added = fixture({ id: "role-added", vendor: "Role Fixture", plan: "Added", models: "新增 Opus", modelBaseRef: "role-base", modelIncludes: ["Claude Opus"] });
@@ -534,7 +540,8 @@ test("复杂任务评测只展示主力系列的精确版本，日常模型成�
 
 test("Cursor 复杂任务参考说明按量池费用，模型能力不被错误描述为不存在", async () => {
   const page = await openPage({ url: "/?budget=200&region=cn&tool=cursor&task=hard" });
-  const own = cardOf("plan-0098")!;
+  /* Cursor 的自家订阅现为 X Subscription；预算内的 Plus 只有 Grok，复杂任务卡选能按量用第三方旗舰的 Premium。 */
+  const own = cardOf("plan-0215")!;
   const reasons = Array.from(own.querySelectorAll(".qc-reasons li"), (li) => li.textContent).join("；");
   assert.match(reasons, /复杂任务模型在按量池，需核对额度与费用/);
   assert.doesNotMatch(reasons, /没有匹配.*任务.*模型/);
@@ -549,7 +556,7 @@ test("Cursor 复杂任务参考说明按量池费用，模型能力不被错误�
 });
 
 test("日常为主的主计划也列出同一日常模型的省钱档，与升级参考选角一致", async () => {
-  const page = await openPage({ url: "/?budget=any&region=intl&task=daily" });
+  const page = await openPage({ url: "/?budget=any&region=intl&tool=cursor&task=daily" });
   const app = page.runtime;
   const main = app.chooseMain(app.eligibleProfiles())!;
   const daily = main.loose[0];

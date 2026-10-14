@@ -556,18 +556,23 @@ async function main() {
   }));
   await test("汇率更新只改汇率字段，校验后原子写入，同值不写、旧日期与异常值拒绝", async () => {
     const repo = path.resolve(__dirname, "../..");
-    const rates = { date: "2026-10-09", cny: 7.0312, inr: 88.41, source: "https://api.frankfurter.dev/v1/2026-10-09?base=USD&symbols=CNY,INR" };
     const source = fs.readFileSync(path.join(repo, "data/sources/data.js"), "utf8");
+    /* 夹具汇率日期取仓库当前汇率日期的次日：数据日常更新汇率后，测试仍走「较新日期写入」而不是回退拒绝。 */
+    const currentAsOf = /rateAsOf: "(\d{4}-\d{2}-\d{2})"/.exec(source)[1];
+    const date = new Date(Date.parse(currentAsOf + "T00:00:00Z") + 86400000).toISOString().slice(0, 10);
+    const rates = { date, cny: 7.0312, inr: 88.41, source: `https://api.frankfurter.dev/v1/${date}?base=USD&symbols=CNY,INR` };
+    const literal = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const next = applyRates(source, rates);
     assert.match(next.source, /const RATE_USD_CNY = 7\.03;/);
     assert.match(next.source, /const RATE_INR_CNY = 7\.0312 \/ 88\.41;/);
-    assert.match(next.source, /rateAsOf: "2026-10-09",/);
-    assert.match(next.source, /rateSource: "https:\/\/api\.frankfurter\.dev\/v1\/2026-10-09\?base=USD&symbols=CNY,INR",/);
+    assert.match(next.source, new RegExp(`rateAsOf: "${date}",`));
+    assert.match(next.source, new RegExp(`rateSource: "${literal(rates.source)}",`));
+    assert.match(next.source, new RegExp(`\\{ group: "汇率参考（${date}）", urls: \\[\\n\\s*"${literal(rates.source)}",`));
     const diffLines = (a, b) => a.split("\n").filter((line, i) => line !== b.split("\n")[i]).length;
-    assert.equal(diffLines(source, next.source), 6, "只改 6 行汇率相关内容（含两处注释）");
+    assert.equal(diffLines(source, next.source), 8, "只改 8 行汇率相关内容（含两处注释与来源目录的汇率分组）");
     assert.throws(() => applyRates(source.replace("const RATE_USD_CNY", "const RATE_USD"), rates), /RATE_USD_CNY/);
     const response = (body, status = 200) => async () => new Response(JSON.stringify(body), { status });
-    const ok = { amount: 1, base: "USD", date: "2026-10-09", rates: { CNY: 7.0312, INR: 88.41 } };
+    const ok = { amount: 1, base: "USD", date, rates: { CNY: 7.0312, INR: 88.41 } };
     assert.deepEqual(await fetchRates({ fetcher: response(ok) }), rates);
     await assert.rejects(fetchRates({ fetcher: response({ ...ok, rates: { CNY: 70, INR: 88 } }) }), /超出合理范围/);
     await assert.rejects(fetchRates({ fetcher: response(ok, 503) }), /HTTP 503/);

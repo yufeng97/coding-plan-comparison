@@ -12,7 +12,7 @@
 - 待核实历史价退出推荐、免费入口和价格/性价比图；公开标价表默认收起待核价格与中转站，打开「含中转站与待核价格」后仍可查看和导出。未列年付价的套餐不进入年付价格图。
 - 完整旧值、新值、官网观察、修正与原因见 [JSON 台账](../data/audit/pricing-verification-2026-10-04.json) 和 [CSV 台账](../data/audit/pricing-verification-2026-10-04.csv)。`pricing-inventory.json` 保留本轮核查前库存；四份厂商分组 JSON 是同步输入。
 - 完成整批价格复核并修改核查输入后，运行 `node scripts/build/sync-pricing-audit.js`、`npm run catalog:build`，再运行 `npm run validate` 和 `npm test`；日常增量维护见下文。同步器不联网；候选源码在内存中通过完整数据校验后，才暂存并提交 `data.js` 与 JSON/CSV 台账。任一文件写入或替换失败会回滚整组输出，回滚受限时保留原文件备份并报告路径。核查日期只推进整份数据的版本日期，不会覆盖较新的巡检版本；重复同步没有变化时不写入。校验器拒绝遗漏、重复、无来源、无效日期、非法价格和模型继承环。
-- 参考汇率用 `npm run rates:update`（可加 `--date YYYY-MM-DD`、`--dry-run`）从 Frankfurter 取欧洲央行参考汇率，只改 `data/sources/data.js` 的汇率常量与 `META.rateAsOf`/`rateSource`（页面上的汇率由这些常量渲染）；候选数据先通过校验再原子写入，与核价同步共用 `data/audit/.pricing.lock`，拒绝早于当前日期的汇率和明显异常的值。更新后依次运行 `npm run maintenance:build`、`npm run catalog:build`、`npm run validate` 与 `npm test`；汇率变化会改变所有人民币折算结果，需要随数据巡检一起复核。
+- 参考汇率用 `npm run rates:update`（可加 `--date YYYY-MM-DD`、`--dry-run`）从 Frankfurter 取欧洲央行参考汇率，只改 `data/sources/data.js` 的汇率常量、`META.rateAsOf`/`rateSource` 与来源目录的「汇率参考」分组（页面上的汇率由这些常量渲染；额度行的外币牌价用 `apiCur` 记原币，不预先折成人民币）；候选数据先通过校验再原子写入，与核价同步共用 `data/audit/.pricing.lock`，拒绝早于当前日期的汇率和明显异常的值。更新后依次运行 `npm run maintenance:build`、`npm run catalog:build`、`npm run validate` 与 `npm test`；汇率变化会改变所有人民币折算结果，需要随数据巡检一起复核。
 
 ## 最新资讯如何更新
 
@@ -44,7 +44,7 @@ npm run news:collect -- --import data/audit/news/manual.json
 npm run test:news
 ```
 
-默认来源配置在 [data/config/news-sources.json](../data/config/news-sources.json)：23 个来源。模型发布入口包括 OpenAI、Mistral、Google 官方 RSS，以及 Anthropic、MiniMax、Kimi、DeepSeek、Z.ai 官方博客；保留产品页面、GitHub 更新日志、三个 Hacker News 搜索和中文发现源。`authority: "official"` 表示来源渠道是官网，仍需核对具体事实；`"discovery"` 表示发现线索，不能替代官网报价。支持 `rss`、`atom`、`blog`、`page`、`hn-search`，使用 `keywords` 扩展关键词；默认识别常见模型系列与版本，无需新闻包含套餐或价格字样。
+默认来源配置在 [data/config/news-sources.json](../data/config/news-sources.json)：24 个来源。模型发布入口包括 OpenAI、Mistral、Google 官方 RSS，以及 Anthropic、MiniMax、Kimi、DeepSeek、Z.ai 官方博客；保留产品页面、GitHub 更新日志、三个 Hacker News 搜索和中文发现源。`authority: "official"` 表示来源渠道是官网，仍需核对具体事实；`"discovery"` 表示发现线索，不能替代官网报价。支持 `rss`、`atom`、`blog`、`page`、`hn-search`，使用 `keywords` 扩展关键词；默认识别常见模型系列与版本，无需新闻包含套餐或价格字样。
 
 `blog` 从目录逐篇读取同源文章，不再仅记录整页哈希变化。`articlePaths` 是首尾锚定的 URL 路径正则数组，默认最多 20 篇（可设 `maxArticles`，上限 40）；首次采集也读取已有文章，再按真实发布日期筛选窗口。文章使用 JSON-LD 的 `datePublished`、发布元数据或正文 `time`；没有发布日期的候选保留 `dateStatus: "missing"`，来源报告单列 `missingPublicationDates`，不能用采集日或修改日补齐。未来时间单列 `futurePublicationDates`，不当作已发生事件；文章发表日也不自动等于模型首次发布日。目录或文章解析失败显式记录，部分文章失败仍保存成功候选，截断标记说明覆盖上限。xAI 直接抓取当前返回 403，Qwen 新博客尚无已验证的稳定入口，仍需周期性官方搜索补充。
 
@@ -84,7 +84,7 @@ npm run test:news
 4. 添加官网证据和对应 `PRICE_CHECKS.rows["plan:" + id]`；API 与按量记录按 `vendor|model` 身份同步维护。加入 `SOURCES`，有值得告知用户的事件时更新 `DYNAMICS`，随后把官方监测网址加入采集配置。只有额度依据足够时才补 `METRICS_RAW`/`ESTIMATES`，标清官方值、折算或估算。
 5. 更新版本日期与 `CHANGES.md`，先执行 `npm run catalog:build` 同步浏览器类型化目录，再执行 `npm run check`、`npm run typecheck`、`npm run validate`、`npm test`。修改页面交互或推荐逻辑时再执行相关浏览器回归；检查构建产物后发布。新增数据字段先在 `types/catalog.d.ts` 的对应接口里声明；在数据文件里新增顶层常量或函数时用 JSDoc 写明类型（`catalog:build` 只按 JSDoc 生成 TypeScript 注解，函数参数缺少注解时生成失败）。
 
-**全量与增量分开运行**：默认同步仍要求四份全量审计输入日期一致、覆盖全部记录。日常使用增量模式，只更新此次有新证据的行，保留其他行的核查日期；拒绝日期倒退、旧 patch 覆盖新值及无证据修改。两种模式都必须在本次输入提供引用的来源，保留既有来源及其身份；同 ID 不得改写 URL 或证据，新的依据须使用新来源 ID。新增套餐通过 record.new 提交完整 Plan，并分配从未使用过的永久 ID；校验同时检查当前目录、变更历史和正式核价台账，已移除套餐的 ID 也不能复用。同步会原子更新数据、审计台账与变更历史，失败整组回滚；不会更新动态、来源目录或额度指标。输入字段及完整步骤见 [贡献指南](../CONTRIBUTING.md)。
+**全量与增量分开运行**：默认同步仍要求四份全量审计输入日期一致、覆盖全部记录。日常使用增量模式，只更新此次有新证据的行，保留其他行的核查日期；拒绝日期倒退、旧 patch 覆盖新值及无证据修改。两种模式都必须在本次输入提供引用的来源，保留既有来源及其身份；同 ID 不得改写 URL 或证据，新的依据须使用新来源 ID。新增套餐通过 record.new 提交完整 Plan，并分配从未使用过的永久 ID，同步按文件现有格式写在该厂商最后一档之后（新厂商追加到末尾）；校验同时检查当前目录、变更历史和正式核价台账，已移除套餐的 ID 也不能复用。同步会原子更新数据、审计台账与变更历史，失败整组回滚；不会更新动态、来源目录或额度指标。输入字段及完整步骤见 [贡献指南](../CONTRIBUTING.md)。
 
 核价同步与维护摘要构建共用 `data/audit/.pricing.lock`，互斥覆盖读取、校验、历史合并到提交全过程，维护一致性检查也参与这把锁。释放时核对唯一所有者；运行期间不得人工删除或替换锁文件。异常退出后先检查其中的主机、PID 与时间，确认没有核价或维护进程后再人工清理；脚本不会按死 PID 自动删锁。
 

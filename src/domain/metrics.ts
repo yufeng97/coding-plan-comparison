@@ -162,10 +162,10 @@ export function computeMetrics(m: MetricsInput | null | undefined): MetricsResul
         return METRICS_COMPUTED.get(m) ?? null;
     const result = computeMetricsUncached(m);
     /* 官方周 tokens 仍可按已说明的每周 5 窗口假设均摊；
-       月池、未知周期或仅日/月请求不能证明有 5h 配额。明确的 5h 请求口径单独保留。 */
+       周池、月池、未知周期或仅日/月请求不能证明有 5h 配额。明确的 5h 请求口径单独保留。 */
     const has5hRequests = m.reqPer5h != null || m.reqLowPer5h != null;
     const no5hQuota = m.creditUSD != null || m.creditCNY != null ||
-        m.windowPeriod === "none" || m.windowPeriod === "month" ||
+        m.windowPeriod === "none" || m.windowPeriod === "week" || m.windowPeriod === "month" ||
         ((m.windowPeriod === "unknown" || m.reqPerMo != null) && !has5hRequests);
     if (result && no5hQuota) {
         result.fLow = result.fHigh = null;

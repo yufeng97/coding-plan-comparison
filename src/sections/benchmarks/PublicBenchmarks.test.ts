@@ -20,7 +20,9 @@ test("共用模型名的版本枚举和区间参与可用套餐及能力匹配",
   expect(legacy.publicModelIncluded(pro, "Claude Sonnet 5")).toBe(true);
   expect(legacy.publicModelIncluded(pro, "Claude Sonnet 5.5")).toBe(true);
   for (const plan of [plus, max]) {
-    expect(legacy.publicModelIncluded(plan, "Claude Opus 4.7")).toBe(true);
+    /* Copilot 10-02 弃用 Opus 4.7，现行列表为 Opus 4.8/5/5.5。 */
+    expect(legacy.publicModelIncluded(plan, "Claude Opus 4.7")).toBe(false);
+    expect(legacy.publicModelIncluded(plan, "Claude Opus 4.8")).toBe(true);
     expect(legacy.publicModelIncluded(plan, "Claude Opus 5")).toBe(true);
     expect(legacy.publicModelIncluded(plan, "Claude Opus 5.5")).toBe(true);
     expect(legacy.publicModelIncluded(plan, "Claude Opus 5.6")).toBe(false);

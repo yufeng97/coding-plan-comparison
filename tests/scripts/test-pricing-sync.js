@@ -450,9 +450,14 @@ test("显式完整new才能增加永久计划，重复入库无变化，复用ID
   assert.throws(() => syncPricingAudit(root, writeIncremental(incomplete)), /完整字段/);
   assert.deepEqual(allOutputs(), before);
   const options = writeIncremental(audit);
+  const planCount = dataOf(fs.readFileSync(path.join(root, "data/sources/data.js"), "utf8")).PLANS.length;
   syncPricingAudit(root, options);
-  const after = dataOf(fs.readFileSync(path.join(root, "data/sources/data.js"), "utf8"));
-  assert.equal(after.PLANS.length, 213);
+  const written = fs.readFileSync(path.join(root, "data/sources/data.js"), "utf8");
+  const after = dataOf(written);
+  assert.equal(after.PLANS.length, planCount + 1);
+  /* 新厂商的新计划追加到末尾，按文件现有格式书写（不是单行 JSON）。 */
+  assert.equal(after.PLANS.at(-1).id, plan.id);
+  assert.match(written, /\n {2}\{ id: "plan-test-new", vendor: "New Vendor", plan: "Coding Pro", cat: "tool", region: "intl", priceM: 9, priceY: null, singleMonthPrice: 12, cur: "USD", seat: false, availability: "sold-out", sameAs: null,\n {4}ownClient: true,\n {4}quota: "每月明确包含100美元模型额度。",\n {4}models: "GPT-6 Sol",\n {4}tools: "独立CLI",\n {4}note: "官方月费及编程额度已核对。",\n {4}url: "https:\/\/example\.com\/pricing" \}/);
   assert.equal(after.PLANS.find((p) => p.id === plan.id).singleMonthPrice, 12);
   assert.equal(after.PLANS.find((p) => p.id === plan.id).availability, "sold-out");
   assert.equal(after.PRICE_CHECKS.rows["plan:plan-test-new"].checkedAt, "2026-10-07");
@@ -462,6 +467,26 @@ test("显式完整new才能增加永久计划，重复入库无变化，复用ID
   audit.records[0].new.priceM = 10;
   assert.throws(() => syncPricingAudit(root, writeIncremental(audit)), /永久 ID 已存在/);
   assert.deepEqual(allOutputs(), updated);
+});
+
+test("同厂商的新计划插在该厂商最后一档之后，补充的字段紧跟原有属性书写", ({ root, incremental, writeIncremental }) => {
+  const dataFile = path.join(root, "data/sources/data.js");
+  const before = dataOf(fs.readFileSync(dataFile, "utf8"));
+  const lastAnthropic = before.PLANS.findLastIndex((p) => p.vendor === "Anthropic");
+  const plan = { id: "plan-test-anthropic", vendor: "Anthropic", plan: "Claude Test", cat: "official", region: "intl", priceM: 30, priceY: null, cur: "USD", seat: false, quota: "测试额度说明。", models: "Claude Sonnet 5.5", tools: "Claude Code", note: "", url: "https://claude.com/pricing" };
+  const audit = incremental();
+  /* 第一条记录改为补充原来没有的字段（Claude Pro 原无访问异常标记），检查写入位置与格式。 */
+  Object.assign(audit.records[0], { patch: { accessUnstable: true }, old: { accessUnstable: null } });
+  audit.records.push({ kind: "plan", id: plan.id, vendor: plan.vendor, name: plan.plan, new: plan, status: "verified", checkedAt: "2026-10-07", sourceIds: ["claude-update-test"], reason: "测试：新增同厂商档位。" });
+  syncPricingAudit(root, writeIncremental(audit));
+  const written = fs.readFileSync(dataFile, "utf8");
+  const after = dataOf(written);
+  assert.equal(after.PLANS[lastAnthropic + 1].id, plan.id, "插在 Anthropic 最后一档之后，厂商分组保持连续");
+  assert.equal(after.PLANS.length, before.PLANS.length + 1);
+  assert.equal(after.PLANS.find((p) => p.id === "plan-0002").accessUnstable, true);
+  assert.match(written, /url: "https:\/\/claude\.com\/pricing", accessUnstable: true \}/);
+  assert.doesNotMatch(written.slice(written.indexOf("const PLANS"), written.indexOf("const MAINLAND_ACCESS")), /" , /, "补充字段前不留「 , 」");
+  assert.equal(validateData({ workspace: root }).errors.length, 0);
 });
 
 for (const origin of ["history", "ledger"]) test("全量与增量新增都拒绝复用" + (origin === "history" ? "变更历史" : "无改价的已发布台账") + "中的已移除永久ID", ({ root, writeIncremental, allOutputs, stages }) => {
@@ -592,12 +617,14 @@ test("未来核查日期（记录/来源/批次）在落盘前拒绝，按 Asia/
   assert.throws(() => syncPricingAudit(root), /批次核查日期 2062-10-09 晚于今天/);
   assert.deepEqual(allOutputs(), before);
   assert.deepEqual(stages(), []);
-  // 上海 10-08 23:59:59 最多接受 10-09；10-09 00:00 起接受 10-10。
-  assert.throws(() => syncPricingAudit(root, { ...writeIncremental(incremental({ priceM: 21 }, "2026-10-10")), now: new Date("2026-10-08T15:59:59Z") }), /Asia\/Shanghai 2026-10-08/);
-  const now = new Date("2026-10-08T16:00:00Z");
-  syncPricingAudit(root, { ...writeIncremental(incremental({ priceM: 21 }, "2026-10-10")), now });
-  assert.equal(dataOf(fs.readFileSync(path.join(root, "data/sources/data.js"), "utf8")).PRICE_CHECKS.checkedAt, "2026-10-10");
-  assert.throws(() => syncPricingAudit(root, { ...writeIncremental(incremental({ priceM: 22 }, "2026-10-11", { priceM: 21 })), now }), /晚于今天/);
+  /* 以夹具数据版本日 U 为基准（数据每天更新，不能写死日历日期）：上海 U-1 23:59:59 最多接受 U；U 00:00 起接受 U+1。 */
+  const updated = dataOf(fs.readFileSync(path.join(root, "data/sources/data.js"), "utf8")).META.updated;
+  const day = (offset) => new Date(Date.parse(updated + "T00:00:00Z") + offset * 86400000).toISOString().slice(0, 10);
+  assert.throws(() => syncPricingAudit(root, { ...writeIncremental(incremental({ priceM: 21 }, day(1))), now: new Date(day(-1) + "T15:59:59Z") }), new RegExp("Asia/Shanghai " + day(-1)));
+  const now = new Date(day(-1) + "T16:00:00Z");
+  syncPricingAudit(root, { ...writeIncremental(incremental({ priceM: 21 }, day(1))), now });
+  assert.equal(dataOf(fs.readFileSync(path.join(root, "data/sources/data.js"), "utf8")).PRICE_CHECKS.checkedAt, day(1));
+  assert.throws(() => syncPricingAudit(root, { ...writeIncremental(incremental({ priceM: 22 }, day(2), { priceM: 21 })), now }), /晚于今天/);
   assert.throws(() => syncPricingAudit(root, { ...writeIncremental(incremental()), now: new Date("invalid") }), /同步时间无效/);
 });
 
