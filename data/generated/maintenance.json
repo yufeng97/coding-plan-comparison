@@ -5,13 +5,13 @@
   "staleAfterDays": 14,
   "rssSite": "https://coding-plan-comparison-tau.vercel.app/",
   "inputHashes": {
-    "data": "fa262f11f7ef66015782948ba3760b553c39a3748514768a79447cc24ec939cd",
-    "history": "2fe70029ee2838928236f31738c27a5ba29daf079a91983f1397d2c2bb2dd4c7",
-    "calendar": "33248ada7315503943da7f4f091c6cc0843fbf6b2f8d6cfab53f1682b2ae8566"
+    "data": "305fedbb3be5980b9e8594f70663e6898f00f7c5b0613e96db3f283b5403247f",
+    "history": "6a7ee3220e81e9b14399b55a0fb1838bb1048442e3707ea518ed86b760747c14",
+    "calendar": "f46a49035d3e19bbe45359f4c5dcd1f0dedccd29f29b6fb34c7bc40e20da345e"
   },
   "summary": {
-    "total": 268,
-    "verified": 228,
+    "total": 274,
+    "verified": 234,
     "unverified": 24,
     "stale": 0
   },
@@ -2973,6 +2973,65 @@
       "stale": false
     },
     {
+      "id": "plan-0221",
+      "kind": "plan",
+      "vendor": "Meta",
+      "name": "Muse Code Everyday Usage",
+      "checkedAt": "2026-10-14",
+      "status": "verified",
+      "sourceUrls": [
+        "https://dev.meta.ai/docs/muse-code/",
+        "https://dev.meta.ai/docs/muse-code/subscriptions",
+        "https://dev.meta.ai/products/muse-code"
+      ],
+      "ageDays": 0,
+      "stale": false
+    },
+    {
+      "id": "plan-0222",
+      "kind": "plan",
+      "vendor": "Meta",
+      "name": "Muse Code High Usage",
+      "checkedAt": "2026-10-14",
+      "status": "verified",
+      "sourceUrls": [
+        "https://dev.meta.ai/docs/muse-code/subscriptions",
+        "https://dev.meta.ai/products/muse-code"
+      ],
+      "ageDays": 0,
+      "stale": false
+    },
+    {
+      "id": "plan-0223",
+      "kind": "plan",
+      "vendor": "Meta",
+      "name": "Muse Code Power Usage",
+      "checkedAt": "2026-10-14",
+      "status": "verified",
+      "sourceUrls": [
+        "https://dev.meta.ai/docs/models",
+        "https://dev.meta.ai/docs/muse-code/subscriptions",
+        "https://dev.meta.ai/products/muse-code"
+      ],
+      "ageDays": 0,
+      "stale": false
+    },
+    {
+      "id": "plan-0224",
+      "kind": "plan",
+      "vendor": "Meta",
+      "name": "Muse Code Maximum Usage",
+      "checkedAt": "2026-10-14",
+      "status": "verified",
+      "sourceUrls": [
+        "https://dev.meta.ai/docs/models",
+        "https://dev.meta.ai/docs/muse-code/subscriptions",
+        "https://dev.meta.ai/products/muse-code"
+      ],
+      "ageDays": 0,
+      "stale": false
+    },
+    {
       "id": "Anthropic|Claude Sonnet 5.5",
       "kind": "api",
       "vendor": "Anthropic",
@@ -3151,6 +3210,33 @@
       "sourceUrls": [
         "https://ai.google.dev/gemini-api/docs/models/gemini-4-argon",
         "https://ai.google.dev/gemini-api/docs/pricing"
+      ],
+      "ageDays": 0,
+      "stale": false
+    },
+    {
+      "id": "Meta|Muse Wonder",
+      "kind": "api",
+      "vendor": "Meta",
+      "name": "Muse Wonder",
+      "checkedAt": "2026-10-14",
+      "status": "verified",
+      "sourceUrls": [
+        "https://dev.meta.ai/docs/models",
+        "https://dev.meta.ai/docs/pricing-rate-limits"
+      ],
+      "ageDays": 0,
+      "stale": false
+    },
+    {
+      "id": "Meta|Muse Spark 1.3",
+      "kind": "api",
+      "vendor": "Meta",
+      "name": "Muse Spark 1.3",
+      "checkedAt": "2026-10-14",
+      "status": "verified",
+      "sourceUrls": [
+        "https://dev.meta.ai/docs/pricing-rate-limits"
       ],
       "ageDays": 0,
       "stale": false
@@ -3600,45 +3686,6 @@
   ],
   "reviews": [
     {
-      "id": "glm-holiday-20261007",
-      "title": "复核智谱 / Z.ai 双节与夜间活动结束后的权益",
-      "planIds": [
-        "plan-0031",
-        "plan-0032",
-        "plan-0033",
-        "plan-0157",
-        "plan-0158",
-        "plan-0159"
-      ],
-      "reviewOn": "2026-10-08",
-      "source": "https://docs.bigmodel.cn/cn/coding-plan/overview.md",
-      "note": "原公告活动截至 10-07；这是复核提醒，不代表已确认新的消耗规则。",
-      "daysUntil": -6,
-      "overdue": true,
-      "due": true
-    },
-    {
-      "id": "openai-gpt55-20261014",
-      "title": "复核 GPT-5.5 退役与套餐可用模型",
-      "vendor": "OpenAI",
-      "reviewOn": "2026-10-14",
-      "source": "https://learn.chatgpt.com/docs/pricing",
-      "note": "按已记录公告安排复核，官网核实后再修改模型与权益。",
-      "planIds": [
-        "plan-0008",
-        "plan-0009",
-        "plan-0010",
-        "plan-0011",
-        "plan-0012",
-        "plan-0013",
-        "plan-0014",
-        "plan-0015"
-      ],
-      "daysUntil": 0,
-      "overdue": false,
-      "due": true
-    },
-    {
       "id": "volc-promotion-20261108",
       "title": "复核方舟 Coding Plan 两个月优惠活动",
       "planIds": [
@@ -3746,6 +3793,68 @@
       "plan": "Pro+"
     },
     {
+      "changeId": "change-1e92d0efd88a842e6dbcf5f2",
+      "id": "plan-0224",
+      "kind": "plan",
+      "vendor": "Meta",
+      "name": "Muse Code Maximum Usage",
+      "checkedAt": "2026-10-14",
+      "sourceUrls": [
+        "https://dev.meta.ai/docs/models",
+        "https://dev.meta.ai/docs/muse-code/subscriptions",
+        "https://dev.meta.ai/products/muse-code"
+      ],
+      "fields": [
+        "cat",
+        "codingSurface",
+        "cur",
+        "models",
+        "note",
+        "ownClient",
+        "plan",
+        "priceM",
+        "quota",
+        "region",
+        "seat",
+        "tools",
+        "url",
+        "windowPeriod"
+      ],
+      "before": {
+        "cat": null,
+        "codingSurface": null,
+        "cur": null,
+        "models": null,
+        "note": null,
+        "ownClient": null,
+        "plan": null,
+        "priceM": null,
+        "quota": null,
+        "region": null,
+        "seat": null,
+        "tools": null,
+        "url": null,
+        "windowPeriod": null
+      },
+      "after": {
+        "cat": "official",
+        "codingSurface": true,
+        "cur": "USD",
+        "models": "Muse Wonder Full、Muse Wonder、Muse Spark、Muse Image",
+        "note": "官方 $200/月，按首次订阅日自动续费，未列年付；最高档，用尽后只能等待刷新",
+        "ownClient": true,
+        "plan": "Muse Code Maximum Usage",
+        "priceM": 200,
+        "quota": "Everyday 的 80 倍用量（以 Everyday 每 5 小时额度为基准）；用尽只能等待刷新",
+        "region": "intl",
+        "seat": false,
+        "tools": "Muse Code（终端与 CI 编程 Agent，macOS / Linux / Windows）；语音模式、网页搜索",
+        "url": "https://dev.meta.ai/products/muse-code",
+        "windowPeriod": "5h"
+      },
+      "plan": "Muse Code Maximum Usage"
+    },
+    {
       "changeId": "change-451f08c4ebe113de4e4de9bc",
       "id": "plan-0094",
       "kind": "plan",
@@ -3791,6 +3900,191 @@
         "note": "2026-05-19 I/O 起 $249.99 降至 $99.99；20TB 存储；Gemini 4 Argon 可在 Antigravity app、CLI 与 IDE 扩展使用（独立 Antigravity IDE 不支持）"
       },
       "plan": "Google AI Ultra（5x）"
+    },
+    {
+      "changeId": "change-8fcb085c06b794b2f599e7d2",
+      "id": "plan-0222",
+      "kind": "plan",
+      "vendor": "Meta",
+      "name": "Muse Code High Usage",
+      "checkedAt": "2026-10-14",
+      "sourceUrls": [
+        "https://dev.meta.ai/docs/muse-code/subscriptions",
+        "https://dev.meta.ai/products/muse-code"
+      ],
+      "fields": [
+        "cat",
+        "codingSurface",
+        "cur",
+        "models",
+        "note",
+        "ownClient",
+        "plan",
+        "priceM",
+        "quota",
+        "region",
+        "seat",
+        "tools",
+        "url",
+        "windowPeriod"
+      ],
+      "before": {
+        "cat": null,
+        "codingSurface": null,
+        "cur": null,
+        "models": null,
+        "note": null,
+        "ownClient": null,
+        "plan": null,
+        "priceM": null,
+        "quota": null,
+        "region": null,
+        "seat": null,
+        "tools": null,
+        "url": null,
+        "windowPeriod": null
+      },
+      "after": {
+        "cat": "official",
+        "codingSurface": true,
+        "cur": "USD",
+        "models": "Muse Spark、Muse Wonder、Muse Image；不含 Muse Wonder Full",
+        "note": "官方 $15/月，按首次订阅日自动续费，未列年付",
+        "ownClient": true,
+        "plan": "Muse Code High Usage",
+        "priceM": 15,
+        "quota": "Everyday 的 5 倍用量（以 Everyday 每 5 小时额度为基准）；更多多模态输入",
+        "region": "intl",
+        "seat": false,
+        "tools": "Muse Code（终端与 CI 编程 Agent，macOS / Linux / Windows）；语音模式、网页搜索",
+        "url": "https://dev.meta.ai/products/muse-code",
+        "windowPeriod": "5h"
+      },
+      "plan": "Muse Code High Usage"
+    },
+    {
+      "changeId": "change-b5452ecfdff2f9867de07ca1",
+      "id": "plan-0223",
+      "kind": "plan",
+      "vendor": "Meta",
+      "name": "Muse Code Power Usage",
+      "checkedAt": "2026-10-14",
+      "sourceUrls": [
+        "https://dev.meta.ai/docs/models",
+        "https://dev.meta.ai/docs/muse-code/subscriptions",
+        "https://dev.meta.ai/products/muse-code"
+      ],
+      "fields": [
+        "cat",
+        "codingSurface",
+        "cur",
+        "models",
+        "note",
+        "ownClient",
+        "plan",
+        "priceM",
+        "quota",
+        "region",
+        "seat",
+        "tools",
+        "url",
+        "windowPeriod"
+      ],
+      "before": {
+        "cat": null,
+        "codingSurface": null,
+        "cur": null,
+        "models": null,
+        "note": null,
+        "ownClient": null,
+        "plan": null,
+        "priceM": null,
+        "quota": null,
+        "region": null,
+        "seat": null,
+        "tools": null,
+        "url": null,
+        "windowPeriod": null
+      },
+      "after": {
+        "cat": "official",
+        "codingSurface": true,
+        "cur": "USD",
+        "models": "Muse Wonder Full、Muse Wonder、Muse Spark、Muse Image",
+        "note": "官方 $50/月，按首次订阅日自动续费，未列年付；Muse Wonder Full 只在 Power 及以上订阅提供，不开放 API；含新功能抢先体验",
+        "ownClient": true,
+        "plan": "Muse Code Power Usage",
+        "priceM": 50,
+        "quota": "Everyday 的 20 倍用量（以 Everyday 每 5 小时额度为基准）；更大文件上传",
+        "region": "intl",
+        "seat": false,
+        "tools": "Muse Code（终端与 CI 编程 Agent，macOS / Linux / Windows）；语音模式、网页搜索",
+        "url": "https://dev.meta.ai/products/muse-code",
+        "windowPeriod": "5h"
+      },
+      "plan": "Muse Code Power Usage"
+    },
+    {
+      "changeId": "change-bf99e20cc2de31e8b4614432",
+      "id": "plan-0221",
+      "kind": "plan",
+      "vendor": "Meta",
+      "name": "Muse Code Everyday Usage",
+      "checkedAt": "2026-10-14",
+      "sourceUrls": [
+        "https://dev.meta.ai/docs/muse-code/",
+        "https://dev.meta.ai/docs/muse-code/subscriptions",
+        "https://dev.meta.ai/products/muse-code"
+      ],
+      "fields": [
+        "cat",
+        "codingSurface",
+        "cur",
+        "models",
+        "note",
+        "ownClient",
+        "plan",
+        "priceM",
+        "quota",
+        "region",
+        "seat",
+        "tools",
+        "url",
+        "windowPeriod"
+      ],
+      "before": {
+        "cat": null,
+        "codingSurface": null,
+        "cur": null,
+        "models": null,
+        "note": null,
+        "ownClient": null,
+        "plan": null,
+        "priceM": null,
+        "quota": null,
+        "region": null,
+        "seat": null,
+        "tools": null,
+        "url": null,
+        "windowPeriod": null
+      },
+      "after": {
+        "cat": "official",
+        "codingSurface": true,
+        "cur": "USD",
+        "models": "Muse Spark、Muse Wonder、Muse Image；不含 Muse Wonder Full",
+        "note": "官方 $5/月，按首次订阅日自动续费，未列年付；升级立即生效并按剩余周期折算，降级下个周期生效，取消不退款。订阅外的 API 密钥用量按量计费；权益与可用性因地区而异",
+        "ownClient": true,
+        "plan": "Muse Code Everyday Usage",
+        "priceM": 5,
+        "quota": "每 5 小时 10–50 条提示（含图片与视频上传）；用尽可升级或等待刷新",
+        "region": "intl",
+        "seat": false,
+        "tools": "Muse Code（终端与 CI 编程 Agent，macOS / Linux / Windows）；语音模式、网页搜索",
+        "url": "https://dev.meta.ai/products/muse-code",
+        "windowPeriod": "5h"
+      },
+      "plan": "Muse Code Everyday Usage"
     },
     {
       "changeId": "change-d7a069852d2ffc239d61c0e5",
@@ -5600,6 +5894,11 @@
       "vendor": "Lovable",
       "path": "feeds/lovable-6a5b495b.xml",
       "changes": 2
+    },
+    {
+      "vendor": "Meta",
+      "path": "feeds/meta-4f749de7.xml",
+      "changes": 4
     },
     {
       "vendor": "MiniMax",

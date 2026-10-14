@@ -226,16 +226,21 @@ function syncPricingAuditUnlocked(workspace, options = {}) {
   }
   if (newPlans.length) {
     const planArray = declarations.get("PLANS").initializer;
-    /* 同厂商已有计划时插在该厂商最后一档之后，保持厂商分组（「同上」与相邻档的模型继承按位置判断）；新厂商追加到末尾。 */
-    const groups = new Map();
+    /* 同厂商已有计划时插在该厂商最后一档之后，保持厂商分组（「同上」与相邻档的模型继承按位置判断）；
+       新厂商排在全部计划（含最后一个厂商本次新增的档位）之后。两种都接在已有元素后面写「,\n」，
+       原有的尾逗号顺延到新的最后一档，不会在数组末尾留空行或丢逗号。 */
+    const groups = new Map(), newVendors = [];
     for (const plan of newPlans) {
       const index = data.PLANS.findLastIndex((p) => p.vendor === plan.vendor);
-      groups.set(index, [...(groups.get(index) || []), plan]);
+      if (index < 0) newVendors.push(plan);
+      else groups.set(index, [...(groups.get(index) || []), plan]);
     }
+    const last = planArray.elements.length - 1;
+    if (newVendors.length && last >= 0) groups.set(last, [...(groups.get(last) || []), ...newVendors]);
+    else if (newVendors.length) edits.push({ start: planArray.end - 1, end: planArray.end - 1, text: "\n" + newVendors.map(planLiteral).join(",\n") + ",\n" });
     for (const [index, plans] of groups) {
       const text = plans.map(planLiteral).join(",\n");
-      if (index >= 0) edits.push({ start: planArray.elements[index].end, end: planArray.elements[index].end, text: ",\n" + text });
-      else edits.push({ start: planArray.end - 1, end: planArray.end - 1, text: (planArray.elements.length && !planArray.elements.hasTrailingComma ? "," : "") + "\n" + text + "\n" });
+      edits.push({ start: planArray.elements[index].end, end: planArray.elements[index].end, text: ",\n" + text });
     }
   }
   const expected = data.PLANS.length + data.API_PRICES.length + data.PAYG_REFERENCES.length + newPlans.length;
