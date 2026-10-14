@@ -184,10 +184,52 @@ function publish(input, reviewer, reason, workspace = root) {
   return output;
   }, lockOptions);
 }
+/** 把 collect 写出的 diff.json 整理成复核用的 Markdown：每日数据更新工作流写进候选提交说明与 PR。
+ * changes 只数成绩与协议的实际增删改；仅核查时间刷新为 0。
+ * @param {string} [workspace] @param {number} [limit] 表格最多列出的成绩行 */
+function diffSummary(workspace = root, limit = 40) {
+  const audit = path.join(workspace, "data/audit/benchmark-sources");
+  const diff = JSON.parse(fs.readFileSync(path.join(audit, "diff.json"), "utf8"));
+  const latest = JSON.parse(fs.readFileSync(path.join(audit, "latest.json"), "utf8"));
+  const formalFile = path.join(workspace, "data/benchmarks/public-results.json");
+  const formal = fs.existsSync(formalFile) ? JSON.parse(fs.readFileSync(formalFile, "utf8")) : { benchmarks: [], scores: [] };
+  const boards = new Map([...formal.benchmarks, ...latest.benchmarks].map(board => [board.id, board]));
+  const latestRows = new Map(latest.scores.map(row => [row.id, row])), formalRows = new Map(formal.scores.map(row => [row.id, row]));
+  const protocols = diff.protocols || { added: [], changed: [], removed: [] };
+  const changes = diff.added.length + diff.changed.length + diff.removed.length + protocols.added.length + protocols.changed.length + protocols.removed.length;
+  const cell = value => value === null || value === undefined || value === "" ? "—" : String(value).replace(/\|/g, "\\|").replace(/\s+/g, " ");
+  const fields = (before, after) => Object.keys(after).filter(key => !["id", "checkedAt"].includes(key) && canonical(before[key]) !== canonical(after[key])).join("、");
+  const rows = [
+    ...diff.added.map(id => ({ kind: "新增", before: null, after: latestRows.get(id), changed: "" })),
+    ...diff.changed.map(change => ({ kind: "变化", before: change.before, after: change.after, changed: fields(change.before, change.after) })),
+    ...diff.removed.map(id => ({ kind: "撤回", before: formalRows.get(id), after: null, changed: "" })),
+  ].filter(entry => entry.before || entry.after);
+  const lines = [`采集时间 ${diff.checkedAt}：成绩新增 ${diff.added.length}、变化 ${diff.changed.length}、撤回 ${diff.removed.length}；协议新增 ${protocols.added.length}、变化 ${protocols.changed.length}、撤回 ${protocols.removed.length}。`];
+  if (rows.length) {
+    lines.push("", "| 变化 | 协议 | 模型 | 推理 / Agent | 之前 | 之后 | 变化字段 |", "|---|---|---|---|---|---|---|");
+    for (const { kind, before, after, changed } of rows.slice(0, limit)) {
+      const row = after || before;
+      lines.push(`| ${kind} | ${cell(boards.get(row.benchmarkId)?.name || row.benchmarkId)} | ${cell(row.model)} | ${cell([row.reasoning, row.agent].filter(Boolean).join(" / "))} | ${cell(before?.score)} | ${cell(after?.score)} | ${cell(changed)} |`);
+    }
+    if (rows.length > limit) lines.push("", `另有 ${rows.length - limit} 条成绩变化未列出，见采集产物 diff.json。`);
+  }
+  for (const [label, ids] of [["新增协议", protocols.added], ["变化协议", protocols.changed.map(change => change.id)], ["撤回协议", protocols.removed]]) {
+    if (ids.length) lines.push("", label + "：" + ids.map(id => boards.get(id)?.name || id).join("、"));
+  }
+  return { changes, markdown: lines.join("\n") };
+}
 async function main(argv) {
   const command = argv.shift();
   if (command === "collect" && !argv.length) return collect();
   if (command === "validate" && !argv.length) return readPublic();
+  if (command === "summary") {
+    if (argv.length && (argv.length !== 2 || argv[0] !== "--output")) throw new Error("summary 参数为 [--output 文件]");
+    const summary = diffSummary();
+    if (argv[1]) atomicWrite(path.resolve(argv[1]), summary.markdown + "\n");
+    else console.log(summary.markdown);
+    console.log("changes=" + summary.changes);
+    return null;
+  }
   if (command === "publish") {
     const options = {};
     for (let i = 0; i < argv.length; i += 2) {
@@ -197,7 +239,7 @@ async function main(argv) {
     if (!options.input) throw new Error("需要 --input 官方采集候选");
     return publish(options.input, options.reviewer, options.reason);
   }
-  throw new Error("使用 public-scores.js collect | validate | publish --input 文件 --reviewer 审核者 --reason 理由");
+  throw new Error("使用 public-scores.js collect | validate | summary [--output 文件] | publish --input 文件 --reviewer 审核者 --reason 理由");
 }
-if (require.main === module) main(process.argv.slice(2)).then(data => console.log("公开评测：" + data.benchmarks.length + " 个独立榜单，" + data.scores.length + " 条成绩；" + data.checkedAt)).catch(error => { console.error(error.message); process.exitCode = 1; });
-module.exports = { officialURL, rowId, validatePublic, readPublic, collect, publish, main, digest, compareScores, compareProtocols };
+if (require.main === module) main(process.argv.slice(2)).then(data => { if (data) console.log("公开评测：" + data.benchmarks.length + " 个独立榜单，" + data.scores.length + " 条成绩；" + data.checkedAt); }).catch(error => { console.error(error.message); process.exitCode = 1; });
+module.exports = { officialURL, rowId, validatePublic, readPublic, collect, publish, main, digest, compareScores, compareProtocols, diffSummary };

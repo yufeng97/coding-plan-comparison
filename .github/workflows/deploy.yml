@@ -1,0 +1,113 @@
+name: 发布网站
+
+# 只供 pages.yml（main 推送的 CI 通过后）与 daily-data.yml（候选提交通过完整 CI 并合入 main 后）调用。
+# 调用方的作业负责排队（concurrency: site-deploy），这里不再设并发组，避免与调用方同名组互相等待。
+# 同一提交先检查并构建，再分别发布到 GitHub Pages 与 Vercel 生产环境；未配置 Vercel 凭据时只发布 Pages。
+on:
+  workflow_call:
+    inputs:
+      sha:
+        description: 已通过完整 CI 的 main 提交
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ inputs.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: 按 lockfile 安装开发依赖（不执行依赖安装脚本）
+        run: npm ci --ignore-scripts
+      - name: 检查代码、数据与回归
+        run: |
+          npm run check
+          npm run typecheck
+          npm run validate
+          npm run maintenance:check
+          npm run benchmark:check
+          npm run readme:check
+          npm test
+      - name: 生成白名单公共站点
+        run: npm run build:site
+      # .site-build 与 Vercel 部署共用；vercel.json 只对 Vercel 有意义，不随 Pages 公开。
+      - name: 移除仅供 Vercel 使用的配置
+        run: |
+          rm -f .site-build/vercel.json
+          test ! -e .site-build/vercel.json
+      - name: 读取 GitHub Pages 配置
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - name: 上传公共站点产物
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: .site-build
+          retention-days: 1
+
+  pages:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 发布到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+  # 需要仓库 Secrets：VERCEL_TOKEN；项目关联 VERCEL_ORG_ID、VERCEL_PROJECT_ID 可放 Secrets 或 Variables
+  #（取值见本机 .vercel/project.json）。部署脚本只上传 stage-site 白名单产物，并等到 READY 才算成功。
+  vercel:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: 检查 Vercel 凭据
+        id: credentials
+        env:
+          HAS_TOKEN: ${{ secrets.VERCEL_TOKEN != '' }}
+          HAS_PROJECT: ${{ (secrets.VERCEL_ORG_ID || vars.VERCEL_ORG_ID) != '' && (secrets.VERCEL_PROJECT_ID || vars.VERCEL_PROJECT_ID) != '' }}
+        run: |
+          if [ "$HAS_TOKEN" = true ] && [ "$HAS_PROJECT" = true ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice title=跳过 Vercel::未配置 VERCEL_TOKEN、VERCEL_ORG_ID 与 VERCEL_PROJECT_ID，本次只发布 GitHub Pages"
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.credentials.outputs.ready == 'true'
+        with:
+          persist-credentials: false
+          ref: ${{ inputs.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: steps.credentials.outputs.ready == 'true'
+        with:
+          node-version: 22
+          cache: npm
+      - name: 按 lockfile 安装开发依赖（不执行依赖安装脚本）
+        if: steps.credentials.outputs.ready == 'true'
+        run: npm ci --ignore-scripts
+      - name: 发布到 Vercel 生产环境
+        if: steps.credentials.outputs.ready == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID || vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID || vars.VERCEL_PROJECT_ID }}
+        run: npm run deploy -- --prod

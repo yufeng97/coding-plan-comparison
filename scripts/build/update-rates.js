@@ -2,7 +2,8 @@
 "use strict";
 /* 更新参考汇率：从 Frankfurter（欧洲央行参考汇率）取 USD→CNY / INR，改写 data/sources/data.js 的 RATE_* 与 META 汇率字段，
  * 以及来源目录里的「汇率参考（日期）」分组。页面上的汇率由组件从这些常量渲染。候选源码先通过完整数据校验再原子写入；
- * 与核价同步、维护摘要共用 data/audit/.pricing.lock。不改任何原币价格，也不在构建或 CI 中自动运行。 */
+ * 与核价同步、维护摘要共用 data/audit/.pricing.lock。不改任何原币价格，也不在构建或 CI 中运行；
+ * 每日数据更新工作流用 --stale-days 调用：页面显示的汇率不变且当前汇率未满该天数时不写入，避免每天只改日期的提交。 */
 const fs = require("node:fs");
 const path = require("node:path");
 const { validateData, isISODate } = require("./validate-data");
@@ -51,7 +52,10 @@ function applyRates(source, rates) {
   return { source: next, usdCny };
 }
 
-/** @param {string} workspace @param {{date?:string, dryRun?:boolean, fetcher?:typeof fetch, rename?:(from:string,to:string)=>void}} options */
+/** @typedef {{date:string, cny:number, inr:number, source:string, usdCny:number, changed:boolean, written:number, skipped?:boolean, ageDays?:number}} RateUpdate */
+/** @param {string} workspace @param {{date?:string, dryRun?:boolean, staleDays?:number, fetcher?:typeof fetch, rename?:(from:string,to:string)=>void}} options
+ *   staleDays：页面显示的 USD/CNY（两位小数）不变时，当前汇率日期距新汇率不满这些天就保留原数据。
+ * @returns {Promise<RateUpdate>} */
 async function updateRates(workspace = path.resolve(__dirname, "..", ".."), options = {}) {
   const root = path.resolve(workspace);
   const rates = await fetchRates(options);
@@ -62,6 +66,13 @@ async function updateRates(workspace = path.resolve(__dirname, "..", ".."), opti
     const current = /rateAsOf: "(\d{4}-\d{2}-\d{2})"/.exec(source);
     if (current && rates.date < current[1]) throw new Error(`汇率日期 ${rates.date} 早于当前 ${current[1]}，拒绝回退`);
     const next = applyRates(source, rates);
+    if (options.staleDays && current) {
+      const shown = /const RATE_USD_CNY = ([\d.]+);/.exec(source);
+      const ageDays = Math.round((Date.parse(rates.date) - Date.parse(current[1])) / 86400000);
+      if (shown && Number(shown[1]) === next.usdCny && ageDays < options.staleDays) {
+        return { ...rates, usdCny: next.usdCny, changed: false, skipped: true, ageDays, written: 0 };
+      }
+    }
     const changed = next.source !== source;
     if (!changed || options.dryRun) return { ...rates, usdCny: next.usdCny, changed, written: 0 };
     const validation = validateData({ workspace: root, source: next.source });
@@ -73,11 +84,14 @@ async function updateRates(workspace = path.resolve(__dirname, "..", ".."), opti
 
 /** @param {string[]} args */
 function parseArgs(args) {
+  /** @type {{dryRun:boolean, date:string, staleDays?:number}} */
   const options = { dryRun: false, date: "" };
+  const usage = "用法：npm run rates:update -- [--date YYYY-MM-DD] [--dry-run] [--stale-days 1–365]";
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--dry-run") options.dryRun = true;
     else if (args[i] === "--date" && args[i + 1] && !args[i + 1].startsWith("--")) options.date = args[++i];
-    else throw new Error("用法：npm run rates:update -- [--date YYYY-MM-DD] [--dry-run]");
+    else if (args[i] === "--stale-days" && /^\d+$/.test(args[i + 1] || "") && Number(args[i + 1]) >= 1 && Number(args[i + 1]) <= 365) options.staleDays = Number(args[++i]);
+    else throw new Error(usage);
   }
   return options;
 }
@@ -86,7 +100,8 @@ if (require.main === module) {
   (async () => {
     const result = await updateRates(undefined, parseArgs(process.argv.slice(2)));
     console.log(`Frankfurter ${result.date}：1 USD = ${result.cny} CNY / ${result.inr} INR（页面取 ${result.usdCny}）。` +
-      (!result.changed ? "与当前数据一致，未写入。" : result.written ? `已更新 ${result.written} 个文件；接着运行 npm run maintenance:build、npm run catalog:build、npm run validate 与 npm test。` : "仅预览，未写入。"));
+      (result.skipped ? `页面汇率不变，当前汇率仅相差 ${result.ageDays} 天，保留原数据。` :
+        !result.changed ? "与当前数据一致，未写入。" : result.written ? `已更新 ${result.written} 个文件；接着运行 npm run maintenance:build、npm run catalog:build、npm run readme:build、npm run validate 与 npm test。` : "仅预览，未写入。"));
   })().catch((error) => { console.error(error.message); process.exitCode = 1; });
 }
 module.exports = { fetchRates, applyRates, updateRates, parseArgs };

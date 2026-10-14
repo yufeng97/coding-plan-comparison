@@ -1,0 +1,313 @@
+{
+  "checkedAt": "2026-10-14",
+  "incremental": true,
+  "totals": {
+    "plans": 220,
+    "api": 38,
+    "payg": 10
+  },
+  "sources": [
+    {
+      "id": "google-plans-20261014",
+      "url": "https://one.google.com/about/google-ai-plans/",
+      "evidence": "2026-10-14 真实浏览器渲染（美国，USD）：Google AI Plus $4.99/mo，卡片写「Access to Gemini 3.6 Flash and Deep Research in Gemini」；Google AI Pro $19.99/mo，「Access to Gemini 4 Argon for frontier performance in complex workflows」「Expanded access to Gemini 4 Argon in the Gemini app and AI Mode in Search」；Google AI Ultra From $99.99/mo，比较表 Ultra 5x $99.99、Ultra 20x $199.99，「Higher access to Gemini 4 Argon in Google Antigravity」；「Available to Google AI Pro and Ultra subscribers in select countries.」年付价本页未显示。"
+    },
+    {
+      "id": "google-antigravity-models-20261014",
+      "url": "https://antigravity.google/docs/models",
+      "evidence": "Antigravity 模型表：Gemini 4 Argon 在 Free & Google AI Plus ❌、Google AI Pro ❌、Google AI Ultra ✅、Enterprise ✅；脚注「Not available in Antigravity IDE. Available in the Antigravity app, Antigravity CLI, and IDE extensions.」"
+    },
+    {
+      "id": "google-api-pricing-20261014",
+      "url": "https://ai.google.dev/gemini-api/docs/pricing",
+      "evidence": "Gemini API 定价页（Last updated 2026-10-13 UTC）：Gemini 4 Argon（gemini-4-argon）付费层每 1M tokens，Standard 输入 $2.00、输出（含 thinking）$10.00、缓存 $0.10，均为 through November 30, 2026；December 1, 2026 起 $4.00 / $20.00 / $0.20。Batch 与 Flex $1.00 / $5.00 / $0.05（之后 $2 / $10 / $0.10），Priority $3.60 / $18.00 / $0.18（之后 $7.20 / $36 / $0.36）。只支持隐式缓存；免费层不可用，Google AI Pro 方案不含。"
+    },
+    {
+      "id": "google-argon-model-20261014",
+      "url": "https://ai.google.dev/gemini-api/docs/models/gemini-4-argon",
+      "evidence": "模型页：Stable gemini-4-argon；统一输入输出上下文 1,048,576 tokens；输出默认 65,536、长解码最多 1,048,576；thinking low / medium / high；只支持隐式缓存。"
+    },
+    {
+      "id": "google-argon-blog-20261014",
+      "url": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-argon/",
+      "evidence": "Google 官方博客 2026-10-13：「Gemini 4 Argon is now globally available today for developers and enterprises via the API in AI Studio and Gemini platform」，Google AI Ultra 与 Pro 订阅可在 Gemini 应用和搜索 AI 模式使用，Ultra 可在 Google Antigravity 使用；介绍价 $2 / $10 每百万 tokens（缓存 95% off），2026-11-30 后 $4 / $20。"
+    },
+    {
+      "id": "github-copilot-plans-20261014",
+      "url": "https://docs.github.com/en/copilot/get-started/plans",
+      "evidence": "Copilot 计划页：Pro $10/月、1,500 AI credits（基础 1,000 + 弹性 500）；Pro+ $39、7,000；Max $100、20,000；Business $19/席、1,900/席；Enterprise $39/席、3,900/席。模型表 Gemini 4 Argon：Pro「Not included」，Pro+、Max、Business、Enterprise「Included」。"
+    },
+    {
+      "id": "github-copilot-argon-20261014",
+      "url": "https://github.blog/changelog/2026-10-13-gemini-4-argon-in-github-copilot",
+      "evidence": "GitHub 更新日志 2026-10-13：Gemini 4 Argon「now generally available in GitHub Copilot」，「available to Copilot Pro+, Max, Business, and Enterprise users」；「billed at provider list pricing under usage-based billing」；Business / Enterprise 管理员可通过模型策略管理。"
+    }
+  ],
+  "records": [
+    {
+      "kind": "api",
+      "id": "Google|Gemini 4 Argon",
+      "vendor": "Google",
+      "name": "Gemini 4 Argon",
+      "status": "verified",
+      "checkedAt": "2026-10-14",
+      "sourceIds": [
+        "google-api-pricing-20261014",
+        "google-argon-model-20261014"
+      ],
+      "reason": "新收录：付费层介绍价输入 $2.00、输出 $10.00（含 thinking）、缓存 $0.10，至 2026-11-30；2026-12-01 起 $4 / $20 / $0.20，写在备注。免费层不可用。",
+      "patch": {},
+      "current": {
+        "vendor": "Google",
+        "model": "Gemini 4 Argon",
+        "cur": "USD",
+        "inUSD": 2,
+        "outUSD": 10,
+        "apiCache": 0.1
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0016",
+      "vendor": "Google",
+      "name": "Google AI Plus",
+      "status": "changed",
+      "checkedAt": "2026-10-14",
+      "sourceIds": [
+        "google-plans-20261014"
+      ],
+      "reason": "月价 $4.99 不变；官网 Plus 卡片现写 Gemini 3.6 Flash 与 Deep Research，模型由 Gemini 3.1 Pro 改为 Gemini 3.6 Flash；Plus 不含 Gemini 4 Argon。",
+      "patch": {
+        "models": "Gemini 3.6 Flash、Deep Research"
+      },
+      "old": {
+        "models": "Gemini 3.1 Pro、Deep Research"
+      },
+      "current": {
+        "vendor": "Google",
+        "plan": "Google AI Plus",
+        "priceM": 4.99,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0017",
+      "vendor": "Google",
+      "name": "Google AI Pro",
+      "status": "changed",
+      "checkedAt": "2026-10-14",
+      "sourceIds": [
+        "google-plans-20261014",
+        "google-antigravity-models-20261014",
+        "google-api-pricing-20261014"
+      ],
+      "reason": "月价 $19.99 不变（年付 $199.99 本次页面未显示，沿用 10-04 核对）；Pro 含 Gemini 4 Argon，但只在 Gemini 应用与搜索 AI 模式中提供：Antigravity 模型表 Pro 档不含，API 定价页写明 Google AI Pro 方案不含。",
+      "patch": {
+        "note": "美国月付 $19.99、年付 $199.99（折月约 $16.67）；含 $10/月 GCP credits；Gemini 4 Argon 只在 Gemini 应用与搜索 AI 模式中提供，Antigravity 与 API 不含"
+      },
+      "old": {
+        "note": "美国月付 $19.99、年付 $199.99（折月约 $16.67）；含 $10/月 GCP credits"
+      },
+      "current": {
+        "vendor": "Google",
+        "plan": "Google AI Pro",
+        "priceM": 19.99,
+        "priceY": 16.67,
+        "annualTotal": 199.99,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0018",
+      "vendor": "Google",
+      "name": "Google AI Ultra（5x）",
+      "status": "changed",
+      "checkedAt": "2026-10-14",
+      "sourceIds": [
+        "google-plans-20261014",
+        "google-antigravity-models-20261014"
+      ],
+      "reason": "月价 $99.99 与官网比较表一致；官网写明 Ultra「Higher access to Gemini 4 Argon in Google Antigravity」，Antigravity 模型表 Ultra 可用、独立 Antigravity IDE 不支持，模型加入 Gemini 4 Argon。",
+      "patch": {
+        "models": "Gemini 4 Argon、Gemini 3.1 Pro、Deep Think、Gemini Agent",
+        "note": "2026-05-19 I/O 起 $249.99 降至 $99.99；20TB 存储；Gemini 4 Argon 可在 Antigravity app、CLI 与 IDE 扩展使用（独立 Antigravity IDE 不支持）"
+      },
+      "old": {
+        "models": "Gemini 3.1 Pro、Deep Think、Gemini Agent",
+        "note": "2026-05-19 I/O 起 $249.99 降至 $99.99；20TB 存储"
+      },
+      "current": {
+        "vendor": "Google",
+        "plan": "Google AI Ultra（5x）",
+        "priceM": 99.99,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0019",
+      "vendor": "Google",
+      "name": "Google AI Ultra（20x）",
+      "status": "verified",
+      "checkedAt": "2026-10-14",
+      "sourceIds": [
+        "google-plans-20261014"
+      ],
+      "reason": "月价 $199.99 与官网比较表一致；模型沿用 Ultra 5x（含 Gemini 4 Argon）。",
+      "patch": {},
+      "current": {
+        "vendor": "Google",
+        "plan": "Google AI Ultra（20x）",
+        "priceM": 199.99,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0091",
+      "vendor": "GitHub Copilot",
+      "name": "Pro",
+      "status": "verified",
+      "checkedAt": "2026-10-14",
+      "sourceIds": [
+        "github-copilot-plans-20261014"
+      ],
+      "reason": "月价 $10 与 1,500 credits 不变；计划页标明 Gemini 4 Argon 不含于 Pro。",
+      "patch": {},
+      "current": {
+        "vendor": "GitHub Copilot",
+        "plan": "Pro",
+        "priceM": 10,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0092",
+      "vendor": "GitHub Copilot",
+      "name": "Pro+",
+      "status": "changed",
+      "checkedAt": "2026-10-14",
+      "sourceIds": [
+        "github-copilot-plans-20261014",
+        "github-copilot-argon-20261014"
+      ],
+      "reason": "月价 $39 与 7,000 credits 不变；Gemini 4 Argon 10-13 正式上线，计划页标明 Pro+ 可用，按供应商牌价扣 AI credits，旗舰列表加入 Argon。",
+      "patch": {
+        "modelIncludes": [
+          "Claude Opus 4.8/5/5.5",
+          "Fable 5/5.1",
+          "GPT-5.6 Sol",
+          "GPT-6 Astra/Sol",
+          "GPT-6.1 Sol",
+          "Gemini 4 Argon"
+        ],
+        "models": "Pro 全部 + Claude Opus 4.8/5/5.5、Fable 5/5.1、GPT-5.6 Sol、GPT-6 Astra/Sol、GPT-6.1 Sol、Gemini 4 Argon 等旗舰"
+      },
+      "old": {
+        "modelIncludes": [
+          "Claude Opus 4.8/5/5.5",
+          "Fable 5/5.1",
+          "GPT-5.6 Sol",
+          "GPT-6 Astra/Sol",
+          "GPT-6.1 Sol"
+        ],
+        "models": "Pro 全部 + Claude Opus 4.8/5/5.5、Fable 5/5.1、GPT-5.6 Sol、GPT-6 Astra/Sol、GPT-6.1 Sol 等旗舰"
+      },
+      "current": {
+        "vendor": "GitHub Copilot",
+        "plan": "Pro+",
+        "priceM": 39,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0093",
+      "vendor": "GitHub Copilot",
+      "name": "Max",
+      "status": "verified",
+      "checkedAt": "2026-10-14",
+      "sourceIds": [
+        "github-copilot-plans-20261014"
+      ],
+      "reason": "月价 $100 与 20,000 credits 不变；模型沿用 Pro+ 同级模型池（计划页标明含 Gemini 4 Argon）。",
+      "patch": {},
+      "current": {
+        "vendor": "GitHub Copilot",
+        "plan": "Max",
+        "priceM": 100,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0094",
+      "vendor": "GitHub Copilot",
+      "name": "Business",
+      "status": "changed",
+      "checkedAt": "2026-10-14",
+      "sourceIds": [
+        "github-copilot-plans-20261014",
+        "github-copilot-argon-20261014"
+      ],
+      "reason": "席位价 $19 与 1,900 credits/席不变；计划页标明 Business 含 Gemini 4 Argon，管理员可在模型策略中关闭。",
+      "patch": {
+        "models": "含旗舰模型（含 Gemini 4 Argon）+ Copilot CLI/App"
+      },
+      "old": {
+        "models": "含旗舰模型 + Copilot CLI/App"
+      },
+      "current": {
+        "vendor": "GitHub Copilot",
+        "plan": "Business",
+        "priceM": 19,
+        "priceY": null,
+        "cur": "USD",
+        "seat": true
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0095",
+      "vendor": "GitHub Copilot",
+      "name": "Enterprise",
+      "status": "changed",
+      "checkedAt": "2026-10-14",
+      "sourceIds": [
+        "github-copilot-plans-20261014",
+        "github-copilot-argon-20261014"
+      ],
+      "reason": "席位价 $39 与 3,900 credits/席不变；计划页标明 Enterprise 含 Gemini 4 Argon，管理员可在模型策略中关闭。",
+      "patch": {
+        "models": "旗舰模型优先访问（含 Gemini 4 Argon）+ 自定义模型"
+      },
+      "old": {
+        "models": "旗舰模型优先访问 + 自定义模型"
+      },
+      "current": {
+        "vendor": "GitHub Copilot",
+        "plan": "Enterprise",
+        "priceM": 39,
+        "priceY": null,
+        "cur": "USD",
+        "seat": true
+      }
+    }
+  ]
+}

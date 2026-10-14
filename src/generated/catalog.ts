@@ -10,7 +10,7 @@ const RATE_USD_CNY = 6.69;
 /* 同一汇率日期：Frankfurter USD/INR=95.78、USD/CNY=6.6928；保留印度原价。 */
 const RATE_INR_CNY = 6.6928 / 95.78;
 const META = {
-    updated: "2026-10-13",
+    updated: "2026-10-14",
     rate: RATE_USD_CNY,
     rateAsOf: "2026-10-12",
     rateSource: "https://api.frankfurter.dev/v1/2026-10-12?base=USD&symbols=CNY,INR",
@@ -31,6 +31,8 @@ const MODEL_ROLES: ModelRole[] = [
         reason: "能做复杂任务，官方 5 小时条数比 Sol 和 Luna 少很多", asOf: "2026-09-30" },
     { id: "gpt-sol", name: "GPT-6 Sol", re: /gpt-(?:6|5\.6)\s*sol|(?:^|[^a-z])sol(?:[^a-z]|$)/i, task: "hard", burn: "fast", band: "B",
         reason: "复杂编码可用，5 小时条数明显紧于 Luna", asOf: "2026-09-30" },
+    { id: "gemini-argon", name: "Gemini 4 Argon", re: /argon/i, task: "hard", burn: "fast", band: "B",
+        reason: "Google 新旗舰，复杂任务可用，官方没有单列可折算的 5 小时 tokens", asOf: "2026-10-14" },
     { id: "gemini-pro", name: "Gemini Pro", re: /gemini[\s-]*\d+(?:\.\d+)?[\s-]*pro|deep\s*think/i, task: "hard", burn: "fast", band: "B",
         reason: "复杂任务可用，官方没有单列可折算的 5 小时 tokens", asOf: "2026-09-30" },
     { id: "kimi-k3", name: "Kimi K3", re: /kimi\s*[- ]?k3|(?:^|[^a-z0-9])k3(?:[^a-z0-9]|$)/i, task: "hard", burn: "fast", band: "B",
@@ -364,7 +366,7 @@ const PLANS: Plan[] = [
     { id: "plan-0016", vendor: "Google", plan: "Google AI Plus", cat: "official", region: "intl", priceM: 4.99, priceY: null, cur: "USD", seat: false,
         windowPeriod: "5h", codingSurface: false,
         quota: "2× Gemini 访问；计算量计费（5 小时重置 + 每周上限）",
-        models: "Gemini 3.1 Pro、Deep Research",
+        models: "Gemini 3.6 Flash、Deep Research",
         tools: "Gemini 应用、Search AI 功能",
         note: "当前美国官网 $4.99/月；400GB 存储；地区实付以结账页为准",
         url: "https://one.google.com/about/google-ai-plans/" },
@@ -372,13 +374,13 @@ const PLANS: Plan[] = [
         quota: "4× Gemini 访问；AI Studio / Antigravity / Jules 扩展限额；超额可购 credits",
         models: "Gemini 3.1 Pro、Deep Research、Gemini Spark",
         tools: "Gemini 应用、AI Studio、Antigravity（agentic IDE）、Jules、Gemini CLI",
-        note: "美国月付 $19.99、年付 $199.99（折月约 $16.67）；含 $10/月 GCP credits",
+        note: "美国月付 $19.99、年付 $199.99（折月约 $16.67）；含 $10/月 GCP credits；Gemini 4 Argon 只在 Gemini 应用与搜索 AI 模式中提供，Antigravity 与 API 不含",
         url: "https://one.google.com/about/google-ai-plans/" },
     { id: "plan-0018", fieldRefs: { "tools": "plan-0017" }, vendor: "Google", plan: "Google AI Ultra（5x）", cat: "official", region: "intl", priceM: 99.99, priceY: null, cur: "USD", seat: false,
         quota: "约 5× Pro 限额；更高 AI Studio / Antigravity / Jules 限额",
-        models: "Gemini 3.1 Pro、Deep Think、Gemini Agent",
+        models: "Gemini 4 Argon、Gemini 3.1 Pro、Deep Think、Gemini Agent",
         tools: "同 Pro 档且限额更高",
-        note: "2026-05-19 I/O 起 $249.99 降至 $99.99；20TB 存储",
+        note: "2026-05-19 I/O 起 $249.99 降至 $99.99；20TB 存储；Gemini 4 Argon 可在 Antigravity app、CLI 与 IDE 扩展使用（独立 Antigravity IDE 不支持）",
         url: "https://one.google.com/about/google-ai-plans/" },
     { id: "plan-0019", fieldRefs: { "models": "plan-0018", "tools": "plan-0018" }, vendor: "Google", plan: "Google AI Ultra（20x）", cat: "official", region: "intl", priceM: 199.99, priceY: null, cur: "USD", seat: false,
         quota: "最高 20× 限额",
@@ -922,10 +924,10 @@ const PLANS: Plan[] = [
         url: "https://docs.github.com/en/copilot/get-started/plans" },
     { id: "plan-0092", fieldRefs: { "tools": "plan-0091" }, vendor: "GitHub Copilot", plan: "Pro+", cat: "tool", region: "intl", priceM: 39, priceY: null, cur: "USD", seat: false,
         modelBaseRef: "plan-0091",
-        modelIncludes: ["Claude Opus 4.8/5/5.5", "Fable 5/5.1", "GPT-5.6 Sol", "GPT-6 Astra/Sol", "GPT-6.1 Sol"],
+        modelIncludes: ["Claude Opus 4.8/5/5.5", "Fable 5/5.1", "GPT-5.6 Sol", "GPT-6 Astra/Sol", "GPT-6.1 Sol", "Gemini 4 Argon"],
         windowPeriod: "month",
         quota: "7,000 AI credits/月（约 $70 用量）",
-        models: "Pro 全部 + Claude Opus 4.8/5/5.5、Fable 5/5.1、GPT-5.6 Sol、GPT-6 Astra/Sol、GPT-6.1 Sol 等旗舰",
+        models: "Pro 全部 + Claude Opus 4.8/5/5.5、Fable 5/5.1、GPT-5.6 Sol、GPT-6 Astra/Sol、GPT-6.1 Sol、Gemini 4 Argon 等旗舰",
         tools: "同 Pro",
         note: "4x+ Pro 用量；含审计日志",
         url: "https://docs.github.com/en/copilot/get-started/plans" },
@@ -940,14 +942,14 @@ const PLANS: Plan[] = [
     { id: "plan-0094", vendor: "GitHub Copilot", plan: "Business", cat: "team", region: "intl", priceM: 19, priceY: null, cur: "USD", seat: true,
         windowPeriod: "month",
         quota: "1,900 AI credits/席/月",
-        models: "含旗舰模型 + Copilot CLI/App",
+        models: "含旗舰模型（含 Gemini 4 Argon）+ Copilot CLI/App",
         tools: "IDE 插件、组织管理",
         note: "按授予席位计费；Copilot 代码审查默认扣发起成员的额度，组织可改为计入仓库所属组织（须启用 AI Credits 付费用量）",
         url: "https://docs.github.com/en/copilot/get-started/plans" },
     { id: "plan-0095", vendor: "GitHub Copilot", plan: "Enterprise", cat: "team", region: "intl", priceM: 39, priceY: null, cur: "USD", seat: true,
         windowPeriod: "month",
         quota: "3,900 AI credits/席/月",
-        models: "旗舰模型优先访问 + 自定义模型",
+        models: "旗舰模型优先访问（含 Gemini 4 Argon）+ 自定义模型",
         tools: "codebase 索引、GitHub.com 集成、IP 赔偿、SSO",
         note: "Copilot 代码审查默认扣发起成员的额度，组织可改为计入仓库所属组织（须启用 AI Credits 付费用量）",
         url: "https://docs.github.com/en/copilot/get-started/plans" },
@@ -1801,6 +1803,9 @@ const API_PRICES: ApiPrice[] = [
     { vendor: "Google", model: "Gemini 3.1 Pro Preview", label: "Gemini 3.1 Pro", region: "intl", cur: "USD", inUSD: 2, outUSD: 12, apiCache: 0.2,
         note: "prompt ≤200K 档；缓存 $0.20 + 存储 $4.50/1M/小时；Batch/Flex $1/$6；参考 Gemini 3.8 Flash $0.75/$3.75 介绍价至 2026-12-31，2027-01-01 起 $1.50/$7.50",
         url: "https://ai.google.dev/gemini-api/docs/pricing" },
+    { vendor: "Google", model: "Gemini 4 Argon", label: "Gemini 4 Argon", region: "intl", cur: "USD", inUSD: 2, outUSD: 10, apiCache: 0.1,
+        note: "介绍价至 2026-11-30，12-01 起 $4 / $20、缓存 $0.20；输出含 thinking；Batch/Flex 半价，Priority $3.60/$18；只支持隐式缓存；1M 统一输入输出上下文；免费层不可用",
+        url: "https://ai.google.dev/gemini-api/docs/pricing" },
     { vendor: "Z.ai", model: "GLM-5.3", label: "GLM-5.3 (Z.ai)", region: "intl", cur: "USD", inUSD: 1.4, outUSD: 4.4, apiCache: 0.26,
         note: "缓存输入 $0.26；GLM-5.3-Flash $0.15/$0.50、缓存 $0.03；FlashX $0.37/$1.25",
         url: "https://docs.z.ai/guides/overview/pricing.md" },
@@ -2533,6 +2538,9 @@ const ESTIMATES: QuotaRow[] = [
 /* date 是来源写明的发生日。checked 表示这只是本站核对到该状态的日子，不是公告日。 */
 /** @type {DynamicItem[]} */
 const DYNAMICS: DynamicItem[] = [
+    { date: "2026-10-14", checked: true, text: "核对 Gemini 4 Argon 的订阅与 API 入口并写入数据：Google AI Ultra（5x / 20x）模型加入 Argon（Antigravity 可用）；Pro 备注写明 Argon 只在 Gemini 应用与搜索 AI 模式中提供；Plus 官网卡片现列 Gemini 3.6 Flash，模型改为 Gemini 3.6 Flash 与 Deep Research；新增 Gemini 4 Argon API 行；Copilot Pro+ / Max / Business / Enterprise 模型清单加入 Argon。各档月价不变。", source: "Google AI 计划 / Antigravity 模型表 / GitHub Copilot 计划页", url: "https://one.google.com/about/google-ai-plans/" },
+    { date: "2026-10-13", text: "Google 全球开放 Gemini 4 Argon（gemini-4-argon，稳定版），此前（9-30）只向 Fairwind 计划的受信网络防御者开放。付费 API 经 AI Studio 与 Gemini 平台提供，介绍价输入 $2 / 输出 $10（缓存 $0.10）至 11 月 30 日，12 月 1 日起 $4 / $20；免费层不可用，1M 统一输入输出上下文。Google AI Pro 与 Ultra 可在 Gemini 应用和搜索 AI 模式使用（部分国家）；Antigravity 只对 Ultra 与企业版开放（app、CLI 与 IDE 扩展，独立 Antigravity IDE 不支持）。", source: "Google 官方博客 / Gemini API 定价", url: "https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-argon/" },
+    { date: "2026-10-13", text: "Gemini 4 Argon 在 GitHub Copilot 正式可用：Pro+、Max、Business 与 Enterprise 可在 VS Code、Visual Studio、JetBrains、Xcode、Eclipse、Copilot CLI、coding agent 与 Copilot App 中选用，按供应商牌价从 AI credits 扣费；Business / Enterprise 管理员可在模型策略中关闭。计划页标明 Pro 不含。", source: "GitHub 官方更新日志", url: "https://github.blog/changelog/2026-10-13-gemini-4-argon-in-github-copilot" },
     { date: "2026-10-13", checked: true, text: "核对 Anthropic 与 GitHub Copilot 并写入套餐数据：Claude Max 5x / 20x 每月另含 $100 / $200 Claude Platform API 赠额，Team 每个标准 / Premium 席位 $20 / $100（全团队封顶 $500），赠额不用于交互式 Claude Code；Sonnet 5.5 缓存读按 $0.10 计价，新增 Haiku 5.5 API 行（≤100K 提示 $0.10 / $0.50）。Copilot Pro / Pro+ 的模型列表移除 10-02 弃用的版本、补列 Haiku 5.5；Pro 的额度折算改用 Gemini 3.8 Flash 的 Copilot 促销价（至 2026-12-31）。", source: "Anthropic 帮助中心 / GitHub Docs", url: "https://support.claude.com/en/articles/17154008-monthly-api-credits-for-max-and-team-plans" },
     { date: "2026-10-12", text: "xAI 推出 The X Subscription，把 Grok、Grok Bot、Cursor 与 X Premium 合成一个订阅：个人档 Free $0 / Plus $8 / Premium $30 / Super $100 / Ultra $200（每月，年付 $80 / $300 / $1000 / $2000），团队档 Premium / Super / Ultra 每席 $30 / $100 / $200。Grok 与 Cursor 共用每周第一方用量池（Plus 为基准，Premium 4×、Super 15×、Ultra 50×），Plus 仅 Grok 模型、不含 Grok Bot；Premium 起可在 Cursor 用 Claude、GPT 等第三方模型，但从首次调用起按 API 牌价预充值另付，团队档再加 $0.25/百万 tokens。原 SuperGrok、Cursor 与 X Premium 套餐停止新注册，现有用户可保留或自愿切换（切换不可撤销）。", source: "xAI 官方公告与订阅文档", url: "https://x.ai/news/x-subscription" },
     { date: "2026-10-10", text: "GitHub Copilot 的 JetBrains 插件结束对 IDE 2025.1 的支持，需 2025.2 或以上；新增企业管理员托管的默认模型与 MCP 服务器自动启动开关。属编程入口兼容性变化，不涉及价格与额度。", source: "GitHub 官方更新日志", url: "https://github.blog/changelog/2026-10-10-new-controls-and-chat-improvements-in-copilot-for-jetbrains" },
@@ -2624,6 +2632,11 @@ const SOURCES: SourceGroup[] = [
             "https://the-decoder.com/google-overhauls-its-ai-subscriptions-at-i-o-2026-with-three-tiers-starting-at-10-a-month/",
             "https://www.theverge.com/tech/933233/google-ai-ultra-plan-price-change",
             "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-argon/",
+            "https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-argon/",
+            "https://one.google.com/about/google-ai-plans/",
+            "https://ai.google.dev/gemini-api/docs/pricing",
+            "https://ai.google.dev/gemini-api/docs/models/gemini-4-argon",
+            "https://antigravity.google/docs/models",
         ] },
     { group: "xAI（Grok / The X Subscription）", urls: [
             "https://x.ai/news/x-subscription",
@@ -2647,6 +2660,7 @@ const SOURCES: SourceGroup[] = [
             "https://github.blog/changelog/2026-10-07-claude-haiku-5-5-in-github-copilot",
             "https://github.blog/changelog/2026-10-08-copilot-code-review-new-organization-billing-options-and-controls",
             "https://github.blog/changelog/2026-10-10-new-controls-and-chat-improvements-in-copilot-for-jetbrains",
+            "https://github.blog/changelog/2026-10-13-gemini-4-argon-in-github-copilot",
         ] },
     { group: "Cursor", urls: [
             "https://cursor.com/pricing",
@@ -2801,6 +2815,7 @@ const UNCERTAIN: string[] = [
     "JetBrains AI Pro/Ultimate 的具体用量额度为 JS 渲染未能核实。Kilo 个人平台免费，推理按供应商原价或 BYOK，见 kilo.ai/pricing。",
     "Tabnine 独立订阅疑似停售（官网 301 重定向至 Tricentis），无 2026-09 在售价格。",
     "Gemini 3 Pro 文本版未在 API 价格页单列（当前最新为 Gemini 3.1 Pro Preview $2/$12；页面仅单列 3 Pro Image 图像模型 $120/1M）。",
+    "Gemini 4 Argon 在 Gemini 应用与搜索中按「部分国家」逐步开放；订阅内用量只写「Expanded / Higher」，没有可折算的 tokens 或请求数，额度表不做折算。API 介绍价 12-01 起翻倍，届时按复核日历更新。",
     "华为云 CodeArts 套餐价（基础 ¥60 / 专业 ¥200 / 企业 ¥600/人/月）为 DevOps 全套研发平台价，非编程助手单独售价。",
     "Kimi Code Plan 各档（¥99/199/699）为连续包月价，单月原价是否更高未确认；各档具体编程积分数值未公开（官方仅说明'5 小时滚动窗口 + 月总额度'机制）。",
     "MiniMax Token Plan 各档每月 token 总量（约 6 亿/18 亿/71 亿）为第三方估算；年付价未经官方确认。",
@@ -2824,7 +2839,7 @@ const UNCERTAIN: string[] = [
 /* 逐条官方核价记录；由 audit/pricing-verification-2026-10-04.json 维护。 */
 /** @type {PriceChecks} */
 const PRICE_CHECKS: PriceChecks = {
-    "checkedAt": "2026-10-13",
+    "checkedAt": "2026-10-14",
     "sources": {
         "claude-plans": {
             "url": "https://claude.com/pricing",
@@ -3325,6 +3340,40 @@ const PRICE_CHECKS: PriceChecks = {
             "url": "https://learn.chatgpt.com/docs/agent-configuration/speed",
             "evidence": "Codex 速度文档：Ultrafast 支持 GPT-6 Astra 与 GPT-6.1 Sol，仅 Pro $500 及符合条件的 Enterprise、Edu 可用；订阅内额度按标准 8 倍计量，购买的 credits 与企业按量按 6 倍计费；其他自助档即使购买 credits 也不能使用。",
             "checkedAt": "2026-10-13"
+        },
+        "google-plans-20261014": {
+            "url": "https://one.google.com/about/google-ai-plans/",
+            "evidence": "2026-10-14 真实浏览器渲染（美国，USD）：Google AI Plus $4.99/mo，卡片写「Access to Gemini 3.6 Flash and Deep Research in Gemini」；Google AI Pro $19.99/mo，「Access to Gemini 4 Argon for frontier performance in complex workflows」「Expanded access to Gemini 4 Argon in the Gemini app and AI Mode in Search」；Google AI Ultra From $99.99/mo，比较表 Ultra 5x $99.99、Ultra 20x $199.99，「Higher access to Gemini 4 Argon in Google Antigravity」；「Available to Google AI Pro and Ultra subscribers in select countries.」年付价本页未显示。",
+            "checkedAt": "2026-10-14"
+        },
+        "google-antigravity-models-20261014": {
+            "url": "https://antigravity.google/docs/models",
+            "evidence": "Antigravity 模型表：Gemini 4 Argon 在 Free & Google AI Plus ❌、Google AI Pro ❌、Google AI Ultra ✅、Enterprise ✅；脚注「Not available in Antigravity IDE. Available in the Antigravity app, Antigravity CLI, and IDE extensions.」",
+            "checkedAt": "2026-10-14"
+        },
+        "google-api-pricing-20261014": {
+            "url": "https://ai.google.dev/gemini-api/docs/pricing",
+            "evidence": "Gemini API 定价页（Last updated 2026-10-13 UTC）：Gemini 4 Argon（gemini-4-argon）付费层每 1M tokens，Standard 输入 $2.00、输出（含 thinking）$10.00、缓存 $0.10，均为 through November 30, 2026；December 1, 2026 起 $4.00 / $20.00 / $0.20。Batch 与 Flex $1.00 / $5.00 / $0.05（之后 $2 / $10 / $0.10），Priority $3.60 / $18.00 / $0.18（之后 $7.20 / $36 / $0.36）。只支持隐式缓存；免费层不可用，Google AI Pro 方案不含。",
+            "checkedAt": "2026-10-14"
+        },
+        "google-argon-model-20261014": {
+            "url": "https://ai.google.dev/gemini-api/docs/models/gemini-4-argon",
+            "evidence": "模型页：Stable gemini-4-argon；统一输入输出上下文 1,048,576 tokens；输出默认 65,536、长解码最多 1,048,576；thinking low / medium / high；只支持隐式缓存。",
+            "checkedAt": "2026-10-14"
+        },
+        "google-argon-blog-20261014": {
+            "url": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-argon/",
+            "evidence": "Google 官方博客 2026-10-13：「Gemini 4 Argon is now globally available today for developers and enterprises via the API in AI Studio and Gemini platform」，Google AI Ultra 与 Pro 订阅可在 Gemini 应用和搜索 AI 模式使用，Ultra 可在 Google Antigravity 使用；介绍价 $2 / $10 每百万 tokens（缓存 95% off），2026-11-30 后 $4 / $20。"
+        },
+        "github-copilot-plans-20261014": {
+            "url": "https://docs.github.com/en/copilot/get-started/plans",
+            "evidence": "Copilot 计划页：Pro $10/月、1,500 AI credits（基础 1,000 + 弹性 500）；Pro+ $39、7,000；Max $100、20,000；Business $19/席、1,900/席；Enterprise $39/席、3,900/席。模型表 Gemini 4 Argon：Pro「Not included」，Pro+、Max、Business、Enterprise「Included」。",
+            "checkedAt": "2026-10-14"
+        },
+        "github-copilot-argon-20261014": {
+            "url": "https://github.blog/changelog/2026-10-13-gemini-4-argon-in-github-copilot",
+            "evidence": "GitHub 更新日志 2026-10-13：Gemini 4 Argon「now generally available in GitHub Copilot」，「available to Copilot Pro+, Max, Business, and Enterprise users」；「billed at provider list pricing under usage-based billing」；Business / Enterprise 管理员可通过模型策略管理。",
+            "checkedAt": "2026-10-14"
         }
     },
     "rows": {
@@ -3454,35 +3503,38 @@ const PRICE_CHECKS: PriceChecks = {
         },
         "plan:plan-0016": {
             "status": "changed",
-            "checkedAt": "2026-10-04",
+            "checkedAt": "2026-10-14",
             "sourceIds": [
-                "google-plans"
+                "google-plans-20261014"
             ],
-            "reason": "真实浏览器选择 United States 后，当前官网显示4.99美元/月；1月发布博客的7.99美元已过时，不再作为现价依据。"
+            "reason": "月价 $4.99 不变；官网 Plus 卡片现写 Gemini 3.6 Flash 与 Deep Research，模型由 Gemini 3.1 Pro 改为 Gemini 3.6 Flash；Plus 不含 Gemini 4 Argon。"
         },
         "plan:plan-0017": {
             "status": "changed",
-            "checkedAt": "2026-10-04",
+            "checkedAt": "2026-10-14",
             "sourceIds": [
-                "google-plans"
+                "google-plans-20261014",
+                "google-antigravity-models-20261014",
+                "google-api-pricing-20261014"
             ],
-            "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
+            "reason": "月价 $19.99 不变（年付 $199.99 本次页面未显示，沿用 10-04 核对）；Pro 含 Gemini 4 Argon，但只在 Gemini 应用与搜索 AI 模式中提供：Antigravity 模型表 Pro 档不含，API 定价页写明 Google AI Pro 方案不含。"
         },
         "plan:plan-0018": {
-            "status": "verified",
-            "checkedAt": "2026-10-04",
+            "status": "changed",
+            "checkedAt": "2026-10-14",
             "sourceIds": [
-                "google-plans"
+                "google-plans-20261014",
+                "google-antigravity-models-20261014"
             ],
-            "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
+            "reason": "月价 $99.99 与官网比较表一致；官网写明 Ultra「Higher access to Gemini 4 Argon in Google Antigravity」，Antigravity 模型表 Ultra 可用、独立 Antigravity IDE 不支持，模型加入 Gemini 4 Argon。"
         },
         "plan:plan-0019": {
             "status": "verified",
-            "checkedAt": "2026-10-04",
+            "checkedAt": "2026-10-14",
             "sourceIds": [
-                "google-plans"
+                "google-plans-20261014"
             ],
-            "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
+            "reason": "月价 $199.99 与官网比较表一致；模型沿用 Ultra 5x（含 Gemini 4 Argon）。"
         },
         "plan:plan-0020": {
             "status": "retired",
@@ -4181,48 +4233,47 @@ const PRICE_CHECKS: PriceChecks = {
             "reason": "计划页核对：免费档仅自动模型选择并含少量 AI credits，价格不变。"
         },
         "plan:plan-0091": {
-            "status": "changed",
-            "checkedAt": "2026-10-13",
+            "status": "verified",
+            "checkedAt": "2026-10-14",
             "sourceIds": [
-                "tools-github-models-20261013",
-                "tools-github-retirements-20261013"
+                "github-copilot-plans-20261014"
             ],
-            "reason": "月价 $10 与 1,500 credits 不变；按计划页现行模型表更新可用模型：移除 10-02 弃用的 Gemini 3.5/3.6 Flash 与 Kimi K2.7 Code，补列 Claude Haiku 4.5/5.5、GPT-5 mini、GPT-5.4/5.4 mini 与 MAI-Code-1.1-Flash。"
+            "reason": "月价 $10 与 1,500 credits 不变；计划页标明 Gemini 4 Argon 不含于 Pro。"
         },
         "plan:plan-0092": {
             "status": "changed",
-            "checkedAt": "2026-10-13",
+            "checkedAt": "2026-10-14",
             "sourceIds": [
-                "tools-github-models-20261013",
-                "tools-github-retirements-20261013"
+                "github-copilot-plans-20261014",
+                "github-copilot-argon-20261014"
             ],
-            "reason": "月价 $39 与 7,000 credits 不变；Claude Opus 4.7 已于 10-02 弃用，旗舰列表改为计划页现行的 Opus 4.8/5/5.5、Fable 5/5.1、GPT-5.6 Sol、GPT-6 Astra/Sol 与 GPT-6.1 Sol。"
+            "reason": "月价 $39 与 7,000 credits 不变；Gemini 4 Argon 10-13 正式上线，计划页标明 Pro+ 可用，按供应商牌价扣 AI credits，旗舰列表加入 Argon。"
         },
         "plan:plan-0093": {
             "status": "verified",
-            "checkedAt": "2026-10-13",
+            "checkedAt": "2026-10-14",
             "sourceIds": [
-                "tools-github-models-20261013"
+                "github-copilot-plans-20261014"
             ],
-            "reason": "月价 $100 与 20,000 credits 不变；模型沿用 Pro+ 同级模型池（计划页 Max 列未含 Sonnet 4.6）。"
+            "reason": "月价 $100 与 20,000 credits 不变；模型沿用 Pro+ 同级模型池（计划页标明含 Gemini 4 Argon）。"
         },
         "plan:plan-0094": {
             "status": "changed",
-            "checkedAt": "2026-10-13",
+            "checkedAt": "2026-10-14",
             "sourceIds": [
-                "tools-github-models-20261013",
-                "tools-github-code-review-billing-20261013"
+                "github-copilot-plans-20261014",
+                "github-copilot-argon-20261014"
             ],
-            "reason": "席位价 $19 与 1,900 credits/席不变；补充 10-08 代码审查计费选项：默认扣成员额度，组织可改为计入仓库所属组织。"
+            "reason": "席位价 $19 与 1,900 credits/席不变；计划页标明 Business 含 Gemini 4 Argon，管理员可在模型策略中关闭。"
         },
         "plan:plan-0095": {
             "status": "changed",
-            "checkedAt": "2026-10-13",
+            "checkedAt": "2026-10-14",
             "sourceIds": [
-                "tools-github-models-20261013",
-                "tools-github-code-review-billing-20261013"
+                "github-copilot-plans-20261014",
+                "github-copilot-argon-20261014"
             ],
-            "reason": "席位价 $39 与 3,900 credits/席不变；补充 10-08 代码审查计费选项。"
+            "reason": "席位价 $39 与 3,900 credits/席不变；计划页标明 Enterprise 含 Gemini 4 Argon，管理员可在模型策略中关闭。"
         },
         "plan:plan-0096": {
             "status": "changed",
@@ -5561,6 +5612,15 @@ const PRICE_CHECKS: PriceChecks = {
                 "claude-api-20261013"
             ],
             "reason": "新收录：提示不超过 100K tokens 时输入 $0.10、缓存命中 $0.01、输出 $0.50；超过 100K 的请求整次按更高一档计价，写在备注。"
+        },
+        "api:Google|Gemini 4 Argon": {
+            "status": "verified",
+            "checkedAt": "2026-10-14",
+            "sourceIds": [
+                "google-api-pricing-20261014",
+                "google-argon-model-20261014"
+            ],
+            "reason": "新收录：付费层介绍价输入 $2.00、输出 $10.00（含 thinking）、缓存 $0.10，至 2026-11-30；2026-12-01 起 $4 / $20 / $0.20，写在备注。免费层不可用。"
         }
     }
 };
@@ -5694,7 +5754,7 @@ const BENCHMARK_SUMMARY: BenchmarkSummary = { "schemaVersion": 1, "checkedAt": "
 
 /* 自动生成：npm run maintenance:build。导航「我的关注」未读提醒用的套餐变更 ID 与复查间隔；完整变更见 maintenance-data.js（按需加载）。 */
 /** @type {MaintenanceSummary} */
-const MAINTENANCE_SUMMARY: MaintenanceSummary = { "schemaVersion": 1, "staleAfterDays": 14, "changes": [{ "id": "plan-0096", "changeId": "change-0b06380cd89f6485db9eda14" }, { "id": "plan-0216", "changeId": "change-1b6ba8b6cfa68a93e86979b0" }, { "id": "plan-0006", "changeId": "change-1e37795fc06e1ba51fe8ac00" }, { "id": "plan-0098", "changeId": "change-22d7f8da4a3682977dd91c82" }, { "id": "plan-0025", "changeId": "change-275df2271ad0b1589415cd2d" }, { "id": "plan-0026", "changeId": "change-32527572330ca65b201dd10b" }, { "id": "plan-0099", "changeId": "change-335f01f430472e8277fb98d7" }, { "id": "plan-0220", "changeId": "change-38ed48266f362048a7553326" }, { "id": "plan-0095", "changeId": "change-3c704d5feda6494ce3ef6e8f" }, { "id": "plan-0091", "changeId": "change-3fbfc58974b733142929d1da" }, { "id": "plan-0213", "changeId": "change-448b6054b5f776b2b1558d29" }, { "id": "plan-0218", "changeId": "change-4b4ed277e67ae1f78b0ae4dc" }, { "id": "plan-0217", "changeId": "change-4e04840c90de0c6e4b0b3917" }, { "id": "plan-0013", "changeId": "change-674064063fb6d0f2a0100da3" }, { "id": "plan-0003", "changeId": "change-72fedbdce78e01a5ded89b43" }, { "id": "plan-0214", "changeId": "change-7cca6ceb8b757d39d6ae2f9a" }, { "id": "plan-0023", "changeId": "change-7f5d3df973101d4ce4b83957" }, { "id": "plan-0219", "changeId": "change-8206cc5c3512000df26cfd9d" }, { "id": "plan-0102", "changeId": "change-870a9310ba08288505e6fdde" }, { "id": "plan-0005", "changeId": "change-8a3995cf02d1607a8c978b42" }, { "id": "plan-0103", "changeId": "change-8b40222f8a5c880f9f7a676a" }, { "id": "plan-0215", "changeId": "change-928d3b86d2be689a22528633" }, { "id": "plan-0004", "changeId": "change-a19395449fa2b39372a73e95" }, { "id": "plan-0092", "changeId": "change-a22185256844ee8caf81a9ca" }, { "id": "plan-0094", "changeId": "change-be419e92b67bc5e585819631" }, { "id": "plan-0100", "changeId": "change-f5a81c0184ee5e43c3181499" }, { "id": "plan-0101", "changeId": "change-f978ae82afb2cf9f2c3a3d1f" }, { "id": "plan-0135", "changeId": "change-1ddd2f26b385ca4cce5c0889" }, { "id": "plan-0101", "changeId": "change-255d9ace38e030ac418c588e" }, { "id": "plan-0033", "changeId": "change-3182b6de09f4ddd7c58e06f0" }, { "id": "plan-0134", "changeId": "change-3f6953b4667c1dd71f3a9ec6" }, { "id": "plan-0026", "changeId": "change-480f09d4107d62f910374368" }, { "id": "plan-0197", "changeId": "change-503b4179a50e7cf33d46eab1" }, { "id": "plan-0102", "changeId": "change-5dd6fd47e0331163af1b6c6e" }, { "id": "plan-0017", "changeId": "change-5e5a0320dc4615f448119a35" }, { "id": "plan-0139", "changeId": "change-67a89830e048c3cc060aa4b8" }, { "id": "plan-0154", "changeId": "change-717c2777ffebf7b15a65edc9" }, { "id": "plan-0025", "changeId": "change-72dda49670b16f04542dc0e8" }, { "id": "plan-0156", "changeId": "change-7f021aeddba731b72a8bc19a" }, { "id": "plan-0097", "changeId": "change-91702b0165a550bf34053640" }, { "id": "plan-0138", "changeId": "change-925841d5dc56d189fb387575" }, { "id": "plan-0032", "changeId": "change-a34ee27e1bc9661f445d3d90" }, { "id": "plan-0160", "changeId": "change-c54acaae59581333114da30f" }, { "id": "plan-0016", "changeId": "change-d0e2173924d84dc157d0522d" }, { "id": "plan-0149", "changeId": "change-d4c060d1224d283a18e43f10" }, { "id": "plan-0155", "changeId": "change-feeb742795ef7f3f0970bf39" }, { "id": "plan-0031", "changeId": "change-ff4c63f9bac95e9d5c32726f" }] };
+const MAINTENANCE_SUMMARY: MaintenanceSummary = { "schemaVersion": 1, "staleAfterDays": 14, "changes": [{ "id": "plan-0092", "changeId": "change-1a9c094306a4b8d518ea71bd" }, { "id": "plan-0094", "changeId": "change-451f08c4ebe113de4e4de9bc" }, { "id": "plan-0018", "changeId": "change-82f1725e0bd394f2390d9e76" }, { "id": "plan-0017", "changeId": "change-d7a069852d2ffc239d61c0e5" }, { "id": "plan-0016", "changeId": "change-d94cb07f37527fd06c9cc1b0" }, { "id": "plan-0095", "changeId": "change-e25a4e2dcaa833a4ffc9b3c7" }, { "id": "plan-0096", "changeId": "change-0b06380cd89f6485db9eda14" }, { "id": "plan-0216", "changeId": "change-1b6ba8b6cfa68a93e86979b0" }, { "id": "plan-0006", "changeId": "change-1e37795fc06e1ba51fe8ac00" }, { "id": "plan-0098", "changeId": "change-22d7f8da4a3682977dd91c82" }, { "id": "plan-0025", "changeId": "change-275df2271ad0b1589415cd2d" }, { "id": "plan-0026", "changeId": "change-32527572330ca65b201dd10b" }, { "id": "plan-0099", "changeId": "change-335f01f430472e8277fb98d7" }, { "id": "plan-0220", "changeId": "change-38ed48266f362048a7553326" }, { "id": "plan-0095", "changeId": "change-3c704d5feda6494ce3ef6e8f" }, { "id": "plan-0091", "changeId": "change-3fbfc58974b733142929d1da" }, { "id": "plan-0213", "changeId": "change-448b6054b5f776b2b1558d29" }, { "id": "plan-0218", "changeId": "change-4b4ed277e67ae1f78b0ae4dc" }, { "id": "plan-0217", "changeId": "change-4e04840c90de0c6e4b0b3917" }, { "id": "plan-0013", "changeId": "change-674064063fb6d0f2a0100da3" }, { "id": "plan-0003", "changeId": "change-72fedbdce78e01a5ded89b43" }, { "id": "plan-0214", "changeId": "change-7cca6ceb8b757d39d6ae2f9a" }, { "id": "plan-0023", "changeId": "change-7f5d3df973101d4ce4b83957" }, { "id": "plan-0219", "changeId": "change-8206cc5c3512000df26cfd9d" }, { "id": "plan-0102", "changeId": "change-870a9310ba08288505e6fdde" }, { "id": "plan-0005", "changeId": "change-8a3995cf02d1607a8c978b42" }, { "id": "plan-0103", "changeId": "change-8b40222f8a5c880f9f7a676a" }, { "id": "plan-0215", "changeId": "change-928d3b86d2be689a22528633" }, { "id": "plan-0004", "changeId": "change-a19395449fa2b39372a73e95" }, { "id": "plan-0092", "changeId": "change-a22185256844ee8caf81a9ca" }, { "id": "plan-0094", "changeId": "change-be419e92b67bc5e585819631" }, { "id": "plan-0100", "changeId": "change-f5a81c0184ee5e43c3181499" }, { "id": "plan-0101", "changeId": "change-f978ae82afb2cf9f2c3a3d1f" }, { "id": "plan-0135", "changeId": "change-1ddd2f26b385ca4cce5c0889" }, { "id": "plan-0101", "changeId": "change-255d9ace38e030ac418c588e" }, { "id": "plan-0033", "changeId": "change-3182b6de09f4ddd7c58e06f0" }, { "id": "plan-0134", "changeId": "change-3f6953b4667c1dd71f3a9ec6" }, { "id": "plan-0026", "changeId": "change-480f09d4107d62f910374368" }, { "id": "plan-0197", "changeId": "change-503b4179a50e7cf33d46eab1" }, { "id": "plan-0102", "changeId": "change-5dd6fd47e0331163af1b6c6e" }, { "id": "plan-0017", "changeId": "change-5e5a0320dc4615f448119a35" }, { "id": "plan-0139", "changeId": "change-67a89830e048c3cc060aa4b8" }, { "id": "plan-0154", "changeId": "change-717c2777ffebf7b15a65edc9" }, { "id": "plan-0025", "changeId": "change-72dda49670b16f04542dc0e8" }, { "id": "plan-0156", "changeId": "change-7f021aeddba731b72a8bc19a" }, { "id": "plan-0097", "changeId": "change-91702b0165a550bf34053640" }, { "id": "plan-0138", "changeId": "change-925841d5dc56d189fb387575" }, { "id": "plan-0032", "changeId": "change-a34ee27e1bc9661f445d3d90" }, { "id": "plan-0160", "changeId": "change-c54acaae59581333114da30f" }, { "id": "plan-0016", "changeId": "change-d0e2173924d84dc157d0522d" }, { "id": "plan-0149", "changeId": "change-d4c060d1224d283a18e43f10" }, { "id": "plan-0155", "changeId": "change-feeb742795ef7f3f0970bf39" }, { "id": "plan-0031", "changeId": "change-ff4c63f9bac95e9d5c32726f" }] };
 
 /* 项目公开入口与纠错提交渠道。 */
 const PUBLIC_PROJECT = Object.freeze({

@@ -600,6 +600,44 @@ async function main() {
       fs.rmSync(root, { recursive: true, force: true });
     }
   });
+  await test("--stale-days：页面汇率不变且未满天数时不写入，满天数或页面汇率变化时照常更新", async () => {
+    const repo = path.resolve(__dirname, "../..");
+    const source = fs.readFileSync(path.join(repo, "data/sources/data.js"), "utf8");
+    const currentAsOf = /rateAsOf: "(\d{4}-\d{2}-\d{2})"/.exec(source)[1];
+    const shown = Number(/const RATE_USD_CNY = ([\d.]+);/.exec(source)[1]);
+    const day = (offset) => new Date(Date.parse(currentAsOf + "T00:00:00Z") + offset * 86400000).toISOString().slice(0, 10);
+    const response = (date, cny) => async () => new Response(JSON.stringify({ amount: 1, base: "USD", date, rates: { CNY: cny, INR: 88.41 } }));
+    assert.deepEqual(parseRateArgs(["--stale-days", "7"]), { dryRun: false, date: "", staleDays: 7 });
+    for (const bad of [["--stale-days"], ["--stale-days", "0"], ["--stale-days", "366"], ["--stale-days", "x"]]) assert.throws(() => parseRateArgs(bad), /用法/);
+    const temporaryRoot = realTempRoot();
+    const root = fs.mkdtempSync(path.join(temporaryRoot, "coding-plan-tools-test-"));
+    try {
+      for (const name of ["index.html", "src", "data/sources", "public"]) fs.cpSync(path.join(repo, name), path.join(root, name), { recursive: true });
+      const dataFile = path.join(root, "data/sources/data.js");
+      /* 两位小数后与页面现值相同：只有日期和印度卢比变化。 */
+      const sameShown = shown + 0.001;
+      const skipped = await updateRates(root, { fetcher: response(day(6), sameShown), staleDays: 7 });
+      assert.equal(skipped.skipped, true); assert.equal(skipped.written, 0); assert.equal(skipped.ageDays, 6);
+      assert.equal(fs.readFileSync(dataFile, "utf8"), source, "未满天数的同值汇率不写入");
+      const aged = await updateRates(root, { fetcher: response(day(7), sameShown), staleDays: 7 });
+      assert.equal(aged.skipped, undefined); assert.equal(aged.written, 1);
+      assert.match(fs.readFileSync(dataFile, "utf8"), new RegExp(`rateAsOf: "${day(7)}"`));
+      const moved = await updateRates(root, { fetcher: response(day(8), shown + 0.05), staleDays: 7 });
+      assert.equal(moved.written, 1, "页面汇率变化时不论天数都更新");
+    } finally {
+      if (path.dirname(root) !== temporaryRoot) throw new Error("拒绝清理未知测试目录");
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+  await test("CI 没有项目关联文件时读 VERCEL_ORG_ID / VERCEL_PROJECT_ID，本机关联文件优先", () => fixture(async (root) => {
+    const environment = { VERCEL_ORG_ID: "team_env", VERCEL_PROJECT_ID: "prj_env" };
+    assert.equal((await deployment(root, ["--prod"], { build: fakeBuild, environment })).body.project, "prj_fixture", "已有 .vercel/project.json 时不被环境变量覆盖");
+    fs.unlinkSync(path.join(root, ".vercel/project.json"));
+    const job = await deployment(root, ["--prod"], { build: fakeBuild, environment });
+    assert.equal(job.body.project, "prj_env"); assert.equal(job.team, "?teamId=team_env");
+    assert.equal(job.body.name, "coding-plan-comparison"); assert.equal(job.body.target, "production");
+    await assert.rejects(deployment(root, ["--prod"], { build: fakeBuild, environment: { VERCEL_PROJECT_ID: "prj_env" } }), /VERCEL_ORG_ID/);
+  }));
   await test("部署网络超时拒绝会向调用方失败，且不会启动轮询", () => fixture(async (root) => {
     let requests = 0, waits = 0;
     const timeout = new Error("timeout fixture"); timeout.name = "TimeoutError";
@@ -654,7 +692,7 @@ async function main() {
     const dry = await deploySite(root, ["--dry-run"], { build: fakeBuild, fetcher: async () => { throw new Error("不得联网"); } });
     assert.equal(dry.dryRun, true);
     assert.ok(dry.files.includes("index.html"));
-    await assert.rejects(deploySite(root, ["--prod"], { build: fakeBuild, token:"fixture-token" }), /projectId\/orgId/);
+    await assert.rejects(deploySite(root, ["--prod"], { build: fakeBuild, token:"fixture-token", environment: {} }), /projectId\/orgId/);
     await assert.rejects(deploySite(root, ["--dry-run", "--bad"]), /用法/);
   }));
   await test("认证优先级 env/options/已知CLI auth，缺失或非法文件不扫描其他凭据", () => fixture(async (root, write) => {

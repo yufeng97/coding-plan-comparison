@@ -1,0 +1,276 @@
+name: 每日价格与资讯巡检（Claude）
+
+# 可选。在仓库 Secrets 配置 CLAUDE_CODE_OAUTH_TOKEN（本机 `claude setup-token` 生成，用订阅额度）
+# 或 ANTHROPIC_API_KEY（按 API 用量计费）二者之一后，北京时间每天 09:00 运行；未配置时直接跳过。
+# 1. 采集资讯候选：与手动采集工作流共用队列缓存与并发组；
+# 2. Claude Code 按 .github/automation/daily-inspection.md 逐条打开官网核实。它在不带推送凭据的检出里只改数据文件，
+#    不提交、不推送；
+# 3. 改动必须全部落在 DATA_PATHS 白名单内。补丁由单独作业提交到 automation/inspection，跑完整 CI 后开 PR；
+# 4. 网页内容可能含提示注入，PR 必须由维护者逐条核对官方链接后合并。合并后 main 的 CI 通过即自动发布。
+on:
+  schedule:
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-inspection
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  # 每段不以点开头：排除 .. 与隐藏文件。tests/scripts/test-workflows.js 校验放行与拒绝的样例。
+  DATA_PATHS: '^(data/sources/data\.js|data/audit/incremental-[A-Za-z0-9._-]+\.json|data/audit/pricing-incremental-[A-Za-z0-9._-]+\.(json|csv)|data/audit/change-history\.json|data/generated/([A-Za-z0-9_-][A-Za-z0-9._-]*/)*[A-Za-z0-9_-][A-Za-z0-9._-]*|src/generated/catalog\.ts|data/config/news-sources\.json|data/config/review-calendar\.json|CHANGES\.md|README\.md|README\.en\.md)$'
+  CLAUDE_CODE_VERSION: 2.1.287
+
+jobs:
+  inspect:
+    name: Claude 核实价格与资讯
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    # 与 news-collect.yml 共用资讯队列缓存，同时只运行一个。
+    concurrency:
+      group: news-inbox
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      actions: write # 队列损坏时删除该分支前缀下的旧缓存（与 news-collect.yml 相同）
+    outputs:
+      changed: ${{ steps.patch.outputs.changed }}
+    steps:
+      - name: 检查 Claude 凭据
+        id: credentials
+        env:
+          HAS_OAUTH: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
+          HAS_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+        run: |
+          if [ "$HAS_OAUTH" = true ] || [ "$HAS_KEY" = true ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice title=跳过 AI 巡检::未配置 CLAUDE_CODE_OAUTH_TOKEN 或 ANTHROPIC_API_KEY"
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.credentials.outputs.ready == 'true'
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: steps.credentials.outputs.ready == 'true'
+        with:
+          node-version: 22
+          cache: npm
+      - name: 按 lockfile 安装开发依赖（不执行依赖安装脚本）
+        if: steps.credentials.outputs.ready == 'true'
+        run: npm ci --ignore-scripts
+      - name: 为完整分支引用生成缓存命名空间
+        if: steps.credentials.outputs.ready == 'true'
+        id: cache-key
+        env:
+          NEWS_REF: ${{ github.ref }}
+        run: node -e "const fs=require('node:fs'),crypto=require('node:crypto');fs.appendFileSync(process.env.GITHUB_OUTPUT,'prefix=news-inbox-v2-'+crypto.createHash('sha256').update(process.env.NEWS_REF).digest('hex')+'--\n');"
+      - name: 恢复已审队列与页面基线
+        if: steps.credentials.outputs.ready == 'true'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: data/audit/news/*.json
+          key: ${{ steps.cache-key.outputs.prefix }}${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ${{ steps.cache-key.outputs.prefix }}
+      - name: 隔离损坏的待审队列
+        if: steps.credentials.outputs.ready == 'true'
+        id: quarantine
+        run: node -e "const fs=require('node:fs'); const {quarantineCorruptInbox}=require('./scripts/news/collect-news'); const dest=quarantineCorruptInbox('data/audit/news'); if(dest){console.log('已隔离损坏队列：'+dest); if(process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT,'corrupt=true\n');}"
+      - name: 删除已损坏的旧缓存，避免下一轮再次恢复
+        if: steps.quarantine.outputs.corrupt == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CACHE_PREFIX: ${{ steps.cache-key.outputs.prefix }}
+        run: |
+          ids=$(gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/caches" -f key="$CACHE_PREFIX" -f per_page=100 --jq '.actions_caches[].id')
+          for id in $ids; do
+            gh api --method DELETE "repos/${GITHUB_REPOSITORY}/actions/caches/${id}"
+          done
+      - name: 采集资讯候选
+        id: collect
+        if: steps.credentials.outputs.ready == 'true'
+        continue-on-error: true
+        run: node scripts/news/collect-news.js --days 14
+      - name: 导出审核材料
+        if: steps.credentials.outputs.ready == 'true'
+        continue-on-error: true
+        run: npm run news:review -- triage --output data/audit/news/triage.json
+      - name: 安装 Claude Code（固定版本）
+        if: steps.credentials.outputs.ready == 'true'
+        run: npm install --global "@anthropic-ai/claude-code@$CLAUDE_CODE_VERSION"
+      # Claude 子进程（npm 脚本等）的环境里去掉凭据；检出不带推送凭据，提交与推送在后面的作业完成。
+      - name: Claude 核实并更新正式数据
+        id: claude
+        if: steps.credentials.outputs.ready == 'true'
+        timeout-minutes: 100
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "1"
+          # npm test / typecheck 要几分钟，默认 2 分钟的命令时限不够。
+          BASH_DEFAULT_TIMEOUT_MS: "900000"
+          BASH_MAX_TIMEOUT_MS: "1200000"
+          CLAUDE_MODEL: ${{ vars.CLAUDE_INSPECTION_MODEL }}
+          OUT: ${{ runner.temp }}/inspection
+        run: |
+          [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ] || unset CLAUDE_CODE_OAUTH_TOKEN
+          [ -n "$ANTHROPIC_API_KEY" ] || unset ANTHROPIC_API_KEY
+          mkdir -p "$OUT"
+          today=$(TZ=Asia/Shanghai date +%F)
+          prompt="今天（北京时间）：$today
+          结果目录：$OUT（summary.md 必写；改了仓库文件时再写 pr-body.md）
+
+          $(cat .github/automation/daily-inspection.md)"
+          model=()
+          if [ -n "$CLAUDE_MODEL" ]; then model=(--model "$CLAUDE_MODEL"); fi
+          tools="Read,Glob,Grep,Edit,Write,TodoWrite,WebFetch,WebSearch"
+          tools+=",Bash(npm run news:review *),Bash(npm run pricing:sync *),Bash(npm run maintenance:build *)"
+          tools+=",Bash(npm run catalog:build),Bash(npm run readme:build),Bash(npm run validate),Bash(npm run check)"
+          tools+=",Bash(npm run typecheck),Bash(npm test),Bash(npm run maintenance:check),Bash(npm run catalog:check)"
+          tools+=",Bash(npm run readme:check),Bash(git status *),Bash(git diff *),Bash(jq *),Bash(head *),Bash(tail *),Bash(wc *)"
+          claude -p "$prompt" "${model[@]}" --permission-mode dontAsk --allowedTools "$tools" --add-dir "$OUT" \
+            --max-turns 300 --output-format json > "$OUT/claude-result.json"
+      - name: 保留本次队列与缓存
+        if: ${{ always() && steps.collect.outputs.cache-ready == 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: data/audit/news/*.json
+          key: ${{ steps.cache-key.outputs.prefix }}${{ github.run_id }}-${{ github.run_attempt }}
+      - name: 只接受数据路径白名单内的改动并生成补丁
+        id: patch
+        if: steps.claude.outcome == 'success'
+        env:
+          OUT: ${{ runner.temp }}/inspection
+        run: |
+          git add -A
+          git diff --cached --name-only > "$OUT/changed-files.txt"
+          if [ ! -s "$OUT/changed-files.txt" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "没有可核实的正式数据变化"
+            exit 0
+          fi
+          if grep -Ev "$DATA_PATHS" "$OUT/changed-files.txt"; then echo "::error::上列文件不在数据路径白名单内，拒绝生成 PR"; exit 1; fi
+          if git diff --cached --summary | grep -E "mode 120000|mode 160000"; then echo "::error::补丁含符号链接或子模块，拒绝生成 PR"; exit 1; fi
+          test -s "$OUT/pr-body.md" || { echo "::error::Claude 没有写出 pr-body.md"; exit 1; }
+          git diff --cached --binary > "$OUT/inspection.patch"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+      - name: 写入运行摘要
+        if: ${{ always() && steps.credentials.outputs.ready == 'true' }}
+        env:
+          OUT: ${{ runner.temp }}/inspection
+        run: |
+          mkdir -p "$OUT/news"
+          cp data/audit/news/latest.json data/audit/news/health.json data/audit/news/triage.json "$OUT/news/" 2>/dev/null || true
+          {
+            echo "## 每日价格与资讯巡检"
+            if [ -f "$OUT/claude-result.json" ]; then
+              node -e "const r=JSON.parse(require('node:fs').readFileSync(process.argv[1],'utf8'));console.log('- Claude：'+(r.subtype||'')+'，'+(r.num_turns??'?')+' 轮'+(r.total_cost_usd!=null?'，约 USD '+Number(r.total_cost_usd).toFixed(2):''))" "$OUT/claude-result.json" || true
+            fi
+            if [ -f "$OUT/summary.md" ]; then echo; cat "$OUT/summary.md"; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: 上传补丁、说明与资讯报告
+        if: ${{ always() && steps.credentials.outputs.ready == 'true' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: daily-inspection-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/inspection/
+          retention-days: 30
+          if-no-files-found: warn
+
+  propose:
+    name: 提交巡检候选
+    needs: inspect
+    if: needs.inspect.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    outputs:
+      sha: ${{ steps.push.outputs.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: daily-inspection-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/inspection
+      # 只运行 git，不执行仓库代码；应用后再核对一次路径白名单。
+      - name: 应用补丁并推送 automation/inspection
+        id: push
+        env:
+          OUT: ${{ runner.temp }}/inspection
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git apply --index "$OUT/inspection.patch"
+          if git diff --cached --name-only | grep -Ev "$DATA_PATHS"; then echo "::error::补丁含白名单外路径"; exit 1; fi
+          if git diff --cached --summary | grep -E "mode 120000|mode 160000"; then echo "::error::补丁含符号链接或子模块"; exit 1; fi
+          git commit -q -m "data: 每日价格与资讯巡检 $(TZ=Asia/Shanghai date +%F)（Claude 核实，待复核）" \
+            -m "由「每日价格与资讯巡检」工作流调用 Claude Code 生成，改动限于数据路径白名单；证据与说明见对应 PR。"
+          git push --force origin HEAD:refs/heads/automation/inspection
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  verify:
+    name: 巡检候选完整 CI
+    needs: propose
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ needs.propose.outputs.sha }}
+
+  # 需要在仓库 Settings → Actions → General 勾选「Allow GitHub Actions to create and approve pull requests」。
+  pull-request:
+    name: 巡检 PR
+    needs: [propose, verify]
+    if: ${{ !cancelled() && needs.propose.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: daily-inspection-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/inspection
+      - name: 创建或更新巡检 PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERIFY: ${{ needs.verify.result }}
+          OUT: ${{ runner.temp }}/inspection
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          body="$RUNNER_TEMP/pr-body.md"
+          {
+            cat "$OUT/pr-body.md"
+            echo
+            if [ "$VERIFY" = success ]; then
+              echo "完整 CI（Linux / Windows，Chromium / Firefox / WebKit）在候选提交上通过，见[运行记录]($RUN_URL)。"
+            else
+              echo "⚠️ 完整 CI 未通过（$VERIFY），见[运行记录]($RUN_URL)；修复前不要合并。"
+            fi
+            echo
+            echo "> 由「每日价格与资讯巡检」工作流调用 Claude Code 生成。合并前请逐条打开上面的官方链接核对；网页内容可能含提示注入，改动只应出现在数据文件里。"
+            echo
+            echo "🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+          } > "$body"
+          title="data: 每日价格与资讯巡检 $(TZ=Asia/Shanghai date +%F)"
+          number=$(gh pr list --repo "$GITHUB_REPOSITORY" --head automation/inspection --base main --state open --json number --jq '.[0].number // empty')
+          if [ -n "$number" ]; then
+            gh pr edit "$number" --repo "$GITHUB_REPOSITORY" --title "$title" --body-file "$body"
+            if [ "$VERIFY" = success ]; then gh pr ready "$number" --repo "$GITHUB_REPOSITORY" || true; else gh pr ready "$number" --repo "$GITHUB_REPOSITORY" --undo || true; fi
+          else
+            draft=(); [ "$VERIFY" = success ] || draft=(--draft)
+            gh pr create --repo "$GITHUB_REPOSITORY" --base main --head automation/inspection --title "$title" --body-file "$body" "${draft[@]}"
+          fi
