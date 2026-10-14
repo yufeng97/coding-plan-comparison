@@ -2,7 +2,7 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const { validatePublic, rowId, officialURL, collect, publish, digest, compareScores, readPublic } = require("../../scripts/benchmarks/public-scores");
+const { validatePublic, rowId, officialURL, collect, publish, digest, compareScores, readPublic, diffSummary } = require("../../scripts/benchmarks/public-scores");
 const { fetchSource, MAX_BYTES } = require("../../scripts/news/network");
 const { realTempRoot } = require("../../scripts/lib/temp-dir");
 const now = new Date().toISOString(), url = "https://deepswe.datacurve.ai/";
@@ -136,6 +136,26 @@ async function main() {
         await assert.rejects(collect(dir, { fetchSource: getter, adapters: [{ id: "test", collect: async get => { fs.writeFileSync(lock, replacement); return good.collect(get); } }] }), /所有权已变化/);
         assert.equal(fs.readFileSync(lock, "utf8"), replacement);
       } finally { fs.unlinkSync(lock); }
+    });
+    await test("差异摘要只数成绩与协议的实际增删改，表格转义并标出变化字段", async () => {
+      await collect(dir, { fetchSource: getter, adapters: [good] });
+      publish(latest, "reviewer", "reason", dir);
+      await collect(dir, { fetchSource: getter, adapters: [good] });
+      assert.equal(diffSummary(dir).changes, 0, "只刷新核查时间不算变化");
+      const other = { ...row, model: "pipe|model", reasoning: null };
+      const changed = { id: "test", collect: async get => {
+        const value = await good.collect(get);
+        value.scores[0].score = 70;
+        value.scores.push({ ...other, checkedAt: value.scores[0].checkedAt });
+        return value;
+      } };
+      await collect(dir, { fetchSource: getter, adapters: [changed] });
+      const summary = diffSummary(dir);
+      assert.equal(summary.changes, 2);
+      assert.match(summary.markdown, /成绩新增 1、变化 1、撤回 0；协议新增 0、变化 0、撤回 0/);
+      assert.ok(summary.markdown.includes("| 新增 | Test fixture | pipe\\|model | test-agent | — | 67 | — |"), summary.markdown);
+      assert.ok(summary.markdown.includes("| 变化 | Test fixture | test-only | high / test-agent | 67 | 70 | score |"), summary.markdown);
+      assert.match(diffSummary(dir, 1).markdown, /另有 1 条成绩变化未列出/);
     });
   } finally {
     if (path.dirname(dir) !== temporaryRoot || !path.basename(dir).startsWith("public-benchmark-test-")) throw new Error("未知测试目录");

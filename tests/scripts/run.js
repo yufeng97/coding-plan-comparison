@@ -8,6 +8,8 @@ const suite = [
   "test-server.js",
   "test-file-lock.js",
   "test-tools.js",
+  "test-readme.js",
+  "test-workflows.js",
   "test-pricing-sync.js",
   "test-news.js",
   "test-news-blog.js",

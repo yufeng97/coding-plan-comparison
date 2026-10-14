@@ -47,7 +47,8 @@
 | `public/` | 只放手写静态资源：分享卡片图 `img/og-card.png`（og:image）。由 `build:site` 与开发中间件按白名单发布，发布 URL 保持 `img/` |
 | `tsconfig.json` / `tsconfig.*.json` | 根配置只引用子项目，编辑器据此为每个文件选用对应配置：`app`（业务模块与组件，不含 Node 类型）、`vitest`（测试）、`data`（数据文件 checkJs）、`node`（工具脚本、Node 回归、端到端测试与 Vite / Playwright 配置） |
 | `scripts/lib/paths.js` / `atomic-swap.js` | 共享的「路径是否在根内 / 封锁段」判断、目录级原子交换（暂存→备份→切换→回滚）与逐文件替换回滚 |
-| `scripts/build/` | 构建与校验工具：vite-assets（公共源白名单、经典资源哈希与 ECharts 生成）、catalog-types、vendor-fonts、stage-site、prerender、render-vue、deploy-site、check-syntax、check-architecture、check-bundle-size（brotli 体积预算）、validate-data、sync-pricing-audit、update-rates（参考汇率） |
+| `scripts/build/` | 构建与校验工具：vite-assets（公共源白名单、经典资源哈希与 ECharts 生成）、catalog-types、vendor-fonts、stage-site、prerender、render-vue、deploy-site、check-syntax、check-architecture、check-bundle-size（brotli 体积预算）、validate-data、sync-pricing-audit、update-rates（参考汇率）、readme-stats（中英文 README 的统计段） |
+| `.github/workflows/` / `.github/automation/` | CI、发布（`pages.yml` 触发、`deploy.yml` 可复用）、每日数据更新与可选的 Claude 每日巡检及其说明；手动采集资讯与评测 |
 | `scripts/server/serve.js` | 发布产物预览服务器（`serve.js .site-build`；只监听 127.0.0.1，只读站点目录内的白名单文件并拒绝隐藏路径） |
 | `scripts/news/collect-news.js` | 联网采集资讯候选与页面变化；保留缓存和来源错误，不改正式数据 |
 | `scripts/maintenance/` | 维护摘要与变更 RSS 构建：读写 `data/audit/change-history.json`，输出到 `data/generated/` |
@@ -106,11 +107,31 @@ npm run build:site
 npm run deploy -- --dry-run
 ```
 
-实际部署使用 Node 原生 `fetch` 调用 [Vercel REST API](https://vercel.com/docs/rest-api/deployments/create-a-new-deployment)，不需要将 Vercel CLI 的框架依赖带进项目。项目关联读取根目录 `.vercel/project.json`；认证优先级依次为环境变量 `VERCEL_TOKEN`、部署函数调用者的临时 `options.token`、Windows 标准路径 `%APPDATA%/com.vercel.cli/Data/auth.json` 中的现有 CLI 登录 token。回退只读取这一个明确位置，不递归搜索其他凭据；`--dry-run` 无需关联项目，不读取认证或请求网络。凭据只用于授权头，响应或错误中回显的 token 会脱敏，不写入产物或日志。`npm run deploy` 创建预览部署，`npm run deploy -- --prod` 发布生产；仅在部署达到 READY 后报告成功。
+实际部署使用 Node 原生 `fetch` 调用 [Vercel REST API](https://vercel.com/docs/rest-api/deployments/create-a-new-deployment)，不需要将 Vercel CLI 的框架依赖带进项目。项目关联读取根目录 `.vercel/project.json`；没有该文件时（如 GitHub Actions）读取与 Vercel CLI 同名的环境变量 `VERCEL_ORG_ID`、`VERCEL_PROJECT_ID`（可选 `VERCEL_PROJECT_NAME`），本机关联文件优先。认证优先级依次为环境变量 `VERCEL_TOKEN`、部署函数调用者的临时 `options.token`、Windows 标准路径 `%APPDATA%/com.vercel.cli/Data/auth.json` 中的现有 CLI 登录 token。回退只读取这一个明确位置，不递归搜索其他凭据；`--dry-run` 无需关联项目，不读取认证或请求网络。凭据只用于授权头，响应或错误中回显的 token 会脱敏，不写入产物或日志。`npm run deploy` 创建预览部署，`npm run deploy -- --prod` 发布生产；仅在部署达到 READY 后报告成功。
 
 此部署脚本读取现有 token，不自动刷新 CLI 的 OAuth 登录会话。返回 401/403 时先检查账号的项目权限和凭据有效期；必要时使用[官方 CLI 登录](https://vercel.com/docs/cli/login)（`npx vercel login`）更新会话，或在运行环境提供有效 `VERCEL_TOKEN` 后重试。不要把 token 写进仓库、README 或公开产物。发布后访问正式域名，核对资源版本和桌面/手机核心操作；Vercel 的部署专属网址可能受登录保护。
 
-GitHub Pages 作为第二个公开部署入口：[coding-plan-comparison](https://yufeng97.github.io/coding-plan-comparison/)。Source 使用 **GitHub Actions**。[Pages 工作流](../.github/workflows/pages.yml) 等待 `main` 推送的 CI 必需检查成功（含 Linux／Windows 三种浏览器），明确检出该次 CI 通过的 `head_sha`，再检查和构建 `.site-build/`。依赖审计为独立非阻断作业，公告或 registry 故障会在该作业报告，不影响其他检查与 Pages 发布。手动发布也要求同一提交已有成功的 CI；PR、失败或取消的 CI 不发布。构建作业只读代码、CI 状态与 Pages 配置，安装依赖时禁用安装脚本，并在上传前移除 Vercel 专用配置。发布作业使用 `pages: write` / `id-token: write`，无需个人 token 或 Vercel 凭据。Actions 固定到完整 SHA，由 Dependabot 每周检查更新。
+GitHub Pages 作为第二个公开部署入口：[coding-plan-comparison](https://yufeng97.github.io/coding-plan-comparison/)。Source 使用 **GitHub Actions**。
+
+[发布触发工作流](../.github/workflows/pages.yml) 的流程：
+
+1. 等待 `main` 推送的 CI 必需检查成功（含 Linux／Windows 三种浏览器），确定该次 CI 通过的 `head_sha`；
+2. 调用可复用的[发布网站](../.github/workflows/deploy.yml)，明确检出这个提交，检查并构建 `.site-build/`；
+3. 发布到 GitHub Pages；仓库配置了 `VERCEL_TOKEN`、`VERCEL_ORG_ID`、`VERCEL_PROJECT_ID` 时，用同一提交运行 `npm run deploy -- --prod` 发布 Vercel 主站，未配置时只发布 Pages。
+
+依赖审计为独立非阻断作业，公告或 registry 故障会在该作业报告，不影响其他检查与发布。
+
+手动发布同样要求同一提交已有成功的完整 CI：push 事件的 CI，或每日数据更新写入的 `daily-data/full-ci` 状态。PR、失败或取消的 CI 不发布。
+
+[每日数据更新](../.github/workflows/daily-data.yml)在候选提交通过完整 CI 并快进 `main` 后，直接调用同一个发布工作流：用 `GITHUB_TOKEN` 推送的提交不会再触发 push 事件的 CI。两个入口的发布作业共用 `site-deploy` 并发组，同时只发布一次，排队中的旧提交会被更新的提交替换。
+
+权限划分：
+
+- 构建作业只读代码与 Pages 配置，安装依赖时禁用安装脚本，并在上传前移除 Vercel 专用配置；
+- Pages 发布作业使用 `pages: write` / `id-token: write`；
+- Vercel 作业只在发布步骤读取 Vercel 凭据。
+
+Actions 固定到完整 SHA，由 Dependabot 每周检查更新，`tests/scripts/test-workflows.js` 检查这一约定。
 
 两个站点共用页面中的 CSP（禁止内联脚本）与 Referrer Policy；主题引导使用外链脚本。Vercel 额外通过响应头提供 `frame-ancestors`、X-Frame-Options、nosniff 和 Permissions-Policy。原生 GitHub Pages 不解释 `vercel.json`，meta CSP 也不支持 `frame-ancestors`，因此这些响应头仍是部署平台差异；若要求完全对齐，应使用可配置响应头的代理或统一托管平台。
 

@@ -30,6 +30,8 @@
     "benchmark:build": "node scripts/benchmarks/benchmark.js build",
     "benchmark:check": "node scripts/benchmarks/benchmark.js check",
     "maintenance:check": "node scripts/maintenance/build-maintenance.js --check",
+    "readme:build": "node scripts/build/readme-stats.js",
+    "readme:check": "node scripts/build/readme-stats.js --check",
     "test:news": "node tests/scripts/test-news.js && node tests/scripts/test-news-blog.js && node tests/scripts/test-news-blog-collection.js",
     "test:browser": "playwright test",
     "vendor:fonts": "node scripts/build/vendor-fonts.js",

@@ -2,6 +2,40 @@
 
 > 按数据核查和代码修复批次记录。
 
+## 2026-10-14：中英文 README 与每日自动更新——汇率与评测定时采集、Claude 价格巡检、自动发布主站
+
+- **README 中英文版本**
+  - 新增 `README.en.md`，两版顶部可互相切换，章节结构一致；长段落拆成小节与列表，内容不变。
+  - 数据统计改由 `npm run readme:build` 从 `data.js` 与公开评测快照生成，写在 `<!-- readme-stats:… -->` 标记之间。包括数据版本、套餐与 API 条数、评测成绩和参考汇率。
+  - CI 与发布前用 `readme:check` 核对：数据变了却没重新生成，检查会失败。
+  - 原 README 里「API 按量计费：36 款」与「37 行 API 定价」两处说法不一致，统一为「37 行 API 定价（36 款模型）」。
+- **每日数据更新**（北京时间 08:30，`daily-data.yml`）
+  - 欧洲央行参考汇率在页面显示值变化或满 7 天时更新（`rates:update -- --stale-days 7`），只改日期的更新会跳过。
+  - 汇率候选提交在 `automation/rates` 上跑与 PR 相同的完整 CI，通过后快进 `main` 并发布。
+  - 公开评测每天采集。成绩有新增、变化或撤回时生成候选，跑完整 CI 后开 PR，仍由维护者核对官方榜单后合并。
+  - 新增 `public-scores.js summary`，输出差异表，写进提交说明与 PR。
+- **每日价格与资讯巡检**（北京时间 09:00，`daily-inspection.yml`，可选）
+  - 配置 `CLAUDE_CODE_OAUTH_TOKEN` 或 `ANTHROPIC_API_KEY` 后，Claude Code 按 `.github/automation/daily-inspection.md` 采集资讯、打开官网核实，并修改正式数据。
+  - 它运行在没有推送凭据的检出里，子进程环境去掉凭据，只能运行列出的 npm 脚本与只读命令。
+  - 改动必须全部落在数据路径白名单内；补丁由单独作业提交，跑完整 CI 后开 PR，等维护者复核。
+- **自动发布**
+  - `pages.yml` 改为先确定要发布的提交，再调用可复用的 `deploy.yml`：同一提交检查、构建后发布 GitHub Pages。
+  - 配置 `VERCEL_TOKEN`、`VERCEL_ORG_ID`、`VERCEL_PROJECT_ID` 后同时发布 Vercel 主站。此前主站只能在本机用 `npm run deploy -- --prod` 发布。
+  - `deploy-site.js` 在没有 `.vercel/project.json` 时读取上述两个项目变量。
+  - CI 可被每日更新按提交调用；两个发布入口共用 `site-deploy` 队列。手动发布 Pages 认可每日更新写入的 `daily-data/full-ci` 状态。
+- **测试**
+  - 新增 `test-readme.js`：统计与数据一致、两种语言同步更新、标记缺失或重复时拒绝改写。
+  - 新增 `test-workflows.js`：Action 固定完整 SHA、可复用工作流的调用关系与发布队列、巡检白名单的放行与拒绝样例。
+  - 补充汇率 `--stale-days`、Vercel 环境变量关联与评测差异摘要的回归。
+- **验证**
+  - `npm run typecheck`、`check`、`validate`、`maintenance:check`、`benchmark:check`、`readme:check` 通过。
+  - `npm test` 的 16 个 Node 套件与 Vitest 28 个文件共 409 项通过。
+  - `npm run build:site` 生成 93 个公共文件；`size:check` 在预算内；`npm run deploy -- --dry-run` 通过。
+  - actionlint 1.7.12 检查全部工作流无问题。
+  - 在临时工作树里按工作流步骤实跑汇率更新（Frankfurter 2026-10-13：6.6938，页面仍为 6.69、相差 1 天，按规则跳过）。强制走一遍写入路径：改动文件全部在工作流的提交清单内，候选的校验与 `npm test` 通过。
+  - 实采公开评测时，HLE Diamond 官方页新增了 GPT-6.1 Sol 的工具成绩（69.1%），但 CAIS 工具文档尚未登记其 Harness。采集器按规则拒绝整个来源，正式评测数据不变；每日工作流对此先记警告，连续失败才报错。
+  - 页面代码未改动，未重跑浏览器回归。
+
 ## 2026-10-13：数据更新——The X Subscription、Copilot 模型清单、Claude API 赠额与 12 条积压动态
 
 数据版本 2026-10-09 → 2026-10-13。每日巡检自 10-10 起只生成草稿、未改正式数据，本次逐条打开官方页面复核后入库；增量核价输入为 `data/audit/incremental-2026-10-13.json` 与 `incremental-2026-10-13-openai.json`（37 条记录、14 个新来源）。

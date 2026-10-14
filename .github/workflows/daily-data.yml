@@ -1,0 +1,279 @@
+name: 每日数据更新
+
+# 北京时间每天 08:30 运行（GitHub 定时任务在高峰期可能延迟），也可在 Actions 页手动运行。
+# 1. 欧洲央行参考汇率：页面显示的 USD/CNY 变化，或现有汇率满 7 天时更新。候选提交推到 automation/rates，
+#    跑与 PR 相同的完整 CI（Linux / Windows、三种浏览器），通过后快进合入 main，再发布到 GitHub Pages 与 Vercel。
+# 2. 公开评测：从固定官方榜单采集；成绩有新增、变化或撤回时生成候选推到 automation/benchmarks 并开 PR。
+#    按维护手册，评测变化须由维护者核对官方榜单后合并；合并后照常走 CI 与发布。
+# 价格、套餐与资讯要逐条核对官网原文，见 daily-inspection.yml。
+on:
+  schedule:
+    - cron: "30 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-data
+  cancel-in-progress: false
+
+# 显式 bash 带上 pipefail：管道里的脚本失败不能被当成「没有变化」。
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  update:
+    name: 准备汇率与评测候选
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      # 只推送 automation/* 候选分支；main 由 land 作业在完整 CI 通过后快进。
+      contents: write
+    outputs:
+      rates_sha: ${{ steps.rates-commit.outputs.sha }}
+      bench_sha: ${{ steps.bench-commit.outputs.sha }}
+      rates_outcome: ${{ steps.rates.outcome }}
+      bench_outcome: ${{ steps.bench.outcome }}
+      bench_failures: ${{ steps.bench-health.outputs.max }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: 按 lockfile 安装开发依赖（不执行依赖安装脚本）
+        run: npm ci --ignore-scripts
+      - name: 设置提交身份
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: 更新欧洲央行参考汇率（失败时一分钟后重试一次）
+        id: rates
+        continue-on-error: true
+        run: npm run rates:update -- --stale-days 7 || { sleep 60; npm run rates:update -- --stale-days 7; }
+      - name: 汇率有变化时重建派生数据并推送候选
+        id: rates-commit
+        if: steps.rates.outcome == 'success'
+        run: |
+          if git diff --quiet -- data/sources/data.js; then echo "汇率无需更新"; exit 0; fi
+          npm run maintenance:build -- --as-of "$(TZ=Asia/Shanghai date +%F)"
+          npm run catalog:build
+          npm run readme:build
+          asof=$(sed -n 's/^  rateAsOf: "\([0-9-]*\)",$/\1/p' data/sources/data.js)
+          usd=$(sed -n 's/^const RATE_USD_CNY = \([0-9.]*\);$/\1/p' data/sources/data.js)
+          git add data/sources/data.js data/generated data/audit/change-history.json src/generated README.md README.en.md
+          git commit -q -m "chore(data): 参考汇率更新至 $asof（1 USD ≈ $usd CNY）" \
+            -m "欧洲央行参考汇率经 Frankfurter 获取，由每日数据更新工作流在完整 CI 通过后合入 main。"
+          git push --force origin HEAD:refs/heads/automation/rates
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: 恢复评测来源健康记录
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: data/audit/benchmark-sources/health.json
+          key: benchmark-health-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            benchmark-health-
+      - name: 采集公开评测（只写忽略目录，不改正式数据）
+        id: bench
+        continue-on-error: true
+        run: npm run benchmark:collect
+      - name: 统计评测来源连续失败次数
+        id: bench-health
+        if: always()
+        run: |
+          max=$(node -e "const fs=require('node:fs'),f=process.argv[1];const h=fs.existsSync(f)?JSON.parse(fs.readFileSync(f,'utf8')):{sources:[]};console.log(Math.max(0,...h.sources.map((s)=>s.consecutiveFailures||0)))" data/audit/benchmark-sources/health.json)
+          echo "max=$max" >> "$GITHUB_OUTPUT"
+      - name: 保存评测来源健康记录
+        if: always() && hashFiles('data/audit/benchmark-sources/health.json') != ''
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: data/audit/benchmark-sources/health.json
+          key: benchmark-health-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: 评测有变化时发布候选并推送（待维护者复核）
+        id: bench-commit
+        if: steps.bench.outcome == 'success'
+        env:
+          SUMMARY: ${{ runner.temp }}/benchmark-summary.md
+        run: |
+          changes=$(node scripts/benchmarks/public-scores.js summary --output "$SUMMARY" | sed -n 's/^changes=//p')
+          if [ "${changes:-0}" -eq 0 ]; then echo "公开评测无变化"; exit 0; fi
+          npm run benchmark:publish -- --input data/audit/benchmark-sources/latest.json \
+            --reviewer "GitHub Actions 每日采集（待维护者复核）" \
+            --reason "固定官方榜单自动采集，原始下载哈希已校验；新增、变化与撤回由维护者在 PR 中逐榜核对后合并"
+          npm run benchmark:build
+          npm run catalog:build
+          npm run readme:build
+          git add data/benchmarks data/generated src/generated README.md README.en.md
+          { echo "data(benchmarks): 公开评测更新候选（待复核）"; echo; cat "$SUMMARY"; } > "$RUNNER_TEMP/benchmark-commit.txt"
+          git commit -q -F "$RUNNER_TEMP/benchmark-commit.txt"
+          git push --force origin HEAD:refs/heads/automation/benchmarks
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: 写入运行摘要
+        if: always()
+        env:
+          RATES: ${{ steps.rates.outcome }}
+          RATES_SHA: ${{ steps.rates-commit.outputs.sha }}
+          BENCH: ${{ steps.bench.outcome }}
+          BENCH_SHA: ${{ steps.bench-commit.outputs.sha }}
+          SUMMARY: ${{ runner.temp }}/benchmark-summary.md
+        run: |
+          {
+            echo "## 每日数据更新"
+            echo "- 汇率：${RATES}${RATES_SHA:+，候选 \`$RATES_SHA\`}"
+            echo "- 公开评测采集：${BENCH}${BENCH_SHA:+，候选 \`$BENCH_SHA\`}"
+            if [ -f "$SUMMARY" ]; then echo; cat "$SUMMARY"; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  verify-rates:
+    name: 汇率候选完整 CI
+    needs: update
+    if: ${{ !cancelled() && needs.update.outputs.rates_sha != '' }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ needs.update.outputs.rates_sha }}
+
+  land:
+    name: 汇率合入 main
+    needs: [update, verify-rates]
+    if: ${{ !cancelled() && needs.verify-rates.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      statuses: write
+    outputs:
+      landed: ${{ steps.land.outputs.landed }}
+    steps:
+      # 状态 daily-data/full-ci 让 pages.yml 的手动发布也认可这次完整 CI；快进失败说明 main 已前进，明天基于新的 main 重做。
+      - name: 记录完整 CI 结果并快进 main
+        id: land
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ needs.update.outputs.rates_sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$SHA" -f state=success -f context=daily-data/full-ci \
+            -f description="每日数据更新：Linux / Windows 三种浏览器完整 CI 已通过" -f target_url="$RUN_URL" > /dev/null
+          if result=$(gh api --method PATCH "repos/$GITHUB_REPOSITORY/git/refs/heads/main" -f sha="$SHA" -F force=false 2>&1); then
+            echo "landed=true" >> "$GITHUB_OUTPUT"
+            gh api --method DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/automation/rates" > /dev/null || true
+            echo "汇率更新已合入 main：\`$SHA\`" >> "$GITHUB_STEP_SUMMARY"
+          elif printf '%s' "$result" | grep -qi "fast forward"; then
+            echo "::warning title=汇率未合入::main 在本次运行期间已前进，候选不能快进；明天会基于新的 main 重新生成"
+          else
+            echo "::error title=汇率未合入::$result"
+            exit 1
+          fi
+
+  deploy:
+    name: 发布汇率更新
+    needs: [update, land]
+    if: ${{ !cancelled() && needs.land.outputs.landed == 'true' }}
+    # 与 pages.yml 共用发布队列。
+    concurrency:
+      group: site-deploy
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/deploy.yml
+    with:
+      sha: ${{ needs.update.outputs.rates_sha }}
+    secrets: inherit
+
+  verify-benchmarks:
+    name: 评测候选完整 CI
+    needs: update
+    if: ${{ !cancelled() && needs.update.outputs.bench_sha != '' }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ needs.update.outputs.bench_sha }}
+
+  # 需要在仓库 Settings → Actions → General 勾选「Allow GitHub Actions to create and approve pull requests」。
+  propose:
+    name: 评测更新 PR
+    needs: [update, verify-benchmarks, land]
+    if: ${{ !cancelled() && needs.update.outputs.bench_sha != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ needs.update.outputs.bench_sha }}
+      - name: 创建或更新评测 PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERIFY: ${{ needs.verify-benchmarks.result }}
+          RATES_SHA: ${{ needs.update.outputs.rates_sha }}
+          RATES_LANDED: ${{ needs.land.outputs.landed }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          body="$RUNNER_TEMP/pr-body.md"
+          {
+            echo "由「每日数据更新」工作流根据固定官方榜单自动生成。按维护手册，公开评测的新增、变化与撤回须由维护者逐榜核对官方页面后合并；合并后 main 的 CI 通过即自动发布。"
+            echo
+            echo "- 修改记录 / 永久 ID：\`data/benchmarks/public-results.json\` 及派生的评测数据、类型化目录与 README 统计；不涉及套餐价格。"
+            echo "- 官方证据与核查日期：见下方采集时间；原始下载的 SHA-256 记在快照的 artifacts 中。"
+            echo "- 原币、周期、续费 / 促销及资格差异：不涉及。"
+            if [ "$VERIFY" = success ]; then
+              echo "- 验证命令与结果：完整 CI（Linux / Windows，Chromium / Firefox / WebKit）在候选提交上通过，见[运行记录]($RUN_URL)。"
+            else
+              echo "- 验证命令与结果：⚠️ 完整 CI 未通过（$VERIFY），见[运行记录]($RUN_URL)；修复前不要合并。"
+            fi
+            if [ -n "$RATES_SHA" ] && [ "$RATES_LANDED" != true ]; then
+              echo
+              echo "注意：本 PR 还包含同一次运行中未能合入 main 的汇率更新提交。"
+            fi
+            echo
+            git log -1 --format=%b HEAD
+            echo
+            echo "复核要点：逐榜打开官方页面，核对协议版本、精确模型名、推理档位、Agent / 工具、样本数与费用口径；与官方不符时不要合并，修正 adapter 后重新采集。"
+          } > "$body"
+          title="data(benchmarks): 公开评测更新候选 $(TZ=Asia/Shanghai date +%F)"
+          number=$(gh pr list --repo "$GITHUB_REPOSITORY" --head automation/benchmarks --base main --state open --json number --jq '.[0].number // empty')
+          if [ -n "$number" ]; then
+            gh pr edit "$number" --repo "$GITHUB_REPOSITORY" --title "$title" --body-file "$body"
+            if [ "$VERIFY" = success ]; then gh pr ready "$number" --repo "$GITHUB_REPOSITORY" || true; else gh pr ready "$number" --repo "$GITHUB_REPOSITORY" --undo || true; fi
+          else
+            draft=(); [ "$VERIFY" = success ] || draft=(--draft)
+            gh pr create --repo "$GITHUB_REPOSITORY" --base main --head automation/benchmarks --title "$title" --body-file "$body" "${draft[@]}"
+          fi
+
+  report:
+    name: 来源健康
+    needs: update
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: 汇率接口失败或评测来源连续失败时标记本次运行失败
+        env:
+          UPDATE: ${{ needs.update.result }}
+          RATES: ${{ needs.update.outputs.rates_outcome }}
+          BENCH: ${{ needs.update.outputs.bench_outcome }}
+          FAILURES: ${{ needs.update.outputs.bench_failures }}
+        run: |
+          if [ "$UPDATE" = skipped ]; then echo "只在 main 上运行"; exit 0; fi
+          status=0
+          if [ "$UPDATE" != success ]; then echo "::error::准备候选作业未成功（$UPDATE）"; status=1; fi
+          if [ "$RATES" = failure ]; then echo "::error::汇率接口两次请求均失败"; status=1; fi
+          if [ "$BENCH" = failure ]; then
+            if [ "${FAILURES:-0}" -ge 2 ]; then echo "::error::公开评测来源已连续失败 ${FAILURES} 次"; status=1
+            else echo "::warning::公开评测来源本次失败，下次运行会重试"; fi
+          fi
+          exit $status

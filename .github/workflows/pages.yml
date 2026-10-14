@@ -1,4 +1,4 @@
-name: 部署 GitHub Pages
+name: 部署 GitHub Pages 与 Vercel
 
 on:
   workflow_run:
@@ -10,75 +10,46 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: github-pages
-  cancel-in-progress: false
-
 jobs:
-  build:
+  target:
     if: >-
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main') ||
       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
     permissions:
-      contents: read
-      pages: read
       actions: read
+      statuses: read
+    outputs:
+      sha: ${{ steps.target.outputs.sha }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
-      - name: 手动发布也必须已有同一提交的完整 CI 成功记录
-        if: github.event_name == 'workflow_dispatch'
+      # 每日数据更新合入的提交没有 push 事件的 CI，由该工作流在候选提交上跑完整 CI 后写入 daily-data/full-ci 状态。
+      - name: 确定发布提交；手动发布也必须已有同一提交的完整 CI 成功记录
+        id: target
         env:
           GH_TOKEN: ${{ github.token }}
-          DEPLOY_SHA: ${{ github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
         run: |
-          passed=$(gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs" -f head_sha="$DEPLOY_SHA" -f event=push -f status=success --jq '.workflow_runs | length')
-          test "$passed" -gt 0 || { echo "当前提交尚未通过完整 CI，拒绝发布"; exit 1; }
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 22
-          cache: npm
-      - name: 按 lockfile 安装开发依赖（不执行依赖安装脚本）
-        run: npm ci --ignore-scripts
-      - name: 检查代码、数据与回归
-        run: |
-          npm run check
-          npm run typecheck
-          npm run validate
-          npm run maintenance:check
-          npm run benchmark:check
-          npm test
-      - name: 生成白名单公共站点
-        run: npm run build:site
-      # .site-build 与 Vercel 部署共用；vercel.json 只对 Vercel 有意义，不随 Pages 公开。
-      - name: 移除仅供 Vercel 使用的配置
-        run: |
-          rm -f .site-build/vercel.json
-          test ! -e .site-build/vercel.json
-      - name: 读取 GitHub Pages 配置
-        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
-      - name: 上传公共站点产物
-        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
-        with:
-          path: .site-build
-          retention-days: 1
+          if [ "$EVENT_NAME" = workflow_dispatch ]; then
+            passed=$(gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs" -f head_sha="$DEPLOY_SHA" -f event=push -f status=success --jq '.workflow_runs | length')
+            daily=$(gh api "repos/$GITHUB_REPOSITORY/commits/$DEPLOY_SHA/statuses" --jq '[.[] | select(.context == "daily-data/full-ci" and .state == "success")] | length')
+            test "$passed" -gt 0 || test "$daily" -gt 0 || { echo "当前提交尚未通过完整 CI，拒绝发布"; exit 1; }
+          fi
+          echo "sha=$DEPLOY_SHA" >> "$GITHUB_OUTPUT"
 
   deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    needs: target
+    # 与每日数据更新的发布共用队列：同时只发布一次，排队中的旧提交被更新的提交替换。
+    concurrency:
+      group: site-deploy
+      cancel-in-progress: false
     permissions:
+      contents: read
       pages: write
       id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: 发布到 GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+    uses: ./.github/workflows/deploy.yml
+    with:
+      sha: ${{ needs.target.outputs.sha }}
+    secrets: inherit

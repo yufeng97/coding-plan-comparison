@@ -14,21 +14,28 @@ function stageOptions(workspace, options = {}) {
   return { build: options.build, prerender: path.resolve(workspace) === repositoryRoot ? prerenderIndex : undefined };
 }
 
+/** 本机读取 `npx vercel link` 写入的 .vercel/project.json；没有该文件时（如 GitHub Actions）使用
+ * Vercel CLI 同名环境变量 VERCEL_ORG_ID / VERCEL_PROJECT_ID（可选 VERCEL_PROJECT_NAME）。
+ * @param {string} root @param {NodeJS.ProcessEnv} environment */
+function projectLink(root, environment) {
+  const projectFile = path.join(root, ".vercel", "project.json");
+  try { return JSON.parse(fs.readFileSync(projectFile, "utf8")); }
+  catch (error) {
+    if (!error || error.code !== "ENOENT") throw error;
+    if (environment.VERCEL_ORG_ID && environment.VERCEL_PROJECT_ID) {
+      return { orgId: environment.VERCEL_ORG_ID, projectId: environment.VERCEL_PROJECT_ID, projectName: environment.VERCEL_PROJECT_NAME };
+    }
+    throw new Error("未找到 .vercel/project.json 项目关联：请先在项目根目录运行 `npx vercel link`，或在 CI 中提供 VERCEL_ORG_ID 与 VERCEL_PROJECT_ID；认证 token 不能代替 projectId/orgId");
+  }
+}
+
 /** Fresh public assets only; never reads or deploys .vercel/output.
  * Vercel API reference: https://vercel.com/docs/rest-api/deployments/create-a-new-deployment */
-/** @param {{ build?: (outDir: string, root: string) => Promise<void> }} [options] */
+/** @param {{ build?: (outDir: string, root: string) => Promise<void>, environment?: NodeJS.ProcessEnv }} [options] */
 async function deployment(workspace, args = [], options = {}) {
   if (args.some((arg) => !["--prod", "--dry-run"].includes(arg))) throw new Error("用法：npm run deploy -- [--prod] [--dry-run]");
   const root = path.resolve(workspace);
-  const projectFile = path.join(root, ".vercel", "project.json");
-  let project;
-  try { project = JSON.parse(fs.readFileSync(projectFile, "utf8")); }
-  catch (error) {
-    if (error && error.code === "ENOENT") {
-      throw new Error("未找到 .vercel/project.json 项目关联：请先在项目根目录运行 `npx vercel link`；认证 token 不能代替 projectId/orgId");
-    }
-    throw error;
-  }
+  const project = projectLink(root, options.environment || process.env);
   if (!project.projectId || !project.orgId) throw new Error("根目录 .vercel/project.json 缺少项目关联");
   const site = await stageSite(root, stageOptions(root, options));
   const team = project.orgId.startsWith("team_") ? "?teamId=" + encodeURIComponent(project.orgId) : "";
@@ -54,7 +61,7 @@ function resolveDeploymentToken(options = {}, environment = process.env) {
   } catch { return undefined; }
 }
 
-/** @param {{token?:string,fetcher?:typeof fetch,wait?:typeof delay,build?:(outDir: string, root: string) => Promise<void>}} options */
+/** @param {{token?:string,fetcher?:typeof fetch,wait?:typeof delay,build?:(outDir: string, root: string) => Promise<void>,environment?:NodeJS.ProcessEnv}} options */
 async function deploySite(workspace, args = [], options = {}) {
   if (args.some((arg) => !["--prod", "--dry-run"].includes(arg))) throw new Error("用法：npm run deploy -- [--prod] [--dry-run]");
   if (args.includes("--dry-run")) return { dryRun: true, files: (await stageSite(path.resolve(workspace), stageOptions(workspace, options))).files };

@@ -2,6 +2,87 @@
 
 核价、资讯巡检、新厂商收录、模型评测与贡献者验收的操作流程。站点使用说明见 [README](../README.md)，代码结构与发布见 [架构与发布](architecture.md)，提交格式见 [贡献指南](../CONTRIBUTING.md)。
 
+## 每日自动更新
+
+GitHub Actions 按北京时间定时运行下面的工作流，也都可以在 Actions 页手动运行。定时任务在高峰期可能延迟几分钟到一小时。
+
+| 时间 | 工作流 | 内容 | 上线方式 |
+|---|---|---|---|
+| 08:30 | [每日数据更新](../.github/workflows/daily-data.yml) | 欧洲央行参考汇率、公开评测采集 | 汇率：完整 CI 通过后自动快进 `main` 并发布。评测：有变化时开 PR，维护者复核后合并 |
+| 09:00 | [每日价格与资讯巡检](../.github/workflows/daily-inspection.yml)（可选） | 资讯采集；Claude Code 逐条核实官网并修改正式数据 | 开 PR，维护者复核后合并 |
+| `main` 的 CI 每次通过后 | [部署 GitHub Pages 与 Vercel](../.github/workflows/pages.yml) | 调用 [发布网站](../.github/workflows/deploy.yml)，检查、构建并发布同一提交 | 发布 GitHub Pages；配置 Vercel 凭据后同时发布主站 |
+
+工作流用 `GITHUB_TOKEN` 推送的提交，不会再触发 push 事件的 CI 与发布。所以每日工作流先推候选分支（`automation/*`），自己调用同一份 [CI](../.github/workflows/ci.yml) 检查这个提交，需要时再自己调用发布。
+
+### 汇率
+
+`npm run rates:update -- --stale-days 7` 只在下面两种情况写入，避免每天只改日期的提交：
+
+- 页面显示的 USD/CNY（两位小数）变了；
+- 现有汇率已满 7 天。
+
+写入后依次生成维护摘要、类型化目录和 README 统计，候选提交推到 `automation/rates`。完整 CI（Linux／Windows、三种浏览器）通过后，工作流：
+
+1. 在该提交上写 `daily-data/full-ci` 成功状态，手动发布 Pages 时据此认可这次 CI；
+2. 用 Git 引用接口把 `main` 快进到该提交。如果 `main` 在运行期间已前进，不强推，第二天基于新的 `main` 重做；
+3. 调用发布工作流，发布到 GitHub Pages 与 Vercel。
+
+### 公开评测
+
+`npm run benchmark:collect` 采集固定的官方榜单。`node scripts/benchmarks/public-scores.js summary` 统计采集结果与正式数据相比的新增、变化和撤回；只刷新核查时间不算变化。
+
+有变化时：
+
+1. 以审核者「GitHub Actions 每日采集（待维护者复核）」生成候选，推到 `automation/benchmarks`；
+2. 跑完整 CI；
+3. 开 PR，正文列出变化表与 CI 结果。
+
+按[模型公开评测如何更新](#模型公开评测如何更新)的要求逐榜核对官方页面后再合并。数字有误时不要合并，先修正 adapter，再等下一次采集。PR 没合并期间，之后每天的运行会更新同一个 PR。
+
+失败通知的规则如下，连续失败次数保存在 Actions 缓存中：
+
+- 评测来源单次失败只记警告；
+- 同一来源连续失败 2 次以上，本次运行标为失败，GitHub 会发通知；
+- 汇率接口重试后仍失败，本次运行也标为失败。
+
+### 价格与资讯（Claude，可选）
+
+价格、套餐与资讯要打开官网核对原文，脚本无法可靠判断，所以交给 Claude Code，再由维护者在 PR 里复核。流程如下：
+
+1. 恢复资讯队列缓存（与[手动采集工作流](../.github/workflows/news-collect.yml)共用，同时只运行一个），采集资讯候选并导出 triage。
+2. Claude Code 按[巡检说明](../.github/automation/daily-inspection.md)逐条核实：写增量核价输入、运行核价同步、更新动态与变更日志，再跑校验和测试。限制：
+   - 它运行在没有推送凭据的检出里；
+   - 子进程环境里的凭据会被去掉（`CLAUDE_CODE_SUBPROCESS_ENV_SCRUB`）；
+   - 只能运行列出的 npm 脚本和只读命令。
+3. 所有改动都必须在数据路径白名单（`DATA_PATHS`）内，否则不生成 PR；白名单由 `tests/scripts/test-workflows.js` 守住。补丁由单独作业提交到 `automation/inspection`，跑完整 CI 后开 PR，正文是 Claude 按 PR 模板写的证据清单。
+4. 资讯队列的审核决定随缓存保存。下载运行的 artifact，可以看到 Claude 的巡检说明、补丁与采集报告。
+
+网页内容可能含提示注入。合并前：
+
+- 逐条打开 PR 里的官方链接核对；
+- 确认改动只在数据文件里；
+- `data.js` 是会被执行的脚本，出现函数或逻辑改动时不要合并。
+
+启用后可以关掉 Codex 里的本机巡检，避免两边重复整理同一批候选；两边的资讯队列互不同步。
+
+### 启用步骤
+
+1. **允许工作流开 PR**：Settings → Actions → General → Workflow permissions，勾选「Allow GitHub Actions to create and approve pull requests」。评测 PR 与巡检 PR 都需要这一项。
+2. **Pages 来源**：Settings → Pages 的 Source 保持 **GitHub Actions**。
+3. **自动发布 Vercel 主站**：在 Settings → Secrets and variables → Actions 添加：
+   - Secret `VERCEL_TOKEN`，在 Vercel 账户设置中创建；
+   - `VERCEL_ORG_ID` 与 `VERCEL_PROJECT_ID`，取本机 `.vercel/project.json` 的 `orgId`、`projectId`，放在 Secrets 或 Variables 均可。
+
+   未配置时只发布 GitHub Pages，主站仍可用 `npm run deploy -- --prod` 手动发布。
+4. **Claude 巡检**：二选一添加 Secret。未配置时巡检工作流直接跳过。
+   - `CLAUDE_CODE_OAUTH_TOKEN`：本机运行 `claude setup-token` 生成，用 Claude 订阅额度；
+   - `ANTHROPIC_API_KEY`：按 API 用量计费。
+
+   可选变量 `CLAUDE_INSPECTION_MODEL` 指定模型。工作流里固定的 Claude Code 版本（`CLAUDE_CODE_VERSION`）需要手动升级。
+5. **试运行**：在 Actions 页手动运行一次「每日数据更新」和「每日价格与资讯巡检」，确认候选、CI、PR 与发布都正常。
+
+公开仓库 60 天没有活动时，GitHub 会自动停用定时工作流，需要到 Actions 页重新启用。
+
 ## 逐条价格核查
 
 2026-10-04 对全部 **258 条**价格记录逐条核查，共记录 **105 个官方来源**。结果为：179 条价格一致、40 条记录校正（价格、币种、周期或计费说明）、8 条需询价、7 条确认停售、24 条仍待核实。官网未公开金额、访问失败、现行与历史套餐无法对应或官网口径冲突时，保留历史值与具体原因；不以搜索摘要或第三方榜单填补现行官网报价。
@@ -12,7 +93,7 @@
 - 待核实历史价退出推荐、免费入口和价格/性价比图；公开标价表默认收起待核价格与中转站，打开「含中转站与待核价格」后仍可查看和导出。未列年付价的套餐不进入年付价格图。
 - 完整旧值、新值、官网观察、修正与原因见 [JSON 台账](../data/audit/pricing-verification-2026-10-04.json) 和 [CSV 台账](../data/audit/pricing-verification-2026-10-04.csv)。`pricing-inventory.json` 保留本轮核查前库存；四份厂商分组 JSON 是同步输入。
 - 完成整批价格复核并修改核查输入后，运行 `node scripts/build/sync-pricing-audit.js`、`npm run catalog:build`，再运行 `npm run validate` 和 `npm test`；日常增量维护见下文。同步器不联网；候选源码在内存中通过完整数据校验后，才暂存并提交 `data.js` 与 JSON/CSV 台账。任一文件写入或替换失败会回滚整组输出，回滚受限时保留原文件备份并报告路径。核查日期只推进整份数据的版本日期，不会覆盖较新的巡检版本；重复同步没有变化时不写入。校验器拒绝遗漏、重复、无来源、无效日期、非法价格和模型继承环。
-- 参考汇率用 `npm run rates:update`（可加 `--date YYYY-MM-DD`、`--dry-run`）从 Frankfurter 取欧洲央行参考汇率，只改 `data/sources/data.js` 的汇率常量、`META.rateAsOf`/`rateSource` 与来源目录的「汇率参考」分组（页面上的汇率由这些常量渲染；额度行的外币牌价用 `apiCur` 记原币，不预先折成人民币）；候选数据先通过校验再原子写入，与核价同步共用 `data/audit/.pricing.lock`，拒绝早于当前日期的汇率和明显异常的值。更新后依次运行 `npm run maintenance:build`、`npm run catalog:build`、`npm run validate` 与 `npm test`；汇率变化会改变所有人民币折算结果，需要随数据巡检一起复核。
+- 参考汇率用 `npm run rates:update`（可加 `--date YYYY-MM-DD`、`--dry-run`、`--stale-days N`）从 Frankfurter 取欧洲央行参考汇率，只改 `data/sources/data.js` 的汇率常量、`META.rateAsOf`/`rateSource` 与来源目录的「汇率参考」分组（页面上的汇率由这些常量渲染；额度行的外币牌价用 `apiCur` 记原币，不预先折成人民币）；候选数据先通过校验再原子写入，与核价同步共用 `data/audit/.pricing.lock`，拒绝早于当前日期的汇率和明显异常的值。`--stale-days N` 在页面显示的 USD/CNY 不变、且现有汇率不满 N 天时不写入。更新后依次运行 `npm run maintenance:build`、`npm run catalog:build`、`npm run readme:build`、`npm run validate` 与 `npm test`；每日数据更新工作流会自动完成这些步骤，见[每日自动更新](#每日自动更新)。
 
 ## 最新资讯如何更新
 
@@ -68,7 +149,7 @@ npm run test:news
 
 来源和重定向目标须为公开 HTTPS 地址。系统代理 DNS 若只返回 `198.18.0.0/15` 的 Fake-IP，采集器通过固定的 [Cloudflare DNS over HTTPS 接口](https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-https/make-api-requests/dns-json/)复核域名的公网地址，只发送待抓取域名，实际抓取仍走本机网络；复核失败会记录错误。默认客户端只连接刚刚判定为公网的地址，并在每一跳重定向上重复校验；调用方自行传入的 `fetcher` 不会钉死连接。这不是面向任意不可信来源的网络隔离服务。
 
-已配置北京时间每日 08:30 在 Codex 当前聊天自动巡检（任务名：Coding Plan 每日资讯与数据巡检），保存待审报告与来源健康；无可行动变化时保持安静，发现值得复核的产品、连续来源失败或到期事件才通知。需电脑开机、应用运行且项目可访问；自动化状态和时间在 Codex 中管理（[官方说明](https://learn.chatgpt.com/docs/automations?surface=app)）。仓库另提供可手动触发的 [GitHub Actions 采集工作流](../.github/workflows/news-collect.yml)：恢复队列/基线缓存、上传报告 artifact，部分失败仍保留报告并标记失败。代码仓库为 [yufeng97/coding-plan-comparison](https://github.com/yufeng97/coding-plan-comparison)，网站纠错模板连接该仓库的 Issues。CI 缓存与本机队列是各自工作副本，不自动双向同步；选定一个审核主副本，下载 artifact 后在该副本审核并保持后续采集使用同一队列。缓存可能被平台清除，重要待审决策须自行备份。
+已配置北京时间每日 08:30 在 Codex 当前聊天自动巡检（任务名：Coding Plan 每日资讯与数据巡检），保存待审报告与来源健康；无可行动变化时保持安静，发现值得复核的产品、连续来源失败或到期事件才通知。需电脑开机、应用运行且项目可访问；自动化状态和时间在 Codex 中管理（[官方说明](https://learn.chatgpt.com/docs/automations?surface=app)）。不依赖本机的做法是 GitHub 上的[每日价格与资讯巡检](#价格与资讯claude可选)：配置 Claude 凭据后每天由 Claude Code 核实并开 PR。仓库另提供可手动触发的 [GitHub Actions 采集工作流](../.github/workflows/news-collect.yml)：恢复队列/基线缓存、上传报告 artifact，部分失败仍保留报告并标记失败。代码仓库为 [yufeng97/coding-plan-comparison](https://github.com/yufeng97/coding-plan-comparison)，网站纠错模板连接该仓库的 Issues。CI 缓存与本机队列是各自工作副本，不自动双向同步；选定一个审核主副本，下载 artifact 后在该副本审核并保持后续采集使用同一队列。缓存可能被平台清除，重要待审决策须自行备份。
 
 ## 如何让新厂商进来
 
@@ -82,7 +163,7 @@ npm run test:news
 2. 为每个订阅档位分配未使用过的永久 `plan-*` ID，写入 `PLANS`；补全 `vendor/plan/cat/region/cur/priceM/quota/url` 等必需字段。`priceY` 是**年付折月价格**，不是年付总额；明确全年金额使用 `annualTotal`，校验要求折月误差不超过 0.02 原币。未知价格用 `null`，免费用 `0`，首购促销不能代替长期续费价。
 3. 按证据填写编程入口、是否包含模型费用、BYOK/按量、自家客户端、支持模型与工具、重置周期、额度共享和购买国家。新模型未知时先保留未知，需要参与任务推荐时再补有依据的 `MODEL_ROLES`；不要因为厂商有名就推断所有产品权益相同。
 4. 添加官网证据和对应 `PRICE_CHECKS.rows["plan:" + id]`；API 与按量记录按 `vendor|model` 身份同步维护。加入 `SOURCES`，有值得告知用户的事件时更新 `DYNAMICS`，随后把官方监测网址加入采集配置。只有额度依据足够时才补 `METRICS_RAW`/`ESTIMATES`，标清官方值、折算或估算。
-5. 更新版本日期与 `CHANGES.md`，先执行 `npm run catalog:build` 同步浏览器类型化目录，再执行 `npm run check`、`npm run typecheck`、`npm run validate`、`npm test`。修改页面交互或推荐逻辑时再执行相关浏览器回归；检查构建产物后发布。新增数据字段先在 `types/catalog.d.ts` 的对应接口里声明；在数据文件里新增顶层常量或函数时用 JSDoc 写明类型（`catalog:build` 只按 JSDoc 生成 TypeScript 注解，函数参数缺少注解时生成失败）。
+5. 更新版本日期与 `CHANGES.md`，先执行 `npm run catalog:build` 同步浏览器类型化目录、`npm run readme:build` 同步中英文 README 的统计，再执行 `npm run check`、`npm run typecheck`、`npm run validate`、`npm test`。修改页面交互或推荐逻辑时再执行相关浏览器回归；检查构建产物后发布。新增数据字段先在 `types/catalog.d.ts` 的对应接口里声明；在数据文件里新增顶层常量或函数时用 JSDoc 写明类型（`catalog:build` 只按 JSDoc 生成 TypeScript 注解，函数参数缺少注解时生成失败）。
 
 **全量与增量分开运行**：默认同步仍要求四份全量审计输入日期一致、覆盖全部记录。日常使用增量模式，只更新此次有新证据的行，保留其他行的核查日期；拒绝日期倒退、旧 patch 覆盖新值及无证据修改。两种模式都必须在本次输入提供引用的来源，保留既有来源及其身份；同 ID 不得改写 URL 或证据，新的依据须使用新来源 ID。新增套餐通过 record.new 提交完整 Plan，并分配从未使用过的永久 ID，同步按文件现有格式写在该厂商最后一档之后（新厂商追加到末尾）；校验同时检查当前目录、变更历史和正式核价台账，已移除套餐的 ID 也不能复用。同步会原子更新数据、审计台账与变更历史，失败整组回滚；不会更新动态、来源目录或额度指标。输入字段及完整步骤见 [贡献指南](../CONTRIBUTING.md)。
 
@@ -103,6 +184,7 @@ npm run pricing:sync -- --incremental --input data/audit/incremental.json
 npm run maintenance:build -- --as-of 2026-10-08
 npm run benchmark:build
 npm run catalog:build
+npm run readme:build
 npm run validate
 npm test
 ```
@@ -151,10 +233,11 @@ npm run benchmark:publish -- --input data/audit/benchmark-sources/latest.json --
 npm run benchmark:validate
 npm run benchmark:build
 npm run catalog:build
+npm run readme:build
 npm test
 ```
 
-`collect` 只写忽略目录 `data/audit/benchmark-sources/`，保留原始下载 SHA-256、完整历史候选和来源连续失败；变化比较按协议/精确模型/推理/Agent 的稳定 ID，日期刷新不会冒充成绩变化。任何必需来源失败或格式改变均返回非零码，保留正式数据与上一份完整候选。`publish` 要求审核者、理由及哈希匹配的原始证据，然后原子替换 `data/benchmarks/public-results.json`；`benchmark:build` 生成浏览器可离线读取的 `BENCHMARKS.public`（按需加载），并从中派生首屏加载的 `data/generated/benchmark-summary.js`：仅编程协议的每模型最佳配置与本协议名次，供「帮我选」卡片显示本档明确包含的模型成绩。「模型能力优先」按 DeepSWE v1.1 已公布成绩参与推荐排序，额度与价格优先时仅作参考；`benchmark:check` 在 CI 只读核对两份产物。采集不直接提交或部署；可从 [手动采集工作流](../.github/workflows/benchmark-collect.yml) 下载待审材料。
+`collect` 只写忽略目录 `data/audit/benchmark-sources/`，保留原始下载 SHA-256、完整历史候选和来源连续失败；变化比较按协议/精确模型/推理/Agent 的稳定 ID，日期刷新不会冒充成绩变化。任何必需来源失败或格式改变均返回非零码，保留正式数据与上一份完整候选。`publish` 要求审核者、理由及哈希匹配的原始证据，然后原子替换 `data/benchmarks/public-results.json`；`benchmark:build` 生成浏览器可离线读取的 `BENCHMARKS.public`（按需加载），并从中派生首屏加载的 `data/generated/benchmark-summary.js`：仅编程协议的每模型最佳配置与本协议名次，供「帮我选」卡片显示本档明确包含的模型成绩。「模型能力优先」按 DeepSWE v1.1 已公布成绩参与推荐排序，额度与价格优先时仅作参考；`benchmark:check` 在 CI 只读核对两份产物。采集本身不提交或部署：[每日数据更新](#公开评测)在有变化时生成候选并开 PR 等待复核，也可从 [手动采集工作流](../.github/workflows/benchmark-collect.yml) 下载待审材料。
 
 核查日期是本站本次下载/核对时间，官方更新日另记；未公布的运行日、工具、费用或样本数保留未知。费用列属于评测任务或 rollout 的官方成本，DeepSWE 的部分模型按官网当前价格修正表折算，CursorBench 4.0 按公布的 token 价格计算，3.0 历史发布节选的费用未公布；不把原始费用、折算费用或未知费用混为真实账单，不等同订阅月费。不跨模型/协议推断未公布的成绩，也不把空值补成零。
 
