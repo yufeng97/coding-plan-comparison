@@ -52,6 +52,9 @@
 
 数据更新与发布由 GitHub Actions 定时完成（北京时间）：
 
+- **08:17 新闻候选采集**（[news-collect.yml](.github/workflows/news-collect.yml)）：
+  - 无需 Claude 凭据，采集最近 14 天的新闻并保留队列、页面基线与来源健康；也可手动调整时间窗口。
+  - 报告在运行的 artifact 中下载。采集不会修改正式数据或发布网站，核实后由维护者提交、审核并合并。
 - **08:30 汇率与评测**（[daily-data.yml](.github/workflows/daily-data.yml)）：
   - 欧洲央行参考汇率有变化时，先在候选分支跑完整 CI（Linux／Windows、三种浏览器），通过后自动合入 `main` 并发布。
   - 公开评测从固定的官方榜单采集，成绩有新增、变化或撤回时开 PR，由维护者核对后合并。
