@@ -486,7 +486,7 @@ test("Luna 与 Astra 显示本档版本，支持官方简称并保留未公开�
   const app = page.runtime;
   const role = (id: string) => app.MODEL_ROLES.find((r) => r.id === id);
   const name = (id: string, roleId: string) => app.roleDisplayName(plan(app, id), role(roleId));
-  assert.equal(name("plan-0040", "luna"), "GPT-5.6 Luna", "OpenCode Go 的 5.6 Luna 不能显示角色默认 6 Luna");
+  assert.equal(name("plan-0040", "luna"), "GPT-6 Luna", "OpenCode Go 显示当前官方模型权益");
   assert.equal(name("plan-0008", "luna"), "GPT-6 Luna");
   assert.equal(name("plan-0010", "luna"), "GPT-6 Luna", "Luna 简称继承前一个明确 GPT 模型版本");
   assert.equal(name("plan-0010", "gpt-astra"), "GPT-6 Astra");
@@ -496,7 +496,9 @@ test("Luna 与 Astra 显示本档版本，支持官方简称并保留未公开�
   assert.deepEqual(["gpt-astra", "luna"].map((id) => app.roleDisplayName(denied, role(id))), ["GPT-5.6 Astra", "GPT-5.6 Luna"]);
   const unknown = { ...plan(app, "plan-0010"), models: "GPT 系列" };
   assert.deepEqual(["gpt-sol", "gpt-astra", "luna"].map((id) => app.roleDisplayName(unknown, role(id))), ["GPT Sol 系列", "GPT Astra 系列", "GPT Luna 系列"]);
-  const models = app.planCodingBenchmarks(plan(app, "plan-0040"), role("luna")).map((hit: { row: { model: string } }) => app.publicModelDisplayName(hit.row.model));
+  const legacyLuna = fixture({ ...plan(app, "plan-0040"), id: "fixture-luna-5-6", models: "GPT-5.6 Luna" });
+  assert.equal(app.roleDisplayName(legacyLuna, role("luna")), "GPT-5.6 Luna", "只含旧版本的权益不能显示角色默认 6 Luna");
+  const models = app.planCodingBenchmarks(legacyLuna, role("luna")).map((hit: { row: { model: string } }) => app.publicModelDisplayName(hit.row.model));
   assert.ok(models.length && models.every((model: string) => model === "GPT-5.6 Luna"), "评测仍只匹配权益中的 5.6 Luna");
   page.healthy();
 });

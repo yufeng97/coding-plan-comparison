@@ -481,7 +481,7 @@ test("动态按上海日期标明计划和结束状态，来源分组默认折�
   const app = page.runtime;
   assert.equal(app.chinaCalendarDay(new Date("2026-10-07T16:01:00Z")), "2026-10-08");
   assert.equal(app.chinaCalendarDay(new Date("2026-10-07T15:59:00Z")), "2026-10-07");
-  const future = app.DYNAMICS.find((d) => d.date === "2026-10-14" && !d.checked)!;
+  const future = app.DYNAMICS.find((d) => d.date === "2026-10-14" && d.text.includes("GPT-5.5") && !d.checked)!;
   assert.equal(app.dynamicStatus(future, "2026-10-08").label, "计划中 · 尚未发生");
   assert.match(app.dynamicText(future, "2026-10-08"), /计划于 2026-10-14 退役/);
   assert.doesNotMatch(app.dynamicText(future, "2026-10-14"), /计划于/);

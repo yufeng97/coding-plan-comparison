@@ -6,6 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
 import { test, vi } from "vitest";
+import { isAdditionChange } from "../generated/catalog";
 import { openPage } from "../test/page";
 
 const query = <T extends HTMLElement = HTMLElement>(selector: string) => {
@@ -47,7 +48,7 @@ test("维护快照、真实变更与贡献者任务规范完整启动，贡献�
 test("关注永久 ID 跨访问保留，已读按 changeId 标记且保留历史记录", async () => {
   let page = await openPage({ url: "/#updates" });
   let app = page.runtime;
-  const id = app.maintenanceData().changes.find((c: MaintenanceChange) => c.kind === "plan")!.id;
+  const id = app.maintenanceData().changes.find((c: MaintenanceChange) => c.kind === "plan" && !isAdditionChange(c))!.id;
   const total = app.maintenanceData().changes.filter((c: MaintenanceChange) => c.id === id).length;
   assert.ok(total > 0);
   assert.equal(app.toggleFollowPlan(id), true);

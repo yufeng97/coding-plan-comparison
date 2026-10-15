@@ -2,6 +2,15 @@
   "schemaVersion": 1,
   "events": [
     {
+      "id": "freebuff-privacy-20261112",
+      "title": "复核 Freebuff 预告隐私政策生效状态",
+      "vendor": "Freebuff",
+      "planIds": ["plan-0225"],
+      "reviewOn": "2026-11-12",
+      "source": "https://freebuff.com/privacy-policy",
+      "note": "10-13 更新页注明 11-12 生效，目前仅作未来政策预告；届时核对有效版本、广告与训练条件。"
+    },
+    {
       "id": "glm-holiday-20261007",
       "title": "复核智谱 / Z.ai 双节与夜间活动结束后的权益",
       "planIds": [
@@ -59,6 +68,27 @@
       "reviewOn": "2026-12-01",
       "source": "https://ai.google.dev/gemini-api/docs/pricing",
       "note": "官方写明介绍价 $2 / $10（缓存 $0.10）至 2026-11-30，12-01 起 $4 / $20 / $0.20；核对官网后再改 API 行，不按日期自动改价。"
+    },
+    {
+      "id": "openai-gpt53codex-api-20270401",
+      "title": "复核 GPT-5.3-Codex API 下线与迁移",
+      "vendor": "OpenAI",
+      "reviewOn": "2027-04-01",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "note": "官方 2026-10-01 标记弃用，计划本日移除；当前仍可用，届时核对实际下线状态，不按日期自动删除。"
+    },
+    {
+      "id": "kimchi-kimi-k27-20261019",
+      "title": "复核 Kimchi 的 Kimi K2.7 模型退役",
+      "vendor": "Kimchi",
+      "planIds": [
+        "plan-0227",
+        "plan-0228",
+        "plan-0229"
+      ],
+      "reviewOn": "2026-10-19",
+      "source": "https://docs.kimchi.dev/docs/model-apis-pricing",
+      "note": "Kimchi 模型文档预告 Kimi K2.7 本日退役，仅指 Kimchi 托管入口，不推断 Moonshot API 或其他服务同步下线。"
     }
   ]
 }

@@ -1,0 +1,631 @@
+{
+  "sources": [
+    {
+      "id": "opencode-go-news-20261015",
+      "url": "https://opencode.ai/v2/docs/console/go/",
+      "evidence": "Go/Go Plus 仍为 $10/$40。模型表含 Claude Haiku 5.5、Gemini 4 Argon Contributor 和限时 Step 5 Preview Free；Argon Contributor 月上限 $60/$240（限时2×，结束日未知），可能用于训练；DeepSeek V4.1 Flash 月限额 $80/$160。5h/周/月为20%/50%/100%。"
+    },
+    {
+      "id": "opencode-console-models-20261015",
+      "url": "https://opencode.ai/v2/docs/console/models/",
+      "evidence": "旧 Zen 文档重定向 V2 Console，按量模型目录含 Step 5 Preview Free 等临时免费档；直接模型入口为 opencode.ai/inference/v1。"
+    },
+    {
+      "id": "freebuff-home-20261015",
+      "url": "https://freebuff.com/",
+      "evidence": "官网地区化显示零价、广告支持，提供桌面与CLI/Cloud编程入口；零价无需按页面显示币种换算。"
+    },
+    {
+      "id": "freebuff-readme-20261015",
+      "url": "https://github.com/CodebuffAI/freebuff",
+      "evidence": "官网互链仓库列出包含模型、平台和地区层级；limited池为MiMo2.6 Flash、GLM5.3 Flash、DeepSeekV4.1 Flash、Solar Mini4/Pro4，每日25 Freebucks（VPN20）；部分full层模型unmetered。旧launch和AI生成FAQ有不同额度，正式文案按实际客户端与地区。"
+    },
+    {
+      "id": "freebuff-privacy-20261015",
+      "url": "https://freebuff.com/privacy-policy",
+      "evidence": "隐私页 2026-10-13 更新版本注明 2026-11-12 生效，仅作未来政策预告，不能视为 10-15 的现行政策；当前广告/训练条件另据官方 README。"
+    },
+    {
+      "id": "kimchi-pricing-20261015",
+      "url": "https://kimchi.dev/pricing",
+      "evidence": "Coder $20/月含$25 credit；Teams $35/席位/月含$45 credit（未明确credit逐席位累计）；Enterprise定制。Open source为自备推理CLI，Code Review $15/人/月为申请型附加项。"
+    },
+    {
+      "id": "kimchi-inference-20261015",
+      "url": "https://docs.kimchi.dev/docs/model-apis-pricing",
+      "evidence": "公开托管模型token价表说明credit消费口径；外部provider surcharge另加input $0.20/output $0.30每百万token，缓存input免费；Kimi K2.7于10月19日退役。"
+    },
+    {
+      "id": "kimchi-terms-20261015",
+      "url": "https://kimchi.dev/terms-of-service",
+      "evidence": "2026-09-07生效，确认Kimchi为CAST AI产品；5.1费用U.S. dollars且税另计，5.3超credit按公开用量价；没有明确国家支持表。"
+    },
+    {
+      "id": "humanlayer-pricing-20261015",
+      "url": "https://www.humanlayer.dev/",
+      "evidence": "Starter免费≤3人/200sessions每月，Pro $100/user/mo，无限工作区tasks/sessions，Enterprise询价；均BYOK现有Claude/Codex等账户/API，不含模型推理费用。"
+    },
+    {
+      "id": "humanlayer-docs-20261015",
+      "url": "https://docs.humanlayer.com/",
+      "evidence": "实际编程工作区、桌面/remote daemon、Claude/Codex工作流文档；模型具体版本随接入供应商，不能推断固定版本。"
+    },
+    {
+      "id": "copilot-hydrafusion-20261015",
+      "url": "https://github.blog/changelog/2026-10-14-hydrafusion-updates-and-new-max-option",
+      "evidence": "10-14 公告 HydraFusion / Max 研究预览，适用付费个人及组织档；预览和组织策略需启用。"
+    },
+    {
+      "id": "copilot-hydrafusion-docs-20261015",
+      "url": "https://docs.github.com/en/early-access/copilot/hydrafusion",
+      "evidence": "编排系统只使用套餐和组织许可的模型；按实际模型标准 AI credits 计费，无额外编排费，不适用 Auto 折扣。"
+    },
+    {
+      "id": "amp-claude-mode-20261015",
+      "url": "https://ampcode.com/news/use-your-claude-plan",
+      "evidence": "10-10 新增 Claude Code 模式，使用 Claude Agent SDK，可连接已有 Claude Pro/Max；模式本身不额外收费，云端 orbs 仍单独计费。"
+    },
+    {
+      "id": "amp-dial-pricing-20261015",
+      "url": "https://ampcode.com/docs/the-dial",
+      "evidence": "Claude 订阅只覆盖 Claude Code 模式；ChatGPT 连接须合资格订阅，共享原用量，不自动改变路由。Amp 自有模式及云端运行费用不由外部订阅一概支付。"
+    },
+    {
+      "id": "amp-plan-pricing-20261015",
+      "url": "https://ampcode.com/pricing",
+      "evidence": "Hobby $0、Megawatt $20/月含 45,000 orb 分钟；正文称包含 agent 用量但未量化，与模型自备的卡片文案有差异，未据此推断固定 token 配额。"
+    },
+    {
+      "id": "openai-codex53-deprecation-20261015",
+      "url": "https://developers.openai.com/api/docs/deprecations",
+      "evidence": "10-01 弃用 gpt-5.3-codex，2027-04-01 下线，替代为 gpt-6-sol；当前未到下线日。"
+    },
+    {
+      "id": "openai-codex53-model-20261015",
+      "url": "https://developers.openai.com/api/docs/models/gpt-5.3-codex",
+      "evidence": "模型标为 Deprecated；每百万 tokens 标准输入 $1.75、缓存 $0.175、输出 $14，当前价格不变。"
+    }
+  ],
+  "records": [
+    {
+      "kind": "plan",
+      "id": "plan-0040",
+      "vendor": "OpenCode (Anomaly/SST)",
+      "name": "OpenCode Go",
+      "status": "changed",
+      "checkedAt": "2026-10-15",
+      "sourceIds": [
+        "opencode-go-news-20261015"
+      ],
+      "reason": "更新官方当前模型权益和端点；$10 常规月费及未公布年付价保持不变。",
+      "patch": {
+        "quota": "逐模型月度美元上限：$15 档（Kimi K3、GLM-5.3、Haiku 5.5 等）、$30/$60 档、DeepSeek V4.1 Flash $80；Gemini 4 Argon Contributor 限时 2× 为 $60；5h=月度20%、周=50%、月=100%",
+        "models": "GLM-5.3/Flash、Kimi K3/K2.7 Code、DeepSeek V4.1、Qwen3.8、MiniMax M3、Grok 4.7、GPT 6 Luna、Claude Haiku 5.5、Gemini 4 Argon Contributor 等；Step 5 Preview Free 等为限时免费",
+        "tools": "OpenCode 及经验证兼容客户端（Claude Code、Codex、ZCode、Kilo Code CLI、Hermes 等，须保留稳定会话标识，部分客户端需更新）；端点 opencode.ai/inference/go/v1",
+        "note": "独立订阅，$10/月；每工作区仅1名成员。Argon Contributor 的提示和补全可能用于 Google 模型训练，非 ZDR；2× 用量促销结束日未公布；各模型适用上限不可相加",
+        "url": "https://opencode.ai/v2/docs/console/go/"
+      },
+      "old": {
+        "quota": "逐模型月度美元上限：$15 档（GLM-5.3、Kimi K3 等）、$30 档、$60 档（GLM-5.3-Flash、Kimi K2.7 Code 等）；5h=月度 20%、周=50%、月=100%",
+        "models": "约 32 个开源/国产模型（GLM-5.3/Flash/5.2、Kimi K3/K2.7 Code、DeepSeek V4.1、Qwen3.8、MiniMax M3、Grok 4.7、GPT 5.6 Luna 等）",
+        "tools": "OpenCode、Claude Code、Codex、ZCode、Kilo Code CLI、Hermes（端点 opencode.ai/zen/go）",
+        "note": "与 Zen 按量并行的独立订阅；首月 $5 促销已取消；每工作区仅 1 人可订",
+        "url": "https://opencode.ai/docs/go/"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0089",
+      "vendor": "OpenCode (Anomaly/SST)",
+      "name": "OpenCode Go Plus",
+      "status": "changed",
+      "checkedAt": "2026-10-15",
+      "sourceIds": [
+        "opencode-go-news-20261015"
+      ],
+      "reason": "移除笼统3–4×描述，采用官方逐模型月限额；$40常规月费及未公布年付价保持不变。",
+      "patch": {
+        "quota": "逐模型5h/周/月窗口：Kimi K3月$60、GLM-5.3月$120、GLM-5.3-Flash/K2.7 Code月$180、DeepSeek V4.1 Flash月$160；Argon Contributor 限时2×月$240。5h=20%、周=50%、月=100%",
+        "models": "同 Go",
+        "note": "$40/月，逐模型限额不同，不能笼统视为Go的3–4×；每工作区仅1名成员，Contributor模型的数据训练政策同Go；各模型适用上限不可相加",
+        "url": "https://opencode.ai/v2/docs/console/go/",
+        "tools": "同 Go"
+      },
+      "old": {
+        "quota": "按模型 5h 限额 + 月度上限，约为 Go 的 3–4×，倍率按模型不同（如 Kimi K3 440 vs 110 次/5h；GLM-5.3-Flash 18,960 vs 6,320）；29 个模型含 2 款限时免费",
+        "models": "同 Go（Kimi K3/K2.7 Code、MiniMax M3、GPT-6 Luna、GLM-5.3-Flash、DeepSeek V4.1 Flash 等）",
+        "note": "2026-09 新增档位",
+        "url": "https://opencode.ai/go",
+        "tools": "同 Go（任意 agent 可用）"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0039",
+      "vendor": "OpenCode (Anomaly/SST)",
+      "name": "OpenCode Zen（按量付费）",
+      "status": "changed",
+      "checkedAt": "2026-10-15",
+      "sourceIds": [
+        "opencode-console-models-20261015"
+      ],
+      "reason": "同步官方 V2 Console 文档入口与模型目录；无月费，不将PAYG的null写成免费。",
+      "patch": {
+        "models": "按量模型目录含 OpenAI、Anthropic、Google、Grok、Qwen、DeepSeek、GLM、Kimi、MiniMax 等；Step 5 Preview Free 等另有临时免费档，名单会变化",
+        "tools": "OpenCode 或其他编程 agent；V2 Console 提供 opencode.ai/inference/v1 下的 Anthropic/OpenAI/Google 等兼容端点",
+        "note": "原 Zen 文档已重定向到 V2 Console 模型目录；无固定订阅档位；免费模型有独立条件，不表示全部模型免费",
+        "url": "https://opencode.ai/v2/docs/console/models/"
+      },
+      "old": {
+        "models": "60+ 模型 per-token 原价（OpenAI/Anthropic/Google/Grok/Qwen/DeepSeek/GLM-5.3/Kimi K3/MiniMax M3 等）+9 个限时免费模型",
+        "tools": "官方宣称 no lock-in、可用于任意 agent；提供 Anthropic/OpenAI/Google 多协议端点",
+        "note": "无固定订阅档位；首月 $5 促销已于 2026-08 取消",
+        "url": "https://opencode.ai/docs/zen"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0091",
+      "vendor": "GitHub Copilot",
+      "name": "Pro",
+      "status": "changed",
+      "checkedAt": "2026-10-15",
+      "sourceIds": [
+        "copilot-hydrafusion-20261015",
+        "copilot-hydrafusion-docs-20261015"
+      ],
+      "reason": "新增编排入口与计费边界；月价和既有模型资格不变，不将编排池示例当作 Pro 可直接使用的旗舰清单。",
+      "patch": {
+        "note": "$10 基础 + $5 弹性 credits；仅月付；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费",
+        "tools": "IDE 插件、Copilot CLI、Copilot App；HydraFusion / Max（VS Code、CLI、App 预览）"
+      },
+      "old": {
+        "note": "$10 基础 + $5 弹性 credits；仅月付",
+        "tools": "IDE 插件、Copilot CLI、Copilot App"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0092",
+      "vendor": "GitHub Copilot",
+      "name": "Pro+",
+      "status": "changed",
+      "checkedAt": "2026-10-15",
+      "sourceIds": [
+        "copilot-hydrafusion-20261015",
+        "copilot-hydrafusion-docs-20261015"
+      ],
+      "reason": "新增编排入口与计费边界；月价和既有模型资格不变，不将编排池示例当作 Pro 可直接使用的旗舰清单。",
+      "patch": {
+        "note": "4x+ Pro 用量；含审计日志；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费"
+      },
+      "old": {
+        "note": "4x+ Pro 用量；含审计日志"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0093",
+      "vendor": "GitHub Copilot",
+      "name": "Max",
+      "status": "changed",
+      "checkedAt": "2026-10-15",
+      "sourceIds": [
+        "copilot-hydrafusion-20261015",
+        "copilot-hydrafusion-docs-20261015"
+      ],
+      "reason": "新增编排入口与计费边界；月价和既有模型资格不变，不将编排池示例当作 Pro 可直接使用的旗舰清单。",
+      "patch": {
+        "note": "2026 新增个人最高档；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费"
+      },
+      "old": {
+        "note": "2026 新增个人最高档"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0094",
+      "vendor": "GitHub Copilot",
+      "name": "Business",
+      "status": "changed",
+      "checkedAt": "2026-10-15",
+      "sourceIds": [
+        "copilot-hydrafusion-20261015",
+        "copilot-hydrafusion-docs-20261015"
+      ],
+      "reason": "新增编排入口与计费边界；月价和既有模型资格不变，不将编排池示例当作 Pro 可直接使用的旗舰清单。",
+      "patch": {
+        "note": "按授予席位计费；Copilot 代码审查默认扣发起成员的额度，组织可改为计入仓库所属组织（须启用 AI Credits 付费用量）；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费",
+        "tools": "IDE 插件、组织管理；HydraFusion / Max（VS Code、CLI、App 预览）"
+      },
+      "old": {
+        "note": "按授予席位计费；Copilot 代码审查默认扣发起成员的额度，组织可改为计入仓库所属组织（须启用 AI Credits 付费用量）",
+        "tools": "IDE 插件、组织管理"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0095",
+      "vendor": "GitHub Copilot",
+      "name": "Enterprise",
+      "status": "changed",
+      "checkedAt": "2026-10-15",
+      "sourceIds": [
+        "copilot-hydrafusion-20261015",
+        "copilot-hydrafusion-docs-20261015"
+      ],
+      "reason": "新增编排入口与计费边界；月价和既有模型资格不变，不将编排池示例当作 Pro 可直接使用的旗舰清单。",
+      "patch": {
+        "note": "Copilot 代码审查默认扣发起成员的额度，组织可改为计入仓库所属组织（须启用 AI Credits 付费用量）；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费",
+        "tools": "codebase 索引、GitHub.com 集成、IP 赔偿、SSO；HydraFusion / Max（VS Code、CLI、App 预览）"
+      },
+      "old": {
+        "note": "Copilot 代码审查默认扣发起成员的额度，组织可改为计入仓库所属组织（须启用 AI Credits 付费用量）",
+        "tools": "codebase 索引、GitHub.com 集成、IP 赔偿、SSO"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0126",
+      "vendor": "Sourcegraph Amp",
+      "name": "Hobby",
+      "status": "changed",
+      "checkedAt": "2026-10-15",
+      "sourceIds": [
+        "amp-claude-mode-20261015",
+        "amp-dial-pricing-20261015",
+        "amp-plan-pricing-20261015"
+      ],
+      "reason": "新增 Claude Code 模式及外部订阅费用边界；Hobby 免费、Megawatt $20/月不变。",
+      "patch": {
+        "modelAccess": "byok",
+        "includedModelQuota": false,
+        "quota": "免费工具；自建 runner 免费，orbs 按量；推理使用自有 Key 或外部订阅额度，不新增模型用量",
+        "models": "BYOK；可连接 ChatGPT Plus/Pro；Claude Pro/Max 仅 Claude Code 模式（均受原订阅模型资格/额度限制）",
+        "tools": "Amp Web/macOS/iOS/CLI、orbs/自建 runner；Claude Code 模式（Claude Agent SDK）",
+        "note": "ChatGPT 用量与 Codex/Work 共享；仅连接不自动改模型路由，可应用 ChatGPT Only 预设。orbs、图像/网页/搜索/语音等工具另计；不能把原订阅权限扩张为任意模型免费使用。"
+      },
+      "old": {
+        "modelAccess": null,
+        "includedModelQuota": null,
+        "quota": "免费（无广告）；orbs 按 pay-as-you-go 或自建 runner 免费；可绑定 ChatGPT 订阅获更多用量",
+        "models": "BYOK 任意 + 可链接 ChatGPT 订阅",
+        "tools": "Amp 终端 agent",
+        "note": "token 按 API 牌价、无加价"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0127",
+      "vendor": "Sourcegraph Amp",
+      "name": "Individual（Megawatt）",
+      "status": "changed",
+      "checkedAt": "2026-10-15",
+      "sourceIds": [
+        "amp-claude-mode-20261015",
+        "amp-dial-pricing-20261015",
+        "amp-plan-pricing-20261015"
+      ],
+      "reason": "新增 Claude Code 模式及外部订阅费用边界；Hobby 免费、Megawatt $20/月不变。",
+      "patch": {
+        "quota": "45,000 orb 分钟/月；官方正文仍称含 agent 用量、未公布固定额度；可自备 Key/外部订阅，orbs 不由外部订阅支付",
+        "models": "Amp 自动路由/按量模型，或自有 Key；可连接 ChatGPT Plus/Pro；Claude Pro/Max 仅 Claude Code 模式",
+        "tools": "Amp Web/macOS/iOS/CLI、orbs/自建 runner；Claude Code 模式（Claude Agent SDK）",
+        "note": "Megawatt $20/月（不变）；ChatGPT/Claude 模型资格与用量由原订阅决定；Amp 自有模式、orbs 及未被外部订阅覆盖的工具可能消耗 Amp credits。官方卡片与正文对 agent 用量口径有差异，未推断调价；既有 Gigawatt $200/月、480,000 orb 分钟为此前核实记录，本轮未重新核价"
+      },
+      "old": {
+        "quota": "agent 用量 + 45,000 分钟 orb 时间/月（不结转）；超额购 credits 按 API 牌价（无加价）",
+        "models": "第三方模型按牌价（无 markup）",
+        "tools": "Amp 终端 agent",
+        "note": "Megawatt $20/月含 45,000 orb 分钟；另有 Gigawatt $200/月含 480,000 分钟（官网已实测确认）；模型 key/订阅自备，Amp 无 token 费"
+      }
+    },
+    {
+      "kind": "api",
+      "id": "OpenAI|gpt-5.3-codex（编程向）",
+      "vendor": "OpenAI",
+      "name": "gpt-5.3-codex（编程向）",
+      "status": "changed",
+      "checkedAt": "2026-10-15",
+      "sourceIds": [
+        "openai-codex53-deprecation-20261015",
+        "openai-codex53-model-20261015"
+      ],
+      "reason": "补充已弃用和未来 API 下线日期；当前仍可调用且价格不变。",
+      "patch": {
+        "note": "缓存输入 $0.175；Fast 模式 $3.50/$28；官方于 2026-10-01 标记弃用，计划 2027-04-01 从 API 移除，建议迁移 gpt-6-sol；当前 API 价格不变。"
+      },
+      "old": {
+        "note": "缓存输入 $0.175；Fast 模式 $3.50/$28"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0225",
+      "vendor": "Freebuff",
+      "name": "Free（广告支持）",
+      "status": "verified",
+      "checkedAt": "2026-10-15",
+      "sourceIds": [
+        "freebuff-home-20261015",
+        "freebuff-readme-20261015",
+        "freebuff-privacy-20261015"
+      ],
+      "reason": "从官方定价、文档核实并首次收录；收录日不视为产品发布日，未知年价及资格不推算。",
+      "new": {
+        "id": "plan-0225",
+        "vendor": "Freebuff",
+        "plan": "Free（广告支持）",
+        "cat": "tool",
+        "region": "intl",
+        "cur": "USD",
+        "priceM": 0,
+        "priceY": null,
+        "seat": false,
+        "quota": "广告支持的免费模型推理；每日 Freebucks 与可用模型按地区、产品和客户端 picker 显示，不承诺无限量",
+        "models": "MiMo 2.6 Flash、GLM 5.3 Flash、DeepSeek V4.1 Flash、Solar Mini 4 / Pro 4；其他模型按地区与档位",
+        "tools": "Freebuff CLI、桌面（macOS/Windows/Linux）、Cloud GitHub 仓库编程",
+        "note": "含模型费用，无需 API key；连接外部 Claude Code/Codex 账户的模型另由原订阅承担。官方 README 说明消息/轨迹/文件可能用于广告个性化，带训练标记模型另有内容使用条件。隐私页 10-13 更新版本于 11-12 生效，仅作预告；旧文章与当前 README 额度不同，以实际地区/客户端为准。",
+        "url": "https://freebuff.com/",
+        "codingSurface": true,
+        "ownClient": true,
+        "includedModelQuota": true,
+        "modelAccess": "included",
+        "windowPeriod": "unknown",
+        "quotaSharing": "unknown"
+      },
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0226",
+      "vendor": "Kimchi",
+      "name": "Open source（BYOK）",
+      "status": "verified",
+      "checkedAt": "2026-10-15",
+      "sourceIds": [
+        "kimchi-pricing-20261015"
+      ],
+      "reason": "从官方定价、文档核实并首次收录；收录日不视为产品发布日，未知年价及资格不推算。",
+      "new": {
+        "id": "plan-0226",
+        "vendor": "Kimchi",
+        "plan": "Open source（BYOK）",
+        "cat": "tool",
+        "region": "intl",
+        "cur": "USD",
+        "priceM": 0,
+        "priceY": null,
+        "seat": false,
+        "quota": "开源 CLI 软件免费；不包含托管推理，模型/API 与运行环境费用另计",
+        "models": "自备 Kimchi API、OpenAI-compatible endpoint 或其他 LLM provider",
+        "tools": "Kimchi CLI coding agent、多模型路由、Ferment",
+        "note": "自托管/本机运行。官网明确 Open source 不附托管推理；不能将软件免费理解为模型免费。",
+        "url": "https://kimchi.dev/pricing",
+        "codingSurface": true,
+        "ownClient": true,
+        "includedModelQuota": false,
+        "modelAccess": "byok",
+        "windowPeriod": "unknown",
+        "quotaSharing": "unknown"
+      },
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0227",
+      "vendor": "Kimchi",
+      "name": "Coder",
+      "status": "verified",
+      "checkedAt": "2026-10-15",
+      "sourceIds": [
+        "kimchi-pricing-20261015",
+        "kimchi-inference-20261015",
+        "kimchi-terms-20261015"
+      ],
+      "reason": "从官方定价、文档核实并首次收录；收录日不视为产品发布日，未知年价及资格不推算。",
+      "new": {
+        "id": "plan-0227",
+        "vendor": "Kimchi",
+        "plan": "Coder",
+        "cat": "tool",
+        "region": "intl",
+        "cur": "USD",
+        "priceM": 20,
+        "priceY": null,
+        "seat": false,
+        "quota": "每月含 $25 模型 credits；最多 3 席位、1 队，按模型 token 单价消耗",
+        "models": "Kimi K3、GLM 5.3 / Flash、DeepSeek V4.1 Flash、MiniMax M3 等托管开放权重模型，按路由和可用性",
+        "tools": "Kimchi CLI coding agent、Inference API",
+        "note": "公开月付价，税另计；模型 credit 不是固定 tokens 或无限推理。超额按公开用量价；外部 provider 路由另有 token surcharge。Kimi K2.7 将于 2026-10-19 退役，不作为长期主力模型。",
+        "url": "https://kimchi.dev/pricing",
+        "codingSurface": true,
+        "ownClient": true,
+        "includedModelQuota": true,
+        "modelAccess": "included",
+        "windowPeriod": "month",
+        "quotaSharing": "unknown"
+      },
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0228",
+      "vendor": "Kimchi",
+      "name": "Teams",
+      "status": "verified",
+      "checkedAt": "2026-10-15",
+      "sourceIds": [
+        "kimchi-pricing-20261015",
+        "kimchi-inference-20261015",
+        "kimchi-terms-20261015"
+      ],
+      "reason": "从官方定价、文档核实并首次收录；收录日不视为产品发布日，未知年价及资格不推算。",
+      "new": {
+        "id": "plan-0228",
+        "vendor": "Kimchi",
+        "plan": "Teams",
+        "cat": "team",
+        "region": "intl",
+        "cur": "USD",
+        "priceM": 35,
+        "priceY": null,
+        "seat": true,
+        "quota": "官网列每月含 $45 模型 credits；最多 150 席位、无限队；credit 是否逐席位累计未说明",
+        "models": "Kimi K3、GLM 5.3 / Flash、DeepSeek V4.1 Flash、MiniMax M3 等托管开放权重模型，按路由和可用性",
+        "tools": "Kimchi CLI、Studio、Inference API、团队预算与 RBAC",
+        "note": "每席位月价；官网入口为 Book a call。税另计，credit 分配范围未说明，不能按席位推算总额度；超额模型及外部 provider 路由费用另计。",
+        "url": "https://kimchi.dev/pricing",
+        "codingSurface": true,
+        "ownClient": true,
+        "includedModelQuota": true,
+        "modelAccess": "included",
+        "windowPeriod": "month",
+        "quotaSharing": "unknown"
+      },
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0229",
+      "vendor": "Kimchi",
+      "name": "Enterprise",
+      "status": "custom",
+      "checkedAt": "2026-10-15",
+      "sourceIds": [
+        "kimchi-pricing-20261015",
+        "kimchi-terms-20261015"
+      ],
+      "reason": "从官方定价、文档核实并首次收录；收录日不视为产品发布日，未知年价及资格不推算。",
+      "new": {
+        "id": "plan-0229",
+        "vendor": "Kimchi",
+        "plan": "Enterprise",
+        "cat": "team",
+        "region": "intl",
+        "cur": "USD",
+        "priceM": null,
+        "priceY": null,
+        "seat": false,
+        "quota": "定制用量价格与批量折扣；不限席位和队；实际模型额度按合同",
+        "models": "Kimchi 托管或企业自托管模型，实际型号和额度按合同",
+        "tools": "Kimchi 企业编码平台、VPC 自托管选项、专属支持",
+        "note": "企业询价，不将展示能力推断为固定含模型额度；实际税费/commit/模型计费依订单。",
+        "url": "https://kimchi.dev/pricing",
+        "codingSurface": true,
+        "ownClient": true,
+        "windowPeriod": "unknown",
+        "quotaSharing": "unknown"
+      },
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0230",
+      "vendor": "HumanLayer",
+      "name": "Starter（BYOK）",
+      "status": "verified",
+      "checkedAt": "2026-10-15",
+      "sourceIds": [
+        "humanlayer-pricing-20261015",
+        "humanlayer-docs-20261015"
+      ],
+      "reason": "从官方定价、文档核实并首次收录；收录日不视为产品发布日，未知年价及资格不推算。",
+      "new": {
+        "id": "plan-0230",
+        "vendor": "HumanLayer",
+        "plan": "Starter（BYOK）",
+        "cat": "tool",
+        "region": "intl",
+        "cur": "USD",
+        "priceM": 0,
+        "priceY": null,
+        "seat": false,
+        "quota": "≤3 名成员、每月≤200 个软件 sessions；模型推理来自用户自有订阅/API",
+        "models": "自有 Claude Code、Codex、Copilot、Fireworks 等账户/供应商；具体模型版本未固定公布",
+        "tools": "HumanLayer 多人编码 IDE、Cloud 工作区、本地/远程 daemon",
+        "note": "免费的是工作区软件额度；不含免费模型推理，用户原模型账单和限额继续适用。官网当前产品未开源。",
+        "url": "https://www.humanlayer.dev/",
+        "codingSurface": true,
+        "ownClient": true,
+        "includedModelQuota": false,
+        "modelAccess": "byok",
+        "windowPeriod": "month",
+        "quotaSharing": "unknown"
+      },
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0231",
+      "vendor": "HumanLayer",
+      "name": "Pro（BYOK）",
+      "status": "verified",
+      "checkedAt": "2026-10-15",
+      "sourceIds": [
+        "humanlayer-pricing-20261015",
+        "humanlayer-docs-20261015"
+      ],
+      "reason": "从官方定价、文档核实并首次收录；收录日不视为产品发布日，未知年价及资格不推算。",
+      "new": {
+        "id": "plan-0231",
+        "vendor": "HumanLayer",
+        "plan": "Pro（BYOK）",
+        "cat": "team",
+        "region": "intl",
+        "cur": "USD",
+        "priceM": 100,
+        "priceY": null,
+        "seat": true,
+        "quota": "工作区 tasks/sessions 无限；模型推理来自用户自有订阅/API，依其原限额",
+        "models": "自有 Claude Code、Codex、Copilot、Fireworks 等账户/供应商；具体模型版本未固定公布",
+        "tools": "HumanLayer 编码 IDE/Cloud、多人 artifacts 协作、多仓库 worktree、远程 daemon",
+        "note": "每用户月费仅软件层；BYOK，不包含每token推理或无限模型用量。官网未公开年价和国家支持表。",
+        "url": "https://www.humanlayer.dev/",
+        "codingSurface": true,
+        "ownClient": true,
+        "includedModelQuota": false,
+        "modelAccess": "byok",
+        "windowPeriod": "unknown",
+        "quotaSharing": "unknown"
+      },
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0232",
+      "vendor": "HumanLayer",
+      "name": "Enterprise（BYOK）",
+      "status": "custom",
+      "checkedAt": "2026-10-15",
+      "sourceIds": [
+        "humanlayer-pricing-20261015",
+        "humanlayer-docs-20261015"
+      ],
+      "reason": "从官方定价、文档核实并首次收录；收录日不视为产品发布日，未知年价及资格不推算。",
+      "new": {
+        "id": "plan-0232",
+        "vendor": "HumanLayer",
+        "plan": "Enterprise（BYOK）",
+        "cat": "team",
+        "region": "intl",
+        "cur": "USD",
+        "priceM": null,
+        "priceY": null,
+        "seat": false,
+        "quota": "企业询价；软件/服务条款与批量价格按合同，模型订阅/API自备",
+        "models": "自有 Claude Code、Codex 等账户/API；具体型号依供应商和合同",
+        "tools": "HumanLayer 企业工作区、SSO/SAML、审计日志、On-prem/Private VPC",
+        "note": "Enterprise是在Pro之上的企业软件层，不将私有部署支持误写为包含模型token。",
+        "url": "https://www.humanlayer.dev/",
+        "codingSurface": true,
+        "ownClient": true,
+        "includedModelQuota": false,
+        "modelAccess": "byok",
+        "windowPeriod": "unknown",
+        "quotaSharing": "unknown"
+      },
+      "patch": {}
+    }
+  ]
+}

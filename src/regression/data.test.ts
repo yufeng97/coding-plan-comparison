@@ -51,8 +51,11 @@ function validateFixture(mutation: string, options: ValidationOptions = {}) {
 test("明确目标不邻近时仍解析，保留追加权益和限制", async () => {
   const d = await load();
   const plus = plan(d, "OpenCode (Anomaly/SST)", "OpenCode Go Plus");
-  assert.match(d.resolvedField(plus, "tools"), /Claude Code/);
-  assert.match(d.resolvedField(plus, "tools"), /任意 agent 可用/);
+  const plusTools = d.resolvedField(plus, "tools");
+  assert.match(plusTools, /Claude Code/);
+  assert.match(plusTools, /经验证兼容客户端/);
+  assert.match(plusTools, /稳定会话标识/);
+  assert.doesNotMatch(plusTools, /任意\s*agent\s*可用/);
   assert.match(d.resolvedField(plan(d, "Google", "Google AI Ultra（20x）"), "models"), /Project Genie/);
   assert.match(d.resolvedField(plan(d, "OpenAI", "ChatGPT Pro（$500）"), "models"), /Ultrafast（GPT-6 Astra \/ GPT-6\.1 Sol）/);
   const base = fixture({ vendor: "Fixture", plan: "Starter", models: "Claude Opus / Sonnet" });
