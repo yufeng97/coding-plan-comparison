@@ -1,4 +1,4 @@
-import { findPlanReference } from '@generated/catalog';
+import { isAdditionChange } from '@generated/catalog';
 /* 我的关注：关注与已读、关注同步、套餐历史、核查概况与逐条记录；整页状态流程见 src/regression/maintenance.test.ts。 */
 import { MAINTENANCE_DATA, focusedId, loadBenchmarks, loadMaintenance, unloadOptionalData, useMount } from "../../test/setup";
 import { beforeEach, expect, test, vi } from "vitest";
@@ -10,8 +10,8 @@ import PlanDetails from "../pricing/PlanDetails.vue";
 const view = useMount(FollowUpdates);
 const rights = useMount(PlanDetails);
 
-/* 有已确认变更的一档套餐 */
-const CHANGED_PLAN = MAINTENANCE_DATA.changes.find((c) => c.kind === "plan")!.id;
+/* 既有套餐的备注变化：新增收录不展示旧值箭头，也不展示备注。 */
+const CHANGED_PLAN = MAINTENANCE_DATA.changes.find((c) => c.kind === "plan" && !isAdditionChange(c) && c.fields.includes("note"))!.id;
 
 beforeEach(() => {
   localStorage.clear();
@@ -153,8 +153,8 @@ test("套餐历史展开时才加载：失败可重新展开，数据到达后�
 
 test("逐条记录按范围筛选；变更值按文本显示，非 https 证据不生成链接", async () => {
   const data = structuredClone(MAINTENANCE_DATA);
-  const change = data.changes.find((c) => c.id === CHANGED_PLAN)!;
-  change.after[change.fields[0]] = "<img src=x onerror=alert(1)>";
+  const change = data.changes.find((c) => c.id === CHANGED_PLAN && !isAdditionChange(c) && c.fields.includes("note"))!;
+  change.after.note = "<img src=x onerror=alert(1)>";
   change.sourceUrls = ["javascript:alert(1)", "https://example.com/proof"];
   loadMaintenance(data);
   legacy.toggleFollowPlan(CHANGED_PLAN);
