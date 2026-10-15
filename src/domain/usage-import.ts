@@ -25,11 +25,13 @@ export const USAGE_IMPORT_TOO_LARGE = "内容超过 30MB，请改用 ccusage 导
 type UsageRecord = { inputTokens?: unknown; outputTokens?: unknown; cacheReadTokens?: unknown; cacheCreationTokens?: unknown; cachedInputTokens?: unknown; date?: unknown; month?: unknown; model?: unknown; modelsUsed?: unknown };
 
 const objectOrNull = (value: unknown) => value && typeof value === "object" ? value as Record<string, unknown> : null;
+const count = (v: unknown) => typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : 0;
+const claudeTokenTotal = (row: UsageRecord) => count(row.inputTokens) + count(row.outputTokens) + count(row.cacheReadTokens) + count(row.cacheCreationTokens);
 
 /* Claude Code（~/.claude/projects）与 Codex（~/.codex/sessions）的 JSONL 会话日志，折成与 ccusage 相同字段的逐条记录。
-   Claude Code 会把同一次回复按流式片段重复写入，与 ccusage 一样按消息 ID + 请求 ID 去重；
+   Claude Code 会把同一次回复按流式片段重复写入，按消息 ID + 请求 ID 保留 token 总量最大的完整快照；
    Codex 在限额信息更新时会重复发出 token_count，累计用量未变的事件不重复计入。 */
-function usageRowsFromLog(text: string, seen: Set<string>): UsageRecord[] {
+function usageRowsFromLog(text: string, seen: Set<string>, claudeRows: Map<string, UsageRecord>): UsageRecord[] {
     const rows: UsageRecord[] = [];
     let parsed = 0, codexTotal = "", codexModel = "", codexSession = "";
     for (const line of text.split(/\r?\n/)) {
@@ -49,13 +51,19 @@ function usageRowsFromLog(text: string, seen: Set<string>): UsageRecord[] {
         const date = typeof event.timestamp === "string" ? event.timestamp.slice(0, 10) : "";
         const message = objectOrNull(event.message), usage = message ? objectOrNull(message.usage) : null;
         if (message && usage) {
-            const id = message.id && event.requestId ? `${message.id}:${event.requestId}` : "";
-            if (id && seen.has(id))
+            const row: UsageRecord = { date, model: typeof message.model === "string" ? message.model : "", inputTokens: usage.input_tokens, outputTokens: usage.output_tokens,
+                cacheCreationTokens: usage.cache_creation_input_tokens, cacheReadTokens: usage.cache_read_input_tokens };
+            const id = message.id && event.requestId ? JSON.stringify([message.id, event.requestId]) : "";
+            const previous = id ? claudeRows.get(id) : undefined;
+            if (previous) {
+                /* 共享行引用让跨文件的最终片段也能补齐之前的快照；迟到的短片段不能覆盖完整记录。 */
+                if (claudeTokenTotal(row) > claudeTokenTotal(previous))
+                    Object.assign(previous, row);
                 continue;
+            }
             if (id)
-                seen.add(id);
-            rows.push({ date, model: typeof message.model === "string" ? message.model : "", inputTokens: usage.input_tokens, outputTokens: usage.output_tokens,
-                cacheCreationTokens: usage.cache_creation_input_tokens, cacheReadTokens: usage.cache_read_input_tokens });
+                claudeRows.set(id, row);
+            rows.push(row);
             continue;
         }
         const payload = objectOrNull(event.payload) ?? {};
@@ -99,18 +107,19 @@ export function parseUsageExport(texts: string | readonly string[]): UsageSummar
     if (sources.reduce((n, text) => n + text.length, 0) > USAGE_IMPORT_MAX)
         throw new Error(USAGE_IMPORT_TOO_LARGE);
     const seen = new Set<string>();
+    const claudeRows = new Map<string, UsageRecord>();
     const rows = sources.flatMap((source): unknown[] => {
         let json: unknown;
         try {
             json = JSON.parse(source);
         }
         catch {
-            return usageRowsFromLog(source, seen);
+            return usageRowsFromLog(source, seen, claudeRows);
         }
         const record = json && typeof json === "object" && !Array.isArray(json) ? json as Record<string, unknown> : null;
         /* 只有一行的会话日志本身就是合法 JSON。 */
         if (record && (record.message || record.payload || record.type === "turn_context"))
-            return usageRowsFromLog(source, seen);
+            return usageRowsFromLog(source, seen, claudeRows);
         return Array.isArray(json) ? json
             : !record ? []
                 : Array.isArray(record.daily) ? record.daily
@@ -119,7 +128,6 @@ export function parseUsageExport(texts: string | readonly string[]): UsageSummar
                             : Array.isArray(record.sessions) ? record.sessions
                                 : record.projects && typeof record.projects === "object" ? Object.values(record.projects).filter(Array.isArray).flat() : [];
     });
-    const count = (v: unknown) => typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : 0;
     let input = 0, output = 0, cacheRead = 0, cacheWrite = 0;
     const days = new Set<string>(), months = new Set<string>(), byModel = new Map<string, number>();
     for (const item of rows) {

@@ -54,6 +54,9 @@ Public model benchmarks are versioned separately from prices: **checked 2026-10-
 
 GitHub Actions updates and publishes the data on a schedule (times are Beijing time):
 
+- **08:17, news candidates** ([news-collect.yml](.github/workflows/news-collect.yml)):
+  - No Claude credentials are required. It collects the past 14 days of news and preserves the queue, page baselines and source health; the window can also be set for a manual run.
+  - Reports are available as run artifacts. Collection does not edit published data or deploy the site; a maintainer verifies, submits, reviews and merges changes.
 - **08:30, exchange rates and benchmarks** ([daily-data.yml](.github/workflows/daily-data.yml)):
   - When the European Central Bank reference rate changes, the full CI (Linux and Windows, three browsers) runs on a candidate branch first. Once it passes, the update is merged into `main` and published automatically.
   - Public benchmarks are collected from fixed official leaderboards. When scores are added, changed or withdrawn, a PR is opened for the maintainer to check and merge.

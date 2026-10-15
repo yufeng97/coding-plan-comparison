@@ -1,5 +1,8 @@
-name: 手动采集 Coding Plan 资讯
+name: 每日与手动采集 Coding Plan 资讯
 on:
+  # UTC 00:17，即北京时间每天 08:17；不需要 Claude 凭据。
+  schedule:
+    - cron: "17 0 * * *"
   workflow_dispatch:
     inputs:
       days:
@@ -54,7 +57,7 @@ jobs:
         id: collect
         continue-on-error: true
         env:
-          NEWS_WINDOW_DAYS: ${{ inputs.days }}
+          NEWS_WINDOW_DAYS: ${{ inputs.days || 14 }}
         run: node scripts/news/collect-news.js --days "$NEWS_WINDOW_DAYS"
       - name: 保留本次队列与缓存
         if: ${{ always() && steps.collect.outputs.cache-ready == 'true' }}

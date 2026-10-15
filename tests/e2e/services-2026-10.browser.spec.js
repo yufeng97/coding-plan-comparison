@@ -14,7 +14,9 @@ test("同时选择 Claude Code 与 Codex 会话日志后合并填好计算器，
   for (let day = 1; day <= 7; day++) for (let i = 0; i < 20; i++) {
     const line = JSON.stringify({ type: "assistant", timestamp: `2026-09-0${day}T10:${String(i).padStart(2, "0")}:00Z`, requestId: `r${day}-${i}`,
       message: { id: `m${day}-${i}`, model: "claude-opus-5-5", usage: { input_tokens: 300, output_tokens: 900, cache_creation_input_tokens: 2000, cache_read_input_tokens: 40000 } } });
-    claude.push(line, line); /* 流式片段重复写入，只计一次 */
+    const partial = JSON.parse(line);
+    partial.message.usage.output_tokens = 1;
+    claude.push(JSON.stringify(partial), line, line); /* 先有流式短片段，最终完整用量只计一次 */
   }
   const codex = [
     JSON.stringify({ timestamp: "2026-09-03T10:00:00Z", type: "turn_context", payload: { model: "gpt-codex-test" } }),
@@ -27,6 +29,7 @@ test("同时选择 Claude Code 与 Codex 会话日志后合并填好计算器，
   ]);
   const feedback = page.locator("#usageImportFeedback");
   await expect(feedback).toContainText("已导入 7 个有用量的日子");
+  await expect(feedback).toContainText("共 6.1M tokens，输入占比 97.9%");
   await expect(feedback).toContainText("主要模型 claude-opus-5-5 已对应 Anthropic · Claude Opus 5.5 的 API 牌价");
   await expect(page.locator("#costModel")).toHaveValue("Anthropic|Claude Opus 5.5");
   await expect(page.locator("#costDays")).toHaveValue("30");

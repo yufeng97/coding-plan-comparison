@@ -8,11 +8,20 @@ GitHub Actions 按北京时间定时运行下面的工作流，也都可以在 A
 
 | 时间 | 工作流 | 内容 | 上线方式 |
 |---|---|---|---|
+| 08:17 | [每日资讯采集](../.github/workflows/news-collect.yml) | 无需 Claude 凭据，采集最近 14 天的资讯并保存待审队列、页面基线与报告 | 下载 artifact 后人工核实、提交与审核；采集本身不改正式数据、不发布 |
 | 08:30 | [每日数据更新](../.github/workflows/daily-data.yml) | 欧洲央行参考汇率、公开评测采集 | 汇率：完整 CI 通过后自动快进 `main` 并发布。评测：有变化时开 PR，维护者复核后合并 |
 | 09:00 | [每日价格与资讯巡检](../.github/workflows/daily-inspection.yml)（可选） | 资讯采集；Claude Code 逐条核实官网并修改正式数据 | 开 PR，维护者复核后合并 |
 | `main` 的 CI 每次通过后 | [部署 GitHub Pages 与 Vercel](../.github/workflows/pages.yml) | 调用 [发布网站](../.github/workflows/deploy.yml)，检查、构建并发布同一提交 | 发布 GitHub Pages；配置 Vercel 凭据后同时发布主站 |
 
 工作流用 `GITHUB_TOKEN` 推送的提交，不会再触发 push 事件的 CI 与发布。所以每日工作流先推候选分支（`automation/*`），自己调用同一份 [CI](../.github/workflows/ci.yml) 检查这个提交，需要时再自己调用发布。
+
+### 新闻候选采集
+
+[每日资讯采集](../.github/workflows/news-collect.yml) 的 cron 为 `17 0 * * *`（UTC），即北京时间每天 08:17。将配置合入默认分支并启用 Actions 后即可定时运行，不依赖本机或 Claude/API 密钥。保留 `workflow_dispatch` 手动入口，`days` 可设为 1–365；定时触发使用 14 天滚动窗口，已有队列按 URL 去重，降低短暂延迟或失败造成漏采的风险。
+
+在 Actions 页选择「每日与手动采集 Coding Plan 资讯」并点 **Run workflow** 试运行。完成后从运行详情的 **Artifacts** 下载 `coding-plan-news-<run_id>-<run_attempt>`，里面包含 `latest.json`、`inbox.json`、`state.json`、`health.json`；如果隔离过损坏队列，还会保留 `news-corrupt/` 的原始文件。来源部分失败仍保留成功候选和报告，并把运行标为失败。
+
+采集结果只作为线索。维护者按下文的核实规则处理候选、修改正式数据，完成校验与 PR 审核后再合并发布。需要自动核实并起草 PR 时，再按下面的可选 Claude 巡检配置凭据。
 
 ### 汇率
 
@@ -49,13 +58,13 @@ GitHub Actions 按北京时间定时运行下面的工作流，也都可以在 A
 
 价格、套餐与资讯要打开官网核对原文，脚本无法可靠判断，所以交给 Claude Code，再由维护者在 PR 里复核。流程如下：
 
-1. 恢复资讯队列缓存（与[手动采集工作流](../.github/workflows/news-collect.yml)共用，同时只运行一个），采集资讯候选并导出 triage。
+1. 恢复资讯队列缓存（与[每日资讯采集工作流](../.github/workflows/news-collect.yml)共用，同时只运行一个），采集资讯候选并导出 triage。
 2. Claude Code 按[巡检说明](../.github/automation/daily-inspection.md)逐条核实：写增量核价输入、运行核价同步、更新动态与变更日志，再跑校验和测试。限制：
    - 它运行在没有推送凭据的检出里；
    - 子进程环境里的凭据会被去掉（`CLAUDE_CODE_SUBPROCESS_ENV_SCRUB`）；
    - 只能运行列出的 npm 脚本和只读命令。
 3. 所有改动都必须在数据路径白名单（`DATA_PATHS`）内，否则不生成 PR；白名单由 `tests/scripts/test-workflows.js` 守住。补丁由单独作业提交到 `automation/inspection`，跑完整 CI 后开 PR，正文是 Claude 按 PR 模板写的证据清单。
-4. 资讯队列的审核决定随缓存保存。下载运行的 artifact，可以看到 Claude 的巡检说明、补丁与采集报告。
+4. 资讯队列的审核决定随缓存保存。下载运行的 artifact，可以看到 Claude 的巡检说明、补丁、采集报告、完整队列与状态，以及隔离后的损坏队列原件。采集失败由独立健康作业标记失败；仍可用的候选继续核实并生成待人工审核的 PR。
 
 网页内容可能含提示注入。合并前：
 
@@ -79,7 +88,7 @@ GitHub Actions 按北京时间定时运行下面的工作流，也都可以在 A
    - `ANTHROPIC_API_KEY`：按 API 用量计费。
 
    可选变量 `CLAUDE_INSPECTION_MODEL` 指定模型。工作流里固定的 Claude Code 版本（`CLAUDE_CODE_VERSION`）需要手动升级。
-5. **试运行**：在 Actions 页手动运行一次「每日数据更新」和「每日价格与资讯巡检」，确认候选、CI、PR 与发布都正常。
+5. **试运行**：在 Actions 页手动运行「每日与手动采集 Coding Plan 资讯」，确认 artifact 和来源健康；再按已启用的功能运行「每日数据更新」和「每日价格与资讯巡检」，确认候选、CI、PR 与发布都正常。未配置 Claude 凭据时，08:17 的新闻采集仍照常运行。
 
 公开仓库 60 天没有活动时，GitHub 会自动停用定时工作流，需要到 Actions 页重新启用。
 
@@ -149,7 +158,7 @@ npm run test:news
 
 来源和重定向目标须为公开 HTTPS 地址。系统代理 DNS 若只返回 `198.18.0.0/15` 的 Fake-IP，采集器通过固定的 [Cloudflare DNS over HTTPS 接口](https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-https/make-api-requests/dns-json/)复核域名的公网地址，只发送待抓取域名，实际抓取仍走本机网络；复核失败会记录错误。默认客户端只连接刚刚判定为公网的地址，并在每一跳重定向上重复校验；调用方自行传入的 `fetcher` 不会钉死连接。这不是面向任意不可信来源的网络隔离服务。
 
-已配置北京时间每日 08:30 在 Codex 当前聊天自动巡检（任务名：Coding Plan 每日资讯与数据巡检），保存待审报告与来源健康；无可行动变化时保持安静，发现值得复核的产品、连续来源失败或到期事件才通知。需电脑开机、应用运行且项目可访问；自动化状态和时间在 Codex 中管理（[官方说明](https://learn.chatgpt.com/docs/automations?surface=app)）。不依赖本机的做法是 GitHub 上的[每日价格与资讯巡检](#价格与资讯claude可选)：配置 Claude 凭据后每天由 Claude Code 核实并开 PR。仓库另提供可手动触发的 [GitHub Actions 采集工作流](../.github/workflows/news-collect.yml)：恢复队列/基线缓存、上传报告 artifact，部分失败仍保留报告并标记失败。代码仓库为 [yufeng97/coding-plan-comparison](https://github.com/yufeng97/coding-plan-comparison)，网站纠错模板连接该仓库的 Issues。CI 缓存与本机队列是各自工作副本，不自动双向同步；选定一个审核主副本，下载 artifact 后在该副本审核并保持后续采集使用同一队列。缓存可能被平台清除，重要待审决策须自行备份。
+GitHub 上的[每日资讯采集](#新闻候选采集)在北京时间每天 08:17 自动获取候选，不依赖本机或 Claude 凭据；可选的[每日价格与资讯巡检](#价格与资讯claude可选)在配置 Claude 凭据后核实并开 PR，仍由维护者审核后合并发布。代码仓库为 [yufeng97/coding-plan-comparison](https://github.com/yufeng97/coding-plan-comparison)，网站纠错模板连接该仓库的 Issues。若同时保留本机巡检，其队列与 Actions 缓存是各自工作副本，不自动双向同步；选定一个审核主副本，下载 artifact 后在该副本审核并保持后续采集使用同一队列。缓存可能被平台清除，重要待审决策须自行备份。
 
 ## 如何让新厂商进来
 

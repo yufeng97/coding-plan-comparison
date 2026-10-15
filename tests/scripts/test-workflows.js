@@ -3,9 +3,13 @@
 /* GitHub Actions 工作流的静态约束：第三方 Action 固定完整 SHA；可复用工作流的调用关系、发布队列；
    每日巡检只接受数据路径白名单内的改动。工作流本身只能在 GitHub 上运行，这里守住容易被改坏的约定。 */
 const assert = require("node:assert/strict");
+const { execFileSync } = require("node:child_process");
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
+const vm = require("node:vm");
 const { parseArgs: parseRateArgs } = require("../../scripts/build/update-rates");
+const { parseArguments: parseNewsArgs, quarantineCorruptInbox } = require("../../scripts/news/collect-news");
 
 const root = path.resolve(__dirname, "../..");
 const dir = path.join(root, ".github/workflows");
@@ -14,6 +18,23 @@ const workflows = Object.fromEntries(fs.readdirSync(dir).filter((name) => name.e
 
 let passed = 0;
 async function test(name, fn) { await fn(); passed++; console.log("  ✓ " + name); }
+
+function jobBlock(text, name) {
+  const lines = text.split("\n"), start = lines.indexOf("  " + name + ":");
+  assert.ok(start >= 0, "缺少作业 " + name);
+  let end = start + 1;
+  while (end < lines.length && !/^  [\w-]+:$/.test(lines[end])) end++;
+  return lines.slice(start, end).join("\n");
+}
+
+function stepBlock(text, id) {
+  const lines = text.split("\n"), index = lines.findIndex((line) => line === "        id: " + id);
+  assert.ok(index >= 0, "缺少步骤 " + id);
+  let start = index, end = index + 1;
+  while (start > 0 && !lines[start].startsWith("      - ")) start--;
+  while (end < lines.length && !lines[end].startsWith("      - ")) end++;
+  return lines.slice(start, end).join("\n");
+}
 
 async function main() {
   await test("第三方 Action 固定到 40 位提交 SHA 并注明版本；本地可复用工作流存在且声明 workflow_call", () => {
@@ -58,6 +79,71 @@ async function main() {
     const args = /npm run rates:update -- ([^|]+?) \|\|/.exec(daily);
     assert.ok(args);
     assert.deepEqual(parseRateArgs(args[1].trim().split(/\s+/)), { dryRun: false, date: "", staleDays: 7 });
+  });
+
+  await test("资讯每天北京时间 08:17 采集，定时无输入使用 14 天，手动输入仍生效", () => {
+    const news = workflows["news-collect.yml"];
+    assert.match(news, /schedule:\n\s+- cron: "17 0 \* \* \*"/);
+    assert.match(news, /workflow_dispatch:\n\s+inputs:\n\s+days:/);
+    const collect = stepBlock(news, "collect");
+    const expression = /NEWS_WINDOW_DAYS: \$\{\{ (.+) \}\}/.exec(collect);
+    assert.ok(expression);
+    for (const [inputs, expected] of [[{}, 14], [{ days: 30 }, 30]]) {
+      const days = vm.runInNewContext(expression[1], { inputs }, { timeout: 1000 });
+      assert.equal(days, expected);
+      assert.deepEqual(parseNewsArgs(["--days", String(days)]), { days: expected });
+    }
+    assert.match(collect, /collect-news\.js --days "\$NEWS_WINDOW_DAYS"/);
+    assert.doesNotMatch(news, /CLAUDE_CODE_OAUTH_TOKEN|ANTHROPIC_API_KEY|gh pr merge/, "基础采集不依赖 Claude，也不自动合并");
+  });
+
+  await test("巡检 artifact 保留完整资讯状态和损坏原字节，补丁下载位置不变", () => {
+    const inspection = workflows["daily-inspection.yml"], backup = stepBlock(inspection, "news-backup");
+    assert.match(backup, /always\(\).*steps\.credentials\.outputs\.ready/);
+    const script = /node <<'NODE'\n([\s\S]*?)\n {10}NODE/.exec(backup);
+    assert.ok(script, "备份使用可直接执行的 Node 代码");
+    const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "workflow-news-backup-"));
+    try {
+      const news = path.join(temporary, "data/audit/news"), output = path.join(temporary, "inspection");
+      fs.mkdirSync(news, { recursive: true });
+      fs.mkdirSync(output);
+      const corruptBytes = Buffer.from([0xff, 0x00, 0x7b, 0x62, 0x61, 0x64]);
+      fs.writeFileSync(path.join(news, "inbox.json"), corruptBytes);
+      const quarantined = quarantineCorruptInbox(news);
+      assert.ok(quarantined);
+      const files = { "inbox.json": "{\"reviewHistory\":[\"accepted\"]}", "state.json": "{\"pageHash\":\"baseline\"}",
+        "latest.json": "{\"status\":\"partial\"}", "health.json": "{\"consecutiveFailures\":2}", "triage.json": "{\"awaitingPublication\":[1]}" };
+      for (const [file, bytes] of Object.entries(files)) fs.writeFileSync(path.join(news, file), bytes);
+      fs.writeFileSync(path.join(output, "inspection.patch"), "patch");
+      execFileSync(process.execPath, ["-e", script[1]], { cwd: temporary, env: { ...process.env, OUT: output } });
+      for (const [file, bytes] of Object.entries(files)) assert.equal(fs.readFileSync(path.join(output, "news", file), "utf8"), bytes, file);
+      assert.deepEqual(fs.readFileSync(path.join(output, "news-corrupt", path.basename(quarantined))), corruptBytes);
+      assert.equal(fs.readFileSync(path.join(output, "inspection.patch"), "utf8"), "patch");
+      assert.match(inspection, /path: \$\{\{ runner\.temp \}\}\/inspection\//, "保持单一上传根，避免 artifact 嵌套改变补丁路径");
+      assert.equal(inspection.match(/path: \$\{\{ runner\.temp \}\}\/inspection\n/g)?.length, 2, "两处下载使用相同根");
+    } finally {
+      assert.equal(path.dirname(temporary), path.resolve(os.tmpdir()));
+      assert.ok(path.basename(temporary).startsWith("workflow-news-backup-"));
+      fs.rmSync(temporary, { recursive: true, force: true });
+    }
+  });
+
+  await test("巡检采集失败单独置红，保留可用候选的 CI 和人工审核 PR", () => {
+    const inspection = workflows["daily-inspection.yml"], inspect = jobBlock(inspection, "inspect");
+    assert.match(stepBlock(inspect, "collect"), /continue-on-error: true/);
+    assert.match(inspect, /collect_outcome: \$\{\{ steps\.collect\.outcome \}\}/);
+    const health = jobBlock(inspection, "collection-health"), condition = /if: \$\{\{ (.+) \}\}/.exec(health);
+    assert.ok(condition);
+    assert.match(health, /needs: inspect/);
+    for (const outcome of ["failure", "success", "skipped"]) {
+      const shouldFail = vm.runInNewContext(condition[1], { always: () => true, needs: { inspect: { outputs: { collect_outcome: outcome } } } }, { timeout: 1000 });
+      assert.equal(shouldFail, outcome === "failure", outcome);
+    }
+    assert.match(health, /run: \|\n(?:.*\n)*\s+exit 1/);
+    for (const name of ["propose", "verify", "pull-request"]) assert.doesNotMatch(jobBlock(inspection, name), /needs:[^\n]*collection-health/, "来源健康不阻断 " + name);
+    assert.match(jobBlock(inspection, "propose"), /needs: inspect/);
+    assert.match(jobBlock(inspection, "verify"), /uses: \.\/\.github\/workflows\/ci\.yml/);
+    assert.doesNotMatch(inspection, /gh pr merge|enablePullRequestAutoMerge/, "仍需维护者审核后合并");
   });
 
   await test("Claude 巡检：无推送凭据、子进程去掉凭据，白名单只放行数据文件", () => {

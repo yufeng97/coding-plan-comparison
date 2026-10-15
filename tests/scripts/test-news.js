@@ -389,6 +389,54 @@ async function tests() {
     const dated = await collect([source()], async () => new Response(rss(itemXML(updated.title, updated.url, "2026-10-08T00:00:00Z"))), { now: OCT8, state: changed.state, inbox: reviewed });
     assert.equal(dated.inbox.items[0].needsReReview, true);
   });
+  await test("已接受候选撤稿移除关键词仍重开复核，新无关键词URL不入队，重复撤稿不反复重开", async () => {
+    const feed = source(), url = "https://news.example.com/launch";
+    const first = await collect([feed], async () => new Response(rss(itemXML("New coding plan launch", url))), { now: OCT8 });
+    const context = { config: config(feed), knownVendors: [], plans: [], now: OCT8 };
+    const accepted = applyReview(first.inbox, { id: stableId(url), status: "accepted", reason: "已核对官方发布", evidenceUrls: [url] }, context);
+    const withdrawal = () => new Response(rss(
+      itemXML("This announcement has been withdrawn", url + "?utm_source=feed#notice", "2026-10-06", "Details of this announcement."),
+      itemXML("An unrelated announcement", "https://news.example.com/unrelated", "2026-10-06", "Details of another announcement.")
+    ));
+    const changed = await collect([feed], withdrawal, { now: new Date("2026-10-09T00:00:00Z"), state: first.state, inbox: accepted });
+    const [item] = changed.inbox.items;
+    assert.equal(changed.report.candidates.length, 1); assert.equal(changed.report.sources[0].candidatesEligible, 1); assert.equal(changed.inbox.items.length, 1);
+    assert.equal(item.title, "This announcement has been withdrawn"); assert.equal(item.status, "accepted"); assert.equal(item.needsReReview, true);
+    assert.equal(item.revisions.length, 1); assert.equal(item.revisions[0].title, "New coding plan launch"); assert.equal(item.reviewHistory.length, 1);
+    const triage = triageData(changed.inbox, { now: new Date("2026-10-09T00:00:00Z") });
+    assert.equal(triage.awaitingPublication.length, 0); assert.deepEqual(triage.needsReReview.map((candidate) => candidate.id), [item.id]);
+    const repeated = await collect([feed], withdrawal, { now: new Date("2026-10-10T00:00:00Z"), state: changed.state, inbox: changed.inbox });
+    assert.equal(repeated.inbox.items[0].needsReReview, true); assert.equal(repeated.inbox.items[0].revisions.length, 1);
+    const reviewed = applyReview(repeated.inbox, { id: item.id, status: "rejected", reason: "已确认撤稿，不再入库" }, { ...context, now: new Date("2026-10-10T00:00:00Z") });
+    const checked = await collect([feed], withdrawal, { now: new Date("2026-10-11T00:00:00Z"), state: repeated.state, inbox: reviewed });
+    assert.equal(checked.inbox.items[0].status, "rejected"); assert.equal(checked.inbox.items[0].needsReReview, false);
+    assert.equal(checked.inbox.items[0].revisions.length, 1); assert.equal(checked.inbox.items[0].reviewHistory.length, 2);
+  });
+  await test("多来源撤稿无关键词时仍按逐源修订，失败恢复和副本移出窗口不伪造新修订", async () => {
+    const official = source("official"), mirror = source("mirror", "rss", "discovery"), sources = [official, mirror], url = "https://news.example.com/launch";
+    const original = () => new Response(rss(itemXML("New coding plan launch", url, "2026-10-06")));
+    const first = await collect(sources, original, { now: OCT8 });
+    const context = { config: config(...sources), knownVendors: [], plans: [], now: OCT8 };
+    const accepted = applyReview(first.inbox, { id: stableId(url), status: "accepted", reason: "已核对官方发布", evidenceUrls: [url] }, context);
+    const fetcher = (down = false) => async (raw) => String(raw).startsWith(official.url)
+      ? down ? new Response("down", { status: 503 }) : new Response(rss(itemXML("This announcement has been withdrawn", url, "2026-10-08")))
+      : original();
+    const changed = await collect(sources, fetcher(), { now: new Date("2026-10-09T00:00:00Z"), state: first.state, inbox: accepted });
+    assert.equal(changed.inbox.items[0].title, "This announcement has been withdrawn"); assert.equal(changed.inbox.items[0].needsReReview, true);
+    assert.deepEqual(changed.inbox.items[0].revisions.map((revision) => [revision.sourceId, revision.change]), [["official", "updated"]]);
+    const reviewed = applyReview(changed.inbox, { id: stableId(url), status: "rejected", reason: "已复核官方撤稿" }, { ...context, now: new Date("2026-10-09T00:00:00Z") });
+    let run = { ...changed, inbox: reviewed };
+    for (const down of [true, false]) {
+      run = await collect(sources, fetcher(down), { now: new Date("2026-10-10T00:00:00Z"), days: 3, state: run.state, inbox: run.inbox });
+      assert.deepEqual(run.report.candidates[0].sources.map((ref) => ref.id), ["official"]);
+      assert.equal(run.inbox.items[0].title, "This announcement has been withdrawn"); assert.equal(run.inbox.items[0].needsReReview, false);
+      assert.equal(run.inbox.items[0].revisions.length, 1); assert.equal(run.inbox.items[0].variants.length, 2);
+      assert.equal(run.report.sources[0].cacheStale || false, down); assert.equal(run.report.sources[1].candidatesEligible, 0);
+    }
+    const aged = await collect(sources, fetcher(), { now: new Date("2026-10-20T00:00:00Z"), days: 3, state: run.state, inbox: run.inbox });
+    assert.equal(aged.report.candidates.length, 0); assert.ok(aged.inbox.items[0].outsideWindow); assert.equal(aged.inbox.items[0].needsReReview, false);
+    assert.equal(aged.inbox.items[0].revisions.length, 1); assert.equal(aged.inbox.items[0].lastSeen, run.inbox.items[0].lastSeen);
+  });
   await test("所有人工状态流转留历史，严格官方证据/理由/计划ID，未知新厂商可空planIds", async () => {
     const first = await collect([source("discovery", "rss", "discovery")], async () => new Response(rss(itemXML("Unknown code assistant", "https://fresh.example.com/launch"))), { now: OCT8 });
     const id = first.inbox.items[0].id, context = { config: config(source("discovery", "rss", "discovery")), knownVendors: [{ vendor: "Existing", domains: ["existing.example.com"] }], plans: [{ id: "plan-existing", vendor: "Existing", url: "https://existing.example.com/pricing" }], now: OCT8 };

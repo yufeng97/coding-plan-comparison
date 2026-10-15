@@ -2,7 +2,7 @@ name: 每日价格与资讯巡检（Claude）
 
 # 可选。在仓库 Secrets 配置 CLAUDE_CODE_OAUTH_TOKEN（本机 `claude setup-token` 生成，用订阅额度）
 # 或 ANTHROPIC_API_KEY（按 API 用量计费）二者之一后，北京时间每天 09:00 运行；未配置时直接跳过。
-# 1. 采集资讯候选：与手动采集工作流共用队列缓存与并发组；
+# 1. 采集资讯候选：与每日/手动采集工作流共用队列缓存与并发组；
 # 2. Claude Code 按 .github/automation/daily-inspection.md 逐条打开官网核实。它在不带推送凭据的检出里只改数据文件，
 #    不提交、不推送；
 # 3. 改动必须全部落在 DATA_PATHS 白名单内。补丁由单独作业提交到 automation/inspection，跑完整 CI 后开 PR；
@@ -43,6 +43,7 @@ jobs:
       actions: write # 队列损坏时删除该分支前缀下的旧缓存（与 news-collect.yml 相同）
     outputs:
       changed: ${{ steps.patch.outputs.changed }}
+      collect_outcome: ${{ steps.collect.outcome }}
     steps:
       - name: 检查 Claude 凭据
         id: credentials
@@ -163,13 +164,31 @@ jobs:
           test -s "$OUT/pr-body.md" || { echo "::error::Claude 没有写出 pr-body.md"; exit 1; }
           git diff --cached --binary > "$OUT/inspection.patch"
           echo "changed=true" >> "$GITHUB_OUTPUT"
+      - name: 备份资讯队列、页面基线与隔离原件
+        id: news-backup
+        if: ${{ always() && steps.credentials.outputs.ready == 'true' }}
+        env:
+          OUT: ${{ runner.temp }}/inspection
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs'), path = require('node:path');
+          for (const name of ['news', 'news-corrupt']) {
+            const source = path.join('data', 'audit', name);
+            if (!fs.existsSync(source)) continue;
+            const destination = path.join(process.env.OUT, name);
+            fs.mkdirSync(destination, { recursive: true });
+            for (const file of fs.readdirSync(source)) {
+              const original = path.join(source, file);
+              if (file.endsWith('.json') && fs.lstatSync(original).isFile()) fs.copyFileSync(original, path.join(destination, file));
+            }
+          }
+          NODE
       - name: 写入运行摘要
         if: ${{ always() && steps.credentials.outputs.ready == 'true' }}
         env:
           OUT: ${{ runner.temp }}/inspection
         run: |
-          mkdir -p "$OUT/news"
-          cp data/audit/news/latest.json data/audit/news/health.json data/audit/news/triage.json "$OUT/news/" 2>/dev/null || true
+          mkdir -p "$OUT"
           {
             echo "## 每日价格与资讯巡检"
             if [ -f "$OUT/claude-result.json" ]; then
@@ -185,6 +204,19 @@ jobs:
           path: ${{ runner.temp }}/inspection/
           retention-days: 30
           if-no-files-found: warn
+
+  # 单独标记采集故障，不阻断已核实候选的提交、CI 与人工审核 PR。
+  collection-health:
+    name: 资讯来源健康
+    needs: inspect
+    if: ${{ always() && needs.inspect.outputs.collect_outcome == 'failure' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: 报告采集失败
+        run: |
+          echo "::error::资讯来源或输入失败；已保存可用队列与报告，请下载本次巡检 artifact 检查来源健康。已核实候选仍走完整 CI 和人工审核 PR。"
+          exit 1
 
   propose:
     name: 提交巡检候选

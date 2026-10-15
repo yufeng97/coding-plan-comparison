@@ -145,12 +145,13 @@ function hnRequestURL(sourceURL, start, end, page = 0) {
   return url.href;
 }
 
-/** @param {NewsItem} item @param {NewsSource} source @param {number} start @param {number} end @param {KnownVendor[]} vendors
+/** @param {NewsItem} item @param {NewsSource} source @param {number} start @param {number} end @param {KnownVendor[]} vendors @param {Set<string>} trackedURLs
  * @returns {Candidate|null} */
-function candidateFrom(item, source, start, end, vendors) {
-  if (source.kind !== "page" && !keywordMatch(item, source.keywords)) return null;
+function candidateFrom(item, source, start, end, vendors, trackedURLs) {
   let url;
   try { url = normalizeURL(item.url); } catch { return null; }
+  // Keywords discover new URLs only: a tracked article's withdrawal/correction must still reach review.
+  if (source.kind !== "page" && !trackedURLs.has(url) && !keywordMatch(item, source.keywords)) return null;
   const title = plainText(item.title).slice(0, 500), summary = plainText(item.summary).slice(0, 360);
   if (!title) return null;
   const candidate = { ...item, title, summary, url, dateStatus: "missing", sources: [{ id: source.id, name: source.name, url: source.url, authority: source.authority, dateMeaning: item.dateMeaning || "unknown" }], vendorMatches: [], needsVendorReview: false };
@@ -187,6 +188,7 @@ async function collectNews(options) {
   if (!Number.isFinite(now.getTime()) || !Number.isInteger(days) || days < 1 || days > 365) throw new Error("days 必须是 1–365 的整数，checkedAt 必须有效");
   const checkedAt = now.toISOString(), end = now.getTime(), start = end - days * 86400000;
   const errors = [...(options.initialErrors || [])], sources = [], candidates = new Map();
+  const trackedURLs = new Set((options.inbox?.items || []).map((item) => item.url));
   const oldState = options.state || { schemaVersion: 1, sources: {} };
   /** @type {NewsState} */
   const nextState = { schemaVersion: 1, sources: { ...oldState.sources }, health: Object.fromEntries(Object.entries(oldState.health || {}).map(([id, health]) => [id, { ...health, enabled: false, freshness: "disabled" }])) };
@@ -304,7 +306,7 @@ async function collectNews(options) {
   await Promise.all(Array.from({ length: Math.min(3, configured.length) }, () => worker()));
   /** 同一网址按来源分别保留（同一来源重复链接取第一条），全部来源处理完再按固定优先级合并。 */
   function add(item, source, result) {
-    const candidate = candidateFrom(item, source, start, end, options.knownVendors || []);
+    const candidate = candidateFrom(item, source, start, end, options.knownVendors || [], trackedURLs);
     if (!candidate) return;
     result.candidatesEligible++;
     const copies = candidates.get(candidate.url) || [];
