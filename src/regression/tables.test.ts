@@ -700,10 +700,14 @@ test("核价来源与推荐卡核查日期显示距今天数，超过复查间�
   assert.match(page.byId("tableBody").querySelector(".td-trust .sub")!.textContent!, age);
   assert.match(page.byId("quickGrid").querySelector(".quick-card")!.textContent!, new RegExp("本档核查" + age.source));
   page.healthy();
-  /* 把一条核查改到很久以前：价格表的核查行标出超期。 */
+  /* 把一条核查改到很久以前、另一条固定为今天：价格表的核查行只标出超期那条。
+   * 「未超期」不能依赖真实日历：数据静置超过复查间隔后，任何真实核查日期都会变成超期。 */
   page = await openPage({ prepare(runtime) {
     const check = runtime.priceCheckOf(runtime.findPlanReference("plan-0002")!)!;
     runtime.PRICE_CHECKS.rows["plan:plan-0002"] = { ...check, checkedAt: "2020-01-01" };
+    const freshCheck = runtime.priceCheckOf(runtime.findPlanReference("plan-0001")!)!;
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+    runtime.PRICE_CHECKS.rows["plan:plan-0001"] = { ...freshCheck, checkedAt: today };
   } });
   const { default: PriceCheck } = await import("../components/PriceCheck.vue");
   const stale = mount(PriceCheck, { props: { plan: plan(page, "plan-0002") } });

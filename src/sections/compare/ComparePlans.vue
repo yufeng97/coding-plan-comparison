@@ -1,17 +1,18 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import { findPlanReference, isOneTimePlan, isPriceConfirmed, resolvedField } from "@generated/catalog";
 import { CAT_LABEL, cnyOf, planBadges, planPriceLabel, planTitle, priceUnit, REGION_LABEL } from "@domain/core";
 import { annualPaymentText } from "@domain/picker/payment";
 import { CMP_MAX, cmpState } from "@state/app";
-import { cmpFocusableElements, focusTableControl, isCmpModalOpen, setCmpBackgroundInert } from "@browser/interaction";
+import { focusTableControl, isCmpModalOpen } from "@browser/interaction";
+import { useModalDialog } from "../../composables/useModalDialog";
 import { syncUrl, updateAppState } from "@browser/url-state";
 import { copyCmpMarkdown, exportCmpCsv, registerTableView } from "@app/tables";
 import PlanBadges from "../../components/PlanBadges.vue";
 import PlanPrice from "../../components/PlanPrice.vue";
 import PriceCheck from "../../components/PriceCheck.vue";
 const dialog = ref<HTMLDialogElement | null>(null);
-const backdrop = ref<HTMLDivElement | null>(null);
+const backdrop = ref<HTMLElement | null>(null);
 const closeButton = ref<HTMLButtonElement | null>(null);
 const feedback = ref("");
 /* 加入、移出与清空的结果显示在对比条上方：操作可能来自推荐卡、数据表或对比条，提示不能落在别的章节里。 */
@@ -26,8 +27,6 @@ function notify(message: string) {
 }
 const labels = ref<Record<string, string>>({});
 const timers = new Map<string, ReturnType<typeof setTimeout>>();
-let returnFocus: Element | null = null;
-let needsFocusRestore = false;
 const items = computed(() => cmpState.items as Plan[]);
 const count = computed(() => items.value.length);
 const names = computed(() => items.value.map(planTitle).join("、"));
@@ -76,7 +75,7 @@ async function remove(reference: string, plan?: string) {
   syncUrl(); feedback.value = "";
   notify(`已移出 ${planTitle(removed)}。当前选择 ${count.value}/${CMP_MAX} 档。`);
   if (!modalOpen) return;
-  if (count.value < 2) close();
+  if (count.value < 2) modal.close();
   else {
     await nextTick();
     const remaining = dialog.value?.querySelectorAll<HTMLButtonElement>(".cmp-remove");
@@ -88,66 +87,22 @@ function clear() {
   const focusInBar = document.activeElement?.closest("#cmpBar");
   cmpState.items = [];
   syncUrl(); feedback.value = "";
-  close();
+  modal.close();
   if (focusInBar) focusTableControl(document.getElementById("searchInput"));
   notify("已清空对比选择。");
 }
-function restoreFocus() {
-  if (!needsFocusRestore) return;
-  needsFocusRestore = false;
-  const previous = returnFocus; returnFocus = null;
-  /* The Vue update disabling the opener follows the synchronous close. Its new
-   * eligibility must be checked here so focus never lands on a soon-disabled button. */
-  const previousAvailable = previous?.id !== "cmpOpenBtn" || count.value >= 2;
-  if (previousAvailable && focusTableControl(previous)) return;
-  if (count.value >= 2 && focusTableControl(document.getElementById("cmpOpenBtn"))) return;
-  focusTableControl(document.getElementById("searchInput"));
-}
-function finishClose() {
-  if (backdrop.value) backdrop.value.hidden = true;
-  dialog.value?.removeAttribute("aria-modal");
-  document.body.classList.remove("has-cmp-modal");
-  setCmpBackgroundInert(false);
-  restoreFocus();
-}
-function open() {
-  const modal = dialog.value;
-  if (!modal || count.value < 2 || isCmpModalOpen()) return;
-  const active = document.activeElement;
-  returnFocus = active && active !== document.body && !modal.contains(active) ? active : null;
-  needsFocusRestore = true;
-  const fallback = typeof modal.showModal !== "function";
-  modal.classList.toggle("cmp-fallback", fallback);
-  modal.setAttribute("aria-modal", "true");
-  document.body.classList.add("has-cmp-modal");
-  if (!fallback) modal.showModal();
-  else { modal.setAttribute("open", ""); if (backdrop.value) backdrop.value.hidden = false; setCmpBackgroundInert(true); }
-  focusTableControl(closeButton.value);
-}
-function close() {
-  const modal = dialog.value;
-  if (!modal || !isCmpModalOpen()) return;
-  if (!modal.classList.contains("cmp-fallback") && typeof modal.close === "function") modal.close(); else modal.removeAttribute("open");
-  finishClose();
-}
-function keydown(event: KeyboardEvent) {
-  if (event.key === "Escape") { event.preventDefault(); close(); return; }
-  if (event.key !== "Tab" || !dialog.value?.classList.contains("cmp-fallback") || !isCmpModalOpen()) return;
-  const focusable = cmpFocusableElements() as HTMLElement[];
-  const first = focusable[0], last = focusable[focusable.length - 1], active = document.activeElement as HTMLElement | null;
-  if (!first) { event.preventDefault(); focusTableControl(dialog.value); }
-  else if (event.shiftKey && active === first || !event.shiftKey && active === last || !active || !focusable.includes(active)) { event.preventDefault(); focusTableControl(event.shiftKey ? last : first); }
-}
-function outsideClick(event: MouseEvent) {
-  if (event.target !== dialog.value || !dialog.value) return;
-  const rect = dialog.value.getBoundingClientRect();
-  if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) close();
-}
-const guardFocus = (event: FocusEvent) => { if (dialog.value?.classList.contains("cmp-fallback") && isCmpModalOpen() && !dialog.value.contains(event.target as Node)) focusTableControl(closeButton.value); };
+/* 「清空」同步清空选择后再关窗口：打开按钮将随之停用，而 Vue 的 DOM 更新在同步关闭之后；
+ * 焦点是否可回到触发控件按新选择数判断，不能落在即将停用的按钮上。 */
+const modal = useModalDialog({
+  dialog, backdrop, bodyClass: "has-cmp-modal",
+  initialFocus: () => closeButton.value,
+  fallbackFocus: () => (count.value >= 2 ? document.getElementById("cmpOpenBtn") : null) ?? document.getElementById("searchInput"),
+  canReturnFocus: (previous) => previous?.id !== "cmpOpenBtn" || count.value >= 2,
+});
+function open() { if (count.value >= 2) modal.open(); }
 watch(count, (value) => { document.body.classList.toggle("has-compare", value > 0); }, { immediate: true });
-const release = registerTableView("compare", { render: () => { feedback.value = ""; }, add, remove, clear, open, close, finishClose, feedback: (message: string) => { feedback.value = message; }, flash, buttons: ["cmpOpenBtn", "copyCmpMdBtn", "exportCmpCsvBtn"] });
-onMounted(() => document.addEventListener("focusin", guardFocus));
-onBeforeUnmount(() => { close(); release(); timers.forEach(clearTimeout); clearTimeout(toastTimer); document.removeEventListener("focusin", guardFocus); document.body.classList.remove("has-compare"); });
+const release = registerTableView("compare", { render: () => { feedback.value = ""; }, add, remove, clear, open, close: modal.close, finishClose: modal.finishClose, feedback: (message: string) => { feedback.value = message; }, flash, buttons: ["cmpOpenBtn", "copyCmpMdBtn", "exportCmpCsvBtn"] });
+onBeforeUnmount(() => { release(); timers.forEach(clearTimeout); clearTimeout(toastTimer); document.body.classList.remove("has-compare"); });
 </script>
 
 <template>
@@ -158,13 +113,13 @@ onBeforeUnmount(() => { close(); release(); timers.forEach(clearTimeout); clearT
       <button id="cmpClearBtn" type="button" class="chip" @click.stop="updateAppState(clear)">清空</button>
     </div>
     <p id="cmpToast" class="toast" role="status" aria-live="polite" aria-atomic="true">{{ toast }}</p>
-    <div id="cmpBackdrop" ref="backdrop" class="cmp-fallback-backdrop" hidden aria-hidden="true" @click.stop="close"></div>
-    <dialog id="cmpModal" ref="dialog" class="cmp-modal" role="dialog" tabindex="-1" aria-labelledby="cmpModalTitle" @close="finishClose" @keydown.stop="keydown" @click.stop="outsideClick">
+    <div id="cmpBackdrop" ref="backdrop" class="cmp-fallback-backdrop" hidden aria-hidden="true" @click.stop="modal.close"></div>
+    <dialog id="cmpModal" ref="dialog" class="cmp-modal" role="dialog" tabindex="-1" aria-labelledby="cmpModalTitle" @close="modal.finishClose" @keydown.stop="modal.keydown" @click.stop="modal.outsideClick">
       <div class="cmp-head"><h3 id="cmpModalTitle">并排对比</h3><div class="cmp-head-actions">
         <button id="copyCmpMdBtn" type="button" class="chip" :disabled="count < 2" :title="count < 2 ? '至少选择 2 档后导出对比' : '复制已选方案的完整对比与核价元数据'" @click.stop="copyCmpMarkdown">{{ labels.copyCmpMdBtn || "复制对比 Markdown" }}</button>
         <button id="exportCmpCsvBtn" type="button" class="chip" :disabled="count < 2" :title="count < 2 ? '至少选择 2 档后导出对比' : '下载已选方案的完整对比与核价元数据'" @click.stop="exportCmpCsv">{{ labels.exportCmpCsvBtn || "导出对比 CSV" }}</button>
         <button id="cmpClearInModal" type="button" class="chip" @click.stop="updateAppState(clear)">清空对比</button>
-        <button id="cmpCloseBtn" ref="closeButton" type="button" class="chip" @click.stop="close">关闭 <span aria-hidden="true">✕</span></button>
+        <button id="cmpCloseBtn" ref="closeButton" type="button" class="chip" @click.stop="modal.close">关闭 <span aria-hidden="true">✕</span></button>
       </div></div>
       <p class="cmp-tip">各家「额度」口径不同（5 小时窗口 / 每周 tokens / credits），不能直接互比；此处保留官方口径原文对照。</p>
       <p id="cmpFeedback" class="table-feedback" role="status" aria-live="polite">{{ feedback }}</p>
