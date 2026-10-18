@@ -5,8 +5,8 @@
  * --check 只核对不写文件（CI 与每日自动更新使用），数据变化后漏跑 readme:build 会在这里失败。 */
 const fs = require("node:fs");
 const path = require("node:path");
-const vm = require("node:vm");
 const { commitOutputs } = require("./sync-pricing-audit");
+const { loadRepoData } = require("../lib/load-data");
 
 const READMES = /** @type {const} */ ([{ file: "README.md", lang: "zh" }, { file: "README.en.md", lang: "en" }]);
 const BLOCKS = ["coverage", "benchmarks", "rates"];
@@ -46,12 +46,12 @@ function benchmarkGroups(results) {
 
 /** @param {string} root */
 function readmeStats(root) {
-  const source = fs.readFileSync(path.join(root, "data/sources/data.js"), "utf8");
-  const box = {};
-  vm.createContext(box);
-  vm.runInContext(source + "\n;globalThis.stats = { META, PLANS, API_PRICES, PAYG_REFERENCES, quotaRows: METRICS_RAW.length + ESTIMATES.length, " +
-    "freeCoding: PLANS.filter((plan) => isFreeCodingEntry(plan)).length, RATE_USD_CNY, RATE_INR_CNY };", box, { timeout: 2000 });
-  const data = /** @type {any} */ (box).stats;
+  const loaded = loadRepoData(root, ["META", "PLANS", "API_PRICES", "PAYG_REFERENCES", "METRICS_RAW", "ESTIMATES", "RATE_USD_CNY", "RATE_INR_CNY", "isFreeCodingEntry"]);
+  const data = /** @type {any} */ ({
+    ...loaded,
+    quotaRows: loaded.METRICS_RAW.length + loaded.ESTIMATES.length,
+    freeCoding: loaded.PLANS.filter((/** @type {any} */ plan) => loaded.isFreeCodingEntry(plan)).length,
+  });
   const results = JSON.parse(fs.readFileSync(path.join(root, "data/benchmarks/public-results.json"), "utf8"));
   if (!results || !Array.isArray(results.benchmarks) || !Array.isArray(results.scores) || !results.benchmarks.length) throw new Error("公开评测快照缺少榜单或成绩");
   return {

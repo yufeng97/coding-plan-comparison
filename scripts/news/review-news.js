@@ -2,11 +2,11 @@
 "use strict";
 const fs = require("node:fs");
 const path = require("node:path");
-const vm = require("node:vm");
 const { publicURL } = require("./network");
 const { plainText } = require("./feed");
 const { normalizeURL, readKnownVendors, readPlanReferences, resolveNewsPaths, withNewsLock, commitOutputs } = require("./collect-news");
 const { STATUSES, validateInbox, summarizeInbox } = require("./inbox");
+const { loadRepoData } = require("../lib/load-data");
 
 const SHARED_HOSTS = ["github.com", "github.io", "huggingface.co", "vercel.app", "netlify.app", "pages.dev", "gitlab.com", "gitlab.io", "blogspot.com"];
 const SUFFIXES = ["co.uk", "com.cn", "net.cn", "org.cn", "com.au", "co.jp", "co.kr", "com.sg"];
@@ -89,8 +89,8 @@ const WORKFLOW = ["accepted 仅确认候选值得进入人工数据核验，不�
 
 /** @returns {Set<string>} */
 function readPublishedURLs(workspace) {
-  const source = fs.readFileSync(path.join(workspace, "data", "sources", "data.js"), "utf8");
-  const dynamics = /** @type {Array<{url:string,checked?:boolean}>} */ (vm.runInNewContext(source + "\n;typeof DYNAMICS !== 'undefined' ? DYNAMICS : []", {}, { timeout: 2000 }));
+  /* 精简夹具可能没有 DYNAMICS 声明，按空表处理。 */
+  const dynamics = /** @type {Array<{url:string,checked?:boolean}>} */ (loadRepoData(workspace, ["DYNAMICS"], { optional: ["DYNAMICS"] }).DYNAMICS || []);
   return new Set(dynamics.filter((item) => item && item.checked !== true && typeof item.url === "string").map((item) => normalizeURL(item.url)));
 }
 

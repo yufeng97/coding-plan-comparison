@@ -255,7 +255,6 @@ function syncPricingAuditUnlocked(workspace, options = {}) {
   edits.push({ start: updatedProperty.initializer.getStart(ast), end: updatedProperty.initializer.end, text: JSON.stringify(updated) });
   edits.sort((a, b) => b.start - a.start);
   for (const edit of edits) source = source.slice(0, edit.start) + edit.text + source.slice(edit.end);
-  source = source.replace("全部价格经网络核实，来源见 SOURCES", "价格逐条核查状态见 PRICE_CHECKS；待核实历史价仅作参考");
   const current = loadData(source);
   const validation = validateData({ workspace: root, source, now });
   if (validation.errors.length) throw new Error("核价同步候选数据校验失败：\n" + validation.errors.join("\n"));

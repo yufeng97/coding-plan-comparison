@@ -45,7 +45,8 @@ function applyRates(source, rates) {
     `/* 同一汇率日期：Frankfurter USD/INR=${rates.inr}、USD/CNY=${rates.cny}；保留印度原价。 */\nconst RATE_INR_CNY = ${rates.cny} / ${rates.inr};`, " RATE_INR_CNY");
   next = replaceOnce(next, /rateAsOf: "\d{4}-\d{2}-\d{2}",/, `rateAsOf: "${rates.date}",`, " META.rateAsOf");
   next = replaceOnce(next, /rateSource: "https:\/\/api\.frankfurter\.dev\/v1\/[^"]+",/, `rateSource: "${rates.source}",`, " META.rateSource");
-  next = replaceOnce(next, /汇率: 1 USD ≈ [\d.]+ CNY（\d{4}-\d{2}-\d{2} frankfurter 实测 [\d.]+，/, `汇率: 1 USD ≈ ${usdCny} CNY（${rates.date} frankfurter 实测 ${rates.cny}，`, "文件头汇率说明");
+  /* 文件头汇率说明是机器维护区：数字骨架（日期与实测值）必须存在，中间措辞可自由调整；改写时统一回规范说法。 */
+  next = replaceOnce(next, /汇率: 1 USD ≈ [\d.]+ CNY（\d{4}-\d{2}-\d{2}[^，\n]*?[\d.]+，/, `汇率: 1 USD ≈ ${usdCny} CNY（${rates.date} frankfurter 实测 ${rates.cny}，`, "文件头汇率说明");
   /* 来源目录的汇率分组随汇率日期一起更新，否则页脚会继续列出旧日期的接口地址。 */
   next = replaceOnce(next, /\{ group: "汇率参考（\d{4}-\d{2}-\d{2}）", urls: \[\n(\s*)"https:\/\/api\.frankfurter\.dev\/v1\/[^"]+",/,
     `{ group: "汇率参考（${rates.date}）", urls: [\n$1"${rates.source}",`, " SOURCES 汇率参考分组");

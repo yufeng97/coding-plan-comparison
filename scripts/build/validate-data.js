@@ -6,15 +6,24 @@
  * 每日巡检任务在修改 data.js 后必须运行本脚本，
  * 失败时应从 data/sources/data.js.bak 恢复。
  * ============================================================ */
-const vm = require("vm");
 const fs = require("fs");
 const path = require("path");
+const { loadData } = require("../lib/load-data");
+const { dataRegressionChecks } = require("./data-regression");
 
 function isISODate(value) {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(value + "T00:00:00Z");
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
+
+/** 机型名折叠口径：与浏览器 metrics.js 的型号匹配一致。 @param {unknown} x */
+const foldModel = (x) => String(x || "").toLowerCase().replace(/[^a-z0-9.]+/g, "");
+/** @param {unknown} s */
+const trunc = (s) => String(s || "").slice(0, 30);
+
+/* 校验器从 data.js 取用的全局名：数据表与同一份代码里的业务函数（VM 沙箱直接复用）。 */
+const DATA_GLOBALS = ["RATE_USD_CNY", "RATE_INR_CNY", "META", "PRICE_CHECKS", "PLANS", "METRICS_RAW", "ESTIMATES", "PLAN_TOKENS", "DYNAMICS", "API_PRICES", "PAYG_REFERENCES", "SOURCES", "UNCERTAIN", "MODEL_ROLES", "matchModelRoles", "isRetiredPlan", "isFreeCodingEntry", "isOnSalePlan", "isPersonalMonthly", "resolvedField", "hasOwnClient", "offerable", "findPlanReference", "displayPriceReason", "INTERNAL_TEXT_RE", "isRelay", "CALC_DEFAULT_API", "MAINLAND_ACCESS"];
 
 /* 计划名里的状态标记。页面只读结构化字段；校验器用这些标记确认字段没有漏填或填错。 */
 const PLAN_MARKERS = [
@@ -41,17 +50,10 @@ function validateData(options = {}) {
   const finiteNonnegative = (v) => typeof v === "number" && Number.isFinite(v) && v >= 0;
   const finitePositive = (v) => finiteNonnegative(v) && v > 0;
 
-  /* 载入数据（data.js 为纯常量声明，无 DOM 依赖） */
-  const sandbox = { console };
-  sandbox.globalThis = sandbox;
-  vm.createContext(sandbox);
-  vm.runInContext(
-    (options.source ?? fs.readFileSync(path.join(root, "data/sources/data.js"), "utf8")) +
-      "\n;globalThis.__D={RATE_USD_CNY,RATE_INR_CNY,META,PRICE_CHECKS,PLANS,METRICS_RAW,ESTIMATES,PLAN_TOKENS,DYNAMICS,API_PRICES,PAYG_REFERENCES,SOURCES,UNCERTAIN,MODEL_ROLES,matchModelRoles,isRetiredPlan,isFreeCodingEntry,isOnSalePlan,isPersonalMonthly,resolvedField,hasOwnClient,offerable,findPlanReference,displayPriceReason,INTERNAL_TEXT_RE,isRelay,CALC_DEFAULT_API,MAINLAND_ACCESS};",
-    sandbox,
-    { filename: "data/sources/data.js" }
-  );
-  const { RATE_USD_CNY, RATE_INR_CNY, META, PRICE_CHECKS, PLANS, METRICS_RAW, ESTIMATES, PLAN_TOKENS, DYNAMICS, API_PRICES, PAYG_REFERENCES, SOURCES, UNCERTAIN, MODEL_ROLES, matchModelRoles, isRetiredPlan, isFreeCodingEntry, isOnSalePlan, isPersonalMonthly, resolvedField, hasOwnClient, offerable, findPlanReference, displayPriceReason, INTERNAL_TEXT_RE, isRelay, CALC_DEFAULT_API, MAINLAND_ACCESS } = sandbox.__D;
+  /* 载入数据（data.js 为纯常量声明，无 DOM 依赖）；同一进程内同一份源码只解析一次。 */
+  const source = options.source ?? fs.readFileSync(path.join(root, "data/sources/data.js"), "utf8");
+  const globals = loadData(source, DATA_GLOBALS);
+  const { RATE_USD_CNY, RATE_INR_CNY, META, PRICE_CHECKS, PLANS, METRICS_RAW, ESTIMATES, PLAN_TOKENS, DYNAMICS, API_PRICES, PAYG_REFERENCES, SOURCES, UNCERTAIN, MODEL_ROLES, matchModelRoles, isRetiredPlan, isFreeCodingEntry, isOnSalePlan, isPersonalMonthly, resolvedField, hasOwnClient, offerable, findPlanReference, displayPriceReason, INTERNAL_TEXT_RE, isRelay, CALC_DEFAULT_API, MAINLAND_ACCESS } = globals;
 
   const CATS = ["official", "tool", "cloud", "team"];
   const REGIONS = ["cn", "intl"];
@@ -146,9 +148,7 @@ function validateData(options = {}) {
       check(!!target && target.cur === p.cur && target.priceM === p.priceM, `PLANS sameAs 的主条目价格与币种必须相同: ${key}`);
     }
     if (p.priceM != null && p.priceM > 0 && p.priceY != null) warn(p.priceY <= p.priceM, `PLANS 年付折月高于月付: ${key}`);
-    /* 定制档不应只填年付价（复制残留的典型信号）。plan-0007 的年付席位费在 quota 里有官方依据，显式豁免。 */
-    check(p.priceM != null || p.priceY == null || p.id === "plan-0007",
-      `PLANS 无月付价却有年付折月价（如为定制报价请改 priceY: null）: ${key}`);
+    /* 「无月付价却有年付折月价」属数据快照回归（含豁免名单），由 data-regression.js 断言。 */
     if (p.priceM == null) note(`PLANS 无标价（按量/定制）: ${key}`);
     if (!isRetiredPlan(p) && typeof p.url === "string" && /web\.archive\.org/i.test(p.url)) {
       errors.push(`在售计划来源不能用网页存档: ${key}`);
@@ -157,21 +157,6 @@ function validateData(options = {}) {
 
   /* isRetiredPlan / isFreeCodingEntry 定义在 data/sources/data.js 中（同一份代码，VM 沙箱直接复用）。
      每日巡检改完 data.js 后必须跑本脚本。 */
-  const NOT_CODING_FREE = [
-    ["Lovable", "Free"],
-    ["Bolt.new", "Free"],
-    ["Anthropic", "Claude Free"],
-    ["xAI", "Grok Free"],
-    ["ZenMux", "Free"],
-  ];
-  for (const [vendor, plan] of NOT_CODING_FREE) {
-    const p = PLANS.find((x) => x.vendor === vendor && x.plan === plan);
-    if (!p) continue;
-    const noted = (p.note || "").includes("不列入");
-    /* 排除逻辑单源：data.js 的 isFreeCodingEntry 必须已经排除这些档（而不是靠校验器自己复制一份名单） */
-    check(p.priceM === 0 && (isRetiredPlan(p) || noted) && !isFreeCodingEntry(p),
-      `不能当 Coding Agent 的免费档须标明不列入（或已下架）且被 isFreeCodingEntry 排除: ${vendor}|${plan}`);
-  }
   const freeCoding = PLANS.filter(isFreeCodingEntry);
   /* 中转站只按 RELAY_VENDORS 名单判定；备注或档名写明中转站/号池却未登记，会被当作官方或工具订阅进入推荐。 */
   const unregisteredRelays = PLANS.filter((p) => !isRelay(p) && /(?<!不是|并非|非|不属于)(?:仅提供中转|号池|中转站)/.test((p.note || "") + (p.plan || "")));
@@ -185,19 +170,9 @@ function validateData(options = {}) {
       check(!!got && !/^同/.test(got), `「同」字段未能解析到原文: ${p.vendor}|${p.plan} ${key}`);
     }
   }
-  const goPlus = PLANS.find((p) => p.plan === "OpenCode Go Plus");
-  check(goPlus && /Claude Code/i.test(resolvedField(goPlus, "tools")), "OpenCode Go Plus 的工具应解析到 Go（含 Claude Code）");
-  const droid = PLANS.find((p) => p.plan === "Droid Pro");
-  check(droid && hasOwnClient(droid), "Droid Pro 应识别为自家客户端");
-  const hub = PLANS.find((p) => p.plan === "通用 Token Plan Lite");
-  check(hub && !hasOwnClient(hub), "TokenHub API 套餐不应算自家客户端");
-  const arkLite = PLANS.find((p) => p.plan === "方舟 Coding Plan Lite");
-  check(arkLite && offerable(arkLite), "备注里的限量补货不应取消可购买");
-  const flashSale = PLANS.find((p) => /限量抢购/.test(p.plan || ""));
-  check(flashSale && !offerable(flashSale), "计划名中的限量抢购不应直接推荐");
 
   /* ---- 模型用法（帮我选，不是跑分）---- */
-  check(Array.isArray(MODEL_ROLES) && MODEL_ROLES.length >= 8, "缺少 MODEL_ROLES");
+  check(Array.isArray(MODEL_ROLES), "缺少 MODEL_ROLES");
   const roleIds = new Set();
   for (const r of MODEL_ROLES || []) {
     check(!roleIds.has(r.id), `MODEL_ROLES 重复 id: ${r.id}`);
@@ -210,20 +185,9 @@ function validateData(options = {}) {
     check(typeof r.reason === "string" && r.reason.length > 8, `MODEL_ROLES reason 过短: ${r.id}`);
     check(/^\d{4}-\d{2}-\d{2}$/.test(r.asOf || ""), `MODEL_ROLES asOf 非法: ${r.id}`);
   }
-  const idsOf = (text) => matchModelRoles(text).map((r) => r.id);
-  const flashOnly = idsOf("GLM-5.3-Flash");
-  check(flashOnly.includes("flash") && !flashOnly.includes("glm-5"), "仅 Flash 的写法不应匹配 GLM-5.3 复杂任务角色");
-  const glmBoth = idsOf("GLM-5.3、GLM-5.3-Flash");
-  check(glmBoth.includes("glm-5") && glmBoth.includes("flash"), "GLM-5.3 与 Flash 应能同时匹配");
-  const claudeFree = idsOf("Claude Sonnet 5 / Haiku 4.5（不含 Opus）");
-  check(!claudeFree.includes("claude-opus") && claudeFree.includes("sonnet"), "不含 Opus 的套餐不应匹配 Opus");
-  const claudePro = idsOf("Claude Opus 5.5 / Sonnet 5 / Haiku 4.5（Fable 5.1 需 usage credits）");
-  check(claudePro.includes("claude-opus") && !claudePro.includes("claude-fable"), "需另购 credits 的 Fable 不应算进套餐");
-  check(idsOf("Grok 4.5–4.7、Composer 2.5").includes("grok"), "Cursor 的 Grok 4.5–4.7 应匹配日常角色");
-  const opusRole = MODEL_ROLES.find((r) => r.id === "claude-opus");
-  const grokRole = MODEL_ROLES.find((r) => r.id === "grok");
-  check(opusRole && opusRole.task === "hard" && opusRole.burn === "fast", "Claude Opus 应为复杂任务、消耗快");
-  check(grokRole && grokRole.task === "daily" && grokRole.burn === "slow", "Grok 应为日常、消耗慢");
+
+  /* ---- 数据快照回归（具体套餐/模型的事实断言，与结构校验分离维护）---- */
+  dataRegressionChecks(globals, { check });
 
   /* ---- 指标条目（METRICS_RAW + ESTIMATES）---- */
   for (const p of PLANS) {
@@ -299,7 +263,6 @@ function validateData(options = {}) {
   /* 币种锚点交叉校验：同厂商、同型号的牌价在 API_PRICES 里有正式条目时，指标行的牌价必须同币种
      （metrics.js 的 blendPrice 假定 apiIn/apiOut 与 ref 计划同币种，填错币种会静默算出错误成本）。
      跨厂商引用（如 DevPass 按官方/挂牌价折算）与 API_PRICES 未单列的型号不在此检查范围。 */
-  const foldModel = (x) => String(x || "").toLowerCase().replace(/[^a-z0-9.]+/g, "");
   for (const m of allMetrics) {
     /* 与浏览器 resolvePlan 一致：ref 可解析时，币种和厂商来自计划单一数据源。 */
     const p = m.ref != null ? findPlanReference(m.ref) : null;
@@ -357,10 +320,9 @@ function validateData(options = {}) {
     check(typeof s.note === "string" && s.note.length > 8, `PAYG note 过短: ${key}`);
     check(typeof s.source === "string" && s.source, `PAYG 缺 source: ${key}`);
     check(typeof s.url === "string" && s.url.startsWith("http"), `PAYG url 非法: ${key}`);
-    const fold = (x) => String(x || "").toLowerCase().replace(/[^a-z0-9.]+/g, "");
-    const want = fold(s.model);
+    const want = foldModel(s.model);
     const priceOf = (a) => a.cur === "USD" ? [a.inUSD, a.outUSD] : [a.inCNY, a.outCNY];
-    const candidates = API_PRICES.filter((a) => fold(a.model) === want || fold(a.label) === want);
+    const candidates = API_PRICES.filter((a) => foldModel(a.model) === want || foldModel(a.label) === want);
     let named = candidates.find((a) => a.vendor === s.vendor) || null;
     if (!named) {
       const official = candidates.filter((a) => !/\[|硅基/.test((a.label || "") + (a.vendor || "")));
@@ -403,7 +365,6 @@ function validateData(options = {}) {
   }
   const ym = new Date().getFullYear() + "-" + String(new Date().getMonth() + 1).padStart(2, "0");
   warn(dates.length === 0 || dates.some((x) => x.startsWith(ym)), `动态中缺少本月(${ym})条目`);
-  function trunc(s) { return (s || "").slice(0, 30); }
 
   /* ---- 用户可见文字：不出现内部字段名与开发用语；核查说明与来源证据按页面同一改写规则检查 ---- */
   const leaks = [];

@@ -2,7 +2,6 @@
 "use strict";
 const fs = require("node:fs");
 const path = require("node:path");
-const vm = require("node:vm");
 const crypto = require("node:crypto");
 const { plainText, parseFeed, parseHN } = require("./feed");
 const { stripElements } = require("./html-scan");
@@ -11,6 +10,7 @@ const { publicURL, fetchSource } = require("./network");
 const { normalizeURL } = require("./urls");
 const { validateInbox, updateInbox, validInstant, variantOf, mergeVariants } = require("./inbox");
 const { withFileLock } = require("../lib/file-lock");
+const { loadRepoData } = require("../lib/load-data");
 
 const DEFAULT_KEYWORDS = ["coding plan", "token plan", "编程套餐", "编程订阅", "AI编程", "AI 编程", "编程助手", "编码助手",
   "coding agent", "code agent", "code assistant", "code editor", "agentic coding", "vibe coding", "copilot", "codex", "credits", "pricing",
@@ -64,10 +64,9 @@ function hasZone(text) {
 /** Execute only the repository's trusted local data source, never source responses or imported content.
  * @returns {KnownVendor[]} */
 function readKnownVendors(workspace) {
-  const source = fs.readFileSync(path.join(workspace, "data", "sources", "data.js"), "utf8");
-  const plans = vm.runInNewContext(source + "\n;[...(typeof PLANS !== 'undefined' ? PLANS : []), ...(typeof API_PRICES !== 'undefined' ? API_PRICES : []), ...(typeof PAYG_REFERENCES !== 'undefined' ? PAYG_REFERENCES : [])]", {}, { timeout: 2000 });
+  const { PLANS, API_PRICES, PAYG_REFERENCES } = loadRepoData(workspace, ["PLANS", "API_PRICES", "PAYG_REFERENCES"]);
   const vendors = new Map();
-  for (const plan of plans) {
+  for (const plan of [...PLANS, ...API_PRICES, ...PAYG_REFERENCES]) {
     if (!plan || typeof plan.vendor !== "string" || !plan.vendor.trim()) continue;
     const domains = vendors.get(plan.vendor) || new Set();
     for (const link of [plan.url, plan.source]) if (typeof link === "string") { try { const parsed = publicURL(link); domains.add(parsed.hostname.toLowerCase().replace(/^www\./, "")); } catch {} }
@@ -78,8 +77,7 @@ function readKnownVendors(workspace) {
 
 /** @returns {Array<{id:string,vendor:string,url:string}>} */
 function readPlanReferences(workspace) {
-  const source = fs.readFileSync(path.join(workspace, "data", "sources", "data.js"), "utf8");
-  return vm.runInNewContext(source + "\n;PLANS.map(p => ({id:p.id,vendor:p.vendor,url:p.url || ''}))", {}, { timeout: 2000 });
+  return loadRepoData(workspace, ["PLANS"]).PLANS.map((p) => ({ id: p.id, vendor: p.vendor, url: p.url || "" }));
 }
 
 function vendorNameMatch(text, name) {

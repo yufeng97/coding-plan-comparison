@@ -8,18 +8,15 @@
  * 为重建临时放入的输入、台账与历史文件随后删除，夹具原有的文件布局不变。 */
 const fs = require("node:fs");
 const path = require("node:path");
-const vm = require("node:vm");
 const { syncPricingAudit } = require("../../scripts/build/sync-pricing-audit");
 const { canonical } = require("../../scripts/maintenance/history");
+const { loadData } = require("../../scripts/lib/load-data");
 
 const FULL_AUDIT_INPUTS = ["pricing-root.json", "pricing-relays.json", "pricing-tools.json", "pricing-cn.json"];
 
 /** 全量输入没有覆盖的当前核价行：按当前状态、说明与来源写成全量记录（日期取全量核查日）。 */
 function supplementFullAudit(root, source, checkedAt) {
-  const box = {};
-  vm.createContext(box);
-  vm.runInContext(source + "\n;globalThis.data={PRICE_CHECKS,PLANS,API_PRICES,PAYG_REFERENCES};", box, { timeout: 2000 });
-  const { PRICE_CHECKS, PLANS, API_PRICES, PAYG_REFERENCES } = box.data;
+  const { PRICE_CHECKS, PLANS, API_PRICES, PAYG_REFERENCES } = loadData(source, ["PRICE_CHECKS", "PLANS", "API_PRICES", "PAYG_REFERENCES"]);
   const files = FULL_AUDIT_INPUTS.map((file) => path.join(root, "data/audit", file));
   const audits = files.map((file) => JSON.parse(fs.readFileSync(file, "utf8")));
   const entries = { plan: PLANS, api: API_PRICES, payg: PAYG_REFERENCES };
