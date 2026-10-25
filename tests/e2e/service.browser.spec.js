@@ -131,6 +131,16 @@ for (const action of ["滚轮","PageUp"]) test(`显式导航下载期间通过${
   const gate = new Promise((resolve) => { release = () => resolve(null); });
   let requested = false;
   await page.route("**/libs/echarts*.js", async (route) => { requested = true; await gate; await route.continue(); });
+  /* 记录程序化 scrollIntoView：用户已继续阅读后，图表就绪不得再滚回目标章节。
+     滚动锚定会随上方图表增高平移 scrollY，程序化滚动次数才是稳定的判断依据。 */
+  await page.addInitScript(() => {
+    window["programmaticScrolls"] = [];
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (...args) {
+      window["programmaticScrolls"].push(this.id);
+      return original.apply(this, args);
+    };
+  });
   try {
     await page.goto("/", { waitUntil:"domcontentloaded" });
     await page.locator("#sectionMenu").evaluate((menu) => { /** @type {HTMLDetailsElement} */ (menu).open = true; });
@@ -139,15 +149,18 @@ for (const action of ["滚轮","PageUp"]) test(`显式导航下载期间通过${
     await page.keyboard.press("Enter");
     await expect.poll(() => requested).toBe(true);
     await expect.poll(() => page.evaluate("scrollY")).toBeGreaterThan(100);
+    /* 慢网下点击立即到位并聚焦目标章节，不等图表下载；与快网路径的焦点行为一致。 */
+    await expect(page.locator("#table")).toBeFocused();
     const position = await page.evaluate("scrollY");
-    if (action === "滚轮") await page.mouse.wheel(0,-320);
+    if (action === "滚轮") await page.mouse.wheel(0,-2000);
     else await page.keyboard.press("PageUp");
     await expect.poll(() => page.evaluate("scrollY")).toBeLessThan(position - 2);
+    const scrollsBeforeReady = await page.evaluate(() => window["programmaticScrolls"].filter((id) => id === "table").length);
     release();
     await expect.poll(() => page.evaluate(chartLibraryLoaded)).toBe(true);
-    await expect(link).toBeFocused();
-    await expect(page.locator("#table")).not.toBeFocused();
-    expect(await page.locator("#table").evaluate((el) => el.getBoundingClientRect().top)).toBeGreaterThan(900);
+    await page.waitForTimeout(300);
+    expect(await page.evaluate(() => window["programmaticScrolls"].filter((id) => id === "table").length)).toBe(scrollsBeforeReady);
+    await expect(page.locator("#table")).toBeFocused();
   } finally { release(); }
 });
 

@@ -3,10 +3,10 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
-const vm = require("node:vm");
 const { isISODate, validateData } = require("../build/validate-data");
 const { commitOutputs } = require("../build/sync-pricing-audit");
 const { loadData, canonical, readHistory, mergeHistory, seededHistory } = require("./history");
+const { loadData: loadGlobals } = require("../lib/load-data");
 const { withFileLockSync } = require("../lib/file-lock");
 
 const DAY = 86400000;
@@ -41,10 +41,7 @@ function readReviews(root, data, asOf) {
 /* RSS 与页面「我的关注」共用 data.js 的 changeDisplay：字段名、取值说法与新收录的要点只维护一处，
    继承引用与永久 ID 不出现在读者文字里。 */
 function loadChangeDisplay(source) {
-  const box = {};
-  vm.createContext(box);
-  vm.runInContext(source + "\n;globalThis.changeDisplay = changeDisplay;", box, { timeout: 2000 });
-  return box.changeDisplay;
+  return loadGlobals(source, ["changeDisplay"]).changeDisplay;
 }
 let repoDisplay = null;
 function repoChangeDisplay() {

@@ -41,9 +41,11 @@ test("同时选择 Claude Code 与 Codex 会话日志后合并填好计算器，
 test("超过复查间隔的核查日期在价格表里显示为金色，不被核价列的默认颜色覆盖", async ({ page }) => {
   await page.goto("/#table");
   await waitForApp(page);
-  await expect(page.locator("#tableBody .td-trust .sub").first()).toContainText(/\d{4}-\d{2}-\d{2}（(?:今天|\d+ 天前)/);
+  /* 数据快照随时间老化：超期的行本来就带 check-stale（金色），要挑一条未超期的来叠加标记比对颜色。 */
+  const status = page.locator("#tableBody .td-trust .sub:not(.check-stale)").first();
+  await expect(status).toContainText(/\d{4}-\d{2}-\d{2}（(?:今天|\d+ 天前)/);
   /* 数据里的核查日期还没超期：给同一元素加上超期标记，检查层叠后的实际颜色。 */
-  const colors = await page.locator("#tableBody .td-trust .sub").first().evaluate((element) => {
+  const colors = await status.evaluate((element) => {
     const before = getComputedStyle(element).color;
     element.classList.add("check-stale");
     const probe = document.createElement("span");

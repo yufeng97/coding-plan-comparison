@@ -99,6 +99,13 @@ export function navigateToSection(hash: string, updateHistory: boolean = true, m
     }
     const needsCharts = id !== "top" && LAZY_CHARTS.some((item) => chartPrecedes(item, target));
     if (!chartLibraryReady() && needsCharts) {
+        /* 用户点击的锚点先到位再等图表：慢网下点击立即生效，不再空等最长 15 秒；
+         * 上方懒加载区块高度已预留，图表就绪后只需再对齐一次。
+         * 历史/初始导航保持「就绪后一次到位」：原生 fragment 滚动与 SSR 布局仍在收敛，
+         * 立即滚动会与浏览器自身的锚点滚动竞争。 */
+        const immediate = updateHistory && !allowInitialLayout;
+        if (immediate)
+            navigateToSectionReady(hash, moveFocus);
         const initialScroll = window.scrollY;
         const initialFocus = document.activeElement;
         let abandoned = false;
@@ -112,6 +119,8 @@ export function navigateToSection(hash: string, updateHistory: boolean = true, m
         const inputEvents = ["wheel", "touchmove", "pointerdown"];
         const trackReading = () => {
             updateActiveNav();
+            if (immediate)
+                return;
             const active = qs('.topnav a[aria-current="location"]');
             if (!allowInitialLayout && !moveFocus && Math.abs(window.scrollY - initialScroll) > 2 && active && active.getAttribute("href") !== hash)
                 abandoned = true;
@@ -130,7 +139,7 @@ export function navigateToSection(hash: string, updateHistory: boolean = true, m
             const active = qs('.topnav a[aria-current="location"]');
             /* 显式键盘导航的来源链接可能在下一帧才滚入视口；不能把这个滚动当作放弃导航。 */
             /* 初次分享链接的 SSR/客户端行数和字体布局会触发原生 fragment 滚动；只有用户输入才取消这次对齐。 */
-            const movedAway = !allowInitialLayout && !moveFocus && Math.abs(window.scrollY - initialScroll) > 2 && !!active && active.getAttribute("href") !== hash;
+            const movedAway = !immediate && !allowInitialLayout && !moveFocus && Math.abs(window.scrollY - initialScroll) > 2 && !!active && active.getAttribute("href") !== hash;
             return Promise.resolve(abandoned || movedAway || focusChanged());
         }).then((movedAway) => {
             stopTracking();
@@ -140,7 +149,7 @@ export function navigateToSection(hash: string, updateHistory: boolean = true, m
         }, () => {
             stopTracking();
             /* 图表不可用时仍让用户进入文字明细；本地错误卡可独立重试。 */
-            if (!abandoned && !focusChanged() && version === sectionNavigationVersion)
+            if (!immediate && !abandoned && !focusChanged() && version === sectionNavigationVersion)
                 navigateToSectionReady(hash, moveFocus);
         });
         return;

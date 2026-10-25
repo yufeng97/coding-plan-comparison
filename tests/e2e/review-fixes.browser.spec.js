@@ -118,20 +118,21 @@ for (const width of [375, 1280]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/#free");
     const cards = page.locator("#freeGrid .free-card");
-    await expect(cards).toHaveCount(18);
+    const total = catalog.PLANS.filter((p) => catalog.isFreeCodingEntry(p)).length;
+    await expect(cards).toHaveCount(total);
     await page.locator('[data-free-region="cn"]').click();
     await page.locator('[data-free-kind="included"]').click();
     await expect(page.locator('[data-free-region="cn"]')).toHaveAttribute("aria-checked", "true");
     await expect(page.locator('[data-free-kind="included"]')).toHaveAttribute("aria-checked", "true");
     const expected = catalog.PLANS.filter((p) => catalog.isFreeCodingEntry(p) && p.region === "cn" && catalog.hasIncludedModelQuota(p)).length;
     await expect(cards).toHaveCount(expected);
-    await expect(page.locator("#freeCount")).toHaveText(`显示 ${expected} / 18 个免费入口`);
+    await expect(page.locator("#freeCount")).toHaveText(`显示 ${expected} / ${total} 个免费入口`);
     if (expected) await expect(cards.locator(".fc-region")).toHaveText(Array(expected).fill("国内"));
     await page.locator('[data-free-region="all"]').click();
     await page.locator('[data-free-kind="byok"]').click();
     for (const cost of await cards.locator(".fc-cost").all()) await expect(cost).toHaveText("平台免费；推理另计");
     await page.locator('[data-free-kind="all"]').click();
-    await expect(cards).toHaveCount(18);
+    await expect(cards).toHaveCount(total);
     await expect(page.locator("#freeGrid")).not.toContainText("Gemini CLI / Code Assist 个人免费版");
   });
 }

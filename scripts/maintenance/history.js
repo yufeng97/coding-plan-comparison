@@ -1,16 +1,13 @@
 "use strict";
 const fs = require("node:fs");
 const path = require("node:path");
-const vm = require("node:vm");
 const crypto = require("node:crypto");
 const { isISODate } = require("../build/validate-data");
+const { loadData: loadGlobals } = require("../lib/load-data");
 
-/** @param {string} source */
+/** 台账只需要纯数据：JSON 往返去掉函数与正则，与沙箱取值口径一致。 @param {string} source */
 function loadData(source) {
-  const box = {};
-  vm.createContext(box);
-  vm.runInContext(source + "\n;globalThis.data={META,PRICE_CHECKS,PLANS,API_PRICES,PAYG_REFERENCES};", box, { timeout: 2000 });
-  return JSON.parse(JSON.stringify(box.data));
+  return JSON.parse(JSON.stringify(loadGlobals(source, ["META", "PRICE_CHECKS", "PLANS", "API_PRICES", "PAYG_REFERENCES"])));
 }
 
 /** Stable key order makes IDs independent of JSON formatting and object order. @param {any} value */
@@ -83,11 +80,18 @@ function readHistory(root) {
   return fs.existsSync(file) ? validateHistory(JSON.parse(fs.readFileSync(file, "utf8"))) : seededHistory(root);
 }
 
+/* 变更历史只保留最近一年的条目：完整证据永远在逐日 pricing 台账里，change-history.json 是供页面与 RSS 的近期视图，
+ * 不随年份无限增长。窗口以最新核查日为锚，结果与运行时无关；浏览端本就会把已消失条目的已读标记清掉。 */
+const HISTORY_KEEP_DAYS = 366;
+
 /** @param {any} history @param {any[]} additions */
 function mergeHistory(history, additions) {
   const changes = new Map(history.changes.map((change) => [change.changeId, change]));
   for (const change of additions) if (change) changes.set(change.changeId, change);
-  return validateHistory({ schemaVersion: 1, changes: [...changes.values()].sort((a, b) => b.checkedAt.localeCompare(a.checkedAt) || a.changeId.localeCompare(b.changeId)) });
+  const merged = [...changes.values()].sort((a, b) => b.checkedAt.localeCompare(a.checkedAt) || a.changeId.localeCompare(b.changeId));
+  const newest = merged.length ? Date.parse(merged[0].checkedAt + "T00:00:00Z") : 0;
+  const kept = newest ? merged.filter((change) => newest - Date.parse(change.checkedAt + "T00:00:00Z") <= HISTORY_KEEP_DAYS * 86400000) : merged;
+  return validateHistory({ schemaVersion: 1, changes: kept });
 }
 
 module.exports = { loadData, canonical, changeOf, validateHistory, seededHistory, readHistory, mergeHistory };

@@ -7,7 +7,12 @@
       "kind": "rss",
       "url": "https://sspai.com/feed",
       "authority": "discovery",
-      "keywords": ["编程", "代码助手", "代码编辑器", "开发工具"]
+      "keywords": [
+        "编程",
+        "代码助手",
+        "代码编辑器",
+        "开发工具"
+      ]
     },
     {
       "id": "infoq-cn-discovery",
@@ -15,7 +20,12 @@
       "kind": "rss",
       "url": "https://www.infoq.cn/feed",
       "authority": "discovery",
-      "keywords": ["编程", "代码助手", "智能体", "开发工具"]
+      "keywords": [
+        "编程",
+        "代码助手",
+        "智能体",
+        "开发工具"
+      ]
     },
     {
       "id": "oschina-discovery",
@@ -23,7 +33,12 @@
       "kind": "rss",
       "url": "https://www.oschina.net/news/rss",
       "authority": "discovery",
-      "keywords": ["编程", "代码助手", "代码编辑器", "智能体"]
+      "keywords": [
+        "编程",
+        "代码助手",
+        "代码编辑器",
+        "智能体"
+      ]
     },
     {
       "id": "openai-news",
@@ -31,7 +46,10 @@
       "kind": "rss",
       "url": "https://openai.com/news/rss.xml",
       "authority": "official",
-      "keywords": ["GPT", "Codex"]
+      "keywords": [
+        "GPT",
+        "Codex"
+      ]
     },
     {
       "id": "mistral-news",
@@ -39,7 +57,13 @@
       "kind": "rss",
       "url": "https://mistral.ai/news/rss",
       "authority": "official",
-      "keywords": ["Mistral", "Ministral", "Codestral", "Devstral", "Magistral"]
+      "keywords": [
+        "Mistral",
+        "Ministral",
+        "Codestral",
+        "Devstral",
+        "Magistral"
+      ]
     },
     {
       "id": "minimax-research",
@@ -47,8 +71,12 @@
       "kind": "blog",
       "url": "https://www.minimax.io/blog",
       "authority": "official",
-      "articlePaths": ["^/blog/[^/]+/?$"],
-      "keywords": ["MiniMax"]
+      "articlePaths": [
+        "^/blog/[^/]+/?$"
+      ],
+      "keywords": [
+        "MiniMax"
+      ]
     },
     {
       "id": "kimi-research",
@@ -56,8 +84,13 @@
       "kind": "blog",
       "url": "https://www.kimi.ai/blog/",
       "authority": "official",
-      "articlePaths": ["^/blog/[^/]+/?$"],
-      "keywords": ["Kimi", "Moonshot"]
+      "articlePaths": [
+        "^/blog/[^/]+/?$"
+      ],
+      "keywords": [
+        "Kimi",
+        "Moonshot"
+      ]
     },
     {
       "id": "deepseek-news",
@@ -65,8 +98,12 @@
       "kind": "blog",
       "url": "https://www.deepseek.com/news/",
       "authority": "official",
-      "articlePaths": ["^/news/[^/]+/?$"],
-      "keywords": ["DeepSeek"]
+      "articlePaths": [
+        "^/news/[^/]+/?$"
+      ],
+      "keywords": [
+        "DeepSeek"
+      ]
     },
     {
       "id": "zai-model-news",
@@ -74,8 +111,12 @@
       "kind": "blog",
       "url": "https://autoclaw.z.ai/blog/model/",
       "authority": "official",
-      "articlePaths": ["^/blog/model/[^/]+/?$"],
-      "keywords": ["GLM"]
+      "articlePaths": [
+        "^/blog/model/[^/]+/?$"
+      ],
+      "keywords": [
+        "GLM"
+      ]
     },
     {
       "id": "github-changelog",
@@ -146,8 +187,16 @@
       "kind": "blog",
       "url": "https://www.anthropic.com/news",
       "authority": "official",
-      "articlePaths": ["^/news/[^/]+/?$", "^/claude-[a-z0-9-]+-[0-9][a-z0-9-]*/?$"],
-      "keywords": ["Claude", "Haiku", "Sonnet", "Opus"]
+      "articlePaths": [
+        "^/news/[^/]+/?$",
+        "^/claude-[a-z0-9-]+-[0-9][a-z0-9-]*/?$"
+      ],
+      "keywords": [
+        "Claude",
+        "Haiku",
+        "Sonnet",
+        "Opus"
+      ]
     },
     {
       "id": "bigmodel-coding-plan",
@@ -182,6 +231,55 @@
       "name": "Kiro 官方定价页",
       "kind": "page",
       "url": "https://kiro.dev/pricing/",
+      "authority": "official"
+    },
+    {
+      "id": "freebuff-model-policy",
+      "name": "Freebuff 官方仓库模型与额度规则",
+      "kind": "page",
+      "url": "https://raw.githubusercontent.com/CodebuffAI/freebuff/main/README.md",
+      "authority": "official"
+    },
+    {
+      "id": "freebuff-pricing",
+      "name": "Freebuff 官方免费编程入口",
+      "kind": "page",
+      "url": "https://freebuff.com/",
+      "authority": "official"
+    },
+    {
+      "id": "kimchi-pricing",
+      "name": "Kimchi 官方定价",
+      "kind": "page",
+      "url": "https://kimchi.dev/pricing",
+      "authority": "official"
+    },
+    {
+      "id": "kimchi-model-pricing",
+      "name": "Kimchi 官方模型计费文档",
+      "kind": "page",
+      "url": "https://docs.kimchi.dev/docs/model-apis-pricing",
+      "authority": "official"
+    },
+    {
+      "id": "humanlayer-pricing",
+      "name": "HumanLayer 官方定价与 FAQ",
+      "kind": "page",
+      "url": "https://www.humanlayer.dev/",
+      "authority": "official"
+    },
+    {
+      "id": "opencode-go-pricing",
+      "name": "OpenCode Go 官方权益",
+      "kind": "page",
+      "url": "https://opencode.ai/v2/docs/console/go/",
+      "authority": "official"
+    },
+    {
+      "id": "amp-dial",
+      "name": "Amp 官方模式与模型资格",
+      "kind": "page",
+      "url": "https://ampcode.com/docs/the-dial",
       "authority": "official"
     }
   ]
