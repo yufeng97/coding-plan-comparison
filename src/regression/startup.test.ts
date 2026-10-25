@@ -356,6 +356,34 @@ test("初始分享锚点等待图表时容许布局滚动，用户滚轮或PageU
   }
 });
 
+test("用户点击锚点先到位，图表就绪后再对齐一次；期间用户输入取消对齐", async () => {
+  for (const action of ["settle", "wheel"]) {
+    let ready = false, finish = () => {};
+    const gate = new Promise<void>((resolve) => { finish = resolve; });
+    /* PAL 透传原模块的活动绑定：mock 的命名空间是浅拷贝，refreshPalette 写入原绑定后替身里仍是旧值。 */
+    const page = await openPage({ mock: { "@browser/charts/host": (original) => ({ chartLibraryReady: () => ready, ensureChartLibrary: () => gate, get PAL() { return original.PAL; } }) } });
+    const before = page.timeline.filter((entry) => entry.startsWith("scroll:")).length;
+    const link = page.anchor("#s4");
+    link.focus();
+    fire(link, "click");
+    await page.settle();
+    /* 慢网（图表库未就绪）下点击立即滚动到位并聚焦，不再空等。 */
+    const arrived = page.timeline.filter((entry) => entry.startsWith("scroll:"));
+    assert.equal(arrived.length, before + 1, "点击后立即滚动一次");
+    assert.equal(arrived.at(-1), "scroll:s4");
+    assert.equal(document.activeElement?.id, "s4");
+    assert.equal(location.hash, "#s4");
+    if (action === "wheel") page.fireWindow("wheel");
+    ready = true;
+    finish();
+    await page.settle();
+    const scrolls = page.timeline.filter((entry) => entry.startsWith("scroll:"));
+    if (action === "settle") assert.equal(scrolls.length, before + 2, "图表就绪后再对齐一次");
+    else assert.equal(scrolls.length, before + 1, "用户滚轮取消就绪后的对齐");
+    page.healthy();
+  }
+});
+
 test("章节高亮按真实滚动间距及章节留白判断，字体完成只刷新用户当前位置", async () => {
   let finishFonts = () => {};
   const fontsReady = new Promise<void>((resolve) => { finishFonts = resolve; });

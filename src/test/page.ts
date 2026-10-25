@@ -313,7 +313,15 @@ export async function openPage(options: PageOptions = {}) {
     vi.doMock(id, async (importOriginal) => {
       const original = await importOriginal<object>();
       /* 模板会探测导入对象的 Vue 内部标记；替身模块对未定义的名称会报错，这里显式给出并让 Vue 跳过代理。 */
-      return { ...original, ...replace(original), __v_isRef: false, __v_skip: true, __v_isReactive: false, __v_isReadonly: false };
+      const mock: Record<string, unknown> = { ...original, __v_isRef: false, __v_skip: true, __v_isReactive: false, __v_isReadonly: false };
+      /* 展开会把 getter 摊平成一次性求值的普通属性；保留访问器，替身才能透传原模块的活动绑定（如 PAL）。 */
+      for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(replace(original)))) {
+        if (descriptor.get || descriptor.set)
+          Object.defineProperty(mock, key, descriptor);
+        else
+          mock[key] = descriptor.value;
+      }
+      return mock;
     });
   }
   const runtime: Runtime = await import("./runtime");
