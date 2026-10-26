@@ -350,20 +350,30 @@ test("同档候选的额度都无法折算时，主卡写明按月费较低选�
   const page = await openPage();
   const app = page.runtime;
   const reasons = () => Array.from(mainCardElement()!.querySelectorAll(".qc-reasons li"), (li) => li.textContent);
-  const state = async (region: string, budget: string) => {
-    await setPicker(page, { region, budget, tool: "any", task: "hard", billing: "M" });
-    const pool = app.eligibleProfiles(), main = app.chooseMain(pool)!;
+  const state = async (region: string, budget: string, tool = "any") => {
+    await setPicker(page, { region, budget, tool, task: "hard", billing: "M" });
+    const pool = app.eligibleProfiles(), main = app.chooseMain(pool);
+    if (!main) return null;
     const ties = app.hardRepresentatives(pool).filter((x: Profile) => x.p !== main.p && app.hardMainOrder(main, x, false) === 0 && app.pickerMonthlyCNY(x.p) > app.pickerMonthlyCNY(main.p));
     return { tokens: app.knownTokens(main.p, main.headline), ties: ties.length, decided: app.priceDecidedMain(main, pool) };
   };
-  const cheap = await state("intl", "100");
+  /* 哪组条件出现同档平局取决于当期在库套餐（如 10-14 收录的 $5 Muse Code Everyday 独占了国际 ¥100 档），
+     按固定顺序找第一组「额度都无法折算且有同档更贵候选」的条件再断言。 */
+  let tie: { region: string; budget: string; tool: string } | null = null;
+  search: for (const tool of ["any", "claude", "codex", "cursor"]) for (const region of ["intl", "cn"]) for (const budget of ["50", "100", "200", "500"]) {
+    const found = await state(region, budget, tool);
+    if (found && found.tokens === 0 && found.ties > 0) { tie = { region, budget, tool }; break search; }
+  }
+  assert.ok(tie, "当期数据里应至少有一组额度都无法折算的同档候选");
+  const cheap = await state(tie.region, tie.budget, tie.tool);
+  assert.ok(cheap);
   assert.deepEqual({ ...cheap, ties: cheap.ties > 0 }, { tokens: 0, ties: true, decided: true });
   assert.ok(reasons().some((text) => text!.startsWith("同档候选的额度都无法折算，按月费较低选出")));
   /* 档位更高的唯一候选不是靠月费胜出。 */
   assert.deepEqual(await state("intl", "200"), { tokens: 0, ties: 0, decided: false });
   assert.doesNotMatch(mainCardElement()!.textContent!, /按月费较低选出/);
   /* 有可折算额度时按额度说明。 */
-  assert.equal((await state("cn", "200")).decided, false);
+  assert.equal((await state("cn", "200"))?.decided, false);
   assert.ok(reasons().some((text) => text!.startsWith("按官方额度规则折算，保守参考下限")));
   page.healthy();
 });

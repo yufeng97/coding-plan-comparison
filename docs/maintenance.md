@@ -134,7 +134,7 @@ npm run news:collect -- --import data/audit/news/manual.json
 npm run test:news
 ```
 
-默认来源配置在 [data/config/news-sources.json](../data/config/news-sources.json)：24 个来源。模型发布入口包括 OpenAI、Mistral、Google 官方 RSS，以及 Anthropic、MiniMax、Kimi、DeepSeek、Z.ai 官方博客；保留产品页面、GitHub 更新日志、三个 Hacker News 搜索和中文发现源。`authority: "official"` 表示来源渠道是官网，仍需核对具体事实；`"discovery"` 表示发现线索，不能替代官网报价。支持 `rss`、`atom`、`blog`、`page`、`hn-search`，使用 `keywords` 扩展关键词；默认识别常见模型系列与版本，无需新闻包含套餐或价格字样。
+默认来源配置在 [data/config/news-sources.json](../data/config/news-sources.json)：26 个来源。模型发布入口包括 OpenAI、Mistral、Google 官方 RSS，以及 Anthropic、MiniMax、Kimi、DeepSeek、Z.ai 官方博客；保留产品页面（含 Meta Muse Code 订阅页与 Model API 定价页）、GitHub 更新日志、三个 Hacker News 搜索和中文发现源。`authority: "official"` 表示来源渠道是官网，仍需核对具体事实；`"discovery"` 表示发现线索，不能替代官网报价。支持 `rss`、`atom`、`blog`、`page`、`hn-search`，使用 `keywords` 扩展关键词；默认识别常见模型系列与版本，无需新闻包含套餐或价格字样。
 
 `blog` 从目录逐篇读取同源文章，不再仅记录整页哈希变化。`articlePaths` 是首尾锚定的 URL 路径正则数组，默认最多 20 篇（可设 `maxArticles`，上限 40）；首次采集也读取已有文章，再按真实发布日期筛选窗口。文章使用 JSON-LD 的 `datePublished`、发布元数据或正文 `time`；没有发布日期的候选保留 `dateStatus: "missing"`，来源报告单列 `missingPublicationDates`，不能用采集日或修改日补齐。未来时间单列 `futurePublicationDates`，不当作已发生事件；文章发表日也不自动等于模型首次发布日。目录或文章解析失败显式记录，部分文章失败仍保存成功候选，截断标记说明覆盖上限。xAI 直接抓取当前返回 403，Qwen 新博客尚无已验证的稳定入口，仍需周期性官方搜索补充。
 

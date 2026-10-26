@@ -10,7 +10,7 @@ const RATE_USD_CNY = 6.69;
 /* 同一汇率日期：Frankfurter USD/INR=95.78、USD/CNY=6.6928；保留印度原价。 */
 const RATE_INR_CNY = 6.6928 / 95.78;
 const META = {
-    updated: "2026-10-15",
+    updated: "2026-10-26",
     rate: RATE_USD_CNY,
     rateAsOf: "2026-10-12",
     rateSource: "https://api.frankfurter.dev/v1/2026-10-12?base=USD&symbols=CNY,INR",
@@ -65,6 +65,12 @@ const MODEL_ROLES: ModelRole[] = [
         reason: "比 Opus 耐用一些，通常仍共用同一个 5 小时窗口", asOf: "2026-09-30" },
     { id: "flash", name: "Flash", re: /flash/i, task: "daily", burn: "slow", band: "C",
         reason: "同一套餐里的慢烧档，复杂重构不要靠它", asOf: "2026-09-30" },
+    { id: "muse-wonder-full", name: "Muse Wonder Full", re: /muse[\s-]*wonder[\s-]*full/i, task: "hard", burn: "fast", band: "B", ceiling: true,
+        reason: "Muse Code Power 及以上才有的高能力版本，官方没有单列它的用量消耗", asOf: "2026-10-14" },
+    { id: "muse-wonder", name: "Muse Wonder", re: /muse[\s-]*wonder(?![\s-]*full)/i, task: "hard", burn: "fast", band: "B",
+        reason: "Meta 旗舰，复杂任务可用；官方没有可折算的 5 小时 tokens", asOf: "2026-10-14" },
+    { id: "muse-spark", name: "Muse Spark", re: /muse[\s-]*spark/i, task: "daily", burn: "slow", band: "C",
+        reason: "Muse Code 的默认模型，日常编码够用", asOf: "2026-10-14" },
 ];
 /** @param {string | null | undefined} text @returns {ModelRole[]} */
 function matchModelRoles(text: string | null | undefined): ModelRole[] {
@@ -1788,7 +1794,35 @@ const PLANS: Plan[] = [
         models: "自有 Claude Code、Codex 等账户/API；具体型号依供应商和合同",
         tools: "HumanLayer 企业工作区、SSO/SAML、审计日志、On-prem/Private VPC",
         note: "Enterprise是在Pro之上的企业软件层，不将私有部署支持误写为包含模型token。",
-        url: "https://www.humanlayer.dev/" }
+        url: "https://www.humanlayer.dev/" },
+    { id: "plan-0221", vendor: "Meta", plan: "Muse Code Everyday Usage", cat: "official", region: "intl", priceM: 5, priceY: null, cur: "USD", seat: false,
+        windowPeriod: "5h", codingSurface: true, ownClient: true,
+        quota: "每 5 小时 10–50 条提示（含图片与视频上传）；用尽可升级或等待刷新",
+        models: "Muse Spark、Muse Wonder、Muse Image；不含 Muse Wonder Full",
+        tools: "Muse Code（终端与 CI 编程 Agent，macOS / Linux / Windows）；网页搜索、语音输入（Windows 不支持）",
+        note: "官方 $5/月，按首次订阅日自动续费，未列年付；升级立即生效并按剩余周期折算，降级下个周期生效，取消不退款。订阅外的 API 密钥用量按量计费；权益与可用性因地区而异；订阅默认 Contributor，内容可用于训练；可关闭，但额度较少、差额未公布。Muse Wonder 系列在韩国不可用",
+        url: "https://dev.meta.ai/products/muse-code" },
+    { id: "plan-0222", vendor: "Meta", plan: "Muse Code High Usage", cat: "official", region: "intl", priceM: 15, priceY: null, cur: "USD", seat: false,
+        windowPeriod: "5h", codingSurface: true, ownClient: true,
+        quota: "Everyday 的 5 倍用量（以 Everyday 每 5 小时额度为基准）；更多多模态输入",
+        models: "Muse Spark、Muse Wonder、Muse Image；不含 Muse Wonder Full",
+        tools: "Muse Code（终端与 CI 编程 Agent，macOS / Linux / Windows）；网页搜索、语音输入（Windows 不支持）",
+        note: "官方 $15/月，按首次订阅日自动续费，未列年付；订阅默认 Contributor，内容可用于训练；可关闭，但额度较少、差额未公布。Muse Wonder 系列在韩国不可用",
+        url: "https://dev.meta.ai/products/muse-code" },
+    { id: "plan-0223", vendor: "Meta", plan: "Muse Code Power Usage", cat: "official", region: "intl", priceM: 50, priceY: null, cur: "USD", seat: false,
+        windowPeriod: "5h", codingSurface: true, ownClient: true,
+        quota: "Everyday 的 20 倍用量（以 Everyday 每 5 小时额度为基准）；更大文件上传",
+        models: "Muse Wonder Full、Muse Wonder、Muse Spark、Muse Image",
+        tools: "Muse Code（终端与 CI 编程 Agent，macOS / Linux / Windows）；网页搜索、语音输入（Windows 不支持）",
+        note: "官方 $50/月，按首次订阅日自动续费，未列年付；Muse Wonder Full 只在 Power 及以上订阅提供，不开放 API；含新功能抢先体验；订阅默认 Contributor，内容可用于训练；可关闭，但额度较少、差额未公布。Muse Wonder 系列在韩国不可用",
+        url: "https://dev.meta.ai/products/muse-code" },
+    { id: "plan-0224", vendor: "Meta", plan: "Muse Code Maximum Usage", cat: "official", region: "intl", priceM: 200, priceY: null, cur: "USD", seat: false,
+        windowPeriod: "5h", codingSurface: true, ownClient: true,
+        quota: "Everyday 的 80 倍用量（以 Everyday 每 5 小时额度为基准）；用尽只能等待刷新",
+        models: "Muse Wonder Full、Muse Wonder、Muse Spark、Muse Image",
+        tools: "Muse Code（终端与 CI 编程 Agent，macOS / Linux / Windows）；网页搜索、语音输入（Windows 不支持）",
+        note: "官方 $200/月，按首次订阅日自动续费，未列年付；最高档，用尽后只能等待刷新；订阅默认 Contributor，内容可用于训练；可关闭，但额度较少、差额未公布。Muse Wonder 系列在韩国不可用",
+        url: "https://dev.meta.ai/products/muse-code" }
 ];
 /* ============================================================
  * 中国大陆可用性：只登记查到官方支持地区说明的厂商或档位，其余显示「未核实」，不按厂商名推测。
@@ -1805,6 +1839,7 @@ const MAINLAND_ACCESS: MainlandAccess[] = [
         evidence: "Google AI Plus、AI Pro、AI Ultra 会员的可购地区列表都不含中国大陆（香港、澳门在列）；Gemini 网页版在中国大陆只开放 Workspace 账号。" },
     { vendor: "Cursor", status: "restricted", checkedAt: "2026-10-10", url: "https://cursor.com/docs/account/regions",
         evidence: "官方说明部分模型供应商有地区限制，受限地区不能使用其模型，自备 API Key 也可能失败；Anthropic、OpenAI、Google 的支持地区都不含中国大陆。" },
+    { "vendor": "Meta", "status": "unsupported", "checkedAt": "2026-10-26", "url": "https://dev.meta.ai/legal/geographic-use-policy", "evidence": "10-26 重读官方地理政策（页面仍为10-12版），中国含香港、澳门仍列受限地区；Muse Code订阅文档直接说明服务受同一Model API条款约束。" },
 ];
 /** @param {Plan | null | undefined} p */
 function mainlandAccessOf(p: Plan | null | undefined) {
@@ -1935,6 +1970,12 @@ const API_PRICES: ApiPrice[] = [
     { vendor: "小米 MiMo", model: "mimo-v2.6-pro", label: "mimo-v2.6-pro", region: "cn", cur: "CNY", inCNY: 3, outCNY: 6, apiCache: 0.025,
         note: "缓存命中 ¥0.025，缓存写入免费。美元挂牌 $0.435/$0.87，缓存 $0.0036。极速档约为实时的 10 倍",
         url: "https://mimo.mi.com/docs/zh-CN/price/pay-as-you-go" },
+    { vendor: "Meta", model: "Muse Wonder", label: "Muse Wonder", region: "intl", cur: "USD", inUSD: 4, outUSD: 20, apiCache: 0.2,
+        note: "1M 上下文，无长上下文加价；API 仅 Standard，无 Contributor 折扣；网页搜索 $2.50/千次另计；韩国目前不可用",
+        url: "https://dev.meta.ai/docs/pricing-rate-limits" },
+    { vendor: "Meta", model: "Muse Spark 1.3", label: "Muse Spark", region: "intl", cur: "USD", inUSD: 1.25, outUSD: 4.25, apiCache: 0.15,
+        note: "Standard 1.3 / 1.2 / 1.1 同价；1M 上下文，无长上下文加价；Contributor 仅 1.3 / 1.2：输入 $0.10、输出 $0.20、缓存 $0.002，内容可用于训练；网页搜索 $2.50/千次另计",
+        url: "https://dev.meta.ai/docs/pricing-rate-limits" },
 ];
 /* 费用计算器的默认模型：按身份固定，不随 API_PRICES 顺序变化。
    分享链接省略默认值，调整数组顺序不能让旧链接悄悄换成别的模型；校验器要求它是已确认价格的条目。 */
@@ -2594,6 +2635,7 @@ const ESTIMATES: QuotaRow[] = [
 /* date 是来源写明的发生日。checked 表示这只是本站核对到该状态的日子，不是公告日。 */
 /** @type {DynamicItem[]} */
 const DYNAMICS: DynamicItem[] = [
+    { date: "2026-10-26", checked: true, text: "核对 Meta Muse Code 与 API：四档月费 $5 / $15 / $50 / $200 和 Wonder / Spark 输入、缓存、输出单价均与10-14记录一致。订阅默认 Contributor，内容可用于训练；可关闭但用量较少、差额未公开。Wonder Full 仍仅 Power / Maximum 订阅，无 API；Wonder 系列在韩国不可用，Windows 不支持语音。当前模型页未再标 preview，本次不推断 GA 日期。", source: "Meta 官方订阅 / 模型 / 定价文档", url: "https://dev.meta.ai/docs/muse-code/subscriptions" },
     { date: "2026-10-15", checked: true, text: "核对并新增 Freebuff、Kimchi、HumanLayer 共 8 档：Freebuff 广告支持且含模型，地区和客户端决定额度；Kimchi Coder $20/月含 $25 credits，Teams $35/席/月列 $45 credits（是否逐席累计未知），开源 CLI 自备推理；HumanLayer Starter 免费、Pro $100/人/月，均自备模型账户/API。收录日不是产品首发日。", source: "三家官方定价与文档", url: "https://kimchi.dev/pricing" },
     { date: "2026-10-15", checked: true, text: "核对 OpenCode Go / Go Plus：月费仍为 $10 / $40，模型池现含 Claude Haiku 5.5、Gemini 4 Argon Contributor，另有 Step 5 Preview Free 等限时免费模型。Contributor 月度上限限时 2× 为 $60 / $240，提示和补全可能用于训练，非 ZDR；促销结束日未知。用量受 5h/周/月窗口约束，不能将各模型适用上限相加。", source: "OpenCode 官方 Go 文档", url: "https://opencode.ai/v2/docs/console/go/" },
     { date: "2026-10-15", checked: true, text: "核对 Step 5 Preview：StepFun 官网已写明模型权重现已开放，并链接官方 FP8 / BF16 仓库与推理代码。现有托管 API 和 Step Plan 已在库，本次只补开放权重状态，不改付费价格；首次公开权重的准确时间未核定。", source: "StepFun 官网与官方模型仓库", url: "https://www.stepfun.com/" },
@@ -2601,6 +2643,7 @@ const DYNAMICS: DynamicItem[] = [
     { date: "2026-10-14", checked: true, text: "核对 Gemini 4 Argon 的订阅与 API 入口并写入数据：Google AI Ultra（5x / 20x）模型加入 Argon（Antigravity 可用）；Pro 备注写明 Argon 只在 Gemini 应用与搜索 AI 模式中提供；Plus 官网卡片现列 Gemini 3.6 Flash，模型改为 Gemini 3.6 Flash 与 Deep Research；新增 Gemini 4 Argon API 行；Copilot Pro+ / Max / Business / Enterprise 模型清单加入 Argon。各档月价不变。", source: "Google AI 计划 / Antigravity 模型表 / GitHub Copilot 计划页", url: "https://one.google.com/about/google-ai-plans/" },
     { date: "2026-10-14", text: "GPT-5.5 在 ChatGPT、ChatGPT Work 与 Codex 的全部方案中于 2026-10-14 退役；OpenAI API 不受影响，经 API 提供模型的平台仍可继续列出 GPT-5.5。", source: "OpenAI Codex 定价文档", url: "https://learn.chatgpt.com/docs/pricing" },
     { date: "2026-10-14", checked: true, text: "核查 BigModel 国内 GLM Coding Plan：概览页写明已订阅用户升级套餐后，积分额度按新档位立即刷新；续费不重置积分额度，原刷新周期不变。页面未写规则起始日期，本条按实际核查日记录，不推断 Z.ai 同样适用。", source: "BigModel 官方文档", url: "https://docs.bigmodel.cn/cn/coding-plan/overview.md" },
+    { date: "2026-10-14", checked: true, text: "收录 Meta Muse Code（终端与 CI 编程 Agent，macOS / Linux / Windows）四档订阅：Everyday $5、High $15、Power $50、Maximum $200（每月，按首次订阅日自动续费，未列年付）。Everyday 每 5 小时 10–50 条提示，其余为其 5 / 20 / 80 倍；Power 起含 Muse Wonder Full。另收录 Muse Wonder 与 Muse Spark 的 API 价格。Meta 政策写明经 Coding Harness Subscription 访问默认按 Contributor 服务处理（内容可用于训练），需在账户设置改为 Standard；中国大陆与港澳在受限地区之列。", source: "Meta Muse Code 订阅页 / 开发者文档", url: "https://dev.meta.ai/products/muse-code" },
     { date: "2026-10-13", text: "GitHub Copilot 企业托管设置新增启动时强制刷新策略（forceRemoteSettingsRefresh）：开启后 Copilot CLI、VS Code 与 GitHub Copilot app 启动时必须取得最新的服务端策略，无法确认时拒绝运行；托管设置的 sandbox 键开始强制最低客户端版本，固定旧版本的用户须升级。属企业管理控制，不涉及价格与额度。", source: "GitHub 官方更新日志", url: "https://github.blog/changelog/2026-10-13-enterprise-managed-settings-enforcement-updates" },
     { date: "2026-10-13", text: "Cursor Origin 新增 20 多个部署、CI、代码审查、安全、监控和项目管理集成，App Marketplace 开放公开提交，审核通过后上架。公告未列订阅资格或收费，不涉及价格、模型与额度。", source: "Cursor 更新日志", url: "https://cursor.com/changelog/origin-app-marketplace" },
     { date: "2026-10-13", text: "智谱介绍法律专用模型 GLM-Legal（基于 GLM-5.3-Flash），面向合同、证据与合规工作流，开放 beta 申请；AutoClaw 集成仍预告即将提供。未公布 API 单价或 GLM Coding Plan 权益，不据底座模型推定编程套餐资格。", source: "AutoClaw 官方模型博客", url: "https://autoclaw.z.ai/blog/model/GLM-Legal/" },
@@ -2609,6 +2652,7 @@ const DYNAMICS: DynamicItem[] = [
     { date: "2026-10-13", checked: true, text: "核对 Anthropic 与 GitHub Copilot 并写入套餐数据：Claude Max 5x / 20x 每月另含 $100 / $200 Claude Platform API 赠额，Team 每个标准 / Premium 席位 $20 / $100（全团队封顶 $500），赠额不用于交互式 Claude Code；Sonnet 5.5 缓存读按 $0.10 计价，新增 Haiku 5.5 API 行（≤100K 提示 $0.10 / $0.50）。Copilot Pro / Pro+ 的模型列表移除 10-02 弃用的版本、补列 Haiku 5.5；Pro 的额度折算改用 Gemini 3.8 Flash 的 Copilot 促销价（至 2026-12-31）。", source: "Anthropic 帮助中心 / GitHub Docs", url: "https://support.claude.com/en/articles/17154008-monthly-api-credits-for-max-and-team-plans" },
     { date: "2026-10-12", text: "GitHub Copilot 企业遥测新增身份归属：管理员可把 Copilot 活动归到具体用户，而不采集提示词、响应或工具内容。身份与另外五类内容的采集各有开关，默认全部关闭；支持 Copilot CLI、GitHub Copilot app 与使用 Agent Host 的 VS Code。显式托管值优先于本机设置、SDK 配置与环境变量；旧的 captureContent 只覆盖五类内容，不开启身份采集。不涉及价格与额度。", source: "GitHub 官方更新日志", url: "https://github.blog/changelog/2026-10-12-client-telemetry-user-attribution-and-configurable-capture" },
     { date: "2026-10-12", text: "xAI 推出 The X Subscription，把 Grok、Grok Bot、Cursor 与 X Premium 合成一个订阅：个人档 Free $0 / Plus $8 / Premium $30 / Super $100 / Ultra $200（每月，年付 $80 / $300 / $1000 / $2000），团队档 Premium / Super / Ultra 每席 $30 / $100 / $200。Grok 与 Cursor 共用每周第一方用量池（Plus 为基准，Premium 4×、Super 15×、Ultra 50×），Plus 仅 Grok 模型、不含 Grok Bot；Premium 起可在 Cursor 用 Claude、GPT 等第三方模型，但从首次调用起按 API 牌价预充值另付，团队档再加 $0.25/百万 tokens。原 SuperGrok、Cursor 与 X Premium 套餐停止新注册，现有用户可保留或自愿切换（切换不可撤销）。", source: "xAI 官方公告与订阅文档", url: "https://x.ai/news/x-subscription" },
+    { date: "2026-10-12", text: "Meta 发布 Muse Wonder（muse-wonder-1.0）与高能力版 Muse Wonder Full，均为 1M 上下文。Muse Wonder 可通过 Meta Model API（输入 $4 / 输出 $20、缓存 $0.20，文档标为预览）与 Muse Code 使用；Wonder Full 不开放 API，只在 Muse Code Power Usage（$50/月）与 Maximum Usage（$200/月）订阅中提供。消费端 Muse 的接入随后推出。", source: "Meta 官方新闻 / Meta 开发者文档", url: "https://about.fb.com/news/2026/10/introducing-muse-wonder-models/" },
     { date: "2026-10-10", text: "Amp 新增 Claude Code 模式，基于 Claude Agent SDK，可连接已有 Claude Pro/Max 订阅；模式本身不额外收费，自建 runner 免费，云端 orbs 仍单独计费。原订阅不覆盖 Amp 自有 Dial 模式或 raw model；模型资格与用量仍受原订阅限制。", source: "Amp 官方公告与 Dial 文档", url: "https://ampcode.com/news/use-your-claude-plan" },
     { date: "2026-10-10", text: "GitHub Copilot 的 JetBrains 插件结束对 IDE 2025.1 的支持，需 2025.2 或以上；新增企业管理员托管的默认模型与 MCP 服务器自动启动开关。属编程入口兼容性变化，不涉及价格与额度。", source: "GitHub 官方更新日志", url: "https://github.blog/changelog/2026-10-10-new-controls-and-chat-improvements-in-copilot-for-jetbrains" },
     { date: "2026-10-10", checked: true, text: "核查 BigModel / Z.ai GLM Coding Plan：概览页已撤下双节与夜间活动宣传，夜间活动详情仍写明 9 月 3 日至 10 月 7 日；常规非高峰 5 折规则仍在，未见延期公告。", source: "BigModel / Z.ai 官方文档", url: "https://docs.bigmodel.cn/cn/coding-plan/overview.md" },
@@ -2899,6 +2943,14 @@ const SOURCES: SourceGroup[] = [
             "https://zenmux.ai/docs/guide/pay-as-you-go.html",
             "https://zenmux.ai/docs/best-practices/claude-code.html",
         ] },
+    { group: "Meta（Muse Code）", urls: [
+            "https://dev.meta.ai/products/muse-code",
+            "https://dev.meta.ai/docs/muse-code/subscriptions",
+            "https://dev.meta.ai/docs/pricing-rate-limits",
+            "https://dev.meta.ai/docs/models",
+            "https://dev.meta.ai/legal/geographic-use-policy",
+            "https://about.fb.com/news/2026/10/introducing-muse-wonder-models/",
+        ] },
 ];
 /* 未能完全核实 / 存在不确定性的项（页脚展示） */
 /** @type {string[]} */
@@ -2936,12 +2988,13 @@ const UNCERTAIN: string[] = [
     "88code：2026-09-30 本机访问 www.88code.ai 返回 403，docs.88code.org 连接失败。可达文档快照写明 FREE 已停发；包月为 PLUS ¥198 / PRO ¥398 / MAX ¥698，另有一次性 PayGo ¥66（200 刀）与 ¥666（1988 刀）。现网是否仍可下单未证实。",
     "ZenMux 订阅的滚动 7 天周上限具体 Flows 数值、新用户注册赠金、充值服务费率均未在页面公布（JS 渲染未抓全）；Flows 汇率随时间浮动（25 Flows=$1 为 2026-09-19 快照）。",
     "ChatGPT Pro 三档（$100/$200/$500）的额度差官方未公布：2026-10-01 官方页仅注明 Pro 目前无 5 小时上限、Astra Ultrafast 仅 $500 档；此前的 5x/20x 倍率与条数区间为旧口径，额度表中相关估算行已降为低置信。GPT-6.1 Sol 的 1.1M 上下文来自第三方规格页，官方文档仅给长上下文档价（>272K 输入档）。",
-    "Claude 订阅页模型列表只写「Sonnet」「Haiku」不分版本；Sonnet 5.5（2026-09-28 上线）按 API 定价页与 Cursor/Copilot 模型列表推定为当前订阅档所含版本。Haiku 5.5（2026-10-07 上线）是否已替换订阅内的 Haiku 4.5 未见官方说明，套餐表仍写 Haiku 4.5。"
+    "Claude 订阅页模型列表只写「Sonnet」「Haiku」不分版本；Sonnet 5.5（2026-09-28 上线）按 API 定价页与 Cursor/Copilot 模型列表推定为当前订阅档所含版本。Haiku 5.5（2026-10-07 上线）是否已替换订阅内的 Haiku 4.5 未见官方说明，套餐表仍写 Haiku 4.5。",
+    "Meta Muse Code 订阅文档已直接确认默认 Contributor，关闭后未来内容不用于训练、但用量较少，差额未公开。Wonder 系列在韩国不可用；Windows 不支持语音输入。订阅外 API Key 仍按量计费，不能把关闭订阅训练模式等同于全部 API 调用免费。"
 ];
 /* 逐条官方核价记录；由 audit/pricing-verification-2026-10-04.json 维护。 */
 /** @type {PriceChecks} */
 const PRICE_CHECKS: PriceChecks = {
-    "checkedAt": "2026-10-15",
+    "checkedAt": "2026-10-26",
     "sources": {
         "claude-plans": {
             "url": "https://claude.com/pricing",
@@ -3561,6 +3614,74 @@ const PRICE_CHECKS: PriceChecks = {
             "url": "https://developers.openai.com/api/docs/models/gpt-5.3-codex",
             "evidence": "模型标为 Deprecated；每百万 tokens 标准输入 $1.75、缓存 $0.175、输出 $14，当前价格不变。",
             "checkedAt": "2026-10-15"
+        },
+        "meta-muse-code-plans-20261014": {
+            "url": "https://dev.meta.ai/products/muse-code",
+            "evidence": "Muse Code 产品页「Muse Code subscription」：Everyday Usage $5.00/month，「Access to Muse Spark, Muse Wonder and Muse Image」「Send 10-50 prompts every 5 hours, including image and video uploads」，含语音模式与网页搜索；High Usage $15.00/month，「5x more usage than the Everyday Usage plan」；Power Usage $50.00/month，「Access to the most powerful Muse models, including Muse Wonder Full」「20x more usage than the Everyday Usage plan」，含新功能抢先体验与更大文件上传；Maximum Usage $200.00/month，「80x more usage than the Everyday Usage plan」。页面未列免费档、年付或团队档；安装命令 curl -fsSL https://dev.meta.ai/install.sh | bash。",
+            "checkedAt": "2026-10-14"
+        },
+        "meta-muse-code-subscriptions-20261014": {
+            "url": "https://dev.meta.ai/docs/muse-code/subscriptions",
+            "evidence": "订阅文档：用量到限可升级或等待刷新，Maximum Usage 只能等待刷新；额外 API 密钥用量按量计费。升级立即生效并按剩余周期折算，降级下个计费周期生效。订阅按首次订阅日每月自动续费，取消不退款（法律要求除外）。「Subscription benefits and availability may vary by region.」须年满 18 岁或所在国成年年龄。",
+            "checkedAt": "2026-10-14"
+        },
+        "meta-muse-code-docs-20261014": {
+            "url": "https://dev.meta.ai/docs/muse-code/",
+            "evidence": "「Muse Code is Meta's coding agent for the terminal and CI, built for Muse Spark.」默认模型 muse-spark-1.2；「Muse Code runs on macOS, Linux, and Windows from one codebase.」可用浏览器登录或 API 密钥认证，META_API_KEY 优先于浏览器会话。",
+            "checkedAt": "2026-10-14"
+        },
+        "meta-models-20261014": {
+            "url": "https://dev.meta.ai/docs/models",
+            "evidence": "模型文档：「Muse Wonder is in preview.」Muse Wonder 在 Model API 只提供 Standard 模式，在 Muse Code 按量与全部订阅档可用；Muse Wonder Full 不开放 Model API，「available only in Muse Code with a subscription」，限 Power Usage 与 Maximum Usage；muse-wonder-1.0 与 muse-spark-1.3 均为 1,048,576 tokens 上下文。「Model availability can vary by country.」",
+            "checkedAt": "2026-10-14"
+        },
+        "meta-api-pricing-20261014": {
+            "url": "https://dev.meta.ai/docs/pricing-rate-limits",
+            "evidence": "每 1M tokens：Muse Wonder（muse-wonder-1.0）输入 $4.00、缓存输入 $0.20、输出 $20.00，Contributor 模式不可用；Muse Spark（1.3 / 1.2 / 1.1）输入 $1.25、缓存 $0.15、输出 $4.25；Muse Spark Contributor（1.3 / 1.2）输入 $0.10、缓存 $0.002、输出 $0.20，条件是允许 Meta 用你的内容训练模型。「No long-context premium」；网页搜索 $2.50/千次另计。",
+            "checkedAt": "2026-10-14"
+        },
+        "meta-geo-policy-20261014": {
+            "url": "https://dev.meta.ai/legal/geographic-use-policy",
+            "evidence": "Geographic Use Policy（Last updated: October 12, 2026）：受限地区含「People's Republic of China (including Hong Kong SAR and Macau SAR)」；「If you access the Services through a Coding Harness Subscription, you are considered to be using the Contributor Services by default regardless of which Meta Model you select」，要用 Standard 须在账户中更改设置。政策未定义 Coding Harness Subscription。"
+        },
+        "meta-newsroom-20261014": {
+            "url": "https://about.fb.com/news/2026/10/introducing-muse-wonder-models/",
+            "evidence": "Meta 新闻稿（2026-10-12）：「Muse Wonder is available today for developers and builders through the Meta Model API and Muse Code」；「Muse Wonder Full is available today for Muse Code subscribers.」Muse Wonder 之后接入消费端 Muse，先面向订阅用户。"
+        },
+        "meta-product-current-20261026": {
+            "url": "https://dev.meta.ai/products/muse-code",
+            "evidence": "Muse Code月价$5/$15/$50/$200；Everyday 10–50提示/5h，其余5/20/80倍；Full限Power起。",
+            "checkedAt": "2026-10-26"
+        },
+        "meta-subscriptions-current-20261026": {
+            "url": "https://dev.meta.ai/docs/muse-code/subscriptions",
+            "evidence": "月度自动续费；订阅默认Contributor，可关闭但用量减少、差额未知；额外API Key按量。",
+            "checkedAt": "2026-10-26"
+        },
+        "meta-code-current-20261026": {
+            "url": "https://dev.meta.ai/docs/muse-code/",
+            "evidence": "终端/CI支持macOS/Linux/Windows，默认Spark1.2；Windows无语音输入。",
+            "checkedAt": "2026-10-26"
+        },
+        "meta-models-current-20261026": {
+            "url": "https://dev.meta.ai/docs/models",
+            "evidence": "Wonder全订阅档可用；Full仅Power/Maximum且无API；均1M，韩国不可用；当前页无preview，不推断GA日。",
+            "checkedAt": "2026-10-26"
+        },
+        "meta-pricing-current-20261026": {
+            "url": "https://dev.meta.ai/docs/pricing-rate-limits",
+            "evidence": "每1M tokens美元输入/缓存/输出：Wonder 4/0.20/20；Spark 1.25/0.15/4.25；1.2/1.3 Contributor 0.10/0.002/0.20。",
+            "checkedAt": "2026-10-26"
+        },
+        "meta-geo-current-20261026": {
+            "url": "https://dev.meta.ai/legal/geographic-use-policy",
+            "evidence": "重读10-12版政策：中国含港澳仍受限；Muse Code模式另由当前订阅文档直接确认。",
+            "checkedAt": "2026-10-26"
+        },
+        "meta-newsroom-current-20261026": {
+            "url": "https://about.fb.com/news/2026/10/introducing-muse-wonder-models/",
+            "evidence": "10-12历史公告确认Wonder API/Muse Code与Full订阅入口；核查日不作新品或GA发布日期。",
+            "checkedAt": "2026-10-26"
         }
     },
     "rows": {
@@ -5888,6 +6009,68 @@ const PRICE_CHECKS: PriceChecks = {
                 "humanlayer-docs-20261015"
             ],
             "reason": "从官方定价、文档核实并首次收录；收录日不视为产品发布日，未知年价及资格不推算。"
+        },
+        "api:Meta|Muse Wonder": {
+            "status": "changed",
+            "checkedAt": "2026-10-26",
+            "sourceIds": [
+                "meta-pricing-current-20261026",
+                "meta-models-current-20261026"
+            ],
+            "reason": "10-26 重读当前模型与价格文档，输入/输出/缓存金额均不变；移除当前未再标注的preview说法并明确模式/地区资格，不推断GA日。"
+        },
+        "api:Meta|Muse Spark 1.3": {
+            "status": "changed",
+            "checkedAt": "2026-10-26",
+            "sourceIds": [
+                "meta-pricing-current-20261026",
+                "meta-models-current-20261026"
+            ],
+            "reason": "10-26 重读当前模型与价格文档，输入/输出/缓存金额均不变；移除当前未再标注的preview说法并明确模式/地区资格，不推断GA日。"
+        },
+        "plan:plan-0221": {
+            "status": "changed",
+            "checkedAt": "2026-10-26",
+            "sourceIds": [
+                "meta-product-current-20261026",
+                "meta-subscriptions-current-20261026",
+                "meta-code-current-20261026",
+                "meta-models-current-20261026"
+            ],
+            "reason": "10-26 重读官方四档订阅，美元月价与原10-14记录一致；补充默认Contributor及关闭后的额度边界、韩国和Windows语音限制，不构造涨价。"
+        },
+        "plan:plan-0222": {
+            "status": "changed",
+            "checkedAt": "2026-10-26",
+            "sourceIds": [
+                "meta-product-current-20261026",
+                "meta-subscriptions-current-20261026",
+                "meta-code-current-20261026",
+                "meta-models-current-20261026"
+            ],
+            "reason": "10-26 重读官方四档订阅，美元月价与原10-14记录一致；补充默认Contributor及关闭后的额度边界、韩国和Windows语音限制，不构造涨价。"
+        },
+        "plan:plan-0223": {
+            "status": "changed",
+            "checkedAt": "2026-10-26",
+            "sourceIds": [
+                "meta-product-current-20261026",
+                "meta-subscriptions-current-20261026",
+                "meta-code-current-20261026",
+                "meta-models-current-20261026"
+            ],
+            "reason": "10-26 重读官方四档订阅，美元月价与原10-14记录一致；补充默认Contributor及关闭后的额度边界、韩国和Windows语音限制，不构造涨价。"
+        },
+        "plan:plan-0224": {
+            "status": "changed",
+            "checkedAt": "2026-10-26",
+            "sourceIds": [
+                "meta-product-current-20261026",
+                "meta-subscriptions-current-20261026",
+                "meta-code-current-20261026",
+                "meta-models-current-20261026"
+            ],
+            "reason": "10-26 重读官方四档订阅，美元月价与原10-14记录一致；补充默认Contributor及关闭后的额度边界、韩国和Windows语音限制，不构造涨价。"
         }
     }
 };
@@ -6021,7 +6204,7 @@ const BENCHMARK_SUMMARY: BenchmarkSummary = { "schemaVersion": 1, "checkedAt": "
 
 /* 自动生成：npm run maintenance:build。导航「我的关注」未读提醒用的套餐变更 ID 与复查间隔；完整变更见 maintenance-data.js（按需加载）。 */
 /** @type {MaintenanceSummary} */
-const MAINTENANCE_SUMMARY: MaintenanceSummary = { "schemaVersion": 1, "staleAfterDays": 14, "changes": [{ "id": "plan-0040", "changeId": "change-15f5d31c6e8b463993648b38" }, { "id": "plan-0127", "changeId": "change-2ae693cc1d1f2b71f282c21b" }, { "id": "plan-0039", "changeId": "change-53233e0b148a39f9bf7112dd" }, { "id": "plan-0228", "changeId": "change-5515d59692180521d962c029" }, { "id": "plan-0227", "changeId": "change-6a3893ad79362c9cfa9b8e48" }, { "id": "plan-0092", "changeId": "change-6bc6df8e107656825f53ac72" }, { "id": "plan-0230", "changeId": "change-7033bbf6398cc976a79d799e" }, { "id": "plan-0089", "changeId": "change-8241744f587f88bb9081dd81" }, { "id": "plan-0225", "changeId": "change-9d7173303251f49317337d22" }, { "id": "plan-0091", "changeId": "change-9fc53e3ab3d78dbafd89b1a0" }, { "id": "plan-0094", "changeId": "change-a018c88c11698cfecf999863" }, { "id": "plan-0095", "changeId": "change-ae02d5d674403a35dbe5cb9a" }, { "id": "plan-0093", "changeId": "change-bdc8f2924acdf684623367fa" }, { "id": "plan-0229", "changeId": "change-bfb8db87ab8b9a77f63aa696" }, { "id": "plan-0126", "changeId": "change-c1af7accef97bac98822d9eb" }, { "id": "plan-0231", "changeId": "change-c515c861ae4ab9cd119e8a20" }, { "id": "plan-0232", "changeId": "change-dd4b9bdeef95be64fcec1ad6" }, { "id": "plan-0226", "changeId": "change-fc5560986f2e74a0d756cfa6" }, { "id": "plan-0092", "changeId": "change-1a9c094306a4b8d518ea71bd" }, { "id": "plan-0094", "changeId": "change-451f08c4ebe113de4e4de9bc" }, { "id": "plan-0018", "changeId": "change-82f1725e0bd394f2390d9e76" }, { "id": "plan-0017", "changeId": "change-d7a069852d2ffc239d61c0e5" }, { "id": "plan-0016", "changeId": "change-d94cb07f37527fd06c9cc1b0" }, { "id": "plan-0095", "changeId": "change-e25a4e2dcaa833a4ffc9b3c7" }, { "id": "plan-0096", "changeId": "change-0b06380cd89f6485db9eda14" }, { "id": "plan-0216", "changeId": "change-1b6ba8b6cfa68a93e86979b0" }, { "id": "plan-0006", "changeId": "change-1e37795fc06e1ba51fe8ac00" }, { "id": "plan-0098", "changeId": "change-22d7f8da4a3682977dd91c82" }, { "id": "plan-0025", "changeId": "change-275df2271ad0b1589415cd2d" }, { "id": "plan-0026", "changeId": "change-32527572330ca65b201dd10b" }, { "id": "plan-0099", "changeId": "change-335f01f430472e8277fb98d7" }, { "id": "plan-0220", "changeId": "change-38ed48266f362048a7553326" }, { "id": "plan-0095", "changeId": "change-3c704d5feda6494ce3ef6e8f" }, { "id": "plan-0091", "changeId": "change-3fbfc58974b733142929d1da" }, { "id": "plan-0213", "changeId": "change-448b6054b5f776b2b1558d29" }, { "id": "plan-0218", "changeId": "change-4b4ed277e67ae1f78b0ae4dc" }, { "id": "plan-0217", "changeId": "change-4e04840c90de0c6e4b0b3917" }, { "id": "plan-0013", "changeId": "change-674064063fb6d0f2a0100da3" }, { "id": "plan-0003", "changeId": "change-72fedbdce78e01a5ded89b43" }, { "id": "plan-0214", "changeId": "change-7cca6ceb8b757d39d6ae2f9a" }, { "id": "plan-0023", "changeId": "change-7f5d3df973101d4ce4b83957" }, { "id": "plan-0219", "changeId": "change-8206cc5c3512000df26cfd9d" }, { "id": "plan-0102", "changeId": "change-870a9310ba08288505e6fdde" }, { "id": "plan-0005", "changeId": "change-8a3995cf02d1607a8c978b42" }, { "id": "plan-0103", "changeId": "change-8b40222f8a5c880f9f7a676a" }, { "id": "plan-0215", "changeId": "change-928d3b86d2be689a22528633" }, { "id": "plan-0004", "changeId": "change-a19395449fa2b39372a73e95" }, { "id": "plan-0092", "changeId": "change-a22185256844ee8caf81a9ca" }, { "id": "plan-0094", "changeId": "change-be419e92b67bc5e585819631" }, { "id": "plan-0100", "changeId": "change-f5a81c0184ee5e43c3181499" }, { "id": "plan-0101", "changeId": "change-f978ae82afb2cf9f2c3a3d1f" }, { "id": "plan-0135", "changeId": "change-1ddd2f26b385ca4cce5c0889" }, { "id": "plan-0101", "changeId": "change-255d9ace38e030ac418c588e" }, { "id": "plan-0033", "changeId": "change-3182b6de09f4ddd7c58e06f0" }, { "id": "plan-0134", "changeId": "change-3f6953b4667c1dd71f3a9ec6" }, { "id": "plan-0026", "changeId": "change-480f09d4107d62f910374368" }, { "id": "plan-0197", "changeId": "change-503b4179a50e7cf33d46eab1" }, { "id": "plan-0102", "changeId": "change-5dd6fd47e0331163af1b6c6e" }, { "id": "plan-0017", "changeId": "change-5e5a0320dc4615f448119a35" }, { "id": "plan-0139", "changeId": "change-67a89830e048c3cc060aa4b8" }, { "id": "plan-0154", "changeId": "change-717c2777ffebf7b15a65edc9" }, { "id": "plan-0025", "changeId": "change-72dda49670b16f04542dc0e8" }, { "id": "plan-0156", "changeId": "change-7f021aeddba731b72a8bc19a" }, { "id": "plan-0097", "changeId": "change-91702b0165a550bf34053640" }, { "id": "plan-0138", "changeId": "change-925841d5dc56d189fb387575" }, { "id": "plan-0032", "changeId": "change-a34ee27e1bc9661f445d3d90" }, { "id": "plan-0160", "changeId": "change-c54acaae59581333114da30f" }, { "id": "plan-0016", "changeId": "change-d0e2173924d84dc157d0522d" }, { "id": "plan-0149", "changeId": "change-d4c060d1224d283a18e43f10" }, { "id": "plan-0155", "changeId": "change-feeb742795ef7f3f0970bf39" }, { "id": "plan-0031", "changeId": "change-ff4c63f9bac95e9d5c32726f" }] };
+const MAINTENANCE_SUMMARY: MaintenanceSummary = { "schemaVersion": 1, "staleAfterDays": 14, "changes": [{ "id": "plan-0224", "changeId": "change-4f218b72dacbc36c28cff472" }, { "id": "plan-0222", "changeId": "change-7bb3de5626c0a953174c9649" }, { "id": "plan-0221", "changeId": "change-db81a7a10d44a611b7950a07" }, { "id": "plan-0223", "changeId": "change-f6e1d5f7128a01d4787fbf6b" }, { "id": "plan-0040", "changeId": "change-15f5d31c6e8b463993648b38" }, { "id": "plan-0127", "changeId": "change-2ae693cc1d1f2b71f282c21b" }, { "id": "plan-0039", "changeId": "change-53233e0b148a39f9bf7112dd" }, { "id": "plan-0228", "changeId": "change-5515d59692180521d962c029" }, { "id": "plan-0227", "changeId": "change-6a3893ad79362c9cfa9b8e48" }, { "id": "plan-0092", "changeId": "change-6bc6df8e107656825f53ac72" }, { "id": "plan-0230", "changeId": "change-7033bbf6398cc976a79d799e" }, { "id": "plan-0089", "changeId": "change-8241744f587f88bb9081dd81" }, { "id": "plan-0225", "changeId": "change-9d7173303251f49317337d22" }, { "id": "plan-0091", "changeId": "change-9fc53e3ab3d78dbafd89b1a0" }, { "id": "plan-0094", "changeId": "change-a018c88c11698cfecf999863" }, { "id": "plan-0095", "changeId": "change-ae02d5d674403a35dbe5cb9a" }, { "id": "plan-0093", "changeId": "change-bdc8f2924acdf684623367fa" }, { "id": "plan-0229", "changeId": "change-bfb8db87ab8b9a77f63aa696" }, { "id": "plan-0126", "changeId": "change-c1af7accef97bac98822d9eb" }, { "id": "plan-0231", "changeId": "change-c515c861ae4ab9cd119e8a20" }, { "id": "plan-0232", "changeId": "change-dd4b9bdeef95be64fcec1ad6" }, { "id": "plan-0226", "changeId": "change-fc5560986f2e74a0d756cfa6" }, { "id": "plan-0092", "changeId": "change-1a9c094306a4b8d518ea71bd" }, { "id": "plan-0224", "changeId": "change-1e92d0efd88a842e6dbcf5f2" }, { "id": "plan-0094", "changeId": "change-451f08c4ebe113de4e4de9bc" }, { "id": "plan-0018", "changeId": "change-82f1725e0bd394f2390d9e76" }, { "id": "plan-0222", "changeId": "change-8fcb085c06b794b2f599e7d2" }, { "id": "plan-0223", "changeId": "change-b5452ecfdff2f9867de07ca1" }, { "id": "plan-0221", "changeId": "change-bf99e20cc2de31e8b4614432" }, { "id": "plan-0017", "changeId": "change-d7a069852d2ffc239d61c0e5" }, { "id": "plan-0016", "changeId": "change-d94cb07f37527fd06c9cc1b0" }, { "id": "plan-0095", "changeId": "change-e25a4e2dcaa833a4ffc9b3c7" }, { "id": "plan-0096", "changeId": "change-0b06380cd89f6485db9eda14" }, { "id": "plan-0216", "changeId": "change-1b6ba8b6cfa68a93e86979b0" }, { "id": "plan-0006", "changeId": "change-1e37795fc06e1ba51fe8ac00" }, { "id": "plan-0098", "changeId": "change-22d7f8da4a3682977dd91c82" }, { "id": "plan-0025", "changeId": "change-275df2271ad0b1589415cd2d" }, { "id": "plan-0026", "changeId": "change-32527572330ca65b201dd10b" }, { "id": "plan-0099", "changeId": "change-335f01f430472e8277fb98d7" }, { "id": "plan-0220", "changeId": "change-38ed48266f362048a7553326" }, { "id": "plan-0095", "changeId": "change-3c704d5feda6494ce3ef6e8f" }, { "id": "plan-0091", "changeId": "change-3fbfc58974b733142929d1da" }, { "id": "plan-0213", "changeId": "change-448b6054b5f776b2b1558d29" }, { "id": "plan-0218", "changeId": "change-4b4ed277e67ae1f78b0ae4dc" }, { "id": "plan-0217", "changeId": "change-4e04840c90de0c6e4b0b3917" }, { "id": "plan-0013", "changeId": "change-674064063fb6d0f2a0100da3" }, { "id": "plan-0003", "changeId": "change-72fedbdce78e01a5ded89b43" }, { "id": "plan-0214", "changeId": "change-7cca6ceb8b757d39d6ae2f9a" }, { "id": "plan-0023", "changeId": "change-7f5d3df973101d4ce4b83957" }, { "id": "plan-0219", "changeId": "change-8206cc5c3512000df26cfd9d" }, { "id": "plan-0102", "changeId": "change-870a9310ba08288505e6fdde" }, { "id": "plan-0005", "changeId": "change-8a3995cf02d1607a8c978b42" }, { "id": "plan-0103", "changeId": "change-8b40222f8a5c880f9f7a676a" }, { "id": "plan-0215", "changeId": "change-928d3b86d2be689a22528633" }, { "id": "plan-0004", "changeId": "change-a19395449fa2b39372a73e95" }, { "id": "plan-0092", "changeId": "change-a22185256844ee8caf81a9ca" }, { "id": "plan-0094", "changeId": "change-be419e92b67bc5e585819631" }, { "id": "plan-0100", "changeId": "change-f5a81c0184ee5e43c3181499" }, { "id": "plan-0101", "changeId": "change-f978ae82afb2cf9f2c3a3d1f" }, { "id": "plan-0135", "changeId": "change-1ddd2f26b385ca4cce5c0889" }, { "id": "plan-0101", "changeId": "change-255d9ace38e030ac418c588e" }, { "id": "plan-0033", "changeId": "change-3182b6de09f4ddd7c58e06f0" }, { "id": "plan-0134", "changeId": "change-3f6953b4667c1dd71f3a9ec6" }, { "id": "plan-0026", "changeId": "change-480f09d4107d62f910374368" }, { "id": "plan-0197", "changeId": "change-503b4179a50e7cf33d46eab1" }, { "id": "plan-0102", "changeId": "change-5dd6fd47e0331163af1b6c6e" }, { "id": "plan-0017", "changeId": "change-5e5a0320dc4615f448119a35" }, { "id": "plan-0139", "changeId": "change-67a89830e048c3cc060aa4b8" }, { "id": "plan-0154", "changeId": "change-717c2777ffebf7b15a65edc9" }, { "id": "plan-0025", "changeId": "change-72dda49670b16f04542dc0e8" }, { "id": "plan-0156", "changeId": "change-7f021aeddba731b72a8bc19a" }, { "id": "plan-0097", "changeId": "change-91702b0165a550bf34053640" }, { "id": "plan-0138", "changeId": "change-925841d5dc56d189fb387575" }, { "id": "plan-0032", "changeId": "change-a34ee27e1bc9661f445d3d90" }, { "id": "plan-0160", "changeId": "change-c54acaae59581333114da30f" }, { "id": "plan-0016", "changeId": "change-d0e2173924d84dc157d0522d" }, { "id": "plan-0149", "changeId": "change-d4c060d1224d283a18e43f10" }, { "id": "plan-0155", "changeId": "change-feeb742795ef7f3f0970bf39" }, { "id": "plan-0031", "changeId": "change-ff4c63f9bac95e9d5c32726f" }] };
 
 /* 项目公开入口与纠错提交渠道。 */
 const PUBLIC_PROJECT = Object.freeze({
