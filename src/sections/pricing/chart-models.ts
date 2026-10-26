@@ -36,12 +36,12 @@ export function rankNote() {
     + (state.tier === "flagship" ? "当前只看旗舰模型。" : "当前含轻量模型，Flash、Haiku 会因为 token 便宜靠前。");
   const excluded = "价格待核实、已停售、已下架、一次性预付、仅老用户续费和中转站不在此列。";
   const scope = state.scope === "credits"
-    ? "口径：只统计按官方额度规则折算的档位（积分系数、credits 面值 ÷ 牌价混合价或官方区间，按 80/20 与 95% 缓存假设，置信中）。第三方估算与请求次数折算不在此列。"
-    : "口径：在官方口径折算之外，再纳入估算档位（≈标记，置信低：第三方毛利反推、请求次数按 20K tokens/次折算等），仅供量级参考。";
+    ? "口径：只统计按官方额度规则折算的档位（积分系数、credits 面值 ÷ 牌价混合价或官方区间，按 80/20 与 95% 缓存假设，置信中）。第三方估算、请求次数折算与模拟对照不在此列。"
+    : "口径：在官方口径折算之外，再纳入估算档位（≈标记，置信低：第三方毛利反推、请求次数按 20K tokens/次折算、未经确认的整池或跨模型模拟对照），仅供量级参考。";
   const total = rankRows("all").length;
   const count = state.vendor !== "all" ? `当前口径全厂商共 ${total} 档，${rankVendorLabel(state.vendor)} ${all.length} 档` : `共 ${all.length} 档`;
   const mixed = rows.findIndex((r: ReturnType<typeof rankRows>[number]) => rankIsEstimate(r.m)) > 0 ? "先列官方口径折算，再列估算；估算组单独排序，不与上方直接比较名次。" : "";
-  return `${count}${all.length > rows.length ? `，图中显示 ${rows.length} 档` : ""}。可按厂商查看 Claude、ChatGPT、Kimi 等套餐。${tier}${scope}${excluded}${mixed}实色柱：依据官方额度规则折算；斜纹柱：第三方或请求次数估算。绿色 ≤¥0.30 · 黄色 ≤¥1 · 红色 >¥1。`;
+  return `${count}${all.length > rows.length ? `，图中显示 ${rows.length} 档` : ""}。可按厂商查看 Claude、ChatGPT、Kimi 等套餐。${tier}${scope}${excluded}${mixed}实色柱：依据官方额度规则折算；斜纹柱：第三方、请求次数估算或模拟对照。绿色 ≤¥0.30 · 黄色 ≤¥1 · 红色 >¥1。`;
 }
 
 /** 每周 tokens 旁的性价比列表：与图表同一份数据，按每 ¥100/月 可得的每周 tokens 排序。 */

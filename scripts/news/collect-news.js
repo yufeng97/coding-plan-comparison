@@ -161,7 +161,7 @@ function candidateFrom(item, source, start, end, vendors, trackedURLs) {
   } else if (item.publishedAt) {
     const time = publicationTime(item.publishedAt);
     if (Number.isFinite(time)) {
-      if (time < start || time > end) return null;
+      if (time > end || (time < start && !trackedURLs.has(url))) return null;
       candidate.dateStatus = "known";
       candidate.publishedAt = new Date(time).toISOString();
     } else { candidate.dateStatus = "invalid"; delete candidate.publishedAt; }
@@ -185,8 +185,9 @@ async function collectNews(options) {
   const now = options.now || new Date(), days = options.days ?? 14;
   if (!Number.isFinite(now.getTime()) || !Number.isInteger(days) || days < 1 || days > 365) throw new Error("days 必须是 1–365 的整数，checkedAt 必须有效");
   const checkedAt = now.toISOString(), end = now.getTime(), start = end - days * 86400000;
-  const errors = [...(options.initialErrors || [])], sources = [], candidates = new Map();
-  const trackedURLs = new Set((options.inbox?.items || []).map((item) => item.url));
+  const errors = [...(options.initialErrors || [])], sources = [], candidates = new Map(), inboxCandidates = new Map();
+  const trackedItems = new Map((options.inbox?.items || []).map((item) => [item.url, item]));
+  const trackedURLs = new Set(trackedItems.keys());
   const oldState = options.state || { schemaVersion: 1, sources: {} };
   /** @type {NewsState} */
   const nextState = { schemaVersion: 1, sources: { ...oldState.sources }, health: Object.fromEntries(Object.entries(oldState.health || {}).map(([id, health]) => [id, { ...health, enabled: false, freshness: "disabled" }])) };
@@ -306,10 +307,24 @@ async function collectNews(options) {
   function add(item, source, result) {
     const candidate = candidateFrom(item, source, start, end, options.knownVendors || [], trackedURLs);
     if (!candidate) return;
+    if (candidate.publishedAt && Date.parse(candidate.publishedAt) < start) {
+      // 旧公告不重新进入滚动报告；成功读取到的新修订仍须送入持久队列复核。
+      // 未变化或失败来源的旧缓存不刷新 lastSeen，也不伪造新修订。
+      const previous = trackedItems.get(candidate.url), copy = variantOf(candidate);
+      const priorHash = previous?.variants?.find((variant) => variant.sourceId === source.id)?.contentHash || previous?.contentHash;
+      if (result.cacheStale || copy.contentHash === priorHash) return;
+      const copies = inboxCandidates.get(candidate.url) || [];
+      if (!copies.some((value) => value.sources[0].id === source.id)) copies.push(candidate);
+      inboxCandidates.set(candidate.url, copies);
+      return;
+    }
     result.candidatesEligible++;
     const copies = candidates.get(candidate.url) || [];
     if (!copies.some((copy) => copy.sources[0].id === source.id)) copies.push(candidate);
     candidates.set(candidate.url, copies);
+    const inboxCopies = inboxCandidates.get(candidate.url) || [];
+    if (!inboxCopies.some((copy) => copy.sources[0].id === source.id)) inboxCopies.push(candidate);
+    inboxCandidates.set(candidate.url, inboxCopies);
   }
   for (let index = 0; index < resultSlots.length; index++) {
     const result = resultSlots[index], slot = itemSlots[index];
@@ -335,17 +350,18 @@ async function collectNews(options) {
   }
   // 合并内容只按固定来源优先级取值，不因某来源本次失败（陈旧缓存）或副本移出窗口而改选其他来源。
   const order = new Map(sources.map((source, index) => [source.id, index]));
-  /** @type {Candidate[]} */
-  const list = [...candidates.values()].map((copies) => {
+  /** @param {Map<string,Candidate[]>} groups @returns {Candidate[]} */
+  const mergedCandidates = (groups) => [...groups.values()].map((copies) => {
     const { display, ranked } = mergeVariants(copies.map(variantOf), order);
     return { ...display, url: copies[0].url, sources: copies.map((copy) => copy.sources[0]), variants: ranked };
   }).sort((a, b) => (b.publishedAt || b.observedAt || "").localeCompare(a.publishedAt || a.observedAt || "") || a.url.localeCompare(b.url));
+  const list = mergedCandidates(candidates);
   const successful = sources.filter((source) => !["error", "partial"].includes(source.status) && source.kind !== "import").length;
   const report = { schemaVersion: 1, checkedAt, window: { days, start: new Date(start).toISOString(), end: checkedAt },
     status: errors.length ? successful || sources.some((source) => source.status === "partial" && source.itemsFetched > 0) ? "partial" : "failed" : "ok", reviewRequired: true, sources, errors, candidates: list,
     stats: { candidates: list.length, knownVendor: list.filter((item) => !item.needsVendorReview).length, vendorReviewCandidates: list.filter((item) => item.needsVendorReview).length,
       sourcesSucceeded: successful, sourcesFailed: sources.filter((source) => ["error", "partial"].includes(source.status)).length } };
-  const inbox = validateInbox(updateInbox(options.inbox, report));
+  const inbox = validateInbox(updateInbox(options.inbox, { ...report, candidates: mergedCandidates(inboxCandidates) }));
   report.queue = inbox.stats;
   return { report, state: nextState, inbox, health: { schemaVersion: 1, checkedAt, status: report.status, sources: Object.values(nextState.health), errors } };
 }

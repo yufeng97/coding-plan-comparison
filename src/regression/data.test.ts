@@ -48,6 +48,13 @@ function validateFixture(mutation: string, options: ValidationOptions = {}) {
   return { exitCode: result.errors.length ? 1 : 0, output: [result.summary, ...result.errors, ...result.warns, ...result.notes].join("\n") };
 }
 
+test("模拟额度标记只接受布尔值，避免字符串绕过数据口径", () => {
+  const invalid = validateFixture('METRICS_RAW[0].referenceOnly = "true";');
+  assert.equal(invalid.exitCode, 1);
+  assert.match(invalid.output, /referenceOnly 必须为布尔值/);
+  assert.equal(validateFixture("METRICS_RAW[0].referenceOnly = true;").exitCode, 0);
+});
+
 test("明确目标不邻近时仍解析，保留追加权益和限制", async () => {
   const d = await load();
   const plus = plan(d, "OpenCode (Anomaly/SST)", "OpenCode Go Plus");

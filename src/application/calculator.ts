@@ -13,6 +13,7 @@ import { byId } from '../browser/dom';
 import { navigateToSection } from './navigation';
 import { computeMetrics, fromCNY, isFlagshipModelName, toCNY, WEEKS_PER_MONTH, type MetricsResult } from '../domain/metrics';
 import { provenance } from '../domain/provenance';
+import { publicModelIncluded } from '../domain/benchmarks';
 
 /* 费用计算器与用量导入由 CostCalculator.vue 实现；挂载时登记重算与导入入口，供推荐卡、导航与历史恢复调用。 */
 export const calculatorView: { render?: () => void } = {};
@@ -89,7 +90,7 @@ export function usageCoverageRows(monthlyM: number, state: Pick<WorkloadState, "
     const byPlan = new Map<string, Omit<UsageCoverageRow, "apiMonthlyCNY" | "breakEvenM">>();
     for (const m of METRICS_ALL) {
         const p = findPlanReference(m.ref);
-        if (!p || !metricOfferOk(m) || !recommendablePlan(p) || !isPersonalMonthly(p))
+        if (!p || m.referenceOnly || !metricOfferOk(m) || !recommendablePlan(p) || !isPersonalMonthly(p) || !publicModelIncluded(p, m.model))
             continue;
         if ((pickerState.region !== "all" && p.region !== pickerState.region) || !matchesTool(p, pickerState.tool))
             continue;

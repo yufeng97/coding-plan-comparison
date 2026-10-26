@@ -45,25 +45,47 @@ const CLASSIC_SCRIPT_RE = /(<script\b[^>]*?\bsrc=")((?:js|libs)\/[\w./-]+\.js)("
  *  开发时也检查真实路径，不能通过链接读取私有文件。 */
 export function publicAssets({ root }) {
   const sourceRoot = (rel) => path.join(root, rel.startsWith("img/") ? "public" : "data/generated");
+  const assertDevSource = (file) => {
+    const rootReal = fs.realpathSync.native(root);
+    const rel = path.relative(root, file).split(path.sep).join("/");
+    if (!rel.startsWith("node_modules/")) { assertPublicSource(root, file); return; }
+    /* 优化依赖缓存也要同时检查词法路径与真实路径；只允许 .vite 这个隐藏目录。 */
+    const actual = path.relative(rootReal, fs.realpathSync.native(file)).split(path.sep).join("/");
+    for (const value of [rel, actual]) {
+      if (!value.startsWith("node_modules/") || value.split("/").some((part) => part.startsWith(".") && part !== ".vite")) throw new Error("私有依赖路径");
+    }
+  };
+  const checkModule = (id) => {
+    if (!id || id.startsWith("\0")) return;
+    const file = id.split(/[?#]/)[0];
+    if (path.isAbsolute(file) && fs.existsSync(file)) assertDevSource(file);
+  };
   return {
     name: "coding-plan:public-assets",
+    apply: "serve",
+    enforce: "pre",
+    /* URL 白名单不能替代模块边界：Vite 解包 /@id/、解析别名后还会读取 ?raw 等资源。 */
+    load(id) { checkModule(id); return null; },
     configureServer(server) {
-      server.middlewares.use((req, res, next) => {
+      server.middlewares.use(async (req, res, next) => {
         let rel;
         try { rel = decodeURIComponent(String(req.url || "").split("?")[0]).replace(/^\/+/, ""); }
         catch { res.statusCode = 400; res.end(); return; }
         /* Vite 默认以项目根提供静态文件；开发也只开放前端源文件、依赖、虚拟模块及发布 URL。 */
         const allowed = /^(?:(?:index\.html)?$|(?:src|node_modules|js|libs|img|feeds)\/|changes\.xml$|@(?:vite|id|fs)\/|__vite_ping$)/;
         if (!allowed.test(rel) || rel.includes("\\")) { res.statusCode = 403; res.end(); return; }
+        if (rel.startsWith("@id/")) {
+          try {
+            const id = rel.slice(4).replace("__x00__", "\0");
+            const resolved = await server.environments.client.pluginContainer.resolveId(id);
+            if (resolved) checkModule(resolved.id);
+          } catch { res.statusCode = 403; res.end(); return; }
+        }
         if (!/^(?:img\/|feeds\/|changes\.xml$|@(?:vite|id)\/|__vite_ping$)/.test(rel)) {
           const file = rel.startsWith("@fs/") ? rel.slice(4) : path.join(root, rel || "index.html");
           if (fs.existsSync(file)) {
             try {
-              if (rel.startsWith("node_modules/")) {
-                /* Vite 的依赖缓存位于 node_modules/.vite；其他隐藏段与真实路径越界仍然拒绝。 */
-                const realRel = path.relative(fs.realpathSync.native(root), fs.realpathSync.native(file)).split(path.sep).join("/");
-                if (!realRel.startsWith("node_modules/") || realRel.split("/").some((part) => part.startsWith(".") && part !== ".vite")) throw new Error("私有依赖路径");
-              } else assertPublicSource(root, file);
+              assertDevSource(file);
             } catch { res.statusCode = 403; res.end(); return; }
           }
         }

@@ -75,7 +75,7 @@ import SectionLinks from './components/SectionLinks.vue';
   <section class="section" id="rank">
     <div class="section-head">
       <h2 id="rankTitle"><span class="sec-no">05</span>每百万 tokens 满额使用折算成本（<span id="rankTitleBasis">{{ rankPaymentLabel() }}</span>）<span class="sec-tag">进阶</span></h2>
-      <p>按参考额度全部用满折算每百万 tokens 成本；用量较少时实际成本更高。实心柱依据官方额度规则，斜纹柱为第三方或请求次数估算，不代表模型质量或保证可用额度。</p>
+      <p>按参考额度全部用满折算每百万 tokens 成本；用量较少时实际成本更高。实心柱依据官方额度规则，斜纹柱为第三方、请求次数估算或模拟对照，不代表模型质量或保证可用额度。</p>
     </div><rank-chart></rank-chart></section>
 
   <!-- ======== 06 额度深度对比（进阶） ======== -->

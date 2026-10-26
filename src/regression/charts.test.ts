@@ -374,7 +374,7 @@ test("排行套餐名读取主表，估算柱用斜纹并保留原始精确成�
     if (!point._r) {
       /* 官方口径折算组与估算组之间的分隔行：无柱值、标签说明分组。 */
       assert.equal(point.value, null);
-      assert.match(option.yAxis.data[i], /以下为第三方或请求次数估算/);
+      assert.match(option.yAxis.data[i], /以下为第三方、请求次数估算或模拟对照/);
       continue;
     }
     const low = app.provenance(app.METRICS_ALL.find((m) => m.ref === point._r!.m.ref && m.model === point._r!.m.model)!).conf === "低";

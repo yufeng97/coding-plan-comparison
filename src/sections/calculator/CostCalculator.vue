@@ -16,6 +16,10 @@ import UsageCoverage from "./UsageCoverage.vue";
 type CostKey = keyof typeof COST_CONTROLS;
 type NumberKey = Exclude<CostKey, "model">;
 const state = calcState, draft = reactive({ ...state });
+const usageText = ref(""), usageFeedback = ref("");
+let importRun = 0;
+/* 文件读取和后台解析共用同一序号；更新条件、重置或卸载后，旧导入不能再覆盖当前输入。 */
+function cancelUsageImport() { importRun++; usageFeedback.value = ""; }
 const regionLabel = computed(() => REGION_LABEL[pickerState.region as keyof typeof REGION_LABEL] || "不限地区");
 /* 字段范围只来自 CALC_LIMITS（URL 校验同一份）；整数字段步长为 1。缓存单价单独渲染，因为标签与占位要写明币种。 */
 const field = (key: NumberKey, label: string) => {
@@ -61,14 +65,15 @@ watch(() => ({ ...state }), (current, previous) => {
     if (current[key] !== previous[key]) draft[key] = current[key];
   }
 });
-function syncDraft() { Object.assign(draft, state); }
+function syncDraft() { cancelUsageImport(); Object.assign(draft, state); }
 onMounted(() => { calculatorView.render = syncDraft; });
-onBeforeUnmount(() => { calculatorView.render = undefined; });
+onBeforeUnmount(() => { cancelUsageImport(); calculatorView.render = undefined; });
 function syncScenario() {
   const match = Object.entries(COST_SCENARIOS).find(([, scenario]) => scenario.input === state.input && scenario.cache === state.cache);
   state.scenario = match ? match[0] : APP_DEFAULTS.calc.scenario;
 }
 function input(key: CostKey, value: string) {
+  cancelUsageImport();
   draft[key] = value;
   /* 用户开始改数后，「按我的用量核对」带入时的说明不再适用。 */
   calcUiState.feedback = "";
@@ -79,8 +84,9 @@ function input(key: CostKey, value: string) {
     if (key === "input" || key === "cache") syncScenario();
   });
 }
-function choosePreset(id: string) { updateAppState(() => { Object.assign(state, COST_PRESETS[id]); Object.assign(draft, COST_PRESETS[id]); }); }
+function choosePreset(id: string) { cancelUsageImport(); updateAppState(() => { Object.assign(state, COST_PRESETS[id]); Object.assign(draft, COST_PRESETS[id]); }); }
 function chooseScenario(id: string) {
+  cancelUsageImport();
   const scenario = COST_SCENARIOS[id];
   const values = { input: scenario.input, cache: scenario.cache, scenario: id };
   updateAppState(() => { Object.assign(state, values); Object.assign(draft, values); });
@@ -88,8 +94,6 @@ function chooseScenario(id: string) {
 function presetActive(id: string) { return Object.entries(COST_PRESETS[id]).every(([key, value]) => draft[key as CostKey] === value); }
 function scenarioActive(id: string) { const scenario = COST_SCENARIOS[id]; return state.scenario === id && draft.input === scenario.input && draft.cache === scenario.cache; }
 function reset() { calcUiState.feedback = ""; updateAppState(() => { Object.assign(state, APP_DEFAULTS.calc); syncDraft(); }); }
-const usageText = ref(""), usageFeedback = ref("");
-let importRun = 0;
 function applyUsage(usage: UsageSummary) {
   const values = usageToCalculator(usage);
   /* 主要模型占七成以上才换成对应的 API 牌价；混用多个模型时保留计算器当前模型。 */
@@ -113,8 +117,8 @@ function applyUsage(usage: UsageSummary) {
     + `。已换算为每天 ${values.requests} 次 × ${values.tokens} tokens × ${values.days} 天。` + modelNote;
 }
 /* 大文件在 Worker 里解析，期间显示进度；较早的导入结果在新导入开始后丢弃。 */
-async function importUsage(texts: string | string[]) {
-  const run = ++importRun;
+async function importUsage(texts: string | string[], run = ++importRun) {
+  if (run !== importRun) return;
   const list = typeof texts === "string" ? [texts] : texts;
   if (list.reduce((sum, text) => sum + text.length, 0) > 256 * 1024) usageFeedback.value = `正在解析 ${list.length} 份记录…`;
   let usage: UsageSummary;
@@ -127,6 +131,7 @@ async function importUsage(texts: string | string[]) {
 }
 /* 文件与文件夹两种入口共用：文件夹里只读 .json / .jsonl（Claude Code 按项目、Codex 按日期分子目录保存日志）。 */
 async function importFile(event: Event) {
+  const run = ++importRun;
   const picker = event.target as HTMLInputElement;
   /* 文件选择框已按 accept 过滤；选整个文件夹时会带上其他文件，只保留 JSON / JSONL。 */
   const fromFolder = picker.hasAttribute("webkitdirectory");
@@ -135,12 +140,14 @@ async function importFile(event: Event) {
   picker.value = "";
   if (!chosen.length) { usageFeedback.value = "所选位置没有 .json 或 .jsonl 文件。"; return; }
   if (chosen.reduce((n, file) => n + file.size, 0) > USAGE_IMPORT_MAX) { usageFeedback.value = USAGE_IMPORT_TOO_LARGE; return; }
+  usageFeedback.value = `正在读取 ${chosen.length} 份记录…`;
   /* 多份日志合并统计；文本框只回显能完整放下的内容，避免再次点击时导入截断的数据。 */
   let contents: string[];
   try { contents = await Promise.all(chosen.map((file) => file.text())); }
-  catch { usageFeedback.value = "无法读取这个文件，请改为粘贴内容。"; return; }
+  catch { if (run === importRun) usageFeedback.value = "无法读取这个文件，请改为粘贴内容。"; return; }
+  if (run !== importRun) return;
   usageText.value = contents.length === 1 && contents[0]!.length <= 20000 ? contents[0]! : "";
-  await importUsage(contents);
+  await importUsage(contents, run);
 }
 </script>
 <template>
@@ -151,7 +158,7 @@ async function importFile(event: Event) {
     <details class="usage-import" id="usageImport">
       <summary>从 ccusage 或会话日志导入真实用量（可选）</summary>
       <p class="maintenance-meta">在终端运行 <code>npx ccusage@latest daily --json</code>（Codex 用 <code>npx @ccusage/codex@latest daily --json</code>），把输出粘贴到下面或选择保存的 JSON 文件；也可以直接选择 Claude Code（<code>~/.claude/projects</code>）或 Codex（<code>~/.codex/sessions</code>）的 <code>.jsonl</code> 会话日志，可多选，或整个选择日志文件夹。只读取 token 计数、日期和模型名，数据在本页解析，不会上传。</p>
-      <label class="usage-import-field">ccusage JSON 或会话日志<textarea id="usageImportText" rows="5" spellcheck="false" placeholder='{"daily":[{"date":"2026-10-01","inputTokens":…}]}' v-model="usageText"></textarea></label>
+      <label class="usage-import-field">ccusage JSON 或会话日志<textarea id="usageImportText" rows="5" spellcheck="false" placeholder='{"daily":[{"date":"2026-10-01","inputTokens":…}]}' v-model="usageText" @input="cancelUsageImport"></textarea></label>
       <div class="service-actions">
         <label class="chip usage-import-file">选择文件（可多选）<input type="file" id="usageImportFile" accept=".json,.jsonl,application/json" multiple @change="importFile"></label>
         <label class="chip usage-import-file">选择日志文件夹<input type="file" id="usageImportFolder" webkitdirectory multiple @change="importFile"></label>

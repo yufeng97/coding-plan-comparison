@@ -412,12 +412,12 @@ export function createPickerRules(pickerState: PickerCriteria) {
             const models = currentModel === nextModel ? `模型仍是 ${nextModel}。` : `当前 ${currentModel}；升级档列出 ${nextModel}。`;
             const a = metricForRole(cur.p, role);
             const b = metricForRole(next.p, nextRole);
-            const known = (x: RoleMetric | null): x is RoleMetric => !!x && (x.conf === "高" || x.conf === "中") && x.c.fLow != null;
-            if (cur.windowPeriod === "5h" && next.windowPeriod === "5h" && known(a) && known(b)) {
+            const known = (x: RoleMetric | null): x is RoleMetric => !!x && (x.conf === "高" || x.conf === "中");
+            if (cur.windowPeriod === "5h" && next.windowPeriod === "5h" && known(a) && known(b) && a.c.fLow != null && b.c.fLow != null) {
                 const conf = a.conf === "高" && b.conf === "高" ? "" : "（按官方额度规则统一折算，置信中）";
                 return `${models}5 小时窗口从大约 ${tokSpan(a.c, "fLow", "fHigh")} tokens 提到 ${tokSpan(b.c, "fLow", "fHigh")} tokens${conf}，加的钱换来更大的窗口。`;
             }
-            if (known(a) && known(b) && a.c.moLow != null && a.c.moLow > 0) {
+            if (known(a) && known(b) && a.c.moLow != null && a.c.moLow > 0 && b.c.moLow != null) {
                 return `${models}每月可用额度约从 ${tokSpan(a.c, "moLow", "moHigh")} 提到 ${tokSpan(b.c, "moLow", "moHigh")} tokens（统一假设折算），约 ${((b.c.moLow ?? 0) / a.c.moLow).toFixed(1)} 倍。`;
             }
             const mult = resolvedField(next.p, "quota").match(/(\d+(?:\.\d+)?)\s*×\s*(Pro|Plus|Lite|Standard)/i);

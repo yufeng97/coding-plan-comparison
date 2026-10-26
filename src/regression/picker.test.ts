@@ -44,6 +44,29 @@ const plan = (app: Runtime, id: string) => {
 };
 const fixture = (value: Record<string, unknown>) => value as unknown as Plan;
 
+test("月池升级使用已知月额度比较，不要求存在五小时窗口", async () => {
+  const page = await openPage({ url: "/?budget=100&region=cn&task=hard&priority=price" });
+  const app = page.runtime;
+  const main = app.chooseMain(app.eligibleProfiles());
+  assert.ok(main);
+  assert.equal(main.p.id, "plan-0167");
+  const next = app.nextTier(main);
+  assert.ok(next);
+  assert.equal(next.p.id, "plan-0168");
+  for (const profile of [main, next]) {
+    const metric = app.metricForRole(profile.p, profile.headline);
+    assert.ok(metric && metric.c.moLow != null && metric.c.moLow > 0);
+    assert.equal(metric.c.fLow, null);
+    assert.equal(metric.conf, "中");
+  }
+  const upgrade = cardOf(next.p.id);
+  assert.ok(upgrade);
+  assert.match(upgrade.textContent!, /每月可用额度约从 31M 提到 82M tokens/);
+  assert.match(upgrade.textContent!, /约 2\.7 倍/);
+  assert.doesNotMatch(upgrade.textContent!, /未公开的额度差/);
+  page.healthy();
+});
+
 test("国家限定套餐始终不入通用推荐，过期country链接清理后完整表仍保留限定徽章", async () => {
   for (const country of ["", "IN", "CN", "US", "invalid"]) {
     const page = await openPage({ url: "/index.html?budget=100&region=intl&tool=cursor&task=daily&country=" + country });

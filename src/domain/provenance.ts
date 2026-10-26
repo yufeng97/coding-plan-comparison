@@ -3,7 +3,7 @@ import { findPlanReference, isPriceConfirmed } from '../generated/catalog';
 
 /** provenance 读取的额度行字段（额度行与按量参照行都满足）。 */
 export interface ProvenanceInput {
-    ref?: PlanRef; isEst?: boolean; method?: string; confidence?: string;
+    ref?: PlanRef; isEst?: boolean; method?: string; confidence?: string; referenceOnly?: boolean;
     creditCNY?: number; creditUSD?: number; apiIn?: number; note?: string; source?: string;
     reqPerWk?: number; reqPerMo?: number; reqPer5h?: number;
 }
@@ -13,6 +13,8 @@ export function provenance(m: ProvenanceInput) {
     const plan = m.ref != null ? findPlanReference(m.ref) : null;
     if (plan && !isPriceConfirmed(plan))
         return { text: "历史价折算 · 价格待核", conf: "低" };
+    if (m.referenceOnly)
+        return { text: "模拟对照 · 非套餐额度", conf: "低" };
     if (m.isEst)
         return { text: m.method ?? "", conf: m.confidence ?? "" };
     if (m.creditCNY != null || m.creditUSD != null) {

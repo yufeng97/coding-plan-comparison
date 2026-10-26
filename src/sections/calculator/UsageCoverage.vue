@@ -27,7 +27,7 @@ function saving(api: number | null, quote: number) {
           <th scope="row" data-label="套餐">{{ planTitle(row.p) }}</th><td data-label="模型">{{ displayModelName(row.m.model) }}</td><td data-label="所选付款月均">{{ priceLine(row.p) }}</td><td data-label="月额度折算 / 基准参考">{{ fmtTok(row.c.moLow) }}（置信{{ row.conf }}）<br>{{ row.quotaBasis === "workload" ? "按当前比例折算" : "页面基准参考下限" }}</td><td data-label="同模型按量">{{ saving(row.apiMonthlyCNY, row.quote.monthlyCNY) }}</td><td data-label="订阅回本点">{{ row.breakEvenM == null ? "—" : `超过约 ${fmtTok(row.breakEvenM)} tokens/月` }}</td>
         </tr></tbody>
       </table></div>
-      <p class="maintenance-meta">沿用帮我选的地区、工具和付款方式；只统计官方或中置信折算的额度，第三方与请求次数估算不列入。不同模型的 token 不等价，参考额度不保证可用量。「订阅回本点」指同模型按量费用追平月费所需的用量。{{ basis }}</p>
+      <p class="maintenance-meta">沿用帮我选的地区、工具和付款方式；只统计套餐明确包含模型的官方或中置信折算额度，第三方、请求次数估算和模拟对照不列入。不同模型的 token 不等价，参考额度不保证可用量。「订阅回本点」指同模型按量费用追平月费所需的用量。{{ basis }}</p>
     </template>
   </div>
 </template>

@@ -81,6 +81,49 @@ async function main() {
     assert.deepEqual(parseRateArgs(args[1].trim().split(/\s+/)), { dryRun: false, date: "", staleDays: 7 });
   });
 
+  await test("发布取得共享队列后核对 main：最新提交可发布，旧 CI 重跑和排队过期跳过，查询失败不得放行", () => {
+    const deploy = workflows["deploy.yml"], gate = stepBlock(jobBlock(deploy, "current"), "current");
+    assert.match(gate, /DEPLOY_SHA: \$\{\{ inputs\.sha \}\}/);
+    const script = /node <<'NODE'\n([\s\S]*?)\n {10}NODE/.exec(gate);
+    assert.ok(script);
+    const build = jobBlock(deploy, "build");
+    assert.match(build, /needs: current\n\s+if: needs\.current\.outputs\.current == 'true'/);
+    for (const name of ["pages", "vercel"]) assert.match(jobBlock(deploy, name), /needs: build/);
+    const old = "a".repeat(40), latest = "b".repeat(40);
+    function run(candidate, head) {
+      const output = [], commands = [];
+      const evaluate = () => vm.runInNewContext(script[1], {
+        process: { env: { DEPLOY_SHA: candidate, GITHUB_REPOSITORY: "owner/repo", GITHUB_OUTPUT: "output" } },
+        console: { log() {} },
+        require(name) {
+          if (name === "node:fs") return { appendFileSync(file, text) { assert.equal(file, "output"); output.push(text); } };
+          assert.equal(name, "node:child_process");
+          return { execFileSync(command, args) {
+            commands.push([command, ...args]);
+            if (head instanceof Error) throw head;
+            return head;
+          } };
+        },
+      }, { timeout: 1000 });
+      return { evaluate, output, commands };
+    }
+    for (const [candidate, head, expected] of [[old, old, true], [latest, latest, true], [old, latest, false]]) {
+      const scenario = run(candidate, head + "\n");
+      scenario.evaluate();
+      assert.deepEqual(scenario.output, [`current=${expected}\n`]);
+      assert.deepEqual(scenario.commands, [["gh", "api", "repos/owner/repo/git/ref/heads/main", "--jq", ".object.sha"]]);
+    }
+    for (const head of ["", "null", new Error("GitHub API unavailable")]) {
+      const scenario = run(old, head);
+      assert.throws(scenario.evaluate);
+      assert.deepEqual(scenario.output, []);
+    }
+    const invalid = run("main", latest);
+    assert.throws(invalid.evaluate, /SHA 无效/);
+    assert.deepEqual(invalid.commands, []);
+    assert.deepEqual(invalid.output, []);
+  });
+
   await test("资讯每天北京时间 08:17 采集，定时无输入使用 14 天，手动输入仍生效", () => {
     const news = workflows["news-collect.yml"];
     assert.match(news, /schedule:\n\s+- cron: "17 0 \* \* \*"/);

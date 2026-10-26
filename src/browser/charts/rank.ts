@@ -20,7 +20,7 @@ export function renderRankChart() {
     const all = rankRows();
     const rows = rankChartRows(all);
     describeChart("chartRank", "每百万 tokens 成本排行（" + rankPaymentLabel() + " ÷ 参考月量区间中点，¥，越低越划算）前三：" +
-        rows.slice(0, 3).map((r) => planLabel(r.m) + " " + fmtCpm(r.c.costPerM)).join("、") + "。先列依据官方额度规则折算的档位（实色柱），再列第三方或请求次数估算（斜纹柱），不确定区间见提示及完整明细。");
+        rows.slice(0, 3).map((r) => planLabel(r.m) + " " + fmtCpm(r.c.costPerM)).join("、") + "。先列依据官方额度规则折算的档位（实色柱），再列第三方、请求次数估算或模拟对照（斜纹柱），不确定区间见提示及完整明细。");
     const el = byId("chartRank")!;
     /* 两组之间插入一行分隔标签，柱值为空。 */
     const firstEstimate = rows.findIndex((r) => rankIsEstimate(r.m));

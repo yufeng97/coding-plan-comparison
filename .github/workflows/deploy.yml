@@ -15,7 +15,34 @@ permissions:
   contents: read
 
 jobs:
+  current:
+    # 调用方已经取得 site-deploy 队列。重跑旧 CI 或排队期间 main 前进时跳过旧版本。
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      current: ${{ steps.current.outputs.current }}
+    steps:
+      - name: 确认发布目标仍是 main 当前提交
+        id: current
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPLOY_SHA: ${{ inputs.sha }}
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const { execFileSync } = require("node:child_process");
+          const sha = process.env.DEPLOY_SHA;
+          if (!/^[0-9a-f]{40}$/.test(sha || "")) throw new Error("发布提交 SHA 无效");
+          const head = execFileSync("gh", ["api", `repos/${process.env.GITHUB_REPOSITORY}/git/ref/heads/main`, "--jq", ".object.sha"], { encoding: "utf8" }).trim();
+          if (!/^[0-9a-f]{40}$/.test(head)) throw new Error("无法确认 main 当前提交，拒绝发布");
+          const current = sha === head;
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `current=${current}\n`);
+          console.log(current ? `发布 main 当前提交 ${sha}` : `::notice::跳过过期提交 ${sha}；main 当前为 ${head}`);
+          NODE
+
   build:
+    needs: current
+    if: needs.current.outputs.current == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:

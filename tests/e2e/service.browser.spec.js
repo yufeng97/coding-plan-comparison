@@ -235,7 +235,7 @@ test("排行明细包含当前口径全部行，并同步口径切换", async ({
   expect(await dataRows.count()).toBeGreaterThan(20);
   expect(await page.locator("#rankDetailBody .conf-lo").count()).toBeGreaterThan(0);
   await expect(page.locator("#rankDetailBody .rank-divider")).toHaveCount(1);
-  await expect(page.locator("#rankDetailBody .rank-divider")).toContainText("以下为第三方或请求次数估算");
+  await expect(page.locator("#rankDetailBody .rank-divider")).toContainText("以下为第三方、请求次数估算或模拟对照");
 });
 
 test("选购用量入口打开计算器并带入精确模型，示例预设和三情景可编辑且可分享", async ({ page }) => {

@@ -177,8 +177,14 @@ function syncPricingAuditUnlocked(workspace, options = {}) {
     const declaration = declarations.get(name);
     if (!declaration || !declaration.initializer || !ts.isArrayLiteralExpression(declaration.initializer)) throw new Error("缺少数据数组：" + name);
     const entries = data[name];
-    const index = record.kind === "plan" ? entries.findIndex((p) => p.id === record.id)
-      : entries.findIndex((p) => p.vendor + "|" + p.model === record.id || p.vendor + "|" + p.model === record.vendor + "|" + (record.patch.model || record.name));
+    let index = record.kind === "plan" ? entries.findIndex((p) => p.id === record.id)
+      : entries.findIndex((p) => p.vendor + "|" + p.model === record.id);
+    if (record.kind !== "plan") {
+      const target = entries.findIndex((p) => p.vendor + "|" + p.model === record.vendor + "|" + (record.patch.model || record.name));
+      // 原身份优先；不能把改名冲突误当成已经同步过的目标行。原身份消失后才允许幂等重放。
+      if (index >= 0 && record.patch.model && target >= 0 && target !== index) throw new Error("型号更名目标已存在，拒绝覆盖另一条记录：" + record.kind + ":" + record.vendor + "|" + record.patch.model);
+      if (index < 0) index = target;
+    }
     if (record.new != null) {
       if (record.kind !== "plan") throw new Error("显式新增只支持完整 PLANS 计划");
       validateNewPlan(record.new, record);

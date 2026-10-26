@@ -28,6 +28,21 @@ const objectOrNull = (value: unknown) => value && typeof value === "object" ? va
 const count = (v: unknown) => typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : 0;
 const claudeTokenTotal = (row: UsageRecord) => count(row.inputTokens) + count(row.outputTokens) + count(row.cacheReadTokens) + count(row.cacheCreationTokens);
 
+/* 新版 ccusage unified 输出以 period 表示日/月；保留容器粒度，避免把会话 ID 当日期。
+   旧版 date/month 优先，直接数组和 projects 则只接受完整的日/月格式。 */
+function normalizeUsagePeriods(rows: unknown[], kind?: "daily" | "monthly" | "session"): unknown[] {
+    return rows.map((item) => {
+        const row = objectOrNull(item);
+        if (!row || typeof row.period !== "string")
+            return item;
+        if (kind !== "monthly" && kind !== "session" && /^\d{4}-\d{2}-\d{2}$/.test(row.period))
+            return { ...row, date: row.date ?? row.period };
+        if (kind !== "daily" && kind !== "session" && /^\d{4}-\d{2}$/.test(row.period))
+            return { ...row, month: row.month ?? row.period };
+        return item;
+    });
+}
+
 /* Claude Code（~/.claude/projects）与 Codex（~/.codex/sessions）的 JSONL 会话日志，折成与 ccusage 相同字段的逐条记录。
    Claude Code 会把同一次回复按流式片段重复写入，按消息 ID + 请求 ID 保留 token 总量最大的完整快照；
    Codex 在限额信息更新时会重复发出 token_count，累计用量未变的事件不重复计入。 */
@@ -120,13 +135,13 @@ export function parseUsageExport(texts: string | readonly string[]): UsageSummar
         /* 只有一行的会话日志本身就是合法 JSON。 */
         if (record && (record.message || record.payload || record.type === "turn_context"))
             return usageRowsFromLog(source, seen, claudeRows);
-        return Array.isArray(json) ? json
+        return Array.isArray(json) ? normalizeUsagePeriods(json)
             : !record ? []
-                : Array.isArray(record.daily) ? record.daily
-                    : Array.isArray(record.monthly) ? record.monthly
-                        : Array.isArray(record.data) ? record.data
-                            : Array.isArray(record.sessions) ? record.sessions
-                                : record.projects && typeof record.projects === "object" ? Object.values(record.projects).filter(Array.isArray).flat() : [];
+                : Array.isArray(record.daily) ? normalizeUsagePeriods(record.daily, "daily")
+                    : Array.isArray(record.monthly) ? normalizeUsagePeriods(record.monthly, "monthly")
+                        : Array.isArray(record.data) ? normalizeUsagePeriods(record.data, record.type === "daily" || record.type === "monthly" ? record.type : record.type === "session" || record.type === "sessions" ? "session" : undefined)
+                            : Array.isArray(record.sessions) ? normalizeUsagePeriods(record.sessions, "session")
+                                : record.projects && typeof record.projects === "object" ? normalizeUsagePeriods(Object.values(record.projects).filter(Array.isArray).flat()) : [];
     });
     let input = 0, output = 0, cacheRead = 0, cacheWrite = 0;
     const days = new Set<string>(), months = new Set<string>(), byModel = new Map<string, number>();

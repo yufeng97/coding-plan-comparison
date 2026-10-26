@@ -92,7 +92,8 @@
 - **推荐元数据**：`windowPeriod` 与 `quotaSharing` 分别描述重置周期与模型额度是否共享，缺省表示未知；`windowPeriod` 取最短的公开周期（`5h` / `week` / `month`，`none` 为官方明确无 5 小时上限），周池与月池都不生成 5 小时额度；`codingSurface`、`includedModelQuota`、`modelAccess` 与 `purchaseCountries` 分别描述编程入口、是否包含推理、自备模型和国家限定资格。`modelBaseRef` 通过计划引用继承模型，`modelIncludes`/`modelExcludes` 显式补充和排除模型，`ownClient` 明确自家编程入口；校验器检查字段类型、引用及混合继承环。填有依据的事实，未知情况不靠条数或文案猜测。月 credits 及无 5h 上限的套餐不生成虚假的 5h 额度，官方与估算的重复周额度按稳定引用去重。
 - **资源版本与发布范围**：Vite 按内容哈希命名入口、样式与字体；主题引导、加载提示、按需数据和 ECharts 由经典资源插件按内容哈希另存。可进入构建的源文件仅限入口、应用源码、明确登记的公开数据文件、公共图片/RSS 与 npm 依赖，`data/` 中的维护台账不会因整目录放行而进入产物。词法路径和真实路径都须满足白名单。`publicDir` 保持关闭（Vite 会原样复制隐藏文件和经链接越界的内容），开发中间件与发布构建按白名单发布：分享图来自手写静态资源 `public/img/`，变更 RSS 来自生成目录 `data/generated/`，发布 URL 保持 `img/`、`feeds/` 和 `changes.xml`。`.gitattributes` 固定文本为 LF。
 - **开发环境与校验**：Node.js 22.12+（Vite 8 的要求），首次运行 `npm ci`。开发依赖固定版本并提交 lockfile。`npm run typecheck` 先检查生成目录与审计输入一致及模块分层，再以 checkJs 检查数据与工具脚本，随后以严格模式检查业务模块、Vue 组件及模板（`tsconfig.app.json`，不含 Node 类型）和 TS 公式、数据、整页与组件测试（`tsconfig.vitest.json`）。公式测试直接导入生产模块；整页回归使用真实 Vue 渲染，测试文件同样纳入严格类型检查。`npm run validate` 检查数据结构、引用、有限数字、日期和价格区间；同一套规则可校验内存候选源码。`npm test` 执行 14 个 Node 工具套件（含架构约束）和 TS / Vue 回归，包含额度公式、真实数据、真实 Vue 用户流程、HTTP 服务、审计无效输入/幂等/失败回滚、资讯与字体工具、目录生成漂移、Vue SSR 和公共产物回归。`npm run test:browser` 先生成发布产物，再对 Chromium、Firefox、WebKit 运行真实浏览器用例，覆盖图表、历史导航、服务功能及桌面/手机布局。`npm run size:check` 按 brotli 压缩后的大小检查首屏 HTML、主入口脚本、全站样式与 ECharts 精简包的预算（`scripts/build/check-bundle-size.js`），CI 在构建发布产物后执行；预算需要调整时改脚本并在变更日志说明原因。CI 在 Linux 与 Windows 安装三种浏览器并执行各项检查，浏览器缓存键包含 lockfile 哈希；失败保留截图，首次重试才录制 trace（[Playwright 官方建议](https://playwright.dev/docs/trace-viewer#tracing-on-ci)）。本地需要追踪时显式加 `--trace on`。
-- **开发资源更新**：`predev` 显式生成类型化目录；开发插件监听已登记的数据输入并更新目录。经典脚本通过 esbuild 依赖信息和内容指纹检查缓存，入口或依赖变化后失效并刷新。加载 Vite/Vitest 配置不写生产源码；测试生命周期执行 `catalog:check`，数据变更须先运行 `catalog:build`。
+- **模拟额度对照**：额度行的 `referenceOnly: true` 表示跨模型牌价对照或逐模型上限未确认的整池模拟。保留原始数值和来源，在页面统一标为低置信参考；不进入官方口径排行、推荐已知额度或用量覆盖／回本计算。用量覆盖另外按模型权益精确匹配，不能仅凭同厂商或同一模型家族认定可用。
+- **开发资源更新**：`predev` 显式生成类型化目录；开发插件监听已登记的数据输入并更新目录。经典脚本通过 esbuild 依赖信息和内容指纹检查缓存，入口或依赖变化后失效并刷新。加载 Vite/Vitest 配置不写生产源码；测试生命周期执行 `catalog:check`，数据变更须先运行 `catalog:build`。开发请求的 `/@id/` 解包及别名解析结果仍须满足公共源白名单，模块读取阶段再次核对路径；合法虚拟模块与 `node_modules/.vite` 优化缓存保留。
 - **ECharts 精简包**：入口 `src/entries/echarts.ts` 只注册页面用到的图表与组件，构建时用 esbuild 打成经典脚本；新增图表类型或组件时在入口里注册。仍按经典脚本加载是为了失败可重试：Chromium 会缓存失败的动态 `import()`，同一地址重试不会再请求。
 - **第三方产物出处**：`src/assets/README.md` 记录版本与来源。`npm run vendor:fonts` 将所有字体下载到暂存目录，检查 WOFF2 后按 SHA-256 内容去重并整组替换；失败保留或恢复旧目录。相同字节只存一份，CSS 保留各字重和 unicode-range 映射；成功替换时清理旧子集；构建时 Vite 按内容哈希重新命名。当前字体离线去重由 39 个文件降为 21 个，452,796 → 227,880 字节，减少约 49.7%。
 - **目录交换失败**：对临时占用错误 `EPERM/EBUSY/EACCES`，每次目录改名最多尝试 5 次，等待合计不超过 375ms；其他错误直接失败。切换与恢复都失败时保留旧目录备份并报告路径，不在调用方清理中删除恢复依据。
@@ -121,9 +122,9 @@ GitHub Pages 作为第二个公开部署入口：[coding-plan-comparison](https:
 
 依赖审计为独立非阻断作业，公告或 registry 故障会在该作业报告，不影响其他检查与发布。
 
-手动发布同样要求同一提交已有成功的完整 CI：push 事件的 CI，或每日数据更新写入的 `daily-data/full-ci` 状态。PR、失败或取消的 CI 不发布。
+手动发布同样要求同一提交已有成功的完整 CI：push 事件的 CI，或每日数据更新写入的 `daily-data/full-ci` 状态。PR、失败或取消的 CI 不发布。取得 `site-deploy` 队列后，可复用发布工作流再次读取 `main` 当前 SHA；目标已经过期就跳过构建与两个生产发布，查询失败则停止。重跑历史 CI 不会把已发布的网站回退到旧提交。
 
-[每日数据更新](../.github/workflows/daily-data.yml)在候选提交通过完整 CI 并快进 `main` 后，直接调用同一个发布工作流：用 `GITHUB_TOKEN` 推送的提交不会再触发 push 事件的 CI。两个入口的发布作业共用 `site-deploy` 并发组，同时只发布一次，排队中的旧提交会被更新的提交替换。
+[每日数据更新](../.github/workflows/daily-data.yml)在候选提交通过完整 CI 并快进 `main` 后，直接调用同一个发布工作流：用 `GITHUB_TOKEN` 推送的提交不会再触发 push 事件的 CI。两个入口的发布作业共用 `site-deploy` 并发组，同时只发布一次；并发组控制执行顺序，队列内的 SHA 核对负责排除过期提交。
 
 权限划分：
 

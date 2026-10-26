@@ -377,6 +377,42 @@ test("API与按量对照以原币一致增量更新，型号更名清理旧核�
   assert.deepEqual(history.changes.filter((change) => change.checkedAt === "2026-10-07").map((change) => [change.kind, change.id]).sort(), [["api", apiKey], ["payg", key]]);
 });
 
+test("API与按量型号改名拒绝已存在的目标，无论原行顺序如何都不改事实、核价来源或台账", ({ root, writeIncremental, allOutputs, stages }) => {
+  const data = dataOf(fs.readFileSync(path.join(root, "data/sources/data.js"), "utf8"));
+  const before = allOutputs();
+  for (const [kind, rows] of [["api", data.API_PRICES], ["payg", data.PAYG_REFERENCES]]) {
+    const pair = rows.filter((row) => row.vendor === "DeepSeek").slice(0, 2);
+    assert.equal(pair.length, 2);
+    for (const [original, target] of [pair, [...pair].reverse()]) {
+      const options = writeIncremental({
+        sources: [{ id: "rename-conflict-test", url: "https://api-docs.deepseek.com/quick_start/pricing", evidence: "测试：官方型号名称更新。" }],
+        records: [{ kind, id: original.vendor + "|" + original.model, vendor: original.vendor, name: original.model,
+          checkedAt: "2026-10-07", status: "changed", reason: "测试：人工核实型号更名。", sourceIds: ["rename-conflict-test"],
+          old: { model: original.model }, patch: { model: target.model } }],
+      });
+      assert.throws(() => syncPricingAudit(root, options), /型号更名目标已存在/);
+      assert.deepEqual(allOutputs(), before);
+      assert.deepEqual(stages(), []);
+    }
+  }
+});
+
+test("API原核查ID优先于与另一型号重名的展示名，不把证据写到靠前的型号", ({ root, writeIncremental }) => {
+  const dataFile = path.join(root, "data/sources/data.js");
+  const data = dataOf(fs.readFileSync(dataFile, "utf8"));
+  const [target, original] = data.API_PRICES.filter((row) => row.vendor === "DeepSeek").slice(0, 2);
+  const targetKey = "api:" + target.vendor + "|" + target.model, originalKey = "api:" + original.vendor + "|" + original.model;
+  const targetCheck = JSON.stringify(data.PRICE_CHECKS.rows[targetKey]);
+  syncPricingAudit(root, writeIncremental({
+    sources: [{ id: "identity-first-test", url: "https://api-docs.deepseek.com/quick_start/pricing", evidence: "测试：官方模型价格与身份已核实。" }],
+    records: [{ kind: "api", id: original.vendor + "|" + original.model, vendor: original.vendor, name: target.model,
+      checkedAt: "2026-10-07", status: "verified", reason: "测试：人工按原型号身份复核。", sourceIds: ["identity-first-test"], patch: {} }],
+  }));
+  const after = dataOf(fs.readFileSync(dataFile, "utf8"));
+  assert.equal(JSON.stringify(after.PRICE_CHECKS.rows[targetKey]), targetCheck);
+  assert.equal(after.PRICE_CHECKS.rows[originalKey].sourceIds.join(), "identity-first-test");
+});
+
 test("拒绝日期倒退、旧full覆盖及同日过时基值patch", ({ root, incremental, writeIncremental, allOutputs }) => {
   syncPricingAudit(root, writeIncremental(incremental()));
   const before = allOutputs();

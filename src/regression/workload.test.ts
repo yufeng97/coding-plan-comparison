@@ -118,3 +118,13 @@ test("多文件用量保留同粒度导入，拒绝混合日记录与月记录",
   expect(() => app.parseUsageExport([daily, monthly])).toThrow(/不能混合按日记录与按月记录/);
   expect(() => app.parseUsageExport([monthly, daily])).toThrow(/统一导出/);
 });
+
+test("ccusage unified period 导入按日均或月均换算，不能把全部历史当一个月", () => {
+  const monthlyM = (source: unknown) => {
+    const values = app.usageToCalculator(app.parseUsageExport(JSON.stringify(source)), app.APP_DEFAULTS.calc);
+    return Number(values.requests) * Number(values.tokens) * Number(values.days) / 1e6;
+  };
+  const row = { inputTokens: 800000, outputTokens: 200000 };
+  expect(monthlyM({ daily: [{ period: "2026-10-01", ...row }, { period: "2026-10-02", ...row }] })).toBe(22);
+  expect(monthlyM({ monthly: [{ period: "2026-09", ...row }, { period: "2026-10", ...row }] })).toBeCloseTo(1, 2);
+});

@@ -36,6 +36,8 @@ export function refreshCategoryColors() {
 const NARROW_CHART_WIDTH = 480;
 
 const chartNarrowMode = new Map<string, boolean>();
+/* 专用图表的标签规则随容器一起保留，缩放时只更新宽度与布局。 */
+const chartAxisFormatters = new Map<string, (label: string) => string>();
 
 export function chartHostWidth(hostEl: HTMLElement, measuredWidth: number = 0) {
     return measuredWidth || hostEl.getBoundingClientRect().width || window.innerWidth - 72;
@@ -101,7 +103,10 @@ export function fitAxisLabel(label: string, maxWidth: number, fontSize: number) 
     return start.trimEnd() + "…" + end.trimStart() + tail;
 }
 
-export function chartAxisLabel(hostEl: HTMLElement, fontSize: number = 12.5, measuredWidth: number = 0) {
+export function chartAxisLabel(hostEl: HTMLElement, fontSize: number = 12.5, measuredWidth: number = 0, formatter?: (label: string) => string) {
+    if (formatter)
+        chartAxisFormatters.set(hostEl.id, formatter);
+    const customFormatter = chartAxisFormatters.get(hostEl.id);
     const width = chartHostWidth(hostEl, measuredWidth);
     const narrow = isNarrowChart(hostEl, width);
     chartNarrowMode.set(hostEl.id, narrow);
@@ -109,11 +114,11 @@ export function chartAxisLabel(hostEl: HTMLElement, fontSize: number = 12.5, mea
         const labelWidth = Math.max(120, width - 40);
         return { color: PAL.catLabel, fontSize: 11, inside: true, align: "left", verticalAlign: "bottom",
             padding: [0, 0, 11, 2], width: labelWidth, overflow: "truncate", margin: 0,
-            formatter: (label: string) => fitAxisLabel(label, labelWidth, 11) };
+            formatter: customFormatter ?? ((label: string) => fitAxisLabel(label, labelWidth, 11)) };
     }
     const labelWidth = Math.max(60, Math.min(width < NARROW_CHART_WIDTH ? 110 : 260, width * 0.34));
     return { color: PAL.catLabel, fontSize, width: labelWidth, overflow: "truncate", margin: 8,
-        formatter: (label: string) => fitAxisLabel(label, labelWidth, fontSize) };
+        formatter: customFormatter ?? ((label: string) => fitAxisLabel(label, labelWidth, fontSize)) };
 }
 
 /** 图表 id → ECharts 实例。 */
@@ -138,6 +143,7 @@ export function releaseChart(id: string) {
     pendingChartResizes.delete(id);
     offscreenResized.delete(id);
     chartNarrowMode.delete(id);
+    chartAxisFormatters.delete(id);
 }
 
 export function chartLibraryReady() { return typeof echarts !== "undefined" && typeof echarts.init === "function"; }

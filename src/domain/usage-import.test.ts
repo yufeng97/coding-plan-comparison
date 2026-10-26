@@ -43,3 +43,31 @@ test("Claude 相同消息的不同请求、相同请求的不同消息分别计�
   ];
   expect(parseUsageExport(files)).toMatchObject({ input: 1320, output: 3000, cacheRead: 900, cacheWrite: 120, total: 4320 });
 });
+
+const dailyUsage = ["2026-10-01", "2026-10-02"].map((period) => ({ period, inputTokens: 800000, outputTokens: 200000 }));
+const monthlyUsage = ["2026-09", "2026-10"].map((period) => ({ period, inputTokens: 800000, outputTokens: 200000 }));
+
+test("ccusage unified period 与旧版 date/month 导出保持相同日月统计", () => {
+  const oldDaily = dailyUsage.map(({ period, ...row }) => ({ date: period, ...row }));
+  const oldMonthly = monthlyUsage.map(({ period, ...row }) => ({ month: period, ...row }));
+  expect(parseUsageExport(JSON.stringify({ daily: dailyUsage }))).toEqual(parseUsageExport(JSON.stringify({ daily: oldDaily })));
+  expect(parseUsageExport(JSON.stringify({ monthly: monthlyUsage }))).toEqual(parseUsageExport(JSON.stringify({ monthly: oldMonthly })));
+  /* unified 多章节输出只读取优先的 daily，不能把 monthly 再相加。 */
+  expect(parseUsageExport(JSON.stringify({ daily: dailyUsage, monthly: monthlyUsage }))).toMatchObject({ total: 2000000, activeDays: 2, spanDays: 2, months: 0 });
+});
+
+test("period 支持类型包装、直接数组和分项目数据，但会话 ID 不算日历日期", () => {
+  for (const source of [{ type: "daily", data: dailyUsage }, dailyUsage, { projects: { project: dailyUsage } }])
+    expect(parseUsageExport(JSON.stringify(source))).toMatchObject({ activeDays: 2, spanDays: 2, months: 0 });
+  expect(parseUsageExport(JSON.stringify({ type: "monthly", data: monthlyUsage }))).toMatchObject({ activeDays: 0, months: 2 });
+  expect(parseUsageExport(JSON.stringify({ sessions: dailyUsage }))).toMatchObject({ activeDays: 0, months: 0 });
+  expect(parseUsageExport(JSON.stringify({ type: "session", data: dailyUsage }))).toMatchObject({ activeDays: 0, months: 0 });
+});
+
+test("period 日月文件也拒绝混合粒度，旧版日期字段保留优先级", () => {
+  expect(() => parseUsageExport([
+    JSON.stringify({ daily: dailyUsage }), JSON.stringify({ monthly: monthlyUsage }),
+  ])).toThrow(/不能混合按日记录与按月记录/);
+  const dated = dailyUsage.map((row) => ({ ...row, date: "2026-10-03" }));
+  expect(parseUsageExport(JSON.stringify({ daily: dated }))).toMatchObject({ activeDays: 1, spanDays: 1 });
+});

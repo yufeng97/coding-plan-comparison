@@ -8,7 +8,7 @@ import { provenance } from './provenance';
 /** 排行的一行：额度行（可能已按选购付款方式改价）与折算出的每百万 tokens 成本。 */
 export interface RankRow { m: MetricRow; c: MetricsResult & { costPerM: number }; }
 
-/* 实心柱：依据官方额度规则（中置信及以上）；斜纹柱与 ≈：第三方或请求次数估算。 */
+/* 实心柱：依据官方额度规则（中置信及以上）；斜纹柱与 ≈：第三方、请求次数估算或模拟对照。 */
 export function rankIsEstimate(m: QuotaRow) { return provenance(m).conf === "低"; }
 
 const RANK_VENDOR_LABELS: Record<string, string> = { Anthropic: "Claude（Anthropic）", OpenAI: "ChatGPT（OpenAI）", "月之暗面 Kimi": "Kimi（月之暗面）" };
@@ -31,7 +31,7 @@ export function rankChartRows(all: RankRow[]) {
     return official.slice(0, RANK_CHART_LIMIT - estimateSlots).concat(estimates.slice(0, estimateSlots));
 }
 
-export const RANK_ESTIMATE_DIVIDER = "以下为第三方或请求次数估算（置信低）";
+export const RANK_ESTIMATE_DIVIDER = "以下为第三方、请求次数估算或模拟对照（置信低）";
 
 /** 有可排行档位的厂商（不含中转站与仅历史档厂商）：分享链接里的厂商筛选按它校验。 */
 export function rankVendorValues(): Set<string> {

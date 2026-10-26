@@ -139,7 +139,7 @@ async function renderChart() {
       return `<b>#${r.rank} ${esc(publicModelDisplayName(r.model))}</b><br/>${esc(benchmark.name)} · ${esc(benchmark.metric)}：${esc(publicScoreText(r.score, benchmark.unit))}<br/>${esc(publicBenchmarkConfiguration(r))}<br/>每任务成本：${esc(publicCostText(r.costUSD))}<br/>${esc(r.uncertainty || "置信区间未公布")}`;
     } },
     xAxis: { type: "value", min: 0, ...(!cost && benchmark.unit === "%" ? { max: 100 } : {}), name: cost ? "USD / 任务" : benchmark.metric + "（" + benchmark.unit + "）", nameLocation: "middle", nameGap: 28, nameTextStyle: { color: PAL.dim, fontSize: 11 }, ...axisStyle() },
-    yAxis: { type: "category", inverse: true, data: labels, axisTick: { show: false }, axisLine: { lineStyle: { color: PAL.axisLine } }, axisLabel: { ...chartAxisLabel(host, 12), lineHeight: 14, formatter: (label: string) => publicChartAxisName(label, host.getBoundingClientRect().width < 480) } },
+    yAxis: { type: "category", inverse: true, data: labels, axisTick: { show: false }, axisLine: { lineStyle: { color: PAL.axisLine } }, axisLabel: { ...chartAxisLabel(host, 12, 0, (label: string) => publicChartAxisName(label, host.getBoundingClientRect().width < 480)), lineHeight: 14 } },
     series: [{ type: "bar", data: shown.map((r) => cost ? r.costUSD : r.score), barWidth: 17,
       itemStyle: { color: cost ? PAL.gold : (item: ChartItem) => colors[families[item.dataIndex].id], borderRadius: [0, 3, 3, 0] },
       label: { show: true, position: "right", color: PAL.text, fontSize: 11, formatter: (item: ChartItem) => cost ? publicCostText(item.value) : publicScoreText(item.value, benchmark.unit) } }],

@@ -133,6 +133,8 @@ interface QuotaRow {
   ref: PlanRef;
   /** false 表示与 PLAN_TOKENS 档位同额度的重复行，每周 tokens 图排除。 */
   weeklyChart?: boolean;
+  /** 理论牌价或跨模型模拟对照，不代表套餐已确认可用额度，不用于覆盖与回本结论。 */
+  referenceOnly?: boolean;
   wkLowM?: number;
   wkHighM?: number;
   /** 厂商自估的每周 tokens，仅作对照。 */

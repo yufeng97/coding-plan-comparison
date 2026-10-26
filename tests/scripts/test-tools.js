@@ -184,7 +184,15 @@ async function main() {
     write("data/generated/changes.xml", "<rss/>");
     write("data/generated/feeds/vendor.xml", "<rss>vendor</rss>");
     write("data/audit/secret.txt", "PRIVATE_SECRET_MARKER");
-    const server = await createServer({ root, configFile: false, publicDir: false, plugins: [publicAssets({ root })], server: { host: "127.0.0.1", port: 0 }, logLevel: "silent" });
+    write(".vercel/review-secret.json", "PRIVATE_SECRET_MARKER");
+    write("src/browser/public.txt", "PUBLIC_MODULE_MARKER");
+    const server = await createServer({ root, configFile: false, publicDir: false,
+      resolve: { alias: { "private-fixture": path.join(root, "data/audit/secret.txt") } },
+      plugins: [publicAssets({ root }), {
+        name: "review-virtual-module",
+        resolveId(id) { if (id === "\0review:virtual") return id; },
+        load(id) { if (id === "\0review:virtual") return 'export default "PUBLIC_VIRTUAL_MARKER";'; },
+      }], server: { host: "127.0.0.1", port: 0 }, logLevel: "silent" });
     try {
       await server.listen();
       const address = server.httpServer.address();
@@ -196,6 +204,16 @@ async function main() {
       for (const rel of ["/public/img/og-card.png", "/data/generated/changes.xml", "/data/generated/maintenance-data.js"]) assert.equal((await fetch(base + rel)).status, 403, rel);
       assert.equal((await fetch(base + "/data/audit/secret.txt")).status, 403);
       assert.equal((await fetch(base + "/@fs/" + path.join(root, "data/audit/secret.txt").split(path.sep).join("/"))).status, 403);
+      for (const id of ["/data/audit/secret.txt", "/.vercel/review-secret.json", "%2Fdata%2Faudit%2Fsecret.txt",
+        path.join(root, "data/audit/secret.txt").split(path.sep).join("/"), "private-fixture"]) {
+        const response = await fetch(base + "/@id/" + id + "?import&raw");
+        assert.equal(response.status, 403, id);
+        assert.ok(!(await response.text()).includes("PRIVATE_SECRET_MARKER"), id);
+      }
+      assert.match(await (await fetch(base + "/@id//src/browser/public.txt?import&raw")).text(), /PUBLIC_MODULE_MARKER/);
+      assert.match(await (await fetch(base + "/@id/__x00__review:virtual?import")).text(), /PUBLIC_VIRTUAL_MARKER/);
+      /* 绕过 HTTP 中间件直接请求模块，也必须在 Vite 读取 ?raw 文件之前被边界拦截。 */
+      await assert.rejects(server.environments.client.pluginContainer.load(path.join(root, "data/audit/secret.txt") + "?raw"), /公共目录以外|私有依赖路径/);
       for (const [dir, url] of [["public/img", "/img"], ["data/generated/feeds", "/feeds"]]) {
         const alias = path.join(root, dir, "alias");
         fs.symlinkSync(path.join(root, "data/audit"), alias, process.platform === "win32" ? "junction" : "dir");

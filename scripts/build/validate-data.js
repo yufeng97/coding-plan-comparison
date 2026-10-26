@@ -216,6 +216,7 @@ function validateData(options = {}) {
     const key = (m.vendor || "?") + "|" + (m.plan || "?") + "|" + (m.model || "?");
     check(!metricKeys.has(key), `${m.arr} 重复条目: ${key}`);
     metricKeys.add(key);
+    check(m.referenceOnly == null || typeof m.referenceOnly === "boolean", `指标行 referenceOnly 必须为布尔值: ${key}`);
     const hasReq = m.reqPerWk != null || m.reqPerMo != null || m.reqPer5h != null;
     const hasReqRange = m.reqLowPer5h != null || m.reqHighPer5h != null || m.tokensLowPerReq != null || m.tokensHighPerReq != null;
     const kinds = [m.wkLowM != null, hasReq, hasReqRange, m.creditUSD != null, m.creditCNY != null].filter(Boolean).length;
