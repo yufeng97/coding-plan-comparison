@@ -247,10 +247,14 @@ test("TRAE Pro 单月购买、自动续费与年付按各自价格参与预算�
   assert.equal(quote("M").annualNative, 180);
   assert.equal(quote("A").monthlyNative, 10);
   assert.equal(quote("Y").annualNative, 90);
-  Object.assign(app.pickerState, { billing: "M", budget: "100", region: "all" });
-  assert.equal(app.withinBudget(trae), false, "$15 超过 ¥100");
+  near(quote("M").monthlyCNY, 15 * app.RATE_USD_CNY);
+  near(quote("A").monthlyCNY, 10 * app.RATE_USD_CNY);
+  /* 人民币预算明确落在 $10 续费与 $15 单月价之间，避免汇率变化使固定 ¥100 落入比较容差。 */
+  const budgetCNY = 12.5 * app.RATE_USD_CNY;
+  Object.assign(app.pickerState, { billing: "M", budget: String(budgetCNY), region: "all" });
+  assert.equal(app.withinBudget(trae), false, "单月 $15 超过按 $12.50 换算的人民币预算");
   app.pickerState.billing = "A";
-  assert.equal(app.withinBudget(trae), true, "$10 连续续费在 ¥100 内");
+  assert.equal(app.withinBudget(trae), true, "$10 连续续费在同一人民币预算内");
   const { default: PlanPrice } = await import("../components/PlanPrice.vue");
   const cell = mount(PlanPrice, { props: { plan: trae } });
   assert.match(cell.text(), /连续包月价；单月一次购买 \$15/);

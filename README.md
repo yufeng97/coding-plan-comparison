@@ -35,13 +35,13 @@
 
 「我的关注」优先显示关注与变更，核查统计和公开 JSON 下载收在后方详情中。
 
-- **模型官方订阅**：Anthropic Claude、OpenAI Codex（ChatGPT）、Google Gemini/Antigravity、xAI The X Subscription（Grok + Cursor + X，2026-10-12 起取代 SuperGrok 与 Cursor 新购档）、Mistral、智谱 BigModel 与 Z.ai 的 GLM Coding Plan（V1/V2/V3）、月之暗面 Kimi、MiniMax、小米 MiMo、阶跃 Step Plan 等
+- **模型官方订阅**：Anthropic Claude、OpenAI Codex（ChatGPT）、Google Gemini/Antigravity、xAI The X Subscription（Grok + Cursor + X，2026-10-12 起取代 SuperGrok 与 Cursor 新购档）、Meta Muse Code、Mistral、智谱 BigModel 与 Z.ai 的 GLM Coding Plan（V1/V2/V3）、月之暗面 Kimi、MiniMax、小米 MiMo、阶跃 Step Plan 等
 - **第三方工具与中转站**：GitHub Copilot、Cursor（原个人与团队档现仅老用户续费）、Windsurf/Devin、Zed、Cline、Roo Code、Kilo Code、Amp、JetBrains AI、Augment、OpenRouter、Lovable、Bolt.new、Replit、AWS Kiro、Factory Droid、Canopy Wave、OpenCode、Command Code、Freebuff、Kimchi、HumanLayer、腾讯 CodeBuddy、字节 Trae、百度文心快码、ZenMux（API 聚合平台），以及 R4 Coder、PackyCode、AICodeMirror、88code、DuckCoding、AIGoCode、DevPass、Chutes 等 API 中转站
 - **云厂商/企业档**：AWS Q Developer、Google Gemini Code Assist、阿里云通义灵码（Qoder CN）、腾讯云、华为云 CodeArts、讯飞星辰 Astron Coding Plan 等
 - **API 按量计费**：主流编程模型的输入/输出单价（USD 与 CNY 原币，统一折算对比）
 
 <!-- readme-stats:coverage -->
-数据版本：**2026-10-15**；覆盖 60 家厂商、228 档订阅计划、31 个免费档（去掉已停售和同一订阅的重复入口后，21 个是可用的编程工具免费档或免费模型入口）、84 行套餐额度深度对比（官方数据 + 标注置信度的估算）、38 行 API 定价（37 款模型），另有 10 行 API 按量对照。免费入口可按国内／国际和是否含免费推理组合筛选；BYOK/按量推理的费用会单独注明。页面与导出的更新日期指整份数据的版本日期；每条价格另记官网核查日期和结果。
+数据版本：**2026-10-26**；覆盖 61 家厂商、232 档订阅计划、31 个免费档（去掉已停售和同一订阅的重复入口后，21 个是可用的编程工具免费档或免费模型入口）、84 行套餐额度深度对比（官方数据 + 标注置信度的估算）、40 行 API 定价（39 款模型），另有 10 行 API 按量对照。免费入口可按国内／国际和是否含免费推理组合筛选；BYOK/按量推理的费用会单独注明。页面与导出的更新日期指整份数据的版本日期；每条价格另记官网核查日期和结果。
 <!-- /readme-stats:coverage -->
 
 <!-- readme-stats:benchmarks -->
@@ -248,5 +248,5 @@ npm run size:check   # 检查发布产物的 brotli 体积预算（首屏 HTML�
 ## 免责声明
 
 <!-- readme-stats:rates -->
-各家「额度」口径不同（每 5 小时 prompts / 每周 tokens / 每日请求 / credits），不能直接互比，表内保留官方原文；美元价格按 1 USD ≈ 6.69 CNY，印度卢比按 1 INR ≈ 0.069877 CNY（同为 2026-10-12 欧洲央行参考汇率）折算，仅用于图表对比。导出保留两种汇率的数值、日期和来源；价格随官方调整，购买前以官网为准。
+各家「额度」口径不同（每 5 小时 prompts / 每周 tokens / 每日请求 / credits），不能直接互比，表内保留官方原文；美元价格按 1 USD ≈ 6.67 CNY，印度卢比按 1 INR ≈ 0.070257 CNY（同为 2026-10-23 欧洲央行参考汇率）折算，仅用于图表对比。导出保留两种汇率的数值、日期和来源；价格随官方调整，购买前以官网为准。
 <!-- /readme-stats:rates -->

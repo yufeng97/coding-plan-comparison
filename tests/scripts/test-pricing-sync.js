@@ -450,13 +450,22 @@ test("显式完整new才能增加永久计划，重复入库无变化，复用ID
   assert.throws(() => syncPricingAudit(root, writeIncremental(incomplete)), /完整字段/);
   assert.deepEqual(allOutputs(), before);
   const options = writeIncremental(audit);
-  const planCount = dataOf(fs.readFileSync(path.join(root, "data/sources/data.js"), "utf8")).PLANS.length;
+  const beforeSource = fs.readFileSync(path.join(root, "data/sources/data.js"), "utf8");
+  const planCount = dataOf(beforeSource).PLANS.length;
+  const planBlock = (source) => {
+    const start = source.indexOf("const PLANS = [");
+    return source.slice(start, source.indexOf("\n];", start) + 3);
+  };
+  const hadTrailingComma = /,\r?\n\];$/.test(planBlock(beforeSource));
   syncPricingAudit(root, options);
   const written = fs.readFileSync(path.join(root, "data/sources/data.js"), "utf8");
   const after = dataOf(written);
   assert.equal(after.PLANS.length, planCount + 1);
-  /* 新厂商的新计划追加到末尾，按文件现有格式书写（不是单行 JSON）。 */
+  /* 新厂商的新计划追加到末尾，紧接上一档、不留空行，并保留原数组有/无尾逗号的格式。 */
   assert.equal(after.PLANS.at(-1).id, plan.id);
+  assert.match(written, /\},\n {2}\{ id: "plan-test-new"/);
+  assert.match(written, /url: "https:\/\/example\.com\/pricing" \},?\r?\n\];/);
+  assert.equal(/,\r?\n\];$/.test(planBlock(written)), hadTrailingComma, "保留原数组的尾逗号状态");
   assert.match(written, /\n {2}\{ id: "plan-test-new", vendor: "New Vendor", plan: "Coding Pro", cat: "tool", region: "intl", priceM: 9, priceY: null, singleMonthPrice: 12, cur: "USD", seat: false, availability: "sold-out", sameAs: null,\n {4}ownClient: true,\n {4}quota: "每月明确包含100美元模型额度。",\n {4}models: "GPT-6 Sol",\n {4}tools: "独立CLI",\n {4}note: "官方月费及编程额度已核对。",\n {4}url: "https:\/\/example\.com\/pricing" \}/);
   assert.equal(after.PLANS.find((p) => p.id === plan.id).singleMonthPrice, 12);
   assert.equal(after.PLANS.find((p) => p.id === plan.id).availability, "sold-out");

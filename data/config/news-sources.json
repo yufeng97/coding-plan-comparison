@@ -175,6 +175,20 @@
       "authority": "official"
     },
     {
+      "id": "meta-muse-code",
+      "name": "Meta Muse Code 订阅页",
+      "kind": "page",
+      "url": "https://dev.meta.ai/products/muse-code",
+      "authority": "official"
+    },
+    {
+      "id": "meta-model-pricing",
+      "name": "Meta Model API 定价与限额",
+      "kind": "page",
+      "url": "https://dev.meta.ai/docs/pricing-rate-limits",
+      "authority": "official"
+    },
+    {
       "id": "xai-x-subscription-pricing",
       "name": "xAI The X Subscription 定价文档",
       "kind": "page",

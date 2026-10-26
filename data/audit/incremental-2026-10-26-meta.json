@@ -1,0 +1,178 @@
+{
+  "sources": [
+    {
+      "id": "meta-product-current-20261026",
+      "url": "https://dev.meta.ai/products/muse-code",
+      "evidence": "Muse Code月价$5/$15/$50/$200；Everyday 10–50提示/5h，其余5/20/80倍；Full限Power起。",
+      "checkedAt": "2026-10-26"
+    },
+    {
+      "id": "meta-subscriptions-current-20261026",
+      "url": "https://dev.meta.ai/docs/muse-code/subscriptions",
+      "evidence": "月度自动续费；订阅默认Contributor，可关闭但用量减少、差额未知；额外API Key按量。",
+      "checkedAt": "2026-10-26"
+    },
+    {
+      "id": "meta-code-current-20261026",
+      "url": "https://dev.meta.ai/docs/muse-code/",
+      "evidence": "终端/CI支持macOS/Linux/Windows，默认Spark1.2；Windows无语音输入。",
+      "checkedAt": "2026-10-26"
+    },
+    {
+      "id": "meta-models-current-20261026",
+      "url": "https://dev.meta.ai/docs/models",
+      "evidence": "Wonder全订阅档可用；Full仅Power/Maximum且无API；均1M，韩国不可用；当前页无preview，不推断GA日。",
+      "checkedAt": "2026-10-26"
+    },
+    {
+      "id": "meta-pricing-current-20261026",
+      "url": "https://dev.meta.ai/docs/pricing-rate-limits",
+      "evidence": "每1M tokens美元输入/缓存/输出：Wonder 4/0.20/20；Spark 1.25/0.15/4.25；1.2/1.3 Contributor 0.10/0.002/0.20。",
+      "checkedAt": "2026-10-26"
+    },
+    {
+      "id": "meta-geo-current-20261026",
+      "url": "https://dev.meta.ai/legal/geographic-use-policy",
+      "evidence": "重读10-12版政策：中国含港澳仍受限；Muse Code模式另由当前订阅文档直接确认。",
+      "checkedAt": "2026-10-26"
+    },
+    {
+      "id": "meta-newsroom-current-20261026",
+      "url": "https://about.fb.com/news/2026/10/introducing-muse-wonder-models/",
+      "evidence": "10-12历史公告确认Wonder API/Muse Code与Full订阅入口；核查日不作新品或GA发布日期。",
+      "checkedAt": "2026-10-26"
+    }
+  ],
+  "records": [
+    {
+      "kind": "plan",
+      "id": "plan-0221",
+      "vendor": "Meta",
+      "name": "Muse Code Everyday Usage",
+      "status": "changed",
+      "checkedAt": "2026-10-26",
+      "sourceIds": [
+        "meta-product-current-20261026",
+        "meta-subscriptions-current-20261026",
+        "meta-code-current-20261026",
+        "meta-models-current-20261026"
+      ],
+      "reason": "10-26 重读官方四档订阅，美元月价与原10-14记录一致；补充默认Contributor及关闭后的额度边界、韩国和Windows语音限制，不构造涨价。",
+      "old": {
+        "tools": "Muse Code（终端与 CI 编程 Agent，macOS / Linux / Windows）；语音模式、网页搜索",
+        "note": "官方 $5/月，按首次订阅日自动续费，未列年付；升级立即生效并按剩余周期折算，降级下个周期生效，取消不退款。订阅外的 API 密钥用量按量计费；权益与可用性因地区而异"
+      },
+      "patch": {
+        "tools": "Muse Code（终端与 CI 编程 Agent，macOS / Linux / Windows）；网页搜索、语音输入（Windows 不支持）",
+        "note": "官方 $5/月，按首次订阅日自动续费，未列年付；升级立即生效并按剩余周期折算，降级下个周期生效，取消不退款。订阅外的 API 密钥用量按量计费；权益与可用性因地区而异；订阅默认 Contributor，内容可用于训练；可关闭，但额度较少、差额未公布。Muse Wonder 系列在韩国不可用"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0222",
+      "vendor": "Meta",
+      "name": "Muse Code High Usage",
+      "status": "changed",
+      "checkedAt": "2026-10-26",
+      "sourceIds": [
+        "meta-product-current-20261026",
+        "meta-subscriptions-current-20261026",
+        "meta-code-current-20261026",
+        "meta-models-current-20261026"
+      ],
+      "reason": "10-26 重读官方四档订阅，美元月价与原10-14记录一致；补充默认Contributor及关闭后的额度边界、韩国和Windows语音限制，不构造涨价。",
+      "old": {
+        "tools": "Muse Code（终端与 CI 编程 Agent，macOS / Linux / Windows）；语音模式、网页搜索",
+        "note": "官方 $15/月，按首次订阅日自动续费，未列年付"
+      },
+      "patch": {
+        "tools": "Muse Code（终端与 CI 编程 Agent，macOS / Linux / Windows）；网页搜索、语音输入（Windows 不支持）",
+        "note": "官方 $15/月，按首次订阅日自动续费，未列年付；订阅默认 Contributor，内容可用于训练；可关闭，但额度较少、差额未公布。Muse Wonder 系列在韩国不可用"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0223",
+      "vendor": "Meta",
+      "name": "Muse Code Power Usage",
+      "status": "changed",
+      "checkedAt": "2026-10-26",
+      "sourceIds": [
+        "meta-product-current-20261026",
+        "meta-subscriptions-current-20261026",
+        "meta-code-current-20261026",
+        "meta-models-current-20261026"
+      ],
+      "reason": "10-26 重读官方四档订阅，美元月价与原10-14记录一致；补充默认Contributor及关闭后的额度边界、韩国和Windows语音限制，不构造涨价。",
+      "old": {
+        "tools": "Muse Code（终端与 CI 编程 Agent，macOS / Linux / Windows）；语音模式、网页搜索",
+        "note": "官方 $50/月，按首次订阅日自动续费，未列年付；Muse Wonder Full 只在 Power 及以上订阅提供，不开放 API；含新功能抢先体验"
+      },
+      "patch": {
+        "tools": "Muse Code（终端与 CI 编程 Agent，macOS / Linux / Windows）；网页搜索、语音输入（Windows 不支持）",
+        "note": "官方 $50/月，按首次订阅日自动续费，未列年付；Muse Wonder Full 只在 Power 及以上订阅提供，不开放 API；含新功能抢先体验；订阅默认 Contributor，内容可用于训练；可关闭，但额度较少、差额未公布。Muse Wonder 系列在韩国不可用"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0224",
+      "vendor": "Meta",
+      "name": "Muse Code Maximum Usage",
+      "status": "changed",
+      "checkedAt": "2026-10-26",
+      "sourceIds": [
+        "meta-product-current-20261026",
+        "meta-subscriptions-current-20261026",
+        "meta-code-current-20261026",
+        "meta-models-current-20261026"
+      ],
+      "reason": "10-26 重读官方四档订阅，美元月价与原10-14记录一致；补充默认Contributor及关闭后的额度边界、韩国和Windows语音限制，不构造涨价。",
+      "old": {
+        "tools": "Muse Code（终端与 CI 编程 Agent，macOS / Linux / Windows）；语音模式、网页搜索",
+        "note": "官方 $200/月，按首次订阅日自动续费，未列年付；最高档，用尽后只能等待刷新"
+      },
+      "patch": {
+        "tools": "Muse Code（终端与 CI 编程 Agent，macOS / Linux / Windows）；网页搜索、语音输入（Windows 不支持）",
+        "note": "官方 $200/月，按首次订阅日自动续费，未列年付；最高档，用尽后只能等待刷新；订阅默认 Contributor，内容可用于训练；可关闭，但额度较少、差额未公布。Muse Wonder 系列在韩国不可用"
+      }
+    },
+    {
+      "kind": "api",
+      "id": "Meta|Muse Wonder",
+      "vendor": "Meta",
+      "name": "Muse Wonder",
+      "status": "changed",
+      "checkedAt": "2026-10-26",
+      "sourceIds": [
+        "meta-pricing-current-20261026",
+        "meta-models-current-20261026"
+      ],
+      "reason": "10-26 重读当前模型与价格文档，输入/输出/缓存金额均不变；移除当前未再标注的preview说法并明确模式/地区资格，不推断GA日。",
+      "old": {
+        "note": "Model API 文档标为预览；1M 上下文，无长上下文加价；不提供 Contributor 折扣；网页搜索 $2.50/千次另计"
+      },
+      "patch": {
+        "note": "1M 上下文，无长上下文加价；API 仅 Standard，无 Contributor 折扣；网页搜索 $2.50/千次另计；韩国目前不可用"
+      }
+    },
+    {
+      "kind": "api",
+      "id": "Meta|Muse Spark 1.3",
+      "vendor": "Meta",
+      "name": "Muse Spark 1.3",
+      "status": "changed",
+      "checkedAt": "2026-10-26",
+      "sourceIds": [
+        "meta-pricing-current-20261026",
+        "meta-models-current-20261026"
+      ],
+      "reason": "10-26 重读当前模型与价格文档，输入/输出/缓存金额均不变；移除当前未再标注的preview说法并明确模式/地区资格，不推断GA日。",
+      "old": {
+        "note": "1.3 / 1.2 / 1.1 同价；1M 上下文，无长上下文加价；Contributor 模式 $0.10 / $0.20、缓存 $0.002，条件是内容可用于训练 Meta 模型"
+      },
+      "patch": {
+        "note": "Standard 1.3 / 1.2 / 1.1 同价；1M 上下文，无长上下文加价；Contributor 仅 1.3 / 1.2：输入 $0.10、输出 $0.20、缓存 $0.002，内容可用于训练；网页搜索 $2.50/千次另计"
+      }
+    }
+  ]
+}
