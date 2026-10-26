@@ -3,13 +3,19 @@
 const { test, expect } = require("@playwright/test");
 const { chartOf } = require("./helpers");
 
+/* Firefox 的跳转追踪保护会把多次导航、没有用户操作的 127.0.0.1 记成 bounce tracker 并打印警告（Windows CI 上偶发）。
+   这是浏览器自己的隐私提示，不是页面代码产生的告警，其余错误与警告照常计入。 */
+const BROWSER_NOTICE = /127\.0\.0\.1.*has been classified as a bounce tracker/;
+
 /** @param {import('@playwright/test').Page} page */
 function trackErrors(page) {
+  const isFirefox = page.context().browser()?.browserType().name() === "firefox";
   /** @type {string[]} */
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => {
-    if (["error", "warning"].includes(message.type())) errors.push(message.type() + ": " + message.text());
+    const isBrowserNotice = isFirefox && message.type() === "warning" && BROWSER_NOTICE.test(message.text());
+    if (["error", "warning"].includes(message.type()) && !isBrowserNotice) errors.push(message.type() + ": " + message.text());
   });
   return errors;
 }
