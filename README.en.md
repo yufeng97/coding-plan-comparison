@@ -250,5 +250,5 @@ The root `tsconfig.json` lets editors pick the right type configuration for appl
 ## Disclaimer
 
 <!-- readme-stats:rates -->
-Quota units differ between vendors (prompts per 5 hours, tokens per week, requests per day, credits), so they cannot be compared directly; the tables keep the official wording. US dollar prices are converted at 1 USD ≈ 6.67 CNY and Indian rupee prices at 1 INR ≈ 0.070257 CNY (both from the 2026-10-23 European Central Bank reference rates), for chart comparison only. Exports keep both rates with their values, dates and source. Prices follow the vendors' changes; check the official site before buying.
+Quota units differ between vendors (prompts per 5 hours, tokens per week, requests per day, credits), so they cannot be compared directly; the tables keep the official wording. US dollar prices are converted at 1 USD ≈ 6.65 CNY and Indian rupee prices at 1 INR ≈ 0.070067 CNY (both from the 2026-10-30 European Central Bank reference rates), for chart comparison only. Exports keep both rates with their values, dates and source. Prices follow the vendors' changes; check the official site before buying.
 <!-- /readme-stats:rates -->

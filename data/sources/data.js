@@ -2,19 +2,19 @@
  * Coding Plan 全球比价中心 - 数据文件
  * 调研日期: 2026-09-23（2026-09-29 增补 Kiro / Droid / 讯飞 Astron / 阶跃 Step Plan / Canopy Wave 等），
  * 价格逐条核查状态见 PRICE_CHECKS；待核实历史价仅作参考
- * 汇率: 1 USD ≈ 6.67 CNY（2026-10-23 frankfurter 实测 6.6702，
+ * 汇率: 1 USD ≈ 6.65 CNY（2026-10-30 frankfurter 实测 6.6529，
  *       仅用于图表统一折算展示，实付以官方计价货币为准）
  * ============================================================ */
 
-const RATE_USD_CNY = 6.67;
-/* 同一汇率日期：Frankfurter USD/INR=94.94、USD/CNY=6.6702；保留印度原价。 */
-const RATE_INR_CNY = 6.6702 / 94.94;
+const RATE_USD_CNY = 6.65;
+/* 同一汇率日期：Frankfurter USD/INR=94.95、USD/CNY=6.6529；保留印度原价。 */
+const RATE_INR_CNY = 6.6529 / 94.95;
 
 const META = {
   updated: "2026-10-26",
   rate: RATE_USD_CNY,
-  rateAsOf: "2026-10-23",
-  rateSource: "https://api.frankfurter.dev/v1/2026-10-23?base=USD&symbols=CNY,INR",
+  rateAsOf: "2026-10-30",
+  rateSource: "https://api.frankfurter.dev/v1/2026-10-30?base=USD&symbols=CNY,INR",
 };
 
 /* 模型在「帮我选」里的用法，不是跑分。
@@ -2898,8 +2898,8 @@ const SOURCES = [
     "https://www.tencentcloud.com/products/acc",
     "https://www.huaweicloud.com/product/codearts.html",
   ]},
-  { group: "汇率参考（2026-10-23）", urls: [
-    "https://api.frankfurter.dev/v1/2026-10-23?base=USD&symbols=CNY,INR",
+  { group: "汇率参考（2026-10-30）", urls: [
+    "https://api.frankfurter.dev/v1/2026-10-30?base=USD&symbols=CNY,INR",
   ]},
   { group: "智谱 BigModel GLM Coding Plan", urls: [
     "https://docs.bigmodel.cn/cn/coding-plan/overview.md",
