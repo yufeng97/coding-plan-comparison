@@ -144,7 +144,8 @@ async function collect(workspace = root, options = {}) {
     return { id: adapter.id, ok: result.status === "fulfilled", checkedAt, consecutiveFailures: result.status === "fulfilled" ? 0 : (last?.consecutiveFailures || 0) + 1, error: result.status === "rejected" ? String(result.reason?.message || result.reason).slice(0, 1000) : null };
   });
   atomicWrite(healthFile, JSON.stringify({ schemaVersion: 1, checkedAt, sources }, null, 2) + "\n");
-  if (outcomes.some(result => result.status === "rejected")) throw new Error("公开评测采集部分失败；保留已发布数据和上一份完整候选，请查看 data/audit/benchmark-sources/health.json");
+  const failures = sources.filter(source => !source.ok);
+  if (failures.length) throw new Error("公开评测采集部分失败；保留已发布数据和上一份完整候选。\n" + failures.map(source => `${source.id}: ${source.error}`).join("\n"));
   const values = outcomes.map(result => result.status === "fulfilled" ? result.value : null);
   const data = { schemaVersion: 1, checkedAt, benchmarks: values.flatMap(value => value.benchmarks), scores: values.flatMap(value => value.scores).map(row => ({ ...row, id: rowId(row) })), artifacts: [...artifacts.values()] };
   validatePublic(data);

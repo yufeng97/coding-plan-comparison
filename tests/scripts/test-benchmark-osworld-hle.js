@@ -43,9 +43,10 @@ function guideData() {
   const bytes = Buffer.from("# Evaluating HLE-Diamond with tools\n\n| Model | Harness | Version |\n| --- | --- | --- |\n| Model A | Provider CLI | 1.2.3 |\n");
   return JSON.stringify({ path: "docs/evaluation-with-tools.md", encoding: "base64", content: bytes.toString("base64"), size: bytes.length, sha: createHash("sha1").update("blob " + bytes.length + "\0").update(bytes).digest("hex") });
 }
-function fixtures() {
+function fixtures(includeUndocumentedTool = false) {
   const high = { "Model A": [50, 60, 40], "Text Model": [20, 25, 15] }, metadata = { "Model A": { logo: "/logo.svg" }, "Text Model": { logo: "/logo.svg", textOnly: true } };
   const tableTree = [{ headers: ["Model", "Accuracy"], rows: [["Model A", "55%"], ["Text Model", "25%"]] }, { headers: ["Model", "Without tools", "With tools"], rows: [["Model A", "50%", "70%"]] }];
+  if (includeUndocumentedTool) tableTree[1].rows.push(["Text Model", "20%", "40%"]);
   const flight = "a:" + JSON.stringify(tableTree) + "\n";
   return new Map(/** @type {Array<[string,string|Buffer]>} */ ([
     [v1, "OSWorld-Verified"], [v1 + "static/data/osworld_verified_results.xlsx", workbook([runRow(), runRow({ "Success rate": 60, "Success/Total": "216/360" })])],
@@ -62,6 +63,16 @@ async function rejects(change, pattern) { const map = fixtures(); change(map); a
 function v2Change(map, change) { const url = v2 + "static/data/leaderboard/official-results.json?v=leaderboard-sai-v4", data = JSON.parse(map.get(url)); change(data); map.set(url, JSON.stringify(data)); }
 async function main() {
   const data = await collect(getter(fixtures()));
+  await test("OSWorld 已核实 E2E 与投稿分开，Diamond 工具成绩保留未披露的 Harness", async () => {
+    const map = fixtures(true);
+    v2Change(map, source => source.results.push({ ...source.results[0], model: "Submitted E2E", official: undefined }));
+    const next = await collect(getter(map));
+    assert.ok(!next.scores.some(row => row.model === "Submitted E2E"));
+    const row = next.scores.find(row => row.model === "Text Model" && row.benchmarkId.endsWith("web-code-text"));
+    assert.equal(row.score, 40);
+    assert.equal(row.agent, null);
+    assert.match(row.uncertainty, /尚未列出/);
+  });
   await test("重复实跑保留均值、总体SD与精确实体名", () => { const row = data.scores.find(row => row.model === "Fixture & exact-model"); assert.equal(row.score, 55); assert.match(row.uncertainty, /2 次实跑.*5.00/); assert.equal(row.steps, 100); });
   await test("指标、纯文本、多模态、工具、推理档位与agent不混合", () => {
     assert.equal(data.scores.filter(row => row.model === "Model A" && row.reasoning === "high").length, 2);

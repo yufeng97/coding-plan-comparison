@@ -110,6 +110,25 @@ async function main() {
     const duplicateMarkup = await collect(getter((url,text) => url === cursorRelease ? text + text.match(/<table[\s\S]*?<\/table>/)[0] : text).get);
     assert.equal(duplicateMarkup.scores.filter(row => row.benchmarkId === history.id).length, 3);
   });
+  await test('新版 DeepSWE 模块标签和 Cursor Flight 字符串引用保留榜单与来源校验', async () => {
+    const chunks = '/marketing-static/_next/static/immutable/chunks/';
+    const filename = 'fixture-data.js';
+    const page = (path) => {
+      const payload = ['a:I[42,["$b"],"$c"]', 'b:' + JSON.stringify(path), 'c:"CursorBenchLeaderboard"'].join('\n');
+      return fixtures()[cursorPage].replace(/<script>[\s\S]*?<\/script>/, '<script>self.__next_f.push([1,' + JSON.stringify(payload) + '])</script>');
+    };
+    const files = fixtures();
+    files[cursorPage] = page(chunks + filename);
+    files['https://cursor.com' + chunks + filename] = files[cursorModule];
+    files[deepPage] = '<script type="module" async="" src="/assets/index-fixture.js"></script>';
+    const get = async url => ({ text:files[url], url, hash:'test-only', checkedAt });
+    const result = await collect(get);
+    assert.ok(result.scores.some(row => row.model === 'Opus 5.5' && row.score === 57.8));
+    for (const bad of ['https://other.example/test.js', '/marketing-static/_next/static/immutable/chunks/../private.js', '$unknown']) {
+      files[cursorPage] = page(bad);
+      await assert.rejects(collect(get), /Unexpected official script URL/);
+    }
+  });
   await test('CursorBench 历史表格列变更、冲突副本、重复模型或版本证据缺失时失败', async () => {
     await assert.rejects(collect(getter((url,text) => url === cursorRelease ? text.replace('CursorBench','Unrelated') : text).get), /release table/);
     await assert.rejects(collect(getter((url,text) => url === cursorRelease ? text + text.match(/<table[\s\S]*?<\/table>/)[0].replace('61.3','61.4') : text).get), /release table/);

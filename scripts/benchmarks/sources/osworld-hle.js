@@ -209,12 +209,17 @@ function osworld2(source) {
   const data = JSON.parse(source.text);
   if (data.benchmarkVersion !== "OSWorld 2.0" || !Array.isArray(data.results) || !data.results.length || !Array.isArray(data.releaseVersions)) fail("OSWorld 2.0 JSON");
   const datasetSize = number(data.datasetSize, "2.0 全集样本数"), updated = date(data.updatedAt), boards = new Map(), scores = [];
+  if (!data.results.some(row => row.modelType === "e2e" && row.official === true)) fail("2.0 官方记录标志");
   for (const row of data.results) {
     const release = row.releaseVersion ?? data.defaultResultReleaseVersion ?? data.taskVersion;
     const scope = row.datasetScope ?? data.defaultResultDatasetScope;
     const steps = number(row.stepBudget, "2.0 步数"), modelType = row.modelType;
     if (!data.releaseVersions.includes(release) || !["full", "offline"].includes(scope) || !["e2e", "agent"].includes(modelType) || !Number.isInteger(steps)) fail("2.0 版本 / 子集 / 类型");
-    if (row.official !== true && modelType !== "agent") fail("2.0 官方记录标志");
+    // The publisher lists submitted e2e runs alongside its own runs. Keep only explicitly official e2e scores.
+    if (modelType === "e2e" && row.official !== true) {
+      if (row.official !== undefined && row.official !== false) fail("2.0 官方记录标志");
+      continue;
+    }
     const tool = typeof row.toolSetting === "string" ? row.toolSetting : fail("2.0 工具配置");
     for (const metric of ["binaryAccuracy", "partialScore"]) {
       const config = [release, scope, steps, tool, modelType, metric], id = "osworld-2-" + hash(JSON.stringify(config));
@@ -307,6 +312,7 @@ async function diamond(get, source) {
   const toolTables = tables.filter(table => JSON.stringify(table.headers) === JSON.stringify(["Model", "Without tools", "With tools"]));
   if (maxTables.length !== 1 || toolTables.length !== 1 || !maxTables[0].rows.length || !toolTables[0].rows.length) fail("Diamond 原始成绩表");
   const toolHarnesses = harnesses(await get(GUIDE));
+  if (!toolTables[0].rows.some(row => Array.isArray(row) && toolHarnesses.has(row[0]))) fail("Diamond 模型工具 Harness 缺失");
   const boards = new Map(), scores = [];
   const add = (model, effort, tools, value) => {
     const info = metadata[model];
@@ -314,7 +320,10 @@ async function diamond(get, source) {
     const textOnly = info.textOnly === true, id = "hle-diamond-2026-" + effort + "-" + (tools ? "web-code" : "closed-book") + "-" + (textOnly ? "text" : "multimodal");
     if (!boards.has(id)) boards.set(id, board(id, "HLE", "HLE Diamond · " + effort + " · " + (tools ? "web+code" : "无工具") + " · " + (textOnly ? "纯文本" : "多模态"), "Diamond / release 2026-09-22", "正确率", "公开清洗题集，500 道推理题和 500 道知识题；high / max 和 web+code 独立协议。", "reasoning " + effort + "；" + (tools ? "web_search + web_fetch + Python；限制检索答案与沙箱网络；厂商 CLI/version 随行显示" : "closed-book；无工具；high 取客户端 JSON，max 取原始 SSR 的切换表") + "；官网未声明 pass@k / 重复 trials", textOnly ? "官方显式 textOnly 模型，仅文本子集，分母未注明；不能与 1,000 道多模态题横比。" : "1,000 道公开多模态题，不含私有保留集；不是 HLE 原版 2,500 题或 Rolling。费用未公布；官网 tokens 部分来自不同批次并含重试，未绑定为本表 tokens。发布日不是已知的成绩更新日。", source));
     const result = scoreRow(id, model, value, source); result.reasoning = effort;
-    if (tools) { result.agent = toolHarnesses.get(model); if (!result.agent) fail("Diamond 模型工具 Harness 缺失"); }
+    if (tools) {
+      result.agent = toolHarnesses.get(model) ?? null;
+      if (result.agent === null) result.uncertainty = "官方榜单提供工具成绩，工具文档尚未列出该型号的 Harness 及版本。";
+    }
     scores.push(result);
   };
   for (const [model, values] of Object.entries(high)) add(model, "high", false, values[0]);

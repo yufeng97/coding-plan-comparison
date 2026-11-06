@@ -76,7 +76,7 @@ GitHub Actions 按北京时间定时运行下面的工作流，也都可以在 A
 
 ### 启用步骤
 
-1. **允许工作流开 PR**：Settings → Actions → General → Workflow permissions，勾选「Allow GitHub Actions to create and approve pull requests」。评测 PR 与巡检 PR 都需要这一项。
+1. **评测 PR 权限**。默认可保留仓库现有权限。Actions 推送候选并运行完整 CI，维护者从运行摘要的链接创建 PR；已有评测 PR 会随候选分支更新。若需自动新建 PR，可在 Settings → Actions → General → Workflow permissions 勾选「Allow GitHub Actions to create and approve pull requests」。巡检工作流自动新建 PR 也需要此设置。
 2. **Pages 来源**：Settings → Pages 的 Source 保持 **GitHub Actions**。
 3. **自动发布 Vercel 主站**：在 Settings → Secrets and variables → Actions 添加：
    - Secret `VERCEL_TOKEN`，在 Vercel 账户设置中创建；
