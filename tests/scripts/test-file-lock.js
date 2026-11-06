@@ -207,7 +207,7 @@ async function main() {
       os.tmpdir = () => link;
       try {
         const root = realTempRoot();
-        assert.equal(root, fs.realpathSync(link));
+        assert.equal(root, fs.realpathSync.native(link));
         assert.notEqual(root, link);
         const dir = fs.mkdtempSync(path.join(root, "coding-plan-owned-"));
         assert.equal(path.dirname(dir), root);
