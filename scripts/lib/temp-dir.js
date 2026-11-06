@@ -2,9 +2,9 @@
 const fs = require("node:fs");
 const os = require("node:os");
 
-/** Real path of the temp directory. Creating under os.tmpdir() fails the ownership check when that path is a symlink. */
+/** Match Vite's canonical path, including symlinks and Windows runner 8.3 short names. */
 function realTempRoot() {
-  return fs.realpathSync(os.tmpdir());
+  return fs.realpathSync.native(os.tmpdir());
 }
 
 module.exports = { realTempRoot };

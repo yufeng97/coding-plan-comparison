@@ -8,6 +8,7 @@
 - 补录 GPT-6.1 Terra 的推出、Gemini 4 Carbon 的公告及 Mistral Large 4 的权重开放。Kimi K3.1 Pro 可下载权重的状态单列为 11 月 5 日核对记录。每条动态附厂商原文。
 - 每日采集新增 Cognition 官方博客和 Google Gemini 模型 RSS，修复标题中型号前有英文单词时的漏采与厂商匹配。Meta Muse Code 的订阅监测切换至可访问的官方订阅文档。
 - 本批 10 条动态随目录打入主入口，brotli 实测 170.8 KiB，主入口预算由 170 调至 172 KiB。
+- 修复 Windows CI 临时目录使用 8.3 短名时，公开文件在 Vite 测试中被误判为目录外文件的问题。
 
 ## 2026-10-26：全面代码审查问题修复
 
