@@ -200,7 +200,7 @@ jobs:
     with:
       ref: ${{ needs.update.outputs.bench_sha }}
 
-  # 需要在仓库 Settings → Actions → General 勾选「Allow GitHub Actions to create and approve pull requests」。
+  # 仓库允许时创建 PR；禁止 Actions 建 PR 时保留候选并提供人工创建入口。
   propose:
     name: 评测更新 PR
     needs: [update, verify-benchmarks, land]
@@ -251,7 +251,16 @@ jobs:
             if [ "$VERIFY" = success ]; then gh pr ready "$number" --repo "$GITHUB_REPOSITORY" || true; else gh pr ready "$number" --repo "$GITHUB_REPOSITORY" --undo || true; fi
           else
             draft=(); [ "$VERIFY" = success ] || draft=(--draft)
-            gh pr create --repo "$GITHUB_REPOSITORY" --base main --head automation/benchmarks --title "$title" --body-file "$body" "${draft[@]}"
+            if result=$(gh pr create --repo "$GITHUB_REPOSITORY" --base main --head automation/benchmarks --title "$title" --body-file "$body" "${draft[@]}" 2>&1); then
+              echo "$result" >> "$GITHUB_STEP_SUMMARY"
+            elif [[ "$result" == *"GitHub Actions is not permitted to create or approve pull requests"* ]]; then
+              echo "::notice::候选已保存到 automation/benchmarks；仓库策略要求维护者创建 PR"
+              echo "[创建评测候选 PR]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/compare/main...automation/benchmarks?expand=1)" >> "$GITHUB_STEP_SUMMARY"
+              cat "$body" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "$result" >&2
+              exit 1
+            fi
           fi
 
   report:

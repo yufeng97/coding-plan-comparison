@@ -116,7 +116,9 @@ async function collectDeepSWE(get) {
     ...versions.map(version => get(`${pageUrl}artifacts/v${version}/leaderboard-live.json`))
   ]);
   if (!revision.text.includes('Isolated Verification') || !revision.text.includes('Structured test reports')) throw new Error('Missing DeepSWE version protocol evidence');
-  const scriptPath = page.text.match(/import\("(\/assets\/index-[^"\s]+\.js)"\)/)?.[1];
+  const moduleTag = [...elements(page.text, ['script'])].find(tag => /\btype="module"/i.test(tag.attrs) && /\bsrc="\/assets\/index-[\w-]+\.js"/.test(tag.attrs));
+  const scriptPath = moduleTag?.attrs.match(/\bsrc="(\/assets\/index-[\w-]+\.js)"/)?.[1]
+    ?? page.text.match(/import\("(\/assets\/index-[\w-]+\.js)"\)/)?.[1];
   if (!scriptPath) throw new Error('Missing DeepSWE official pricing module');
   const script = await get(officialScript(scriptPath, 'https://deepswe.datacurve.ai', '/assets/'));
   const rates = findLiteral(script.text, value => record(value) && record(value['gpt-5-6-sol']) && record(value['deepseek-v4-pro']) && record(value['gpt-5-6-sol'].from));
@@ -167,11 +169,21 @@ function cursorModulePaths(html) {
   // Next's streamed payloads are JSON strings. Decode only that JSON, never scripts.
   const chunks = [...html.matchAll(/self\.__next_f\.push\(\[1,("(?:\\.|[^"\\])*")\]\)/g)].map(match => JSON.parse(match[1]));
   const payload = chunks.join('');
-  const module = payload.match(/I\[\d+,\[([^\]]*)\],"CursorBenchLeaderboard"\]/);
-  if (!module) throw new Error('Missing CursorBenchLeaderboard module reference');
-  const paths = JSON.parse(`[${module[1]}]`);
-  if (!Array.isArray(paths) || !paths.length || paths.some(path => typeof path !== 'string')) throw new Error('Invalid CursorBench module paths');
-  return [...new Set(paths)].map(path => officialScript(path, 'https://cursor.com', '/marketing-static/_next/static/chunks/'));
+  const strings = new Map();
+  for (const [, id, literal] of payload.matchAll(/^([a-f\d]+):("(?:\\.|[^"\\])*")$/gm)) {
+    if (strings.has(id)) throw new Error('Duplicate CursorBench string reference');
+    strings.set(id, JSON.parse(literal));
+  }
+  const resolve = value => typeof value === 'string' && /^\$[a-f\d]+$/.test(value) ? strings.get(value.slice(1)) : value;
+  const modules = [...payload.matchAll(/^[a-f\d]+:I(\[.*\])$/gm)].map(match => JSON.parse(match[1]))
+    .filter(module => resolve(module[2]) === 'CursorBenchLeaderboard');
+  if (modules.length !== 1) throw new Error('Missing or ambiguous CursorBenchLeaderboard module reference');
+  const paths = modules[0][1];
+  if (!Array.isArray(paths) || !paths.length) throw new Error('Invalid CursorBench module paths');
+  return [...new Set(paths.map(resolve))].map(path => {
+    if (typeof path !== 'string' || !/^\/marketing-static\/_next\/static\/(?:immutable\/)?chunks\/[\w.-]+\.js$/.test(path)) throw new Error('Unexpected official script URL');
+    return officialScript(path, 'https://cursor.com', '/marketing-static/_next/static/');
+  });
 }
 /** @param {Get} get */
 async function collectCursorBench(get) {
