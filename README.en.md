@@ -47,7 +47,7 @@ Data version: **2026-11-05**. The catalog covers 61 vendors and 232 subscription
 <!-- /readme-stats:coverage -->
 
 <!-- readme-stats:benchmarks -->
-Public model benchmarks are versioned separately from prices: **checked 2026-10-13**, 5 benchmark families, 87 distinct protocols and 472 scores (DeepSWE v1.1 70, v1 29; CursorBench 4.0 68, 3.0 (historical launch excerpt) 3; OSWorld 224; HLE 48; SWE-bench 30). Each configuration of the same model, and OSWorld's full-completion and partial scores, count as separate entries, so this does not mean 472 models; results that differ in version, sample denominator, tools or step budget are never ranked together. Historical excerpts cover only the models in the official tables and are not complete historical leaderboards.
+Public model benchmarks are versioned separately from prices: **checked 2026-11-06**, 5 benchmark families, 91 distinct protocols and 497 scores (DeepSWE v1.1 70, v1 29; CursorBench 4.0 81, 3.0 (historical launch excerpt) 3; OSWorld 230; HLE 54; SWE-bench 30). Each configuration of the same model, and OSWorld's full-completion and partial scores, count as separate entries, so this does not mean 497 models; results that differ in version, sample denominator, tools or step budget are never ranked together. Historical excerpts cover only the models in the official tables and are not complete historical leaderboards.
 <!-- /readme-stats:benchmarks -->
 
 ## Daily automatic updates
