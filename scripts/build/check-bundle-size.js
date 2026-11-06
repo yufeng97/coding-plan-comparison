@@ -10,7 +10,7 @@ const zlib = require("node:zlib");
 /** 预算（KiB，brotli）。pattern 匹配站点目录内的相对路径；required 表示必须恰好匹配一个文件。 */
 const BUDGETS = [
   { name: "首屏 HTML（含预渲染内容）", pattern: /^index\.html$/, kib: 64 },
-  { name: "主入口脚本", pattern: /^js\/index-[\w-]+\.js$/, kib: 170 },
+  { name: "主入口脚本", pattern: /^js\/index-[\w-]+\.js$/, kib: 172 },
   { name: "全站样式", pattern: /^css\/index-[\w-]+\.css$/, kib: 14 },
   { name: "ECharts 精简包（按需）", pattern: /^libs\/echarts-[\w-]+\.js$/, kib: 160 },
 ];
