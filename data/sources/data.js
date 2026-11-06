@@ -11,7 +11,7 @@ const RATE_USD_CNY = 6.67;
 const RATE_INR_CNY = 6.6702 / 94.94;
 
 const META = {
-  updated: "2026-10-26",
+  updated: "2026-11-05",
   rate: RATE_USD_CNY,
   rateAsOf: "2026-10-23",
   rateSource: "https://api.frankfurter.dev/v1/2026-10-23?base=USD&symbols=CNY,INR",
@@ -2673,6 +2673,16 @@ const ESTIMATES = [
 /* date 是来源写明的发生日。checked 表示这只是本站核对到该状态的日子，不是公告日。 */
 /** @type {DynamicItem[]} */
 const DYNAMICS = [
+  { date: "2026-11-05", text: "OpenAI 发布 GPT-6 Cyber，用于在研究者指定的范围内查找和验证软件漏洞。首批获批的 Daybreak Red 客户可通过 API 和 Codex 使用。", source: "OpenAI 发布公告", url: "https://openai.com/index/introducing-gpt-6-cyber" },
+  { date: "2026-11-05", text: "Google 发布 Gemini Omni 1.2 Flash，支持生成最长 15 秒的视频，并可用后续指令逐轮编辑。Gemini API、Google Vids 和 Gemini 企业产品开始提供该模型。", source: "Google 开发者公告", url: "https://blog.google/innovation-and-ai/technology/developers-tools/introducing-gemini-omni-1-2-flash/" },
+  { date: "2026-11-05", checked: true, text: "核对 Kimi K3.1 Pro 权重：Moonshot AI 已在官方模型仓库提供下载、自部署说明和专用许可。托管 API 的模型标识为 kimi-k3.1-pro。", source: "Moonshot AI 官方模型卡", url: "https://huggingface.co/moonshotai/Kimi-K3.1-Pro" },
+  { date: "2026-11-04", text: "Cognition 发布编程模型 SWE-2 Flash，已接入 Devin Desktop 和 CLI，可用于代码审查、功能开发和文档更新。官方称其定价为 SWE-2 的五分之一。", source: "Cognition 发布公告", url: "https://cognition.com/blog/swe-2-flash" },
+  { date: "2026-11-04", text: "腾讯发布混元 Hy4，新增视觉理解与电脑操作能力，可结合命令行和图形界面完成任务。腾讯云 TokenHub、WorkBuddy 和 CodeBuddy 已接入；公告将权重开放列为后续计划。", source: "腾讯混元发布公告", url: "https://www.tencent.com/zh-cn/tencent-launches-hy4-joining-the-ranks-of-the-worlds-leading-open-source-ai-models/" },
+  { date: "2026-11-04", text: "Ricursive 发布面向编程智能体的 Ripple-65B Preview。开发者可从 Hugging Face 下载模型权重，也可通过 OpenRouter 等托管服务调用。", source: "Ricursive 发布公告", url: "https://www.ricursive.com/ripple" },
+  { date: "2026-11-04", text: "OpenAI 发布 Images 2.6，在 ChatGPT、Codex 和 API 提供图像生成与多轮编辑。API 提供 Flare 和 Sunburst 两款模型，分别面向快速出图和更精细的编辑。", source: "OpenAI 发布公告", url: "https://openai.com/index/introducing-images-2-6" },
+  { date: "2026-10-29", text: "Mistral 开放改进版 Mistral Large 4（Le Chonk）权重，开发者可自行部署用于编程和防御性安全任务。该系列此前已开启公开预览。", source: "Mistral 权重发布公告", url: "https://mistral.ai/news/mistral-large-4-oss/" },
+  { date: "2026-10-28", text: "Google 公布 Gemini 4 Carbon，面向长程软件工程与网络安全任务。公告发布时模型仍在进行安全测试，Google 尚在准备面向开发者的产品入口。", source: "Google DeepMind 公告", url: "https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-carbon/" },
+  { date: "2026-10-26", text: "OpenAI 推出 GPT-6.1 Terra，开始向 ChatGPT Work、Codex 和 API 用户提供。开发者可用 gpt-6.1-terra 调用，适用于软件工程、视觉推理和电脑操作任务。", source: "OpenAI 发布公告", url: "https://openai.com/index/introducing-gpt-6-1-terra" },
   { date: "2026-10-26", checked: true, text: "核对 Meta Muse Code 与 API：四档月费 $5 / $15 / $50 / $200 和 Wonder / Spark 输入、缓存、输出单价均与10-14记录一致。订阅默认 Contributor，内容可用于训练；可关闭但用量较少、差额未公开。Wonder Full 仍仅 Power / Maximum 订阅，无 API；Wonder 系列在韩国不可用，Windows 不支持语音。当前模型页未再标 preview，本次不推断 GA 日期。", source: "Meta 官方订阅 / 模型 / 定价文档", url: "https://dev.meta.ai/docs/muse-code/subscriptions" },
   { date: "2026-10-15", checked: true, text: "核对并新增 Freebuff、Kimchi、HumanLayer 共 8 档：Freebuff 广告支持且含模型，地区和客户端决定额度；Kimchi Coder $20/月含 $25 credits，Teams $35/席/月列 $45 credits（是否逐席累计未知），开源 CLI 自备推理；HumanLayer Starter 免费、Pro $100/人/月，均自备模型账户/API。收录日不是产品首发日。", source: "三家官方定价与文档", url: "https://kimchi.dev/pricing" },
   { date: "2026-10-15", checked: true, text: "核对 OpenCode Go / Go Plus：月费仍为 $10 / $40，模型池现含 Claude Haiku 5.5、Gemini 4 Argon Contributor，另有 Step 5 Preview Free 等限时免费模型。Contributor 月度上限限时 2× 为 $60 / $240，提示和补全可能用于训练，非 ZDR；促销结束日未知。用量受 5h/周/月窗口约束，不能将各模型适用上限相加。", source: "OpenCode 官方 Go 文档", url: "https://opencode.ai/v2/docs/console/go/" },
