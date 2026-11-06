@@ -35,13 +35,17 @@ function projectLink(root, environment) {
 async function deployment(workspace, args = [], options = {}) {
   if (args.some((arg) => !["--prod", "--dry-run"].includes(arg))) throw new Error("用法：npm run deploy -- [--prod] [--dry-run]");
   const root = path.resolve(workspace);
-  const project = projectLink(root, options.environment || process.env);
+  const environment = options.environment || process.env;
+  const project = projectLink(root, environment);
+  const sha = environment.DEPLOY_SHA;
+  if (sha && !/^[0-9a-f]{40}$/.test(sha)) throw new Error("DEPLOY_SHA 需要完整的 Git 提交 SHA");
   if (!project.projectId || !project.orgId) throw new Error("根目录 .vercel/project.json 缺少项目关联");
   const site = await stageSite(root, stageOptions(root, options));
   const team = project.orgId.startsWith("team_") ? "?teamId=" + encodeURIComponent(project.orgId) : "";
   const files = site.files.map((file) => ({ file: file.split(path.sep).join("/"),
     data: fs.readFileSync(path.join(site.directory, file)).toString("base64"), encoding: "base64" }));
   const body = { name: project.projectName || "coding-plan-comparison", project: project.projectId, files,
+    ...(sha ? { meta: { sourceCommit: sha } } : {}),
     projectSettings: { framework: null, buildCommand: null, installCommand: null, outputDirectory: "." },
     ...(args.includes("--prod") ? { target: "production" } : {}) };
   return { url: "https://api.vercel.com/v13/deployments" + team, team, body, files: site.files };

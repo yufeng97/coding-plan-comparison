@@ -79,10 +79,10 @@ GitHub Actions 按北京时间定时运行下面的工作流，也都可以在 A
 1. **评测 PR 权限**。默认可保留仓库现有权限。Actions 推送候选并运行完整 CI，维护者从运行摘要的链接创建 PR；已有评测 PR 会随候选分支更新。若需自动新建 PR，可在 Settings → Actions → General → Workflow permissions 勾选「Allow GitHub Actions to create and approve pull requests」。巡检工作流自动新建 PR 也需要此设置。
 2. **Pages 来源**：Settings → Pages 的 Source 保持 **GitHub Actions**。
 3. **自动发布 Vercel 主站**：在 Settings → Secrets and variables → Actions 添加：
-   - Secret `VERCEL_TOKEN`，在 Vercel 账户设置中创建；
+   - Secret `VERCEL_TOKEN`，在 Vercel 账户设置中创建部署专用令牌，范围限定到该项目或所属团队；
    - `VERCEL_ORG_ID` 与 `VERCEL_PROJECT_ID`，取本机 `.vercel/project.json` 的 `orgId`、`projectId`，放在 Secrets 或 Variables 均可。
 
-   未配置时只发布 GitHub Pages，主站仍可用 `npm run deploy -- --prod` 手动发布。
+   三项均未设置时只发布 GitHub Pages。设置了其中一部分时，Vercel 作业会报错并列出缺项。自动发布成功后，可用 Vercel 部署元数据中的 `sourceCommit` 核对通过 CI 的提交。手动发布可用 `npm run deploy -- --prod`。
 4. **Claude 巡检**：二选一添加 Secret。未配置时巡检工作流直接跳过。
    - `CLAUDE_CODE_OAUTH_TOKEN`：本机运行 `claude setup-token` 生成，用 Claude 订阅额度；
    - `ANTHROPIC_API_KEY`：按 API 用量计费。
