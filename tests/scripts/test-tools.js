@@ -648,12 +648,14 @@ async function main() {
     }
   });
   await test("CI 没有项目关联文件时读 VERCEL_ORG_ID / VERCEL_PROJECT_ID，本机关联文件优先", () => fixture(async (root) => {
-    const environment = { VERCEL_ORG_ID: "team_env", VERCEL_PROJECT_ID: "prj_env" };
+    const environment = { VERCEL_ORG_ID: "team_env", VERCEL_PROJECT_ID: "prj_env", DEPLOY_SHA: "a".repeat(40) };
     assert.equal((await deployment(root, ["--prod"], { build: fakeBuild, environment })).body.project, "prj_fixture", "已有 .vercel/project.json 时不被环境变量覆盖");
     fs.unlinkSync(path.join(root, ".vercel/project.json"));
     const job = await deployment(root, ["--prod"], { build: fakeBuild, environment });
     assert.equal(job.body.project, "prj_env"); assert.equal(job.team, "?teamId=team_env");
     assert.equal(job.body.name, "coding-plan-comparison"); assert.equal(job.body.target, "production");
+    assert.equal(job.body.meta?.sourceCommit, environment.DEPLOY_SHA);
+    await assert.rejects(deployment(root, ["--prod"], { build: fakeBuild, environment: { ...environment, DEPLOY_SHA: "main" } }), /DEPLOY_SHA/);
     await assert.rejects(deployment(root, ["--prod"], { build: fakeBuild, environment: { VERCEL_PROJECT_ID: "prj_env" } }), /VERCEL_ORG_ID/);
   }));
   await test("部署网络超时拒绝会向调用方失败，且不会启动轮询", () => fixture(async (root) => {

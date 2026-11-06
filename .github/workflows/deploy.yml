@@ -111,13 +111,22 @@ jobs:
         id: credentials
         env:
           HAS_TOKEN: ${{ secrets.VERCEL_TOKEN != '' }}
-          HAS_PROJECT: ${{ (secrets.VERCEL_ORG_ID || vars.VERCEL_ORG_ID) != '' && (secrets.VERCEL_PROJECT_ID || vars.VERCEL_PROJECT_ID) != '' }}
+          HAS_ORG: ${{ (secrets.VERCEL_ORG_ID || vars.VERCEL_ORG_ID) != '' }}
+          HAS_PROJECT: ${{ (secrets.VERCEL_PROJECT_ID || vars.VERCEL_PROJECT_ID) != '' }}
         run: |
-          if [ "$HAS_TOKEN" = true ] && [ "$HAS_PROJECT" = true ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::notice title=跳过 Vercel::未配置 VERCEL_TOKEN、VERCEL_ORG_ID 与 VERCEL_PROJECT_ID，本次只发布 GitHub Pages"
+          missing=()
+          if [ "$HAS_TOKEN" != true ]; then missing+=(VERCEL_TOKEN); fi
+          if [ "$HAS_ORG" != true ]; then missing+=(VERCEL_ORG_ID); fi
+          if [ "$HAS_PROJECT" != true ]; then missing+=(VERCEL_PROJECT_ID); fi
+          if [ "${#missing[@]}" -eq 3 ]; then
+            echo "::notice title=跳过 Vercel::仓库未启用 Vercel 发布"
+            exit 0
           fi
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error title=Vercel 发布配置不完整::请在仓库 Actions 设置中补齐 ${missing[*]}"
+            exit 1
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: steps.credentials.outputs.ready == 'true'
         with:
@@ -134,6 +143,7 @@ jobs:
       - name: 发布到 Vercel 生产环境
         if: steps.credentials.outputs.ready == 'true'
         env:
+          DEPLOY_SHA: ${{ inputs.sha }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID || vars.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID || vars.VERCEL_PROJECT_ID }}
