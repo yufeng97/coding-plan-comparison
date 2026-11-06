@@ -15,8 +15,8 @@ const { loadRepoData } = require("../lib/load-data");
 const DEFAULT_KEYWORDS = ["coding plan", "token plan", "编程套餐", "编程订阅", "AI编程", "AI 编程", "编程助手", "编码助手",
   "coding agent", "code agent", "code assistant", "code editor", "agentic coding", "vibe coding", "copilot", "codex", "credits", "pricing",
   "new model", "model release", "model launch", "新模型", "模型发布", "发布模型", "模型上线", "模型更新"];
-const MODEL_NAMES = /\b(?:gpt\s*\d|claude\s+(?:haiku|sonnet|opus)\s*\d|(?:gemini|grok|deepseek|qwen|glm|mistral|kimi|mini\s*max)[\s-]*[a-z]?\d)/i;
-const MODEL_ALIASES = { OpenAI: /\b(?:gpt\s*\d|codex)\b/i, Anthropic: /\bclaude\b/i, Google: /\bgemini\b/i, xAI: /\bgrok\b/i };
+const MODEL_NAMES = /\b(?:gpt\s*\d|claude\s*(?:haiku|sonnet|opus|fable)\s*\d|(?:gemini(?:\s+omni)?|grok|deepseek|qwen|glm|mistral|kimi|mini\s*max|swe|hy|ripple)\s*[a-z]?\d)/i;
+const MODEL_ALIASES = { OpenAI: /\b(?:gpt\s*\d+\b|codex\b)/i, Anthropic: /\bclaude\b/i, Google: /\bgemini(?=\b|\d)/i, xAI: /\bgrok(?=\b|\d)/i };
 const SHARED_DOMAINS = ["github.com", "github.io", "huggingface.co", "vercel.app", "netlify.app", "pages.dev", "gitlab.com", "gitlab.io", "blogspot.com"];
 const KINDS = ["rss", "atom", "hn-search", "page", "blog"];
 const MAX_STATE_ITEMS = 5000;
@@ -33,7 +33,13 @@ const MAX_STATE_ITEMS = 5000;
 /** @typedef {{id:string,name:string,kind:string,url:string,authority:string,status:string,itemsFetched:number,candidatesEligible:number,cacheReused?:boolean,cacheStale?:boolean,truncated?:boolean,sourceDate?:string,error?:string,pagesFetched?:number,pageLimit?:number,missingPublicationDates?:string[],futurePublicationDates?:string[],requestURL?:string,lastSuccess?:string|null,consecutiveFailures?:number,baselineAt?:string,baselineExpired?:boolean,freshness?:string}} SourceResult */
 /** @typedef {{schemaVersion:number,checkedAt:string,window:{days:number,start:string,end:string},status:string,reviewRequired:boolean,sources:SourceResult[],errors:Array<{sourceId:string,message:string}>,candidates:Candidate[],stats:{candidates:number,knownVendor:number,vendorReviewCandidates:number,sourcesSucceeded:number,sourcesFailed:number},queue?:import('./inbox').InboxStats}} NewsReport */
 const folded = (text) => String(text || "").toLowerCase().replace(/[\s_\-\u2010-\u2015\u2212]+/g, " ");
-function keywordMatch(item, extra = []) { const text = folded(item.title + " " + item.summary); return MODEL_NAMES.test(text) || [...DEFAULT_KEYWORDS, ...extra].some((word) => text.includes(folded(word))); }
+// Preserve word boundaries in headlines such as “Introducing GPT‑6 Cyber”.
+const modelText = (text) => text.replace(/[_\-\u2010-\u2015\u2212]+/g, " ");
+function keywordMatch(item, extra = []) {
+  const text = item.title + " " + item.summary;
+  const compact = folded(text);
+  return MODEL_NAMES.test(modelText(text)) || [...DEFAULT_KEYWORDS, ...extra].some((word) => compact.includes(folded(word)));
+}
 
 function calendarDate(year, month, day) {
   const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
@@ -101,7 +107,7 @@ function matchVendors(item, vendors) {
       if (SHARED_DOMAINS.some((shared) => value.endsWith("." + shared))) return host === value;
       return host === value || host.endsWith("." + value);
     });
-    const alias = MODEL_ALIASES[known.vendor]?.test(folded(text));
+    const alias = MODEL_ALIASES[known.vendor]?.test(modelText(text));
     return domain || vendorNameMatch(text, known.vendor) || alias ? [{ vendor: known.vendor, match: domain ? "domain" : alias ? "model-alias" : "name" }] : [];
   });
 }

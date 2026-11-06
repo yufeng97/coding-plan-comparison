@@ -119,6 +119,24 @@
       ]
     },
     {
+      "id": "cognition-blog",
+      "name": "Cognition 官方博客",
+      "kind": "blog",
+      "url": "https://cognition.com/blog",
+      "authority": "official",
+      "articlePaths": ["^/blog/[a-z0-9-]+/?$"],
+      "maxArticles": 12,
+      "keywords": ["Devin"]
+    },
+    {
+      "id": "google-gemini-models",
+      "name": "Google Gemini 模型公告",
+      "kind": "rss",
+      "url": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/rss/",
+      "authority": "official",
+      "keywords": ["Gemini"]
+    },
+    {
       "id": "github-changelog",
       "name": "GitHub 官方更新日志",
       "kind": "rss",
@@ -178,7 +196,7 @@
       "id": "meta-muse-code",
       "name": "Meta Muse Code 订阅页",
       "kind": "page",
-      "url": "https://dev.meta.ai/products/muse-code",
+      "url": "https://dev.meta.ai/docs/muse-code/subscriptions",
       "authority": "official"
     },
     {

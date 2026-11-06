@@ -60,6 +60,16 @@ async function main() {
   assert.equal(models.report.candidates.length, 9);
   assert.deepEqual(models.report.candidates.find(item => item.title.includes("Sol")).vendorMatches, [{ vendor: "OpenAI", match: "model-alias" }]);
   assert.deepEqual(models.report.candidates.find(item => item.title.includes("Haiku")).vendorMatches, [{ vendor: "Anthropic", match: "model-alias" }]);
+  const headlines = ["Introducing GPT‑6 Cyber", "Meet SWE-2 Flash", "Tencent launches Hy4", "Now shipping Gemini Omni 1.2 Flash", "Review MegaGPT-6 adapter"];
+  const entries = headlines.map((title, i) => '<item><title>' + title + '</title><link>https://feed.example.com/release-' + i + '</link></item>');
+  const releases = await collect(async () => new Response('<rss><channel>' + entries.join("") + '</channel></rss>'), {
+    config: { schemaVersion: 1, sources: [rss] },
+    knownVendors: [{ vendor: "Google", domains: [] }, { vendor: "OpenAI", domains: [] }],
+  });
+  assert.deepEqual(releases.report.candidates.map(item => item.title).sort(), headlines.slice(0, 4).sort());
+  for (const [title, vendor] of [[headlines[0], "OpenAI"], [headlines[3], "Google"]]) {
+    assert.deepEqual(releases.report.candidates.find(item => item.title === title).vendorMatches, [{ vendor, match: "model-alias" }]);
+  }
   console.log("Official blog collection: first pass, dates, partial failures, stale cache, limits, rechecks and model discovery passed.");
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });
