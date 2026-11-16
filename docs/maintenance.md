@@ -92,6 +92,19 @@ GitHub Actions 按北京时间定时运行下面的工作流，也都可以在 A
 
 公开仓库 60 天没有活动时，GitHub 会自动停用定时工作流，需要到 Actions 页重新启用。
 
+### 用 Cursor 云电脑巡检与审 PR
+
+GitHub Actions 继续负责确定性采集（资讯队列缓存在 Actions 里）。Cursor 云电脑适合在此之后做**阅读官网、起草数据 PR、审查 PR**。它不是一台一直开着的电脑：每次自动化启动一台新的云主机，结束后休眠并删除，虚拟机里的 cron 不会留到下一次。资讯队列目录 `data/audit/news/` 被 gitignore，所以审核结论必须写进 PR，不能只留在那次云电脑上。
+
+在 [cursor.com/automations](https://cursor.com/automations) 新建两条并保存后才会运行。Free 与 Plus 不含 Cloud Agents / Automations；需要当前文档所列的包含云代理的方案。本仓库没有代为打开这些开关。
+
+| 自动化 | 触发 | 提示文件 | 允许的结果 |
+|---|---|---|---|
+| 每日巡检 | 定时，America/Los_Angeles 每天 18:00（排在 Actions 资讯采集之后） | [.github/automation/cursor-daily.md](../.github/automation/cursor-daily.md) | 仅开待复核 PR，不合并、不改价格逻辑 |
+| PR 审查 | Pull request opened 与 pushed | [.github/automation/cursor-pr-review.md](../.github/automation/cursor-pr-review.md) | 只评论。价格与额度变更不要自动 Approve |
+
+仓库需已在 Cursor 的 GitHub 集成里授权。审查评论以 `cursor` 身份出现。另可在 Automations 里为同一仓库打开 Bugbot，它按 diff 留言且不合并；个人账号只审查自己作为作者的 PR。两者都不要设成价格变更的自动合并条件。
+
 ## 逐条价格核查
 
 2026-10-04 对全部 **258 条**价格记录逐条核查，共记录 **105 个官方来源**。结果为：179 条价格一致、40 条记录校正（价格、币种、周期或计费说明）、8 条需询价、7 条确认停售、24 条仍待核实。官网未公开金额、访问失败、现行与历史套餐无法对应或官网口径冲突时，保留历史值与具体原因；不以搜索摘要或第三方榜单填补现行官网报价。
