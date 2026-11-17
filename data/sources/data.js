@@ -11,7 +11,7 @@ const RATE_USD_CNY = 6.67;
 const RATE_INR_CNY = 6.6684 / 94.48;
 
 const META = {
-  updated: "2026-11-05",
+  updated: "2026-11-17",
   rate: RATE_USD_CNY,
   rateAsOf: "2026-11-05",
   rateSource: "https://api.frankfurter.dev/v1/2026-11-05?base=USD&symbols=CNY,INR",
@@ -356,21 +356,21 @@ const PLANS = [
     url: "https://one.google.com/about/google-ai-plans/" },
   { id: "plan-0017", vendor: "Google", plan: "Google AI Pro", cat: "official", region: "intl", priceM: 19.99, priceY: 16.67, annualTotal: 199.99, cur: "USD", seat: false,
     quota: "4× Gemini 访问；AI Studio / Antigravity / Jules 扩展限额；超额可购 credits",
-    models: "Gemini 3.1 Pro、Deep Research、Gemini Spark",
+    models: "Gemini 4 Hydrogen、Gemini 3.1 Pro、Deep Research、Gemini Spark",
     tools: "Gemini 应用、AI Studio、Antigravity（agentic IDE）、Jules、Gemini CLI",
-    note: "美国月付 $19.99、年付 $199.99（折月约 $16.67）；含 $10/月 GCP credits；Gemini 4 Argon 只在 Gemini 应用与搜索 AI 模式中提供，Antigravity 与 API 不含",
+    note: "美国月付 $19.99、年付 $199.99（折月约 $16.67）；含 $10/月 GCP credits；Gemini 4 Hydrogen 可在 Google Antigravity 使用。Gemini 4 Argon 仍只在 Gemini 应用与搜索 AI 模式中提供，Antigravity 与 API 不含",
     url: "https://one.google.com/about/google-ai-plans/" },
   { id: "plan-0018", fieldRefs: {"tools":"plan-0017"}, vendor: "Google", plan: "Google AI Ultra（5x）", cat: "official", region: "intl", priceM: 99.99, priceY: null, cur: "USD", seat: false,
     quota: "约 5× Pro 限额；更高 AI Studio / Antigravity / Jules 限额",
-    models: "Gemini 4 Argon、Gemini 3.1 Pro、Deep Think、Gemini Agent",
+    models: "Gemini 4 Carbon、Gemini 4 Hydrogen、Gemini 4 Argon、Gemini 3.1 Pro、Deep Think、Gemini Agent",
     tools: "同 Pro 档且限额更高",
-    note: "2026-05-19 I/O 起 $249.99 降至 $99.99；20TB 存储；Gemini 4 Argon 可在 Antigravity app、CLI 与 IDE 扩展使用（独立 Antigravity IDE 不支持）",
+    note: "2026-05-19 I/O 起 $249.99 降至 $99.99；20TB 存储；Gemini 4 Carbon 可在 Antigravity、Gemini 应用与搜索 AI 模式使用，Gemini 4 Hydrogen 可在 Antigravity 使用。Gemini 4 Argon 可在 Antigravity app、CLI 与 IDE 扩展使用（独立 Antigravity IDE 不支持）",
     url: "https://one.google.com/about/google-ai-plans/" },
   { id: "plan-0019", fieldRefs: {"models":"plan-0018","tools":"plan-0018"}, vendor: "Google", plan: "Google AI Ultra（20x）", cat: "official", region: "intl", priceM: 199.99, priceY: null, cur: "USD", seat: false,
     quota: "最高 20× 限额",
     models: "同 Ultra 5x + Project Genie 世界模型（独占）",
     tools: "同 Ultra 5x",
-    note: "30TB 存储、$100/月 GCP credits",
+    note: "30TB 存储、$100/月 GCP credits；模型沿用 Ultra 5x，含 Gemini 4 Carbon 与 Gemini 4 Hydrogen",
     url: "https://one.google.com/about/google-ai-plans/" },
   { id: "plan-0020", vendor: "Google", plan: "Gemini CLI / Code Assist 个人免费版", cat: "official", region: "intl", priceM: 0, priceY: 0, cur: "USD", seat: false,
     quota: "Gemini CLI：1,000 次模型请求/日（60 次/分）；Code Assist：6,000 次代码补全 + 240 次 chat/日",
@@ -913,18 +913,18 @@ const PLANS = [
   { id: "plan-0091", vendor: "GitHub Copilot", plan: "Pro", cat: "tool", region: "intl", priceM: 10, priceY: null, cur: "USD", seat: false,
     windowPeriod: "month",
     quota: "1,500 AI credits/月（基础 1,000 + 弹性 500，约 $15 用量）；补全与 next-edit 无限",
-    models: "Claude Haiku 4.5/5.5、Sonnet 4.6/5/5.5，Gemini 3.7–3.8 Flash，GPT-5 mini、GPT-5.3-Codex、GPT-5.4/5.4 mini、GPT-5.6 Luna/Terra、GPT-6 Luna，Kimi K3，Grok 4.5–4.7，MAI-Code-1.1-Flash 等（不含旗舰）",
+    models: "Claude Haiku 4.5/5.5、Sonnet 4.6/5/5.5，Gemini 4 Hydrogen、Gemini 3.7–3.8 Flash，GPT-5 mini、GPT-5.3-Codex、GPT-5.4/5.4 mini、GPT-5.6 Luna、GPT-6 Luna，Kimi K3，Grok 4.5–4.7，MAI-Code-1.1-Flash 等（不含旗舰）",
     tools: "IDE 插件、Copilot CLI、Copilot App；HydraFusion / Max（VS Code、CLI、App 预览）",
-    note: "$10 基础 + $5 弹性 credits；仅月付；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费",
+    note: "$10 基础 + $5 弹性 credits；仅月付；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费。2026-11-16 起 GPT-5.6 Terra 已弃用。Gemini 4 Hydrogen 按供应商牌价计入 AI credits。Gemini 3.8 Flash、Claude Haiku 4.5 与 Kimi K3 仍在册，官方计划 2026-12-14 弃用",
     url: "https://docs.github.com/en/copilot/get-started/plans" },
   { id: "plan-0092", fieldRefs: {"tools":"plan-0091"}, vendor: "GitHub Copilot", plan: "Pro+", cat: "tool", region: "intl", priceM: 39, priceY: null, cur: "USD", seat: false,
     modelBaseRef: "plan-0091",
-    modelIncludes: ["Claude Opus 4.8/5/5.5","Fable 5/5.1","GPT-5.6 Sol","GPT-6 Astra/Sol","GPT-6.1 Sol","Gemini 4 Argon"],
+    modelIncludes: ["Claude Opus 4.8/5/5.5","Fable 5/5.1/5.2","GPT-5.6 Sol","GPT-6 Astra/Sol","GPT-6.1 Sol","Gemini 4 Argon","Gemini 4 Carbon"],
     windowPeriod: "month",
     quota: "7,000 AI credits/月（约 $70 用量）",
-    models: "Pro 全部 + Claude Opus 4.8/5/5.5、Fable 5/5.1、GPT-5.6 Sol、GPT-6 Astra/Sol、GPT-6.1 Sol、Gemini 4 Argon 等旗舰",
+    models: "Pro 全部 + Claude Opus 4.8/5/5.5、Fable 5/5.1/5.2、GPT-5.6 Sol、GPT-6 Astra/Sol、GPT-6.1 Sol、Gemini 4 Argon、Gemini 4 Carbon 等旗舰",
     tools: "同 Pro",
-    note: "4x+ Pro 用量；含审计日志；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费",
+    note: "4x+ Pro 用量；含审计日志；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费。2026-11-16 起 Claude Opus 4.8 仅个人年付订阅仍可选用，Claude Opus 5 已从模型选择器移除（仍可作为运行时拒绝回退）。Claude Fable 5 与 Gemini 4 Argon 仍在册，官方计划 2026-12-14 弃用",
     url: "https://docs.github.com/en/copilot/get-started/plans" },
   { id: "plan-0093", fieldRefs: {"tools":"plan-0091"}, vendor: "GitHub Copilot", plan: "Max", cat: "tool", region: "intl", priceM: 100, priceY: null, cur: "USD", seat: false,
     modelBaseRef: "plan-0092", modelIncludes: [],
@@ -937,16 +937,16 @@ const PLANS = [
   { id: "plan-0094", vendor: "GitHub Copilot", plan: "Business", cat: "team", region: "intl", priceM: 19, priceY: null, cur: "USD", seat: true,
     windowPeriod: "month",
     quota: "1,900 AI credits/席/月",
-    models: "含旗舰模型（含 Gemini 4 Argon）+ Copilot CLI/App",
+    models: "含旗舰模型（含 Gemini 4 Hydrogen、Gemini 4 Carbon、Gemini 4 Argon、Claude Fable 5.2）+ Copilot CLI/App",
     tools: "IDE 插件、组织管理；HydraFusion / Max（VS Code、CLI、App 预览）",
-    note: "按授予席位计费；Copilot 代码审查默认扣发起成员的额度，组织可改为计入仓库所属组织（须启用 AI Credits 付费用量）；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费",
+    note: "按授予席位计费；Copilot 代码审查默认扣发起成员的额度，组织可改为计入仓库所属组织（须启用 AI Credits 付费用量）；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费。Gemini 4 Hydrogen 与 Gemini 4 Carbon 在默认模型策略下自动启用；Claude Fable 5.2 策略默认关闭，且默认需由 Anthropic 保留提示与输出以运行安全分类器（不用于训练）。2026-11-16 起 Claude Opus 5 与 GPT-5.6 Terra 已弃用；Claude Opus 4.8 的保留范围只写明个人年付订阅",
     url: "https://docs.github.com/en/copilot/get-started/plans" },
   { id: "plan-0095", vendor: "GitHub Copilot", plan: "Enterprise", cat: "team", region: "intl", priceM: 39, priceY: null, cur: "USD", seat: true,
     windowPeriod: "month",
     quota: "3,900 AI credits/席/月",
-    models: "旗舰模型优先访问（含 Gemini 4 Argon）+ 自定义模型",
+    models: "旗舰模型优先访问（含 Gemini 4 Hydrogen、Gemini 4 Carbon、Gemini 4 Argon、Claude Fable 5.2）+ 自定义模型",
     tools: "codebase 索引、GitHub.com 集成、IP 赔偿、SSO；HydraFusion / Max（VS Code、CLI、App 预览）",
-    note: "Copilot 代码审查默认扣发起成员的额度，组织可改为计入仓库所属组织（须启用 AI Credits 付费用量）；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费",
+    note: "Copilot 代码审查默认扣发起成员的额度，组织可改为计入仓库所属组织（须启用 AI Credits 付费用量）；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费。Gemini 4 Hydrogen 与 Gemini 4 Carbon 在默认模型策略下自动启用；Claude Fable 5.2 策略默认关闭，且默认需由 Anthropic 保留提示与输出以运行安全分类器（不用于训练），符合条件的企业可申请零数据保留。2026-11-16 起 Claude Opus 5 与 GPT-5.6 Terra 已弃用；Claude Opus 4.8 的保留范围只写明个人年付订阅",
     url: "https://docs.github.com/en/copilot/get-started/plans" },
 
   { id: "plan-0096", vendor: "Cursor", plan: "Hobby", cat: "tool", region: "intl", priceM: 0, priceY: 0, cur: "USD", seat: false,
@@ -1888,6 +1888,12 @@ const API_PRICES = [
   { vendor: "Anthropic", model: "Claude Haiku 5.5", label: "Claude Haiku 5.5", region: "intl", cur: "USD", inUSD: 0.1, outUSD: 0.5, apiCache: 0.01,
     note: "2026-10-07 上线；表中为提示 ≤100K tokens 的单价。提示超过 100K 的请求整次按输入 $0.50 / 缓存读 $0.05 / 输出 $2.50 计；缓存写 5min $0.125；Batch $0.05/$0.25",
     url: "https://platform.claude.com/docs/en/about-claude/pricing" },
+  { vendor: "Anthropic", model: "Claude Fable 5.2", label: "Claude Fable 5.2", region: "intl", cur: "USD", inUSD: 8, outUSD: 40, apiCache: 0.2,
+    note: "2026-11-09 上线，API 模型 ID claude-fable-5-2。缓存写 5 分钟 $10、1 小时 $16，缓存读 $0.20；Fast 模式 $16/$80；Batch $4/$20",
+    url: "https://platform.claude.com/docs/en/about-claude/pricing" },
+  { vendor: "Anthropic", model: "Claude Mythos 5.2", label: "Claude Mythos 5.2", region: "intl", cur: "USD", inUSD: 8, outUSD: 40, apiCache: 0.2,
+    note: "与 Fable 5.2 同价，定价页标明 limited availability：需通过网络安全或生命科学核验计划，不是公开默认可购模型。缓存写 5 分钟 $10、1 小时 $16，缓存读 $0.20；Fast 模式 $16/$80；Batch $4/$20",
+    url: "https://platform.claude.com/docs/en/about-claude/pricing" },
   { vendor: "OpenAI", model: "gpt-6-astra", label: "GPT-6 Astra", region: "intl", cur: "USD", inUSD: 10, outUSD: 50, apiCache: 1,
     note: "缓存输入 $1；长上下文档 $20/$75；Fast 模式 $20/$100；Ultrafast $60/$300、缓存 $6；Batch/Flex 5 折",
     url: "https://developers.openai.com/api/docs/pricing" },
@@ -1917,6 +1923,12 @@ const API_PRICES = [
     url: "https://ai.google.dev/gemini-api/docs/pricing" },
   { vendor: "Google", model: "Gemini 4 Argon", label: "Gemini 4 Argon", region: "intl", cur: "USD", inUSD: 2, outUSD: 10, apiCache: 0.1,
     note: "介绍价至 2026-11-30，12-01 起 $4 / $20、缓存 $0.20；输出含 thinking；Batch/Flex 半价，Priority $3.60/$18；只支持隐式缓存；1M 统一输入输出上下文；免费层不可用",
+    url: "https://ai.google.dev/gemini-api/docs/pricing" },
+  { vendor: "Google", model: "Gemini 4 Carbon", label: "Gemini 4 Carbon", region: "intl", cur: "USD", inUSD: 2, outUSD: 10, apiCache: 0.1,
+    note: "gemini-4-carbon。介绍价至 2026-11-30：输入 $2、输出 $10（含 thinking）、缓存 $0.10；2026-12-01 起 $4 / $20 / $0.20。只支持隐式缓存；免费层不可用。Batch 介绍价 $1 / $5、缓存 $0.05，12-01 起 $2 / $10 / $0.10；Priority 介绍价 $3.60 / $18、缓存 $0.18，12-01 起 $7.20 / $36 / $0.36",
+    url: "https://ai.google.dev/gemini-api/docs/pricing" },
+  { vendor: "Google", model: "Gemini 4 Hydrogen", label: "Gemini 4 Hydrogen", region: "intl", cur: "USD", inUSD: 1.5, outUSD: 7.5, apiCache: 0.075,
+    note: "gemini-4-hydrogen。付费层输入 $1.50、输出 $7.50（含 thinking）、缓存 $0.075，1M 上下文不分档；免费层的输入、输出与缓存免费。只支持隐式缓存。Batch 与 Flex $0.75 / $3.75、缓存 $0.0375；Priority $2.70 / $13.50、缓存 $0.135",
     url: "https://ai.google.dev/gemini-api/docs/pricing" },
   { vendor: "Z.ai", model: "GLM-5.3", label: "GLM-5.3 (Z.ai)", region: "intl", cur: "USD", inUSD: 1.4, outUSD: 4.4, apiCache: 0.26,
     note: "缓存输入 $0.26；GLM-5.3-Flash $0.15/$0.50、缓存 $0.03；FlashX $0.37/$1.25",
@@ -2673,6 +2685,14 @@ const ESTIMATES = [
 /* date 是来源写明的发生日。checked 表示这只是本站核对到该状态的日子，不是公告日。 */
 /** @type {DynamicItem[]} */
 const DYNAMICS = [
+  { date: "2026-11-16", text: "GitHub Copilot 自 2026-11-16 起在多数体验中弃用 Claude Opus 4.8、Claude Opus 5 与 GPT-5.6 Terra。Opus 4.8 仍向个人年付订阅保留；Opus 5 已从模型选择器移除，但既有授权仍可作运行时拒绝回退。建议替代为 Claude Opus 5.5，以及 GPT-6.1 Sol 或 GPT-6 Luna。", source: "GitHub 官方更新日志", url: "https://github.blog/changelog/2026-11-16-github-copilot-models-deprecated-on-november-16-2026" },
+  { date: "2026-11-13", text: "GitHub Copilot 预告 2026-12-14 弃用 Claude Fable 5、Claude Haiku 4.5、Gemini 3.8 Flash、Gemini 4 Argon、Grok 4.6 与 Kimi K3，建议替代分别为 Fable 5.2、Haiku 5.5、Gemini 4 Hydrogen、Gemini 4 Carbon、Grok 4.7；Kimi K3 的替代尚未公布。Haiku 4.5 对个人年付订阅继续保留。本日这些模型仍在册，未提前删去。", source: "GitHub 官方更新日志", url: "https://github.blog/changelog/2026-11-13-upcoming-deprecation-of-selected-github-copilot-models-in-december" },
+  { date: "2026-11-13", text: "Gemini 4 Hydrogen 在 GitHub Copilot 正式可用，面向 Pro、Pro+、Max、Business 与 Enterprise，按供应商牌价从 AI credits 扣费。Business / Enterprise 在默认模型策略下自动启用，管理员可关闭。逐步开放。", source: "GitHub 官方更新日志", url: "https://github.blog/changelog/2026-11-13-gemini-4-hydrogen-in-github-copilot" },
+  { date: "2026-11-12", text: "Google 发布 Gemini 4 Hydrogen（gemini-4-hydrogen），面向日常编程与智能体流程。Gemini API 付费层输入 $1.50、输出 $7.50、缓存 $0.075（每百万 tokens，1M 上下文不分档，只支持隐式缓存）；免费层的输入、输出与缓存免费。付费 Google AI Pro 与 Ultra 可在 Antigravity 使用；Gemini 应用的免费用户会在自动选模时用到它。本次未重开订阅结账页，各档月价不改。", source: "Google 官方博客 / Gemini API 定价", url: "https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-hydrogen/" },
+  { date: "2026-11-10", text: "Gemini 4 Carbon（gemini-4-carbon）向开发者、企业与 Google AI Ultra 订阅者开放。付费 API 介绍价至 2026-11-30 为输入 $2、输出 $10、缓存 $0.10，12 月 1 日起 $4 / $20 / $0.20；免费层不可用，只支持隐式缓存。Ultra 可在 Antigravity、Gemini 应用与搜索 AI 模式使用。公告未写 Google AI Pro 含 Carbon。", source: "Google 官方博客 / Gemini API 定价", url: "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-carbon-now-available/" },
+  { date: "2026-11-10", text: "Gemini 4 Carbon 在 GitHub Copilot 正式可用，面向 Pro+、Max、Business 与 Enterprise，不含 Pro，按供应商牌价从 AI credits 扣费。Business / Enterprise 在默认模型策略下自动启用。逐步开放。", source: "GitHub 官方更新日志", url: "https://github.blog/changelog/2026-11-10-gemini-4-carbon-in-github-copilot" },
+  { date: "2026-11-09", text: "Anthropic 发布 Claude Fable 5.2 与 Claude Mythos 5.2。二者为同一底层模型：Fable 面向全部用户，Mythos 仅向通过网络安全或生命科学核验的组织开放。API 输入 $8、输出 $40、缓存读 $0.20（每百万 tokens），Fast 模式 $16 / $80。Fable 5.2 的 API 模型 ID 为 claude-fable-5-2。公告另写含 Fable 的付费档有本周额外用量，细则页本次未单独打开，不改订阅额度。", source: "Anthropic 官方发布公告 / API 定价", url: "https://www.anthropic.com/claude-fable-and-mythos-5-2" },
+  { date: "2026-11-09", text: "Claude Fable 5.2 在 GitHub Copilot 正式可用，面向 Pro+、Max、Business 与 Enterprise，按供应商牌价从 AI credits 扣费。Business / Enterprise 的模型策略默认关闭；默认需由 Anthropic 保留提示与输出以运行安全分类器，保留数据不用于训练。符合条件的企业可在年底前走零数据保留豁免。逐步开放。", source: "GitHub 官方更新日志", url: "https://github.blog/changelog/2026-11-09-claude-fable-5-2-in-github-copilot" },
   { date: "2026-11-05", text: "OpenAI 发布 GPT-6 Cyber，用于在研究者指定的范围内查找和验证软件漏洞。首批获批的 Daybreak Red 客户可通过 API 和 Codex 使用。", source: "OpenAI 发布公告", url: "https://openai.com/index/introducing-gpt-6-cyber" },
   { date: "2026-11-05", text: "Google 发布 Gemini Omni 1.2 Flash，支持生成最长 15 秒的视频，并可用后续指令逐轮编辑。Gemini API、Google Vids 和 Gemini 企业产品开始提供该模型。", source: "Google 开发者公告", url: "https://blog.google/innovation-and-ai/technology/developers-tools/introducing-gemini-omni-1-2-flash/" },
   { date: "2026-11-05", checked: true, text: "核对 Kimi K3.1 Pro 权重：Moonshot AI 已在官方模型仓库提供下载、自部署说明和专用许可。托管 API 的模型标识为 kimi-k3.1-pro。", source: "Moonshot AI 官方模型卡", url: "https://huggingface.co/moonshotai/Kimi-K3.1-Pro" },
@@ -2795,6 +2815,8 @@ const SOURCES = [
     "https://www.anthropic.com/claude-haiku-5-5",
     "https://www.anthropic.com/claude-sonnet-5-5",
     "https://www.anthropic.com/claude-opus-5-5",
+    "https://www.anthropic.com/claude-fable-and-mythos-5-2",
+    "https://platform.claude.com/docs/en/about-claude/pricing",
     "https://platform.claude.com/docs/en/release-notes/overview",
     "https://support.claude.com/en/articles/9797557-usage-limit-best-practices",
   ]},
@@ -2814,6 +2836,9 @@ const SOURCES = [
     "https://www.theverge.com/tech/933233/google-ai-ultra-plan-price-change",
     "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-argon/",
     "https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-argon/",
+    "https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-hydrogen/",
+    "https://blog.google/innovation-and-ai/technology/developers-tools/build-with-gemini-4-hydrogen/",
+    "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-carbon-now-available/",
     "https://one.google.com/about/google-ai-plans/",
     "https://ai.google.dev/gemini-api/docs/pricing",
     "https://ai.google.dev/gemini-api/docs/models/gemini-4-argon",
@@ -2845,6 +2870,11 @@ const SOURCES = [
     "https://github.blog/changelog/2026-10-08-copilot-code-review-new-organization-billing-options-and-controls",
     "https://github.blog/changelog/2026-10-10-new-controls-and-chat-improvements-in-copilot-for-jetbrains",
     "https://github.blog/changelog/2026-10-13-gemini-4-argon-in-github-copilot",
+    "https://github.blog/changelog/2026-11-09-claude-fable-5-2-in-github-copilot",
+    "https://github.blog/changelog/2026-11-10-gemini-4-carbon-in-github-copilot",
+    "https://github.blog/changelog/2026-11-13-gemini-4-hydrogen-in-github-copilot",
+    "https://github.blog/changelog/2026-11-13-upcoming-deprecation-of-selected-github-copilot-models-in-december",
+    "https://github.blog/changelog/2026-11-16-github-copilot-models-deprecated-on-november-16-2026",
     "https://github.blog/changelog/2026-10-13-enterprise-managed-settings-enforcement-updates",
     "https://github.blog/changelog/2026-10-12-client-telemetry-user-attribution-and-configurable-capture",
   ]},
@@ -3045,7 +3075,7 @@ const UNCERTAIN = [
 /* 逐条官方核价记录；由 audit/pricing-verification-2026-10-04.json 维护。 */
 /** @type {PriceChecks} */
 const PRICE_CHECKS = {
-  "checkedAt": "2026-10-26",
+  "checkedAt": "2026-11-17",
   "sources": {
     "claude-plans": {
       "url": "https://claude.com/pricing",
@@ -3733,6 +3763,61 @@ const PRICE_CHECKS = {
       "url": "https://about.fb.com/news/2026/10/introducing-muse-wonder-models/",
       "evidence": "10-12历史公告确认Wonder API/Muse Code与Full订阅入口；核查日不作新品或GA发布日期。",
       "checkedAt": "2026-10-26"
+    },
+    "google-api-pricing-20261117": {
+      "url": "https://ai.google.dev/gemini-api/docs/pricing",
+      "evidence": "2026-11-17 读取 Gemini API 定价页。gemini-4-hydrogen 付费层每 1M tokens：输入 $1.50、输出（含 thinking）$7.50、上下文缓存 $0.075；免费层这三项均为 Free of charge；只支持隐式缓存。Batch 与 Flex 为 $0.75 / $3.75、缓存 $0.0375；Priority 为 $2.70 / $13.50、缓存 $0.135。gemini-4-carbon 免费层不可用；介绍价至 2026-11-30 为输入 $2.00、输出 $10.00、缓存 $0.10，2026-12-01 起 $4.00 / $20.00 / $0.20。Batch 介绍价 $1.00 / $5.00、缓存 $0.05，之后 $2.00 / $10.00 / $0.10。Priority 介绍价 $3.60 / $18.00、缓存 $0.18，之后 $7.20 / $36.00 / $0.36。gemini-4-argon 介绍价仍为 $2 / $10 / $0.10 至 2026-11-30，与库内一致，本次不改该行。",
+      "checkedAt": "2026-11-17"
+    },
+    "google-hydrogen-blog-20261117": {
+      "url": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-hydrogen/",
+      "evidence": "Google 官方博客 2026-11-12（页眉 Last updated November 16, 2026）：发布 Gemini 4 Hydrogen，写明 1M 上下文统一价输入 $1.50、输出 $7.50。付费 Google AI Pro 与 Ultra 可在 Google Antigravity 使用；Gemini 应用免费用户通过自动选模使用。未写 Google AI Plus 的 Antigravity 资格，也未改订阅月价。",
+      "checkedAt": "2026-11-17"
+    },
+    "google-hydrogen-dev-20261117": {
+      "url": "https://blog.google/innovation-and-ai/technology/developers-tools/build-with-gemini-4-hydrogen/",
+      "evidence": "Google 开发者博客 2026-11-12：开发者可在 Gemini API、Google AI Studio、Android Studio 与 Gemini for business 使用 Hydrogen；付费 Google AI Pro 或 Ultra 订阅者可在 Google Antigravity 试用。",
+      "checkedAt": "2026-11-17"
+    },
+    "google-carbon-blog-20261117": {
+      "url": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-carbon-now-available/",
+      "evidence": "Google 官方博客 2026-11-10：Carbon 向开发者、企业、科学家和消费者开放。付费 API 介绍价与 Argon 相同，为输入 $2、输出 $10（每百万 tokens）；脚注写明 2026-11-30 后为 $4 / $20。Google AI Ultra 订阅者可在 Antigravity、Gemini 应用与搜索 AI 模式使用。公告未写 Google AI Pro 包含 Carbon。",
+      "checkedAt": "2026-11-17"
+    },
+    "anthropic-api-pricing-20261117": {
+      "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+      "evidence": "2026-11-17 读取 Anthropic API 定价页。Claude Fable 5.2：输入 $8、5 分钟缓存写 $10、1 小时缓存写 $16、缓存读 $0.20、输出 $40（每百万 tokens）。Claude Mythos 5.2 标为 limited availability，单价相同。Fast 模式两者均为输入 $16、输出 $80。Batch 两者均为输入 $4、输出 $20。",
+      "checkedAt": "2026-11-17"
+    },
+    "anthropic-fable52-blog-20261117": {
+      "url": "https://www.anthropic.com/claude-fable-and-mythos-5-2",
+      "evidence": "Anthropic 公告日期 November 9, 2026：Fable 5.2 与 Mythos 5.2 为同一底层模型。Fable 面向全部用户，Mythos 需通过 Life Sciences 或 Cyber Verification Program。标准价 $8 / $40，Fast 模式 $16 / $80。开发者使用 claude-fable-5-2。公告写含 Fable 的付费档本周有额外用量，本次未打开该促销细则页，不改订阅额度。",
+      "checkedAt": "2026-11-17"
+    },
+    "github-copilot-fable52-20261109": {
+      "url": "https://github.blog/changelog/2026-11-09-claude-fable-5-2-in-github-copilot",
+      "evidence": "GitHub 更新日志 2026-11-09：Claude Fable 5.2 对 Copilot Pro+、Max、Business、Enterprise 正式可用，按供应商牌价计入用量。Business / Enterprise 的模型策略默认关闭。默认需要 Anthropic 保留提示与输出以运行安全分类器，保留数据不用于训练。符合条件的企业在年底前可走零数据保留豁免。",
+      "checkedAt": "2026-11-17"
+    },
+    "github-copilot-carbon-20261110": {
+      "url": "https://github.blog/changelog/2026-11-10-gemini-4-carbon-in-github-copilot",
+      "evidence": "GitHub 更新日志 2026-11-10：Gemini 4 Carbon 对 Copilot Pro+、Max、Business、Enterprise 正式可用，不含 Pro。按供应商牌价计入用量。Business / Enterprise 在默认模型策略下自动启用，管理员可关闭。",
+      "checkedAt": "2026-11-17"
+    },
+    "github-copilot-hydrogen-20261113": {
+      "url": "https://github.blog/changelog/2026-11-13-gemini-4-hydrogen-in-github-copilot",
+      "evidence": "GitHub 更新日志 2026-11-13：Gemini 4 Hydrogen 对 Copilot Pro、Pro+、Max、Business、Enterprise 正式可用，按供应商牌价计入用量。Business / Enterprise 在默认模型策略下自动启用，管理员可关闭。",
+      "checkedAt": "2026-11-17"
+    },
+    "github-copilot-deprecate-20261116": {
+      "url": "https://github.blog/changelog/2026-11-16-github-copilot-models-deprecated-on-november-16-2026",
+      "evidence": "GitHub 更新日志 2026-11-16：已在多数 Copilot 体验中弃用 Claude Opus 4.8、Claude Opus 5、GPT-5.6 Terra。Opus 4.8 仍向个人年付订阅提供。Opus 5 已从模型选择器移除，仍可作运行时拒绝回退。建议替代为 Claude Opus 5.5，以及 GPT-6.1 Sol 或 GPT-6 Luna。",
+      "checkedAt": "2026-11-17"
+    },
+    "github-copilot-deprecate-20261214": {
+      "url": "https://github.blog/changelog/2026-11-13-upcoming-deprecation-of-selected-github-copilot-models-in-december",
+      "evidence": "GitHub 更新日志 2026-11-13：将于 2026-12-14 弃用 Claude Fable 5、Claude Haiku 4.5、Gemini 3.8 Flash、Gemini 4 Argon、Grok 4.6、Kimi K3。Haiku 4.5 对个人年付订阅继续保留。建议替代依次为 Fable 5.2、Haiku 5.5、Gemini 4 Hydrogen、Gemini 4 Carbon、Grok 4.7；Kimi K3 的替代尚未公布。本次不把这些仍在售的模型从清单删除。",
+      "checkedAt": "2026-11-17"
     }
   },
   "rows": {
@@ -3870,30 +3955,30 @@ const PRICE_CHECKS = {
     },
     "plan:plan-0017": {
       "status": "changed",
-      "checkedAt": "2026-10-14",
+      "checkedAt": "2026-11-17",
       "sourceIds": [
-        "google-plans-20261014",
-        "google-antigravity-models-20261014",
-        "google-api-pricing-20261014"
+        "google-hydrogen-blog-20261117",
+        "google-hydrogen-dev-20261117"
       ],
-      "reason": "月价 $19.99 不变（年付 $199.99 本次页面未显示，沿用 10-04 核对）；Pro 含 Gemini 4 Argon，但只在 Gemini 应用与搜索 AI 模式中提供：Antigravity 模型表 Pro 档不含，API 定价页写明 Google AI Pro 方案不含。"
+      "reason": "月价未改。官方博客写明付费 Pro 可在 Antigravity 使用 Gemini 4 Hydrogen；Argon 仍只在 Gemini 应用与搜索 AI 模式，公告未把 Carbon 列入 Pro。"
     },
     "plan:plan-0018": {
       "status": "changed",
-      "checkedAt": "2026-10-14",
+      "checkedAt": "2026-11-17",
       "sourceIds": [
-        "google-plans-20261014",
-        "google-antigravity-models-20261014"
+        "google-hydrogen-blog-20261117",
+        "google-carbon-blog-20261117"
       ],
-      "reason": "月价 $99.99 与官网比较表一致；官网写明 Ultra「Higher access to Gemini 4 Argon in Google Antigravity」，Antigravity 模型表 Ultra 可用、独立 Antigravity IDE 不支持，模型加入 Gemini 4 Argon。"
+      "reason": "月价 $99.99 未改。官方博客写明 Ultra 可使用 Gemini 4 Carbon（Antigravity、Gemini 应用与搜索 AI 模式）和 Gemini 4 Hydrogen（Antigravity）。"
     },
     "plan:plan-0019": {
-      "status": "verified",
-      "checkedAt": "2026-10-14",
+      "status": "changed",
+      "checkedAt": "2026-11-17",
       "sourceIds": [
-        "google-plans-20261014"
+        "google-hydrogen-blog-20261117",
+        "google-carbon-blog-20261117"
       ],
-      "reason": "月价 $199.99 与官网比较表一致；模型沿用 Ultra 5x（含 Gemini 4 Argon）。"
+      "reason": "月价 $199.99 未改。模型沿用 Ultra 5x，因此包含本次确认的 Gemini 4 Carbon 与 Hydrogen。"
     },
     "plan:plan-0020": {
       "status": "retired",
@@ -4593,21 +4678,24 @@ const PRICE_CHECKS = {
     },
     "plan:plan-0091": {
       "status": "changed",
-      "checkedAt": "2026-10-15",
+      "checkedAt": "2026-11-17",
       "sourceIds": [
-        "copilot-hydrafusion-20261015",
-        "copilot-hydrafusion-docs-20261015"
+        "github-copilot-hydrogen-20261113",
+        "github-copilot-deprecate-20261116",
+        "github-copilot-deprecate-20261214"
       ],
-      "reason": "新增编排入口与计费边界；月价和既有模型资格不变，不将编排池示例当作 Pro 可直接使用的旗舰清单。"
+      "reason": "月价 $10 与 1,500 credits 未改。Pro 加入 Gemini 4 Hydrogen，并移除已于 2026-11-16 弃用的 GPT-5.6 Terra。12 月 14 日才弃用的模型仍保留。"
     },
     "plan:plan-0092": {
       "status": "changed",
-      "checkedAt": "2026-10-15",
+      "checkedAt": "2026-11-17",
       "sourceIds": [
-        "copilot-hydrafusion-20261015",
-        "copilot-hydrafusion-docs-20261015"
+        "github-copilot-fable52-20261109",
+        "github-copilot-carbon-20261110",
+        "github-copilot-deprecate-20261116",
+        "github-copilot-deprecate-20261214"
       ],
-      "reason": "新增编排入口与计费边界；月价和既有模型资格不变，不将编排池示例当作 Pro 可直接使用的旗舰清单。"
+      "reason": "月价 $39 与 7,000 credits 未改。加入 Claude Fable 5.2 与 Gemini 4 Carbon。2026-11-16 起 Opus 4.8 仅个人年付仍可选，Opus 5 退出选择器但仍作拒绝回退，因此版本枚举仍保留 4.8/5/5.5，限制写在备注。"
     },
     "plan:plan-0093": {
       "status": "changed",
@@ -4620,21 +4708,25 @@ const PRICE_CHECKS = {
     },
     "plan:plan-0094": {
       "status": "changed",
-      "checkedAt": "2026-10-15",
+      "checkedAt": "2026-11-17",
       "sourceIds": [
-        "copilot-hydrafusion-20261015",
-        "copilot-hydrafusion-docs-20261015"
+        "github-copilot-hydrogen-20261113",
+        "github-copilot-carbon-20261110",
+        "github-copilot-fable52-20261109",
+        "github-copilot-deprecate-20261116"
       ],
-      "reason": "新增编排入口与计费边界；月价和既有模型资格不变，不将编排池示例当作 Pro 可直接使用的旗舰清单。"
+      "reason": "席位价 $19 与 1,900 credits 未改。Business 可用 Hydrogen、Carbon 与 Fable 5.2。Fable 5.2 策略默认关闭并默认保留数据。Opus 4.8 的保留范围只写明个人年付。"
     },
     "plan:plan-0095": {
       "status": "changed",
-      "checkedAt": "2026-10-15",
+      "checkedAt": "2026-11-17",
       "sourceIds": [
-        "copilot-hydrafusion-20261015",
-        "copilot-hydrafusion-docs-20261015"
+        "github-copilot-hydrogen-20261113",
+        "github-copilot-carbon-20261110",
+        "github-copilot-fable52-20261109",
+        "github-copilot-deprecate-20261116"
       ],
-      "reason": "新增编排入口与计费边界；月价和既有模型资格不变，不将编排池示例当作 Pro 可直接使用的旗舰清单。"
+      "reason": "席位价 $39 与 3,900 credits 未改。Enterprise 可用 Hydrogen、Carbon 与 Fable 5.2。Fable 5.2 策略默认关闭；符合条件的企业可另行申请零数据保留。"
     },
     "plan:plan-0096": {
       "status": "changed",
@@ -6122,6 +6214,42 @@ const PRICE_CHECKS = {
         "meta-models-current-20261026"
       ],
       "reason": "10-26 重读官方四档订阅，美元月价与原10-14记录一致；补充默认Contributor及关闭后的额度边界、韩国和Windows语音限制，不构造涨价。"
+    },
+    "api:Google|Gemini 4 Hydrogen": {
+      "status": "verified",
+      "checkedAt": "2026-11-17",
+      "sourceIds": [
+        "google-api-pricing-20261117",
+        "google-hydrogen-blog-20261117"
+      ],
+      "reason": "新收录：付费层输入 $1.50、输出 $7.50、缓存 $0.075；免费层输入、输出与缓存免费。Batch/Flex 与 Priority 写在备注。"
+    },
+    "api:Google|Gemini 4 Carbon": {
+      "status": "verified",
+      "checkedAt": "2026-11-17",
+      "sourceIds": [
+        "google-api-pricing-20261117",
+        "google-carbon-blog-20261117"
+      ],
+      "reason": "新收录：介绍价至 2026-11-30 为输入 $2、输出 $10、缓存 $0.10；2026-12-01 起 $4 / $20 / $0.20。免费层不可用。Batch 与 Priority 写在备注。"
+    },
+    "api:Anthropic|Claude Fable 5.2": {
+      "status": "verified",
+      "checkedAt": "2026-11-17",
+      "sourceIds": [
+        "anthropic-api-pricing-20261117",
+        "anthropic-fable52-blog-20261117"
+      ],
+      "reason": "新收录：输入 $8、输出 $40、缓存读 $0.20。Fast 模式 $16/$80，Batch $4/$20，缓存写价格写在备注。"
+    },
+    "api:Anthropic|Claude Mythos 5.2": {
+      "status": "verified",
+      "checkedAt": "2026-11-17",
+      "sourceIds": [
+        "anthropic-api-pricing-20261117",
+        "anthropic-fable52-blog-20261117"
+      ],
+      "reason": "新收录：定价页与 Fable 5.2 同价，并标明 limited availability。不把它写成公开默认可购模型。"
     }
   }
 };
