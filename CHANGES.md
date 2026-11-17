@@ -2,6 +2,14 @@
 
 > 按数据核查和代码修复批次记录。
 
+## 2026-11-17 每日巡检：Hydrogen、Carbon 与 Fable 5.2
+
+- 核对 Gemini API 定价页：新增 Gemini 4 Hydrogen（付费 $1.50 / $7.50，缓存 $0.075；免费层输入、输出与缓存免费）和 Gemini 4 Carbon（介绍价至 2026-11-30 为 $2 / $10，缓存 $0.10；12 月 1 日起 $4 / $20 / $0.20，免费层不可用）。
+- 核对 Anthropic API 定价页：新增 Claude Fable 5.2 与限量 Claude Mythos 5.2，均为输入 $8、输出 $40、缓存读 $0.20；Fast 模式 $16 / $80。
+- GitHub Copilot：Pro 起加入 Hydrogen；Pro+、Max、Business、Enterprise 加入 Carbon 与 Fable 5.2。2026-11-16 起多数体验弃用 Opus 4.8、Opus 5 与 GPT-5.6 Terra；Opus 4.8 仍留给个人年付。2026-12-14 的弃用只作预告，本日不从清单删除。
+- Google AI Pro 的模型说明加入 Hydrogen（Antigravity）；Ultra 5x / 20x 加入 Carbon 与 Hydrogen。各档月价未改。订阅结账页本次未重开。
+- 未改价的页面变化、客户案例和 zai 博客索引连续失败见巡检 PR，不写入正式价格。
+
 ## 2026-11-05 模型发布动态与每日采集
 
 - 11 月 5 日收录 GPT-6 Cyber 的首批访问资格和 Gemini Omni 1.2 Flash 的开发者入口。11 月 4 日收录 SWE-2 Flash、混元 Hy4、Ripple-65B Preview 和 Images 2.6。
