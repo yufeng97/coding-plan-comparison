@@ -2,6 +2,13 @@
 
 > 按数据核查和代码修复批次记录。
 
+## 2026-11-18：GPT-6.2 与 Copilot 模型资格
+
+- 新增 API 行：GPT-6.2 Astra（短上下文输入 $8 / 缓存 $0.40 / 输出 $40）、GPT-6.2 Sol（$2 / $0.10 / $10）、GPT-6.1 Terra（$1 / $0.05 / $5）。Terra 于 10 月 26 日发布，本次按定价页补牌价。长上下文、Fast、Batch 与有截止日期的 Ultrafast 促销写在备注。
+- ChatGPT Plus 与 Business 标准席位的额度写入官方 5 小时本地消息估算；Pro 各档在备注和额度里区分 Ultrafast。模型名单仍用原写法，避免把 GPT-6.2 显示成该档唯一型号。各档月价未改。
+- GitHub Copilot Pro+、Max、Business、Enterprise 的模型名单加入 GPT-6.2 Astra/Sol。Free 与 Pro 未列入。MAI Code 2 的年付一句含糊，未写入模型列表；MAI-Code-1.1-Flash 将于 12 月 18 日弃用，弃用前仍保留。
+- 未改页面逻辑。价格与额度变化须人工打开官方链接后再合并。
+
 ## 2026-11-05 模型发布动态与每日采集
 
 - 11 月 5 日收录 GPT-6 Cyber 的首批访问资格和 Gemini Omni 1.2 Flash 的开发者入口。11 月 4 日收录 SWE-2 Flash、混元 Hy4、Ripple-65B Preview 和 Images 2.6。

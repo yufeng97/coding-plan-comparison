@@ -11,7 +11,7 @@ const RATE_USD_CNY = 6.67;
 const RATE_INR_CNY = 6.6684 / 94.48;
 
 const META = {
-  updated: "2026-11-05",
+  updated: "2026-11-18",
   rate: RATE_USD_CNY,
   rateAsOf: "2026-11-05",
   rateSource: "https://api.frankfurter.dev/v1/2026-11-05?base=USD&symbols=CNY,INR",
@@ -308,7 +308,7 @@ const PLANS = [
     url: "https://learn.chatgpt.com/docs/pricing" },
   { id: "plan-0010", vendor: "OpenAI", plan: "ChatGPT Plus", cat: "official", region: "intl", priceM: 20, priceY: null, cur: "USD", seat: false,
     windowPeriod: "5h",
-    quota: "Codex 本地消息/5h（官方估算区间）：GPT-6.1 Sol 15–160 条、GPT-6 Sol 15–150 条、Luna 350–3,000 条、Astra 5–45 条；另有每周限额",
+    quota: "Codex 本地消息/5h（官方估算区间）：GPT-6.2 Astra 6–50 条、GPT-6.2 Sol 17–180 条、GPT-6.1 Terra 35–285 条、GPT-6.1 Sol 15–160 条、GPT-6 Sol 15–150 条、Luna 350–3,000 条、GPT-6 Astra 5–45 条；另有每周限额",
     models: "GPT-6.1 Sol / GPT-6 Sol / Luna / Astra、GPT-5.6 系列",
     tools: "Codex（Web/CLI/IDE/iOS）、云任务",
     note: "超额可购 credits top-up 或转 API 按量；无年付；ChatGPT Work 与 Codex 用量共享",
@@ -318,33 +318,33 @@ const PLANS = [
     quota: "官方 2026-10-01 页面口径：Pro 各档目前无 5 小时上限（用量见仪表盘）；含 Plus 全部模型与权益",
     models: "GPT-6 全系（Astra/Sol/6.1 Sol/Luna）、GPT-5.6 系列",
     tools: "Codex 全端 + 云 VM 任务",
-    note: "官方页标 From $100/month，实际 $100/$200/$500 三档；此前的 5x/20x 倍率口径官方页已不再标注",
+    note: "官方页标 From $100/month，实际 $100/$200/$500 三档；此前的 5x/20x 倍率口径官方页已不再标注。发布公告与速度文档未把 Ultrafast 列给 $100 档。",
     url: "https://learn.chatgpt.com/docs/pricing" },
   { id: "plan-0012", fieldRefs: {"models":"plan-0011","quota":"plan-0011"}, vendor: "OpenAI", plan: "ChatGPT Pro（$200）", cat: "official", region: "intl", priceM: 200, priceY: null, cur: "USD", seat: false,
     windowPeriod: "none",
     quota: "同 Pro $100：目前无 5 小时上限，配额高于 $100 档（官方未公布具体倍率）",
     models: "同 Pro $100",
     tools: "Codex 全端 + 云 VM 任务",
-    note: "官方定价文档确认 $200/月；具体额度以用量仪表盘为准",
+    note: "官方定价文档确认 $200/月。发布公告写明本档可用 GPT-6.2 Sol 的 Ultrafast；速度文档只明确写出 Pro $500 两款均可用。具体额度以用量仪表盘为准。",
     url: "https://learn.chatgpt.com/docs/pricing" },
   { id: "plan-0013", fieldRefs: {"models":"plan-0011","quota":"plan-0012"}, vendor: "OpenAI", plan: "ChatGPT Pro（$500）", cat: "official", region: "intl", priceM: 500, priceY: null, cur: "USD", seat: false,
     windowPeriod: "none",
-    quota: "同 Pro $200：目前无 5 小时上限；独享 Ultrafast（GPT-6 Astra 与 GPT-6.1 Sol，订阅内按 8x 计量、credits 按 6x）",
+    quota: "同 Pro $200：目前无 5 小时上限；Ultrafast 含 GPT-6.2 Astra/Sol（订阅内按 6 倍）以及 GPT-6 Astra 与 GPT-6.1 Sol（订阅内按 8 倍、credits 按 6 倍）",
     models: "同 Pro $100 + Ultrafast（GPT-6 Astra / GPT-6.1 Sol）",
     tools: "Codex 全端 + 云 VM 任务",
-    note: "2026-09 底新增档位；Ultrafast 另有符合条件的 Enterprise/Edu 可用",
+    note: "2026-09 底新增档位；GPT-6.2 的 Ultrafast 亦向符合条件的 Enterprise/Edu 开放，工作区默认关闭。",
     url: "https://learn.chatgpt.com/docs/pricing" },
   { id: "plan-0014", vendor: "OpenAI", plan: "ChatGPT Business", cat: "team", region: "intl", priceM: 25, priceY: 20, cur: "USD", seat: true,
-    quota: "标准席位限额同 Plus；另有 $100 Premium 席位（官方未公布与 Pro 档的用量倍率）",
+    quota: "标准席位本地消息/5h 与 Plus 相同（GPT-6.2 Astra 6–50、GPT-6.2 Sol 17–180、GPT-6.1 Terra 35–285、GPT-6.1 Sol 15–160、GPT-6 Sol 15–150、Luna 350–3,000、GPT-6 Astra 5–45）；另有 $100 Premium 席位（官方未公布与 Pro 档的用量倍率）",
     models: "GPT-6 系列",
     tools: "Codex（含 CLI/IDE）、SAML SSO、MFA",
-    note: "原 ChatGPT Team 计划已并入 Business；2+ 用户",
+    note: "原 ChatGPT Team 计划已并入 Business；2+ 用户。功能表未把 Ultrafast 列给 Business。",
     url: "https://learn.chatgpt.com/docs/pricing" },
   { id: "plan-0015", vendor: "OpenAI", plan: "ChatGPT Enterprise", cat: "team", region: "intl", priceM: null, priceY: null, cur: "USD", seat: true,
     quota: "flexible pricing：credits 按量，无固定限额",
     models: "全模型",
     tools: "Codex 全端、SCIM、EKM、审计 API",
-    note: "联系销售",
+    note: "联系销售。无灵活定价的席位用量与 Plus 相同；GPT-6.2 默认关闭，管理员开启后可用，Ultrafast 另需权限且默认关闭。",
     url: "https://learn.chatgpt.com/docs/pricing" },
 
   { id: "plan-0016", vendor: "Google", plan: "Google AI Plus", cat: "official", region: "intl", priceM: 4.99, priceY: null, cur: "USD", seat: false,
@@ -908,23 +908,23 @@ const PLANS = [
     quota: "2,000 次补全 + 50 次 chat（含 Edits）/月 + 少量 AI credits",
     models: "仅自动模型选择（Haiku 4.5、GPT-5 mini 等轻量）",
     tools: "IDE 插件、Copilot CLI/App（受限）",
-    note: "2026 年起 GitHub 以 AI Credits（1 credit=$0.01）取代 premium requests",
+    note: "2026 年起 GitHub 以 AI Credits（1 credit=$0.01）取代 premium requests。GPT-6.2 未向 Free 开放。MAI Code 2 Flash 的更新日志把 Free 列入名单，但同文写面向年付订阅者，月付是否可用未写明，本次不写入模型清单。",
     url: "https://github.com/features/copilot/plans" },
   { id: "plan-0091", vendor: "GitHub Copilot", plan: "Pro", cat: "tool", region: "intl", priceM: 10, priceY: null, cur: "USD", seat: false,
     windowPeriod: "month",
     quota: "1,500 AI credits/月（基础 1,000 + 弹性 500，约 $15 用量）；补全与 next-edit 无限",
     models: "Claude Haiku 4.5/5.5、Sonnet 4.6/5/5.5，Gemini 3.7–3.8 Flash，GPT-5 mini、GPT-5.3-Codex、GPT-5.4/5.4 mini、GPT-5.6 Luna/Terra、GPT-6 Luna，Kimi K3，Grok 4.5–4.7，MAI-Code-1.1-Flash 等（不含旗舰）",
     tools: "IDE 插件、Copilot CLI、Copilot App；HydraFusion / Max（VS Code、CLI、App 预览）",
-    note: "$10 基础 + $5 弹性 credits；仅月付；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费",
+    note: "$10 基础 + $5 弹性 credits；仅月付；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费。GPT-6.2 未向本档开放。MAI-Code-1.1-Flash 将于 2026-12-18 弃用，弃用前仍列在模型清单。MAI Code 2 的名单含 Pro，但同文写面向年付订阅者，月付是否可用未写明，本次不写入模型清单。",
     url: "https://docs.github.com/en/copilot/get-started/plans" },
   { id: "plan-0092", fieldRefs: {"tools":"plan-0091"}, vendor: "GitHub Copilot", plan: "Pro+", cat: "tool", region: "intl", priceM: 39, priceY: null, cur: "USD", seat: false,
     modelBaseRef: "plan-0091",
-    modelIncludes: ["Claude Opus 4.8/5/5.5","Fable 5/5.1","GPT-5.6 Sol","GPT-6 Astra/Sol","GPT-6.1 Sol","Gemini 4 Argon"],
+    modelIncludes: ["Claude Opus 4.8/5/5.5","Fable 5/5.1","GPT-5.6 Sol","GPT-6 Astra/Sol","GPT-6.1 Sol","GPT-6.2 Astra/Sol","Gemini 4 Argon"],
     windowPeriod: "month",
     quota: "7,000 AI credits/月（约 $70 用量）",
-    models: "Pro 全部 + Claude Opus 4.8/5/5.5、Fable 5/5.1、GPT-5.6 Sol、GPT-6 Astra/Sol、GPT-6.1 Sol、Gemini 4 Argon 等旗舰",
+    models: "Pro 全部 + Claude Opus 4.8/5/5.5、Fable 5/5.1、GPT-5.6 Sol、GPT-6 Astra/Sol、GPT-6.1 Sol、GPT-6.2 Astra/Sol、Gemini 4 Argon 等旗舰",
     tools: "同 Pro",
-    note: "4x+ Pro 用量；含审计日志；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费",
+    note: "4x+ Pro 用量；含审计日志；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费。2026-11-17 起可选 GPT-6.2 Astra/Sol，按供应商牌价从 AI credits 扣费，逐步开放。",
     url: "https://docs.github.com/en/copilot/get-started/plans" },
   { id: "plan-0093", fieldRefs: {"tools":"plan-0091"}, vendor: "GitHub Copilot", plan: "Max", cat: "tool", region: "intl", priceM: 100, priceY: null, cur: "USD", seat: false,
     modelBaseRef: "plan-0092", modelIncludes: [],
@@ -932,21 +932,21 @@ const PLANS = [
     quota: "20,000 AI credits/月（约 $200 用量）",
     models: "旗舰模型优先访问（Pro+ 同级模型池）",
     tools: "同 Pro",
-    note: "2026 新增个人最高档；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费",
+    note: "2026 新增个人最高档；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费。2026-11-17 起与 Pro+ 同样可选 GPT-6.2 Astra/Sol，按供应商牌价计费，逐步开放。",
     url: "https://github.com/features/copilot/plans" },
   { id: "plan-0094", vendor: "GitHub Copilot", plan: "Business", cat: "team", region: "intl", priceM: 19, priceY: null, cur: "USD", seat: true,
     windowPeriod: "month",
     quota: "1,900 AI credits/席/月",
-    models: "含旗舰模型（含 Gemini 4 Argon）+ Copilot CLI/App",
+    models: "含旗舰模型（含 Gemini 4 Argon、GPT-6.2 Astra/Sol）+ Copilot CLI/App",
     tools: "IDE 插件、组织管理；HydraFusion / Max（VS Code、CLI、App 预览）",
-    note: "按授予席位计费；Copilot 代码审查默认扣发起成员的额度，组织可改为计入仓库所属组织（须启用 AI Credits 付费用量）；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费",
+    note: "按授予席位计费；Copilot 代码审查默认扣发起成员的额度，组织可改为计入仓库所属组织（须启用 AI Credits 付费用量）；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费。2026-11-17 起可选 GPT-6.2 Astra/Sol，管理员可在模型策略中关闭，按供应商牌价计费，逐步开放。",
     url: "https://docs.github.com/en/copilot/get-started/plans" },
   { id: "plan-0095", vendor: "GitHub Copilot", plan: "Enterprise", cat: "team", region: "intl", priceM: 39, priceY: null, cur: "USD", seat: true,
     windowPeriod: "month",
     quota: "3,900 AI credits/席/月",
-    models: "旗舰模型优先访问（含 Gemini 4 Argon）+ 自定义模型",
+    models: "旗舰模型优先访问（含 Gemini 4 Argon、GPT-6.2 Astra/Sol）+ 自定义模型",
     tools: "codebase 索引、GitHub.com 集成、IP 赔偿、SSO；HydraFusion / Max（VS Code、CLI、App 预览）",
-    note: "Copilot 代码审查默认扣发起成员的额度，组织可改为计入仓库所属组织（须启用 AI Credits 付费用量）；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费",
+    note: "Copilot 代码审查默认扣发起成员的额度，组织可改为计入仓库所属组织（须启用 AI Credits 付费用量）；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费。2026-11-17 起可选 GPT-6.2 Astra/Sol，管理员可在模型策略中关闭，按供应商牌价计费，逐步开放。",
     url: "https://docs.github.com/en/copilot/get-started/plans" },
 
   { id: "plan-0096", vendor: "Cursor", plan: "Hobby", cat: "tool", region: "intl", priceM: 0, priceY: 0, cur: "USD", seat: false,
@@ -1888,11 +1888,20 @@ const API_PRICES = [
   { vendor: "Anthropic", model: "Claude Haiku 5.5", label: "Claude Haiku 5.5", region: "intl", cur: "USD", inUSD: 0.1, outUSD: 0.5, apiCache: 0.01,
     note: "2026-10-07 上线；表中为提示 ≤100K tokens 的单价。提示超过 100K 的请求整次按输入 $0.50 / 缓存读 $0.05 / 输出 $2.50 计；缓存写 5min $0.125；Batch $0.05/$0.25",
     url: "https://platform.claude.com/docs/en/about-claude/pricing" },
+  { vendor: "OpenAI", model: "gpt-6.2-astra", label: "GPT-6.2 Astra", region: "intl", cur: "USD", inUSD: 8, outUSD: 40, apiCache: 0.4,
+    note: "2026-11-17 发布。短上下文（≤272K）输入 $8、缓存读 $0.40、输出 $40；缓存写 30 分钟 $10、12 小时 $20。长上下文 $16 / $0.80 / $60。Fast $16 / $80、缓存 $0.80。Batch 半价。Ultrafast 至 2027-02-28（太平洋时间）为标准价 3 倍（$24 / $1.20 / $120），2027-03-01 起 6 倍（$48 / $2.40 / $240）。官方 Flex 表未列本模型。",
+    url: "https://developers.openai.com/api/docs/pricing" },
+  { vendor: "OpenAI", model: "gpt-6.2-sol", label: "GPT-6.2 Sol", region: "intl", cur: "USD", inUSD: 2, outUSD: 10, apiCache: 0.1,
+    note: "2026-11-17 发布，标准价与 GPT-6.1 Sol 相同。短上下文输入 $2、缓存读 $0.10、输出 $10；长上下文 $4 / $0.20 / $15。Fast $4 / $20、缓存 $0.20。Batch 半价。Ultrafast 至 2027-02-28（太平洋时间）为标准价 3 倍（$6 / $0.30 / $30），2027-03-01 起 6 倍（$12 / $0.60 / $60）。",
+    url: "https://developers.openai.com/api/docs/pricing" },
   { vendor: "OpenAI", model: "gpt-6-astra", label: "GPT-6 Astra", region: "intl", cur: "USD", inUSD: 10, outUSD: 50, apiCache: 1,
     note: "缓存输入 $1；长上下文档 $20/$75；Fast 模式 $20/$100；Ultrafast $60/$300、缓存 $6；Batch/Flex 5 折",
     url: "https://developers.openai.com/api/docs/pricing" },
   { vendor: "OpenAI", model: "gpt-6.1-sol", label: "GPT-6.1 Sol", region: "intl", cur: "USD", inUSD: 2, outUSD: 10, apiCache: 0.1,
     note: "2026-09-29 DevDay 发布；缓存输入 $0.10（GPT-6 Sol 的一半）；长上下文(>272K) $4/$15、缓存 $0.20；Fast $4/$20；Ultrafast（2026-10-08 起）$12/$60、缓存 $0.60；Batch/Flex 5 折；官方称编码对齐 Astra、约其 1/5 价",
+    url: "https://developers.openai.com/api/docs/pricing" },
+  { vendor: "OpenAI", model: "gpt-6.1-terra", label: "GPT-6.1 Terra", region: "intl", cur: "USD", inUSD: 1, outUSD: 5, apiCache: 0.05,
+    note: "2026-10-26 已发布，2026-11-18 按定价页补牌价。短上下文（≤272K）输入 $1、缓存读 $0.05、输出 $5；缓存写 30 分钟 $1.25、12 小时 $2.50。长上下文 $2 / $0.10 / $7.50。Fast $2 / $10、缓存 $0.10。Batch 与 Flex 为标准价一半。",
     url: "https://developers.openai.com/api/docs/pricing" },
   { vendor: "OpenAI", model: "gpt-6-sol", label: "GPT-6 Sol", region: "intl", cur: "USD", inUSD: 2, outUSD: 10, apiCache: 0.2,
     note: "缓存输入 $0.20；长上下文 $4/$15；Fast $4/$20",
@@ -2673,6 +2682,11 @@ const ESTIMATES = [
 /* date 是来源写明的发生日。checked 表示这只是本站核对到该状态的日子，不是公告日。 */
 /** @type {DynamicItem[]} */
 const DYNAMICS = [
+  { date: "2026-11-18", checked: true, text: "核对 GPT-6.2 与 GPT-6.1 Terra 并写入数据，各档月价未改。API 短上下文：gpt-6.2-astra 输入 $8 / 缓存 $0.40 / 输出 $40，gpt-6.2-sol 为 $2 / $0.10 / $10，gpt-6.1-terra 为 $1 / $0.05 / $5（每百万 tokens）。Plus 与标准 Business 的 5 小时本地消息估算加入 GPT-6.2 Astra 6–50、GPT-6.2 Sol 17–180、GPT-6.1 Terra 35–285，原有估算未变。Copilot Pro+、Max、Business、Enterprise 可选 GPT-6.2，按供应商牌价计费；Free 与 Pro 的更新日志未列入。", source: "OpenAI API 定价 / Codex 定价 / GitHub 更新日志", url: "https://developers.openai.com/api/docs/pricing" },
+  { date: "2026-11-17", text: "OpenAI 发布 GPT-6.2 Astra 与 GPT-6.2 Sol，模型标识为 gpt-6.2-astra、gpt-6.2-sol。ChatGPT Work 与 Codex 的 Plus、Pro、Business、Enterprise、Edu 可用；Enterprise 与 Edu 默认关闭，需管理员开启。Pro $500 两款都可开 Ultrafast；发布公告写明 Pro $200 从 GPT-6.2 Sol 起可用 Ultrafast，速度文档只明确写出 Pro $500。订阅内 Ultrafast 按 6 倍计量。API Ultrafast 至 2027-02-28（太平洋时间）为标准价 3 倍，2027-03-01 起 6 倍。标准 credits：Astra 每百万 tokens 输入 200 / 缓存 10 / 输出 1,000，Sol 为 50 / 2.5 / 250。", source: "OpenAI 发布公告与 Codex 定价", url: "https://openai.com/index/introducing-gpt-6-2-astra-sol" },
+  { date: "2026-11-17", text: "GitHub Copilot 向 Pro+、Max、Business、Enterprise 开放 GPT-6.2 Astra 与 GPT-6.2 Sol，按供应商牌价从 AI credits 扣费，逐步开放。Free 与 Pro 不在名单中。Business 与 Enterprise 管理员可用模型策略关闭。", source: "GitHub 官方更新日志", url: "https://github.blog/changelog/2026-11-17-openais-gpt-6-2-astra-and-gpt-6-2-sol-now-available" },
+  { date: "2026-11-17", text: "GitHub Copilot 推出 MAI Code 2 与 MAI Code 2 Flash，按用量计费。更新日志把 Code 2 列给 Pro、Pro+、Max、Business、Enterprise，Flash 另含 Free 与 Student，但同文写面向符合条件的年付订阅者，未说明月付是否排除，因此未写入各档模型列表。Copilot 价目表的介绍价至 2027-05-17：Code 2 为输入 $0.50 / 缓存 $0.025 / 输出 $2.50，之后 $1 / $0.05 / $5；Flash 为 $0.05 / $0.005 / $0.25，之后 $0.10 / $0.01 / $0.50（每百万 tokens）。MAI-Code-1.1-Flash 将于 2026-12-18 在全部入口弃用。", source: "GitHub 官方更新日志与模型价目", url: "https://github.blog/changelog/2026-11-17-mai-code-2-and-mai-code-2-flash-in-github-copilot" },
+  { date: "2026-11-17", text: "GitHub Copilot Fusion 可在 github.com、Visual Studio 与 GitHub Mobile 测试版中选择；正式版移动应用随后提供。本次把 Claude Sonnet 5.5 加入 Fusion Max、GPT-6.1 Terra 加入 Fusion High、MAI-Code-2 加入 Fusion Standard。不把公开榜分数写入评测数据。", source: "GitHub 官方更新日志", url: "https://github.blog/changelog/2026-11-17-github-copilot-fusion-updates-more-availability-benchmarks-and-models" },
   { date: "2026-11-05", text: "OpenAI 发布 GPT-6 Cyber，用于在研究者指定的范围内查找和验证软件漏洞。首批获批的 Daybreak Red 客户可通过 API 和 Codex 使用。", source: "OpenAI 发布公告", url: "https://openai.com/index/introducing-gpt-6-cyber" },
   { date: "2026-11-05", text: "Google 发布 Gemini Omni 1.2 Flash，支持生成最长 15 秒的视频，并可用后续指令逐轮编辑。Gemini API、Google Vids 和 Gemini 企业产品开始提供该模型。", source: "Google 开发者公告", url: "https://blog.google/innovation-and-ai/technology/developers-tools/introducing-gemini-omni-1-2-flash/" },
   { date: "2026-11-05", checked: true, text: "核对 Kimi K3.1 Pro 权重：Moonshot AI 已在官方模型仓库提供下载、自部署说明和专用许可。托管 API 的模型标识为 kimi-k3.1-pro。", source: "Moonshot AI 官方模型卡", url: "https://huggingface.co/moonshotai/Kimi-K3.1-Pro" },
@@ -2804,6 +2818,8 @@ const SOURCES = [
     "https://learn.chatgpt.com/docs/pricing",
     "https://learn.chatgpt.com/docs/agent-configuration/speed",
     "https://openai.com/index/introducing-gpt-6-1-sol",
+    "https://openai.com/index/introducing-gpt-6-2-astra-sol",
+    "https://developers.openai.com/api/docs/pricing",
     "https://developers.openai.com/api/docs/changelog",
   ]},
   { group: "Google（Gemini）", urls: [
@@ -2844,6 +2860,10 @@ const SOURCES = [
     "https://github.blog/changelog/2026-10-07-claude-haiku-5-5-in-github-copilot",
     "https://github.blog/changelog/2026-10-08-copilot-code-review-new-organization-billing-options-and-controls",
     "https://github.blog/changelog/2026-10-10-new-controls-and-chat-improvements-in-copilot-for-jetbrains",
+    "https://github.blog/changelog/2026-11-17-openais-gpt-6-2-astra-and-gpt-6-2-sol-now-available",
+    "https://github.blog/changelog/2026-11-17-mai-code-2-and-mai-code-2-flash-in-github-copilot",
+    "https://github.blog/changelog/2026-11-17-upcoming-deprecation-of-mai-code-1-1-flash-in-december",
+    "https://github.blog/changelog/2026-11-17-github-copilot-fusion-updates-more-availability-benchmarks-and-models",
     "https://github.blog/changelog/2026-10-13-gemini-4-argon-in-github-copilot",
     "https://github.blog/changelog/2026-10-13-enterprise-managed-settings-enforcement-updates",
     "https://github.blog/changelog/2026-10-12-client-telemetry-user-attribution-and-configurable-capture",
@@ -3045,7 +3065,7 @@ const UNCERTAIN = [
 /* 逐条官方核价记录；由 audit/pricing-verification-2026-10-04.json 维护。 */
 /** @type {PriceChecks} */
 const PRICE_CHECKS = {
-  "checkedAt": "2026-10-26",
+  "checkedAt": "2026-11-18",
   "sources": {
     "claude-plans": {
       "url": "https://claude.com/pricing",
@@ -3733,6 +3753,51 @@ const PRICE_CHECKS = {
       "url": "https://about.fb.com/news/2026/10/introducing-muse-wonder-models/",
       "evidence": "10-12历史公告确认Wonder API/Muse Code与Full订阅入口；核查日不作新品或GA发布日期。",
       "checkedAt": "2026-10-26"
+    },
+    "openai-gpt62-announce-20261118": {
+      "url": "https://openai.com/index/introducing-gpt-6-2-astra-sol",
+      "evidence": "2026-11-17 发布 GPT-6.2 Astra 与 Sol。API 标准价每百万 tokens：Astra 输入 $8、缓存 $0.40、输出 $40；Sol 输入 $2、缓存 $0.10、输出 $10。ChatGPT Work 与 Codex 向 Plus、Pro、Enterprise、Edu 开放。Pro $500 两款均可 Ultrafast；Pro $200 从 GPT-6.2 Sol 起可用 Ultrafast。",
+      "checkedAt": "2026-11-18"
+    },
+    "openai-api-pricing-20261118": {
+      "url": "https://developers.openai.com/api/docs/pricing",
+      "evidence": "短上下文标准价：gpt-6.2-astra $8/$0.40/$40，gpt-6.2-sol $2/$0.10/$10，gpt-6.1-terra $1/$0.05/$5。长上下文、Fast、Batch 与 Ultrafast 促销（6.2 至 2027-02-28 为 3 倍、2027-03-01 起 6 倍）另见表。Flex 表未列 gpt-6.2。",
+      "checkedAt": "2026-11-18"
+    },
+    "openai-codex-pricing-20261118": {
+      "url": "https://learn.chatgpt.com/docs/pricing",
+      "evidence": "Plus 与标准 Business 的本地消息/5h 估算：GPT-6.2 Astra 6-50、GPT-6.2 Sol 17-180、GPT-6.1 Terra 35-285、GPT-6 Astra 5-45、GPT-6.1 Sol 15-160、GPT-6 Sol 15-150、Luna 350-3000。GPT-6.2 可用于 Plus、Pro、Business、Enterprise、Edu，Enterprise/Edu 默认关闭。Ultrafast 订阅内 6 倍。功能表把 Ultrafast 列给 Pro 与 Enterprise/Edu，不列 Plus 与 Business。",
+      "checkedAt": "2026-11-18"
+    },
+    "openai-codex-speed-20261118": {
+      "url": "https://learn.chatgpt.com/docs/agent-configuration/speed",
+      "evidence": "Pro $500 的 Ultrafast 含 GPT-6.2 Astra 与 Sol。符合条件的 Enterprise 与 Edu 两款都支持，工作区默认关闭。GPT-6 Astra 与 GPT-6.1 Sol 的 Ultrafast 仍为 Pro $500 及符合条件的 Enterprise/Edu。该页未逐档写出 Pro $200。",
+      "checkedAt": "2026-11-18"
+    },
+    "copilot-gpt62-20261118": {
+      "url": "https://github.blog/changelog/2026-11-17-openais-gpt-6-2-astra-and-gpt-6-2-sol-now-available",
+      "evidence": "GPT-6.2 Astra 与 Sol 在 Copilot 面向 Pro+、Max、Business、Enterprise，按供应商牌价用量计费，逐步开放。未列入 Free 与 Pro。",
+      "checkedAt": "2026-11-18"
+    },
+    "copilot-models-20261118": {
+      "url": "https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing",
+      "evidence": "Copilot 默认档每百万 tokens：GPT-6.2 Astra 输入 $8、缓存读 $0.40、缓存写 $10、输出 $40；GPT-6.2 Sol 输入 $2、缓存读 $0.10、缓存写 $2.50、输出 $10。与 OpenAI 短上下文标准价一致。",
+      "checkedAt": "2026-11-18"
+    },
+    "copilot-mai-20261118": {
+      "url": "https://github.blog/changelog/2026-11-17-mai-code-2-and-mai-code-2-flash-in-github-copilot",
+      "evidence": "MAI Code 2 面向 Pro、Pro+、Max、Business、Enterprise；Flash 另含 Free 与 Student。同文写面向符合条件的年付订阅者，未说明月付是否排除。用量计费。",
+      "checkedAt": "2026-11-18"
+    },
+    "copilot-mai-deprecation-20261118": {
+      "url": "https://github.blog/changelog/2026-11-17-upcoming-deprecation-of-mai-code-1-1-flash-in-december",
+      "evidence": "MAI-Code-1.1-Flash 将于 2026-12-18 在全部 Copilot 入口弃用，建议改用最新 MAI Code Flash。弃用前仍可用。",
+      "checkedAt": "2026-11-18"
+    },
+    "openai-model-list-20261118": {
+      "url": "https://learn.chatgpt.com/docs/pricing",
+      "evidence": "定价页已列出 GPT-6.2 与 GPT-6.1 Terra 的用量估算和功能资格。模型名单保持原先写法，新资格记在额度与备注。",
+      "checkedAt": "2026-11-18"
     }
   },
   "rows": {
@@ -3813,52 +3878,53 @@ const PRICE_CHECKS = {
       "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
     },
     "plan:plan-0010": {
-      "status": "verified",
-      "checkedAt": "2026-10-04",
+      "status": "changed",
+      "checkedAt": "2026-11-18",
       "sourceIds": [
-        "openai-plans"
+        "openai-model-list-20261118"
       ],
-      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
+      "reason": "5 小时估算已写入 GPT-6.2 与 Terra。模型名单仍沿用 GPT-6.1 / GPT-6 的原写法，不把新版本写成该档唯一型号。"
     },
     "plan:plan-0011": {
-      "status": "verified",
-      "checkedAt": "2026-10-04",
+      "status": "changed",
+      "checkedAt": "2026-11-18",
       "sourceIds": [
-        "openai-plans"
+        "openai-model-list-20261118"
       ],
-      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
+      "reason": "模型名单仍为 GPT-6 全系的原写法。GPT-6.2 的资格见备注与动态，月价不变。"
     },
     "plan:plan-0012": {
-      "status": "verified",
-      "checkedAt": "2026-10-04",
+      "status": "changed",
+      "checkedAt": "2026-11-18",
       "sourceIds": [
-        "openai-plans"
+        "openai-model-list-20261118"
       ],
-      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
+      "reason": "模型名单仍与 $100 档相同。GPT-6.2 Sol 的 Ultrafast 写在备注。"
     },
     "plan:plan-0013": {
       "status": "changed",
-      "checkedAt": "2026-10-13",
+      "checkedAt": "2026-11-18",
       "sourceIds": [
-        "openai-codex-speed-20261013"
+        "openai-model-list-20261118"
       ],
-      "reason": "月价 $500 不变；Ultrafast 自 10-08 起同时支持 GPT-6 Astra 与 GPT-6.1 Sol，订阅内按 8 倍计量、credits 按 6 倍计费。"
+      "reason": "模型名单仍为原先的 Ultrafast 范围。GPT-6.2 的 Ultrafast 与 6 倍计量写在额度与备注。"
     },
     "plan:plan-0014": {
-      "status": "verified",
-      "checkedAt": "2026-10-04",
+      "status": "changed",
+      "checkedAt": "2026-11-18",
       "sourceIds": [
-        "openai-plans"
+        "openai-model-list-20261118"
       ],
-      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
+      "reason": "模型名单仍为 GPT-6 系列。标准席位的 5 小时估算写在额度。"
     },
     "plan:plan-0015": {
-      "status": "custom",
-      "checkedAt": "2026-10-04",
+      "status": "changed",
+      "checkedAt": "2026-11-18",
       "sourceIds": [
-        "openai-plans"
+        "openai-codex-pricing-20261118",
+        "openai-codex-speed-20261118"
       ],
-      "reason": "官方Enterprise需联系销售，无公开固定价。"
+      "reason": "仍无公开标价。无灵活定价的席位用量与 Plus 相同。GPT-6.2 默认关闭，Ultrafast 另需管理员开启。"
     },
     "plan:plan-0016": {
       "status": "changed",
@@ -4584,57 +4650,59 @@ const PRICE_CHECKS = {
       "reason": "移除笼统3–4×描述，采用官方逐模型月限额；$40常规月费及未公布年付价保持不变。"
     },
     "plan:plan-0090": {
-      "status": "verified",
-      "checkedAt": "2026-10-13",
+      "status": "changed",
+      "checkedAt": "2026-11-18",
       "sourceIds": [
-        "tools-github-models-20261013"
+        "copilot-gpt62-20261118",
+        "copilot-mai-20261118"
       ],
-      "reason": "计划页核对：免费档仅自动模型选择并含少量 AI credits，价格不变。"
+      "reason": "月价 $0 不变。GPT-6.2 更新日志未向 Free 开放。MAI Code 2 Flash 的名单含 Free，但同文写面向年付订阅者，月付是否可用未写明，因此不写入模型清单。"
     },
     "plan:plan-0091": {
       "status": "changed",
-      "checkedAt": "2026-10-15",
+      "checkedAt": "2026-11-18",
       "sourceIds": [
-        "copilot-hydrafusion-20261015",
-        "copilot-hydrafusion-docs-20261015"
+        "copilot-gpt62-20261118",
+        "copilot-mai-deprecation-20261118",
+        "copilot-mai-20261118"
       ],
-      "reason": "新增编排入口与计费边界；月价和既有模型资格不变，不将编排池示例当作 Pro 可直接使用的旗舰清单。"
+      "reason": "月价 $10 不变。GPT-6.2 未向 Pro 开放。MAI-Code-1.1-Flash 将于 2026-12-18 弃用，弃用前仍留在模型清单。MAI Code 2 的年付一句含糊，不写入模型清单。"
     },
     "plan:plan-0092": {
       "status": "changed",
-      "checkedAt": "2026-10-15",
+      "checkedAt": "2026-11-18",
       "sourceIds": [
-        "copilot-hydrafusion-20261015",
-        "copilot-hydrafusion-docs-20261015"
+        "copilot-gpt62-20261118",
+        "copilot-models-20261118"
       ],
-      "reason": "新增编排入口与计费边界；月价和既有模型资格不变，不将编排池示例当作 Pro 可直接使用的旗舰清单。"
+      "reason": "月价 $39 不变。GPT-6.2 Astra/Sol 向本档开放，按供应商牌价从 AI credits 扣费，Copilot 默认档与 OpenAI 短上下文标准价一致。"
     },
     "plan:plan-0093": {
       "status": "changed",
-      "checkedAt": "2026-10-15",
+      "checkedAt": "2026-11-18",
       "sourceIds": [
-        "copilot-hydrafusion-20261015",
-        "copilot-hydrafusion-docs-20261015"
+        "copilot-gpt62-20261118",
+        "copilot-models-20261118"
       ],
-      "reason": "新增编排入口与计费边界；月价和既有模型资格不变，不将编排池示例当作 Pro 可直接使用的旗舰清单。"
+      "reason": "月价 $100 不变。更新日志把 Max 与 Pro+ 一并列入 GPT-6.2。模型池沿用 Pro+。"
     },
     "plan:plan-0094": {
       "status": "changed",
-      "checkedAt": "2026-10-15",
+      "checkedAt": "2026-11-18",
       "sourceIds": [
-        "copilot-hydrafusion-20261015",
-        "copilot-hydrafusion-docs-20261015"
+        "copilot-gpt62-20261118",
+        "copilot-models-20261118"
       ],
-      "reason": "新增编排入口与计费边界；月价和既有模型资格不变，不将编排池示例当作 Pro 可直接使用的旗舰清单。"
+      "reason": "席位月价 $19 不变。GPT-6.2 Astra/Sol 向 Business 开放，管理员可用模型策略关闭，按供应商牌价计费。"
     },
     "plan:plan-0095": {
       "status": "changed",
-      "checkedAt": "2026-10-15",
+      "checkedAt": "2026-11-18",
       "sourceIds": [
-        "copilot-hydrafusion-20261015",
-        "copilot-hydrafusion-docs-20261015"
+        "copilot-gpt62-20261118",
+        "copilot-models-20261118"
       ],
-      "reason": "新增编排入口与计费边界；月价和既有模型资格不变，不将编排池示例当作 Pro 可直接使用的旗舰清单。"
+      "reason": "席位月价 $39 不变。GPT-6.2 Astra/Sol 向 Enterprise 开放，管理员可用模型策略关闭，按供应商牌价计费。"
     },
     "plan:plan-0096": {
       "status": "changed",
@@ -6122,6 +6190,32 @@ const PRICE_CHECKS = {
         "meta-models-current-20261026"
       ],
       "reason": "10-26 重读官方四档订阅，美元月价与原10-14记录一致；补充默认Contributor及关闭后的额度边界、韩国和Windows语音限制，不构造涨价。"
+    },
+    "api:OpenAI|gpt-6.2-astra": {
+      "status": "verified",
+      "checkedAt": "2026-11-18",
+      "sourceIds": [
+        "openai-api-pricing-20261118",
+        "openai-gpt62-announce-20261118"
+      ],
+      "reason": "定价页与发布公告一致：短上下文标准价输入 $8、缓存读 $0.40、输出 $40。长上下文、Fast、Batch 与有截止日期的 Ultrafast 促销写入备注，不计入标准单价。"
+    },
+    "api:OpenAI|gpt-6.2-sol": {
+      "status": "verified",
+      "checkedAt": "2026-11-18",
+      "sourceIds": [
+        "openai-api-pricing-20261118",
+        "openai-gpt62-announce-20261118"
+      ],
+      "reason": "定价页与发布公告一致：短上下文标准价输入 $2、缓存读 $0.10、输出 $10，与 GPT-6.1 Sol 相同。"
+    },
+    "api:OpenAI|gpt-6.1-terra": {
+      "status": "verified",
+      "checkedAt": "2026-11-18",
+      "sourceIds": [
+        "openai-api-pricing-20261118"
+      ],
+      "reason": "模型于 2026-10-26 发布，此前未入 API 表。2026-11-18 定价页短上下文为输入 $1、缓存读 $0.05、输出 $5。"
     }
   }
 };
