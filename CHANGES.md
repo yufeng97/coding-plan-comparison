@@ -2,6 +2,13 @@
 
 > 按数据核查和代码修复批次记录。
 
+## 2026-11-19 每日巡检
+
+- 收录 Gemini 4 Neon。付费 API 每百万 tokens 为输入 $3、输出 $15、缓存 $0.15，免费层不可用。公告与定价页写 1M 上下文，Antigravity 文档写至 512K。
+- Google AI Plus 的应用模型改为 Gemini 4 Hydrogen，月价仍为 $4.99。Pro 与 Ultra 加入 Neon，月价仍为 $19.99 / $99.99 / $199.99。Antigravity 模型表现将 Argon 标为付费 Pro 可用。
+- GitHub Copilot 的 Pro+、Max、Business、Enterprise 加入 Neon，月价未改。计划页另有 Copilot access：Enterprise Cloud 许可席位 $0，Standalone $10/用户/月，都不含额度。
+- 火山引擎方舟 Coding Plan 的两个月优惠已结束。Lite / Pro 常规价仍为 ¥40 / ¥200。
+
 ## 2026-11-05 模型发布动态与每日采集
 
 - 11 月 5 日收录 GPT-6 Cyber 的首批访问资格和 Gemini Omni 1.2 Flash 的开发者入口。11 月 4 日收录 SWE-2 Flash、混元 Hy4、Ripple-65B Preview 和 Images 2.6。
