@@ -1,0 +1,170 @@
+{
+  "checkedAt": "2026-11-20",
+  "incremental": true,
+  "totals": {
+    "plans": 235,
+    "api": 40,
+    "payg": 10
+  },
+  "sources": [
+    {
+      "id": "opencode-go-tools-20261120",
+      "url": "https://opencode.ai/docs/console/go/",
+      "evidence": "已验证客户端仍包括 Hermes、Claude Code、Codex、ZCode、Pi、jcode 与 Kilo Code CLI，并要求稳定会话标识。这是对同一页客户端表的措辞补正，不改变月费。"
+    },
+    {
+      "id": "kiro-pricing-surface-20261120",
+      "url": "https://kiro.dev/pricing/",
+      "evidence": "个人 Pro 仍是每用户每月 $20 的个人档，不是团队席位。工具入口仍是 Kiro IDE、CLI、Web 与 Crew。页面禁止把请求转到 Kiro 原生界面之外的第三方自动化。"
+    },
+    {
+      "id": "minimax-token-sale-20261120",
+      "url": "https://platform.minimax.cn/docs/m-plan/token-plan-notice",
+      "evidence": "Token Plan 停止新售，自动续费可按原价保留。对照表列出 M3.1 Flash，同时写明已购套餐可持续使用最新模型，因此模型名单保留 MiniMax-M3。本次不把三档标成结构化续费档，避免在未改推荐规则时把仍需展示的原价档移出新购推荐。"
+    }
+  ],
+  "records": [
+    {
+      "kind": "plan",
+      "id": "plan-0040",
+      "vendor": "OpenCode (Anomaly/SST)",
+      "name": "OpenCode Go",
+      "status": "changed",
+      "checkedAt": "2026-11-20",
+      "sourceIds": [
+        "opencode-go-tools-20261120"
+      ],
+      "reason": "保留已验证客户端与稳定会话标识的原有口径，并写入本次核对到的具体客户端版本。",
+      "patch": {
+        "tools": "OpenCode 及经验证兼容客户端（须保留稳定会话标识）：Hermes（v0.21.6+）、Claude Code、Codex、ZCode、Pi、jcode（v0.81.6+）、Kilo Code CLI（不含 VS Code 扩展）。DeepSeek Harness、GitHub Copilot Chat、Kimi Code、MiMo Code 的会话头仍不完整。端点 opencode.ai/inference/go/v1"
+      },
+      "old": {
+        "tools": "OpenCode，以及已验证的 Hermes（v0.21.6+）、Claude Code、Codex、ZCode、Pi、jcode（v0.81.6+）、Kilo Code CLI（不含 VS Code 扩展）。DeepSeek Harness、GitHub Copilot Chat、Kimi Code、MiMo Code 的会话头仍不完整。端点 opencode.ai/inference/go/v1"
+      },
+      "current": {
+        "vendor": "OpenCode (Anomaly/SST)",
+        "plan": "OpenCode Go",
+        "priceM": 10,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0075",
+      "vendor": "AWS Kiro",
+      "name": "Pro",
+      "status": "changed",
+      "checkedAt": "2026-11-20",
+      "sourceIds": [
+        "kiro-pricing-surface-20261120"
+      ],
+      "reason": "月费仍为每用户 $20、1,000 credits，保持本站原记录个人分类，个人月付与推荐范围不变。团队信用池是另一档。",
+      "patch": {
+        "tools": "Kiro IDE、CLI、Web 与 Crew。第三方自动化 harness 若把请求转到 Kiro 原生界面之外则不被允许"
+      },
+      "old": {
+        "tools": "Kiro IDE、CLI、Web、Crew，以及 ACP 兼容 IDE。把请求转到 Kiro 原生界面之外的第三方自动化 harness 不被允许"
+      },
+      "current": {
+        "vendor": "AWS Kiro",
+        "plan": "Pro",
+        "priceM": 20,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0164",
+      "vendor": "MiniMax",
+      "name": "Token Plan Plus",
+      "status": "changed",
+      "checkedAt": "2026-11-20",
+      "sourceIds": [
+        "minimax-token-sale-20261120"
+      ],
+      "reason": "停止新售写在备注。名称恢复为 Token Plan Plus，并保留 MiniMax-M3，因为说明写明已购套餐可持续使用最新模型，且没有把 M3 从 Token Plan 删除。",
+      "patch": {
+        "plan": "Token Plan Plus",
+        "renewalOnly": null,
+        "models": "MiniMax-M3、M2.7，以及老用户说明列出的文本 M3.1 Flash、图片 H3 Image、声音；不含视频 H3。已购套餐可继续使用最新模型。M3.1-Flash-Preview 已下线"
+      },
+      "old": {
+        "plan": "Token Plan Plus（老用户续费）",
+        "renewalOnly": true,
+        "models": "文本 M3.1 Flash、图片 H3 Image、声音；不含视频 H3。已购套餐可继续使用最新模型。M3.1-Flash-Preview 已下线，旧名请求由 M3.1 Flash 承接"
+      },
+      "current": {
+        "vendor": "MiniMax",
+        "plan": "Token Plan Plus",
+        "priceM": 49,
+        "priceY": null,
+        "cur": "CNY",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0165",
+      "vendor": "MiniMax",
+      "name": "Token Plan Max",
+      "status": "changed",
+      "checkedAt": "2026-11-20",
+      "sourceIds": [
+        "minimax-token-sale-20261120"
+      ],
+      "reason": "与 Plus 相同：停止新售留在备注，名称恢复，模型名单保留 MiniMax-M3。",
+      "patch": {
+        "plan": "Token Plan Max",
+        "renewalOnly": null,
+        "models": "MiniMax-M3、M2.7，以及老用户说明列出的文本 M3.1 Flash、图片 H3 Image、声音；不含视频 H3。已购套餐可继续使用最新模型"
+      },
+      "old": {
+        "plan": "Token Plan Max（老用户续费）",
+        "renewalOnly": true,
+        "models": "文本 M3.1 Flash、图片 H3 Image、声音；不含视频 H3。已购套餐可继续使用最新模型"
+      },
+      "current": {
+        "vendor": "MiniMax",
+        "plan": "Token Plan Max",
+        "priceM": 119,
+        "priceY": null,
+        "cur": "CNY",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0166",
+      "vendor": "MiniMax",
+      "name": "Token Plan Ultra",
+      "status": "changed",
+      "checkedAt": "2026-11-20",
+      "sourceIds": [
+        "minimax-token-sale-20261120"
+      ],
+      "reason": "与 Plus 相同：停止新售留在备注，名称恢复，模型名单保留 MiniMax-M3。",
+      "patch": {
+        "plan": "Token Plan Ultra",
+        "renewalOnly": null,
+        "models": "MiniMax-M3、M2.7，以及老用户说明列出的文本 M3.1 Flash、图片 H3 Image、声音；不含视频 H3。已购套餐可继续使用最新模型"
+      },
+      "old": {
+        "plan": "Token Plan Ultra（老用户续费）",
+        "renewalOnly": true,
+        "models": "文本 M3.1 Flash、图片 H3 Image、声音；不含视频 H3。已购套餐可继续使用最新模型"
+      },
+      "current": {
+        "vendor": "MiniMax",
+        "plan": "Token Plan Ultra",
+        "priceM": 469,
+        "priceY": null,
+        "cur": "CNY",
+        "seat": false
+      }
+    }
+  ]
+}

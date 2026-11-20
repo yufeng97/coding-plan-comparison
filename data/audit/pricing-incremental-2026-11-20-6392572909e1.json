@@ -1,0 +1,96 @@
+{
+  "checkedAt": "2026-11-20",
+  "incremental": true,
+  "totals": {
+    "plans": 235,
+    "api": 40,
+    "payg": 10
+  },
+  "sources": [
+    {
+      "id": "minimax-token-notice-url-20261120",
+      "url": "https://platform.minimax.cn/docs/m-plan/token-plan-notice",
+      "evidence": "Token Plan 停止新售后，老用户安排以本页为准。原 pricing-token-plan.md 已转到 M Plan 概览，不再作为这三档的现行说明。"
+    }
+  ],
+  "records": [
+    {
+      "kind": "plan",
+      "id": "plan-0164",
+      "vendor": "MiniMax",
+      "name": "Token Plan Plus（老用户续费）",
+      "status": "changed",
+      "checkedAt": "2026-11-20",
+      "sourceIds": [
+        "minimax-token-notice-url-20261120"
+      ],
+      "reason": "把续费档链接改到仍说明原价续费的老用户页。",
+      "patch": {
+        "url": "https://platform.minimax.cn/docs/m-plan/token-plan-notice"
+      },
+      "old": {
+        "url": "https://platform.minimax.cn/docs/guides/pricing-token-plan.md"
+      },
+      "current": {
+        "vendor": "MiniMax",
+        "plan": "Token Plan Plus（老用户续费）",
+        "priceM": 49,
+        "priceY": null,
+        "cur": "CNY",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0165",
+      "vendor": "MiniMax",
+      "name": "Token Plan Max（老用户续费）",
+      "status": "changed",
+      "checkedAt": "2026-11-20",
+      "sourceIds": [
+        "minimax-token-notice-url-20261120"
+      ],
+      "reason": "把续费档链接改到仍说明原价续费的老用户页。",
+      "patch": {
+        "url": "https://platform.minimax.cn/docs/m-plan/token-plan-notice"
+      },
+      "old": {
+        "url": "https://platform.minimax.cn/docs/guides/pricing-token-plan.md"
+      },
+      "current": {
+        "vendor": "MiniMax",
+        "plan": "Token Plan Max（老用户续费）",
+        "priceM": 119,
+        "priceY": null,
+        "cur": "CNY",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0166",
+      "vendor": "MiniMax",
+      "name": "Token Plan Ultra（老用户续费）",
+      "status": "changed",
+      "checkedAt": "2026-11-20",
+      "sourceIds": [
+        "minimax-token-notice-url-20261120"
+      ],
+      "reason": "把续费档链接改到仍说明原价续费的老用户页。",
+      "patch": {
+        "url": "https://platform.minimax.cn/docs/m-plan/token-plan-notice"
+      },
+      "old": {
+        "url": "https://platform.minimax.cn/docs/guides/pricing-token-plan.md"
+      },
+      "current": {
+        "vendor": "MiniMax",
+        "plan": "Token Plan Ultra（老用户续费）",
+        "priceM": 469,
+        "priceY": null,
+        "cur": "CNY",
+        "seat": false
+      }
+    }
+  ]
+}

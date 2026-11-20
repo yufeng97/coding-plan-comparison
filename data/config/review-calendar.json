@@ -55,6 +55,42 @@
       "note": "官方 2026-10-01 标记弃用，计划本日移除；当前仍可用，届时核对实际下线状态，不按日期自动删除。"
     },
     {
+      "id": "opencode-glm53-allowance-20261122",
+      "title": "复核 OpenCode GLM-5.3 更高月度额度结束后的金额",
+      "vendor": "OpenCode (Anomaly/SST)",
+      "planIds": ["plan-0040", "plan-0089", "plan-0235"],
+      "reviewOn": "2026-11-23",
+      "source": "https://opencode.ai/docs/console/go/",
+      "note": "文档写更高额度至 2026-11-22。当日接口为 Go $500、Plus $1000、Teams $505。结束后金额未公布，不按日期自动改额度。"
+    },
+    {
+      "id": "opencode-argon-discount-20261130",
+      "title": "复核 OpenCode Gemini 4 Argon 折扣结束后的标价",
+      "vendor": "OpenCode (Anomaly/SST)",
+      "planIds": ["plan-0040", "plan-0089", "plan-0235"],
+      "reviewOn": "2026-12-01",
+      "source": "https://opencode.ai/inference/go/v1/models",
+      "note": "文档写 50% 折扣至 2026-11-30。模型接口自 2026-12-01 起对 Argon 标价乘 2。月度额度当日为 Go $30、Plus $120、Teams $35。不按日期自动改价。"
+    },
+    {
+      "id": "kimchi-deepseek-v41-flash-20261202",
+      "title": "复核 Kimchi deepseek-v4.1-flash 是否已停服",
+      "vendor": "Kimchi",
+      "planIds": ["plan-0227", "plan-0228", "plan-0229"],
+      "reviewOn": "2026-12-02",
+      "source": "https://docs.kimchi.dev/docs/model-apis-pricing",
+      "note": "价目预告该日停服，替代 deepseek-v4.1-flash-1017 且同价。届时核对价目，不按日期自动删除。"
+    },
+    {
+      "id": "kimchi-kimi-k3-minimax-m3-20261217",
+      "title": "复核 Kimchi kimi-k3 与 minimax-m3 是否已停服",
+      "vendor": "Kimchi",
+      "planIds": ["plan-0227", "plan-0228", "plan-0229"],
+      "reviewOn": "2026-12-17",
+      "source": "https://docs.kimchi.dev/docs/model-apis-pricing",
+      "note": "价目预告该日停服，分别改用 kimi-k3.1-pro 与 minimax-m3.1-flash。届时核对价目，不按日期自动删除。"
+    },
+    {
       "id": "kimchi-kimi-k27-20261019",
       "title": "复核 Kimchi 的 Kimi K2.7 模型退役",
       "vendor": "Kimchi",
