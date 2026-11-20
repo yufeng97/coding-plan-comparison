@@ -1,0 +1,70 @@
+{
+  "checkedAt": "2026-11-20",
+  "incremental": true,
+  "totals": {
+    "plans": 235,
+    "api": 40,
+    "payg": 10
+  },
+  "sources": [
+    {
+      "id": "volc-coding-plan-promo-20261120",
+      "url": "https://docs.volcengine.com/docs/ark/coding-plan-personal-universal-promotion?lang=zh",
+      "evidence": "活动页写明当前活动已结束。结束后的新购、续费或升配不再享受该权益。Lite 原价 40 元、活动价 9.9 元；Pro 原价 200 元、活动价 49.9 元。活动时间为 2026 年 6 月 8 日至 2026 年 11 月 8 日。"
+    }
+  ],
+  "records": [
+    {
+      "kind": "plan",
+      "id": "plan-0210",
+      "vendor": "火山引擎方舟（字节）",
+      "name": "方舟 Coding Plan Lite",
+      "status": "changed",
+      "checkedAt": "2026-11-20",
+      "sourceIds": [
+        "volc-coding-plan-promo-20261120"
+      ],
+      "reason": "常规月价仍为 ¥40。活动页确认两个月 ¥9.9 优惠已经结束，之后的新购、续费和升配都按原价。",
+      "patch": {
+        "note": "官网常规价 ¥40/月。两个月 ¥9.9 优惠已经结束，活动页写明结束后的新购、续费或升配不再享受。年付未公开。"
+      },
+      "old": {
+        "note": "官网常规价 ¥40/月；2026-06-08 至 2026-11-08 活动期内，每账号新购、续费、升配共享最多两个月 ¥9.9 优惠资格，第三个月起恢复原价；名额有限。"
+      },
+      "current": {
+        "vendor": "火山引擎方舟（字节）",
+        "plan": "方舟 Coding Plan Lite",
+        "priceM": 40,
+        "priceY": null,
+        "cur": "CNY",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0211",
+      "vendor": "火山引擎方舟（字节）",
+      "name": "方舟 Coding Plan Pro",
+      "status": "changed",
+      "checkedAt": "2026-11-20",
+      "sourceIds": [
+        "volc-coding-plan-promo-20261120"
+      ],
+      "reason": "常规月价仍为 ¥200。活动页确认两个月 ¥49.9 优惠已经结束。",
+      "patch": {
+        "note": "官网常规价 ¥200/月。两个月 ¥49.9 优惠已经结束，活动页写明结束后的新购、续费或升配不再享受。年付未公开。"
+      },
+      "old": {
+        "note": "官网常规价 ¥200/月；2026-06-08 至 2026-11-08 活动期内，每账号新购、续费、升配共享最多两个月 ¥49.9 优惠资格，第三个月起恢复原价；名额有限。"
+      },
+      "current": {
+        "vendor": "火山引擎方舟（字节）",
+        "plan": "方舟 Coding Plan Pro",
+        "priceM": 200,
+        "priceY": null,
+        "cur": "CNY",
+        "seat": false
+      }
+    }
+  ]
+}
