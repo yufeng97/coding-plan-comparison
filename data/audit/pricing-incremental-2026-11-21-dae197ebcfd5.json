@@ -1,0 +1,171 @@
+{
+  "checkedAt": "2026-11-21",
+  "incremental": true,
+  "totals": {
+    "plans": 232,
+    "api": 40,
+    "payg": 10
+  },
+  "sources": [
+    {
+      "id": "official-opencode-go-20261121",
+      "url": "https://opencode.ai/docs/console/go/",
+      "evidence": "2026-11-21 打开官方 Go 文档：Go $10/月、Go Plus $40/月、Go Teams $20/人/月且至少 2 人。付费模型共用一个额度；各模型美元数是只用该模型时的月度全额。5 小时窗口为月度的 20%，每周为 50%。GLM-5.3 的更高额度至 2026-11-22。Gemini 4 Argon 的 50% 折扣至 2026-11-30。Go 与 Go Plus 覆盖订阅者本人和工作区 API key。未列年付。"
+    },
+    {
+      "id": "official-opencode-go-models-20261121",
+      "url": "https://opencode.ai/inference/go/v1/models",
+      "evidence": "2026-11-21 读取官方模型接口。只用该模型时的月度美元：Go / Plus 的 GLM-5.3 为 500 / 1000，DeepSeek V4.1 Flash 为 100 / 200，Gemini 4 Argon 为 30 / 120，Hy4 为 60 / 240，MiniMax M3.1 Flash 为 20 / 80，Kimi K3.1 Pro 与 Qwen4 Max 均为 15 / 60。Teams 各模型比 Go 高 5。Argon 标价自 2026-12-01 起乘 2。Argon 的 training 为 false；Muse Spark Contributor 与 Iceman Contributor Free 的 training 为 true。"
+    },
+    {
+      "id": "official-kiro-pricing-20261121",
+      "url": "https://kiro.dev/pricing/",
+      "evidence": "2026-11-21 打开官方定价页。个人月费仍为 Free $0/50 credits、Pro $20/1,000、Pro+ $40/2,000、Pro Max $100/5,000、Power $200/10,000，加购 $0.04/credit，税另计，未列年付。首次从 Free 升到 Pro：当月剩余时间免费，另有 500 trial credits，12 个月内使用；11 月 1 日前升级的仍保留 $20 抵扣。付费模型包括 Auto、GPT-5.6 Sol/Terra/Luna、Claude Opus 5.5 / Opus 5 / Sonnet 5.5 / Haiku 5.5、Grok 4.7 等。信用池为每席每月 $20、每席 500 credits、至少 2 席。付费个人档的账单地址国家列表包含中国。"
+    }
+  ],
+  "records": [
+    {
+      "kind": "plan",
+      "id": "plan-0040",
+      "vendor": "OpenCode (Anomaly/SST)",
+      "name": "OpenCode Go",
+      "status": "changed",
+      "checkedAt": "2026-11-21",
+      "sourceIds": [
+        "official-opencode-go-20261121",
+        "official-opencode-go-models-20261121"
+      ],
+      "reason": "备注改用中文称呼多人档，避免和模型名里的 Claude 被搜索串成另一家团队套餐。价格与额度数字不变。",
+      "old": {
+        "note": "月费仍为 $10，未列年付。本档覆盖订阅者本人和工作区 API key；邀请的其他成员使用免费模型或工作区余额，可升级到 Go Teams。Go Teams 为每人每月 $20、至少 2 人（最低每月 $40），每名成员自有额度，各模型比 Go 高 $5，服务账号不含，年付未公布。各模型美元数不能相加。GLM-5.3 的更高额度至 2026-11-22，其后金额未公布。Gemini 4 Argon 文档写 50% 折扣至 2026-11-30，模型接口自 2026-12-01 起标价乘 2；当前 Argon 不按 Contributor 训练。Muse Spark Contributor 与 Iceman Contributor Free 可能用于训练。"
+      },
+      "patch": {
+        "note": "月费仍为 $10，未列年付。本档覆盖订阅者本人和工作区 API key；邀请的其他成员使用免费模型或工作区余额，可升级到多人档。多人档为每人每月 $20、至少 2 人（最低每月 $40），每名成员自有额度，各模型比 Go 高 $5，服务账号不含，年付未公布。各模型美元数不能相加。GLM-5.3 的更高额度至 2026-11-22，其后金额未公布。Gemini 4 Argon 文档写 50% 折扣至 2026-11-30，模型接口自 2026-12-01 起标价乘 2；当前 Argon 不按 Contributor 训练。Muse Spark Contributor 与 Iceman Contributor Free 可能用于训练。"
+      },
+      "current": {
+        "vendor": "OpenCode (Anomaly/SST)",
+        "plan": "OpenCode Go",
+        "priceM": 10,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0089",
+      "vendor": "OpenCode (Anomaly/SST)",
+      "name": "OpenCode Go Plus",
+      "status": "changed",
+      "checkedAt": "2026-11-21",
+      "sourceIds": [
+        "official-opencode-go-20261121",
+        "official-opencode-go-models-20261121"
+      ],
+      "reason": "备注改用中文称呼多人档。月费与额度数字不变。",
+      "old": {
+        "note": "月费仍为 $40，未列年付。成员覆盖范围与 Go 文档相同，其他成员不自动获得本档额度。各模型美元数不能相加。GLM-5.3 更高额度与 Argon 标价折扣的截止日期与 Go 相同。Go Teams 的成员额度按 Go 加 $5，不是按本档计算。"
+      },
+      "patch": {
+        "note": "月费仍为 $40，未列年付。成员覆盖范围与 Go 文档相同，其他成员不自动获得本档额度。各模型美元数不能相加。GLM-5.3 更高额度与 Argon 标价折扣的截止日期与 Go 相同。多人档的成员额度按 Go 加 $5，不是按本档计算。"
+      },
+      "current": {
+        "vendor": "OpenCode (Anomaly/SST)",
+        "plan": "OpenCode Go Plus",
+        "priceM": 40,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0075",
+      "vendor": "AWS Kiro",
+      "name": "Pro",
+      "status": "changed",
+      "checkedAt": "2026-11-21",
+      "sourceIds": [
+        "official-kiro-pricing-20261121"
+      ],
+      "reason": "Pro 月费仍为 $20。入口改为 Kiro 自家 IDE、CLI、Web 与 Crew，不把兼容接口写成排除自家客户端的条件。官网计价原文为每用户每月，不能仅凭 per user 将个人档归为团队。在本项目 seat 会使其退出 isPersonalMonthly 与 eligibleProfiles，因此保持库存个人分类。税另计，未列年付。",
+      "old": {
+        "tools": "Kiro IDE、CLI、Web、Crew；ACP 兼容 IDE。Web 使用同一套额度，不另收云端计算费"
+      },
+      "patch": {
+        "tools": "Kiro IDE、CLI、Web 与 Crew。Web 使用同一套额度，不另收云端计算费"
+      },
+      "current": {
+        "vendor": "AWS Kiro",
+        "plan": "Pro",
+        "priceM": 20,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0076",
+      "vendor": "AWS Kiro",
+      "name": "Pro+",
+      "status": "verified",
+      "checkedAt": "2026-11-21",
+      "sourceIds": [
+        "official-kiro-pricing-20261121"
+      ],
+      "reason": "Pro+ 月费仍为 $40，个人档不按席位归类。在本项目 seat 会使其退出 isPersonalMonthly 与 eligibleProfiles，因此保持库存个人分类。",
+      "patch": {},
+      "current": {
+        "vendor": "AWS Kiro",
+        "plan": "Pro+",
+        "priceM": 40,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0077",
+      "vendor": "AWS Kiro",
+      "name": "Pro Max",
+      "status": "verified",
+      "checkedAt": "2026-11-21",
+      "sourceIds": [
+        "official-kiro-pricing-20261121"
+      ],
+      "reason": "Pro Max 月费仍为 $100，个人档不按席位归类。在本项目 seat 会使其退出 isPersonalMonthly 与 eligibleProfiles，因此保持库存个人分类。",
+      "patch": {},
+      "current": {
+        "vendor": "AWS Kiro",
+        "plan": "Pro Max",
+        "priceM": 100,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0078",
+      "vendor": "AWS Kiro",
+      "name": "Power",
+      "status": "verified",
+      "checkedAt": "2026-11-21",
+      "sourceIds": [
+        "official-kiro-pricing-20261121"
+      ],
+      "reason": "Power 月费仍为 $200，个人档不按席位归类。在本项目 seat 会使其退出 isPersonalMonthly 与 eligibleProfiles，因此保持库存个人分类。",
+      "patch": {},
+      "current": {
+        "vendor": "AWS Kiro",
+        "plan": "Power",
+        "priceM": 200,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    }
+  ]
+}

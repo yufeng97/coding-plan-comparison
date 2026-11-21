@@ -11,7 +11,7 @@ const RATE_USD_CNY = 6.67;
 const RATE_INR_CNY = 6.6684 / 94.48;
 
 const META = {
-  updated: "2026-11-05",
+  updated: "2026-11-21",
   rate: RATE_USD_CNY,
   rateAsOf: "2026-11-05",
   rateSource: "https://api.frankfurter.dev/v1/2026-11-05?base=USD&symbols=CNY,INR",
@@ -571,11 +571,11 @@ const PLANS = [
     url: "https://opencode.ai/v2/docs/console/models/" },
   { id: "plan-0040", vendor: "OpenCode (Anomaly/SST)", plan: "OpenCode Go", cat: "tool", region: "intl", priceM: 10, priceY: null, cur: "USD", seat: false,
     windowPeriod: "5h",
-    quota: "逐模型月度美元上限：$15 档（Kimi K3、GLM-5.3、Haiku 5.5 等）、$30/$60 档、DeepSeek V4.1 Flash $80；Gemini 4 Argon Contributor 限时 2× 为 $60；5h=月度20%、周=50%、月=100%",
-    models: "GLM-5.3/Flash、Kimi K3/K2.7 Code、DeepSeek V4.1、Qwen3.8、MiniMax M3、Grok 4.7、GPT 6 Luna、Claude Haiku 5.5、Gemini 4 Argon Contributor 等；Step 5 Preview Free 等为限时免费",
+    quota: "付费模型共用一个额度。下列美元是只用该模型时的月度全额：GLM-5.3 $500、DeepSeek V4.1 Flash $100、Gemini 4 Argon $30、Hy4 $60、MiniMax M3.1 Flash $20、Kimi K3.1 Pro 与 Qwen4 Max 各 $15。5 小时窗口为月度的 20%，每周为 50%。",
+    models: "GLM-5.3/Flash、Kimi K3.1 Pro/K3/K2.7 Code、DeepSeek V4.1 Flash/V4 Pro、Qwen4 Max、Qwen3.8、MiniMax M3.1 Flash/M3、Hy4/Hy3、Grok 4.7、GPT-6 Luna、GPT-5.6 Luna、Claude Haiku 5.5、Gemini 4 Argon、Muse Spark 1.3/1.2 Contributor；另有 Beam Free、Hy4 flash Free、LongCat 2.5 Free、Iceman Contributor Free 等限时免费模型",
     tools: "OpenCode 及经验证兼容客户端（Claude Code、Codex、ZCode、Kilo Code CLI、Hermes 等，须保留稳定会话标识，部分客户端需更新）；端点 opencode.ai/inference/go/v1",
-    note: "独立订阅，$10/月；每工作区仅1名成员。Argon Contributor 的提示和补全可能用于 Google 模型训练，非 ZDR；2× 用量促销结束日未公布；各模型适用上限不可相加",
-    url: "https://opencode.ai/v2/docs/console/go/" },
+    note: "月费仍为 $10，未列年付。本档覆盖订阅者本人和工作区 API key；邀请的其他成员使用免费模型或工作区余额，可升级到多人档。多人档为每人每月 $20、至少 2 人（最低每月 $40），每名成员自有额度，各模型比 Go 高 $5，服务账号不含，年付未公布。各模型美元数不能相加。GLM-5.3 的更高额度至 2026-11-22，其后金额未公布。Gemini 4 Argon 文档写 50% 折扣至 2026-11-30，模型接口自 2026-12-01 起标价乘 2；当前 Argon 不按 Contributor 训练。Muse Spark Contributor 与 Iceman Contributor Free 可能用于训练。",
+    url: "https://opencode.ai/docs/console/go/", quotaSharing: "shared" },
   { id: "plan-0041", vendor: "OpenCode (Anomaly/SST)", plan: "OpenCode Enterprise", cat: "team", region: "intl", priceM: null, priceY: null, cur: "USD", seat: true,
     quota: "私有化/自有 LLM 网关场景不按 token 收费",
     models: "任意（可强制仅用内部 AI 网关）",
@@ -798,33 +798,33 @@ const PLANS = [
   /* ---- 2026-09 增补：AWS Kiro / Factory Droid / 讯飞 Astron / 阶跃 Step Plan / Canopy Wave / OpenCode Go Plus ---- */
   { id: "plan-0074", vendor: "AWS Kiro", plan: "Free", cat: "tool", region: "intl", priceM: 0, priceY: 0, cur: "USD", seat: false,
     quota: "50 credits/月（不结转）；加购 $0.04/credit（$5/125 起，12 个月有效）",
-    models: "开放权重模型（Qwen3 Coder Next、DeepSeek 3.2、MiniMax M2.1 等）+ Claude Sonnet 4.5",
+    models: "社交登录或 AWS Builder ID 可用 Claude Sonnet 4.5，以及 DeepSeek 3.2、MiniMax M2.5、GLM-5、MiniMax M2.1、Qwen3 Coder Next 等开放权重模型；受速率限制",
     tools: "Kiro IDE / CLI / Agent",
-    note: "每月 1 日扣费；首次升级付费档送 $20 抵扣",
+    note: "每月 1 日结算。现在首次从 Free 升到 Pro，当月剩余时间免费，并另有 500 trial credits，12 个月内使用。2026-11-01 之前已经升级的，仍保留 $20 抵扣。体验额度在计划额度用完后才消耗；回到 Free 后只能用于免费档模型。",
     url: "https://kiro.dev/pricing" },
   { id: "plan-0075", vendor: "AWS Kiro", plan: "Pro", cat: "tool", region: "intl", priceM: 20, priceY: null, cur: "USD", seat: false,
     quota: "1,000 credits/月（不结转）",
-    models: "Auto、Claude Sonnet 5 / Opus 5、GPT-5.6 系列、GLM-5 等（分区域可用）",
-    tools: "Kiro IDE / CLI / Agent",
-    note: "个人用户可通过 social login / AWS Builder ID 自行购买；官方计价原文为每用户每月，税另计，团队使用每位开发者须独立订阅。加购 $0.04/credit。首次升级 $20 账单抵扣属于一次性优惠，不能抵减正常续费价；官网现行页未列年付价。",
+    models: "Auto、GPT-5.6 Sol / Terra / Luna、Claude Opus 5.5 / Opus 5 / Sonnet 5.5 / Haiku 5.5、Grok 4.7，以及 Kimi K3、DeepSeek 3.2、MiniMax M2.5、GLM-5、Qwen3 Coder Next 等开放权重模型；并非所有付费模型在所有国家可用",
+    tools: "Kiro IDE、CLI、Web 与 Crew。Web 使用同一套额度，不另收云端计算费",
+    note: "个人月费未变，税另计，未列年付。加购 $0.04/credit。首次从 Free 升到 Pro：当月剩余时间免费，另有 500 trial credits，12 个月内有效；2026-11-01 前升级的仍保留 $20 抵扣。团队信用池为每席每月 $20、每席 500 credits、至少 2 席，席间共享，未用的包含额度不结转。付费个人档的账单地址国家列表包含中国；当地能否使用某个模型仍看模型供应商的地区政策。",
     url: "https://kiro.dev/pricing" },
   { id: "plan-0076", fieldRefs: {"models":"plan-0075","tools":"plan-0075"}, vendor: "AWS Kiro", plan: "Pro+", cat: "tool", region: "intl", priceM: 40, priceY: null, cur: "USD", seat: false,
     quota: "2,000 credits/月（不结转）",
     models: "同 Pro 档",
     tools: "同 Pro 档",
-    note: "个人用户可通过 social login / AWS Builder ID 自行购买；官方计价原文为每用户每月，税另计，团队使用每位开发者须独立订阅。加购 $0.04/credit。首次升级 $20 账单抵扣属于一次性优惠，不能抵减正常续费价；官网现行页未列年付价。",
+    note: "个人月费未变，税另计，未列年付。加购 $0.04/credit。首次从 Free 升到 Pro：当月剩余时间免费，另有 500 trial credits，12 个月内有效；若直接从 Free 升到本档，免费的是 Pro 的当月折算，只支付与 Pro 的差额。2026-11-01 前升级的仍保留 $20 抵扣。团队信用池为每席每月 $20、每席 500 credits、至少 2 席。付费个人档的账单地址国家列表包含中国。",
     url: "https://kiro.dev/pricing" },
   { id: "plan-0077", fieldRefs: {"models":"plan-0075","tools":"plan-0075"}, vendor: "AWS Kiro", plan: "Pro Max", cat: "tool", region: "intl", priceM: 100, priceY: null, cur: "USD", seat: false,
     quota: "5,000 credits/月（不结转）",
     models: "同 Pro 档",
     tools: "同 Pro 档",
-    note: "个人用户可通过 social login / AWS Builder ID 自行购买；官方计价原文为每用户每月，税另计，团队使用每位开发者须独立订阅。加购 $0.04/credit。首次升级 $20 账单抵扣属于一次性优惠，不能抵减正常续费价；官网现行页未列年付价。",
+    note: "个人月费未变，税另计，未列年付。加购 $0.04/credit。首次升级若高于 Pro，免费的是 Pro 的当月折算，只支付与 Pro 的差额；另有 500 trial credits，12 个月内有效。2026-11-01 前升级的仍保留 $20 抵扣。团队信用池为每席每月 $20、每席 500 credits、至少 2 席。付费个人档的账单地址国家列表包含中国。",
     url: "https://kiro.dev/pricing" },
   { id: "plan-0078", fieldRefs: {"models":"plan-0075","tools":"plan-0075"}, vendor: "AWS Kiro", plan: "Power", cat: "tool", region: "intl", priceM: 200, priceY: null, cur: "USD", seat: false,
     quota: "10,000 credits/月（不结转）",
     models: "同 Pro 档",
     tools: "同 Pro 档",
-    note: "个人用户可通过 social login / AWS Builder ID 自行购买；官方计价原文为每用户每月，税另计，团队使用每位开发者须独立订阅。加购 $0.04/credit。首次升级 $20 账单抵扣属于一次性优惠，不能抵减正常续费价；官网现行页未列年付价。",
+    note: "个人月费未变，税另计，未列年付。加购 $0.04/credit。首次升级若高于 Pro，免费的是 Pro 的当月折算，只支付与 Pro 的差额；另有 500 trial credits，12 个月内有效。2026-11-01 前升级的仍保留 $20 抵扣。团队信用池为每席每月 $20、每席 500 credits、至少 2 席。付费个人档的账单地址国家列表包含中国。",
     url: "https://kiro.dev/pricing" },
   { id: "plan-0079", vendor: "Factory (Droid)", plan: "Droid Pro", cat: "tool", region: "intl", priceM: 20, priceY: null, cur: "USD", seat: false,
     windowPeriod: "5h",
@@ -896,11 +896,11 @@ const PLANS = [
     url: "https://canopywave.com/codingplan" },
   { id: "plan-0089", fieldRefs: {"models":"plan-0040","tools":"plan-0040"}, vendor: "OpenCode (Anomaly/SST)", plan: "OpenCode Go Plus", cat: "tool", region: "intl", priceM: 40, priceY: null, cur: "USD", seat: false,
     windowPeriod: "5h",
-    quota: "逐模型5h/周/月窗口：Kimi K3月$60、GLM-5.3月$120、GLM-5.3-Flash/K2.7 Code月$180、DeepSeek V4.1 Flash月$160；Argon Contributor 限时2×月$240。5h=20%、周=50%、月=100%",
+    quota: "与 Go 共用额度规则。只用该模型时的月度全额：GLM-5.3 $1000、DeepSeek V4.1 Flash $200、Gemini 4 Argon $120、Hy4 $240、MiniMax M3.1 Flash $80、Kimi K3.1 Pro 与 Qwen4 Max 各 $60。5 小时窗口为月度的 20%，每周为 50%。",
     models: "同 Go",
     tools: "同 Go",
-    note: "$40/月，逐模型限额不同，不能笼统视为Go的3–4×；每工作区仅1名成员，Contributor模型的数据训练政策同Go；各模型适用上限不可相加",
-    url: "https://opencode.ai/v2/docs/console/go/" },
+    note: "月费仍为 $40，未列年付。成员覆盖范围与 Go 文档相同，其他成员不自动获得本档额度。各模型美元数不能相加。GLM-5.3 更高额度与 Argon 标价折扣的截止日期与 Go 相同。多人档的成员额度按 Go 加 $5，不是按本档计算。",
+    url: "https://opencode.ai/docs/console/go/", quotaSharing: "shared" },
 
   /* ---------- 第三方工具订阅 · 国际 ---------- */
   { id: "plan-0090", vendor: "GitHub Copilot", plan: "Free", cat: "tool", region: "intl", priceM: 0, priceY: 0, cur: "USD", seat: false,
@@ -1741,14 +1741,14 @@ const PLANS = [
     quota: "5 小时 + 周 + 月三级请求次数窗口（具体数值以控制台为准）",
     models: "Doubao-Seed-Code、Doubao-Seed-Evolving、DeepSeek-V4、GLM-5.3、MiniMax-M3、Kimi-K2.8-Preview",
     tools: "Claude Code、Cursor、Cline、Codex CLI、Kilo Code、Roo Code、OpenClaw、TRAE",
-    note: "官网常规价 ¥40/月；2026-06-08 至 2026-11-08 活动期内，每账号新购、续费、升配共享最多两个月 ¥9.9 优惠资格，第三个月起恢复原价；名额有限。",
+    note: "官网常规价 ¥40/月。两个月 ¥9.9 优惠已结束；结束后的新购、续费或升配不再享受。年付未公开。",
     url: "https://docs.volcengine.com/docs/ark/coding-plan-personal-universal-promotion?lang=zh" },
   { id: "plan-0211", fieldRefs: {"models":"plan-0210","tools":"plan-0210"}, vendor: "火山引擎方舟（字节）", plan: "方舟 Coding Plan Pro", cat: "cloud", region: "cn", priceM: 200, priceY: null, cur: "CNY", seat: false,
     windowPeriod: "5h",
     quota: "5 小时 + 周 + 月三级请求次数窗口（约为 Lite 的 5 倍量级）",
     models: "同 Lite 档",
     tools: "同 Lite 档",
-    note: "官网常规价 ¥200/月；2026-06-08 至 2026-11-08 活动期内，每账号新购、续费、升配共享最多两个月 ¥49.9 优惠资格，第三个月起恢复原价；名额有限。",
+    note: "官网常规价 ¥200/月。两个月 ¥49.9 优惠已结束；结束后的新购、续费或升配不再享受。年付未公开。",
     url: "https://docs.volcengine.com/docs/ark/coding-plan-personal-universal-promotion?lang=zh" },
   { id: "plan-0212", vendor: "火山引擎方舟（字节）", plan: "方舟 Agent Plan（Small）", cat: "cloud", region: "cn", priceM: 40, priceY: null, cur: "CNY", seat: false,
     modelIncludes: ["Doubao-Seed", "GLM-5.3", "Flash", "DeepSeek-V4", "MiniMax-M3", "Kimi-K2.7-Code", "Kimi-K2.8-Preview"],
@@ -1761,10 +1761,10 @@ const PLANS = [
 
   { id: "plan-0225", vendor: "Freebuff", plan: "Free（广告支持）", cat: "tool", region: "intl", priceM: 0, priceY: null, cur: "USD", seat: false,
     codingSurface: true, ownClient: true, includedModelQuota: true, modelAccess: "included", windowPeriod: "unknown", quotaSharing: "unknown",
-    quota: "广告支持的免费模型推理；每日 Freebucks 与可用模型按地区、产品和客户端 picker 显示，不承诺无限量",
-    models: "MiMo 2.6 Flash、GLM 5.3 Flash、DeepSeek V4.1 Flash、Solar Mini 4 / Pro 4；其他模型按地区与档位",
-    tools: "Freebuff CLI、桌面（macOS/Windows/Linux）、Cloud GitHub 仓库编程",
-    note: "含模型费用，无需 API key；连接外部 Claude Code/Codex 账户的模型另由原订阅承担。官方 README 说明消息/轨迹/文件可能用于广告个性化，带训练标记模型另有内容使用条件。隐私页 10-13 更新版本于 11-12 生效，仅作预告；旧文章与当前 README 额度不同，以实际地区/客户端为准。",
+    quota: "有限访问每天 5 小时，VPN 或代理为 4 小时（1 小时 = 5 Freebucks）。免费实验模型不消耗小时。支持地区为完整访问，其他地区与 VPN 为有限访问。README 不列付费价格。",
+    models: "有限访问含 DeepSeek V4.1 Flash / Slow / Fast、Solar Mini 4、Solar Pro 4，以及不耗小时的 Beam 1.0、Glyph Cluster、Nemotron 3.5 Lightning。付费档另含 GPT-6 Luna、Muse Spark 1.3、Muse Ember、Claude Haiku 5.5、GPT-6.1 Terra。GLM 5.3 Flash、MiMo 2.6 Pro、GPT-6.1 Sol、Gemini 4 Argon、Gemini 3.8 Flash 已从目录移除",
+    tools: "Freebuff CLI、桌面（macOS/Windows/Linux）、Web、Cloud、Chat；手机应用可继续电脑上的对话",
+    note: "价格为 $0。README 写所有国家可用；支持地区为完整访问，其他地区和 VPN 为有限访问。付费档存在，但 README 不列价格，本次不新增付费套餐。首页若写无限量，与 README 的小时额度冲突，采用 README。含模型费用，无需 API key。连接外部 Claude Code 或 Codex 账户的模型另由原订阅承担。消息、轨迹和文件可能用于广告个性化。",
     url: "https://freebuff.com/" },
   { id: "plan-0226", vendor: "Kimchi", plan: "Open source（BYOK）", cat: "tool", region: "intl", priceM: 0, priceY: null, cur: "USD", seat: false,
     codingSurface: true, ownClient: true, includedModelQuota: false, modelAccess: "byok", windowPeriod: "unknown", quotaSharing: "unknown",
@@ -1776,16 +1776,16 @@ const PLANS = [
   { id: "plan-0227", vendor: "Kimchi", plan: "Coder", cat: "tool", region: "intl", priceM: 20, priceY: null, cur: "USD", seat: false,
     codingSurface: true, ownClient: true, includedModelQuota: true, modelAccess: "included", windowPeriod: "month", quotaSharing: "unknown",
     quota: "每月含 $25 模型 credits；最多 3 席位、1 队，按模型 token 单价消耗",
-    models: "Kimi K3、GLM 5.3 / Flash、DeepSeek V4.1 Flash、MiniMax M3 等托管开放权重模型，按路由和可用性",
+    models: "托管开放权重模型，含 Kimi K3.1 Pro、GLM-5.3 / Flash、DeepSeek V4.1 Flash 与 1017、MiniMax M3.1 Flash、Muse Spark Open FP4、Gemma 4 31B、Nemotron 3 Ultra 等。deepseek-v4.1-flash 于 2026-12-02 停服，kimi-k3 与 minimax-m3 于 2026-12-17 停服",
     tools: "Kimchi CLI coding agent、Inference API",
-    note: "公开月付价，税另计；模型 credit 不是固定 tokens 或无限推理。超额按公开用量价；外部 provider 路由另有 token surcharge。Kimi K2.7 将于 2026-10-19 退役，不作为长期主力模型。",
+    note: "公开月价，税另计；模型 credit 不是固定 token 数。超额按公开用量价，外部供应商路由另有附加费。kimi-k3.1-pro 为每百万 tokens 输入 $2、输出 $10；minimax-m3.1-flash 为 $0.15 / $0.60；deepseek-v4.1-flash-1017 与将停服的 deepseek-v4.1-flash 同为 $0.30 / $1.20。Code Review 附加项为每用户每月 $25，页面区域为 United States，未列年付。Workspaces 只写预约，未标价。",
     url: "https://kimchi.dev/pricing" },
   { id: "plan-0228", vendor: "Kimchi", plan: "Teams", cat: "team", region: "intl", priceM: 35, priceY: null, cur: "USD", seat: true,
     codingSurface: true, ownClient: true, includedModelQuota: true, modelAccess: "included", windowPeriod: "month", quotaSharing: "unknown",
     quota: "官网列每月含 $45 模型 credits；最多 150 席位、无限队；credit 是否逐席位累计未说明",
-    models: "Kimi K3、GLM 5.3 / Flash、DeepSeek V4.1 Flash、MiniMax M3 等托管开放权重模型，按路由和可用性",
+    models: "托管开放权重模型，含 Kimi K3.1 Pro、GLM-5.3 / Flash、DeepSeek V4.1 Flash 与 1017、MiniMax M3.1 Flash、Muse Spark Open FP4 等。deepseek-v4.1-flash 于 2026-12-02 停服，kimi-k3 与 minimax-m3 于 2026-12-17 停服",
     tools: "Kimchi CLI、Studio、Inference API、团队预算与 RBAC",
-    note: "每席位月价；官网入口为 Book a call。税另计，credit 分配范围未说明，不能按席位推算总额度；超额模型及外部 provider 路由费用另计。",
+    note: "每席月价；官网入口为预约通话。税另计。页面列出每月 $45 credits，但是否按席累计仍未说明，不能按席推算总额。模型停服日和替代单价与 Coder 价目相同。Code Review 附加项为每用户每月 $25。",
     url: "https://kimchi.dev/pricing" },
   { id: "plan-0229", vendor: "Kimchi", plan: "Enterprise", cat: "team", region: "intl", priceM: null, priceY: null, cur: "USD", seat: false,
     codingSurface: true, ownClient: true, windowPeriod: "unknown", quotaSharing: "unknown",
@@ -2673,6 +2673,13 @@ const ESTIMATES = [
 /* date 是来源写明的发生日。checked 表示这只是本站核对到该状态的日子，不是公告日。 */
 /** @type {DynamicItem[]} */
 const DYNAMICS = [
+  { date: "2026-11-21", checked: true, text: "核对火山引擎方舟 Coding Plan：Lite 与 Pro 的常规价仍为每月 ¥40 与 ¥200。2026-06-08 开始的两个月 ¥9.9 / ¥49.9 优惠已经结束，结束后的新购、续费或升配不再享受。年付未公开。", source: "火山引擎方舟官方活动页", url: "https://docs.volcengine.com/docs/ark/coding-plan-personal-universal-promotion?lang=zh" },
+  { date: "2026-11-21", checked: true, text: "核对 OpenCode Go 与 Go Plus：月费仍为 $10 与 $40。付费模型改为共用一个额度，各模型美元数是只用该模型时的月度全额。当前接口中 Go 的 GLM-5.3 为 $500、DeepSeek V4.1 Flash 为 $100、Gemini 4 Argon 为 $30；Plus 对应为 $1000、$200、$120。GLM-5.3 的更高额度至 2026-11-22。Argon 文档写 50% 折扣至 2026-11-30，接口自 2026-12-01 起标价乘 2。同页 Go Teams 为每人每月 $20、至少 2 人，每名成员自有额度且比 Go 高 $5。年付未公布。", source: "OpenCode 官方 Go 文档与模型接口", url: "https://opencode.ai/docs/console/go/" },
+  { date: "2026-11-21", checked: true, text: "核对 Kimchi：Coder 仍为每月 $20、含 $25 credits；Teams 仍为每席每月 $35，页面仍列 $45 credits，是否逐席累计未说明。文档写 deepseek-v4.1-flash 于 2026-12-02 停服，替代模型 deepseek-v4.1-flash-1017 价格相同，为每百万 tokens 输入 $0.30、输出 $1.20。kimi-k3 与 minimax-m3 于 2026-12-17 停服，替代分别为 kimi-k3.1-pro（输入 $2、输出 $10）与 minimax-m3.1-flash（输入 $0.15、输出 $0.60）。Code Review 附加项为每用户每月 $25，Workspaces 未标价。", source: "Kimchi 官方定价与模型价目", url: "https://docs.kimchi.dev/docs/model-apis-pricing" },
+  { date: "2026-11-21", checked: true, text: "核对 Kiro 个人档：Free $0/50 credits、Pro $20/1,000、Pro+ $40/2,000、Pro Max $100/5,000、Power $200/10,000，加购 $0.04/credit，月费未变。现在首次从 Free 升到 Pro，当月剩余时间免费，另有 500 trial credits，12 个月内使用；2026-11-01 前升级的仍保留 $20 抵扣。付费模型包括 Auto、GPT-5.6 Sol/Terra/Luna、Claude Opus 5.5、Grok 4.7 等。团队信用池为每席每月 $20、每席 500 credits、至少 2 席。付费个人档的账单地址列表包含中国。未列年付。", source: "Kiro 官方定价页", url: "https://kiro.dev/pricing/" },
+  { date: "2026-11-21", checked: true, text: "核对 Freebuff 官方 README：仍为 $0。有限访问每天 5 小时，VPN 或代理为 4 小时。支持地区为完整访问，其他地区为有限访问，并写明所有国家可用。目录已移除 GLM 5.3 Flash、MiMo 2.6 Pro、GPT-6.1 Sol、Gemini 4 Argon 与 Gemini 3.8 Flash。付费档存在，README 不列价格，未新增付费套餐。首页若写无限量，与 README 冲突，采用 README。", source: "Freebuff 官方仓库 README", url: "https://github.com/CodebuffAI/freebuff/blob/main/README.md" },
+  { date: "2026-11-21", checked: true, text: "MiniMax 文档列出个人订阅 M Plan 的 Go、Explore、Build。文本模型为 M3.1 Flash；Explore 与 Build 另可用视频模型 H3。用量相对 Go 约为 3 倍与 12 倍。可通过 MiniMax Code，或用 API Key 接入 Claude Code、Codex、Cursor、OpenCode。页面没有币种和金额，本次不新增套餐。", source: "MiniMax 官方 M Plan 文档", url: "https://platform.minimax.cn/docs/m-plan/intro.md" },
+  { date: "2026-11-17", text: "GitHub 公布 MAI Code 2 与 MAI Code 2 Flash 进入 Copilot，按用量计费。更新日志写二者向年付的合格订阅者提供。MAI Code 2 的可用档列出 Pro、Pro+、Max、Business、Enterprise；Flash 另含 Free 与 Student。月付订阅是否包含没有另行写明，本次不写入各档模型名单。", source: "GitHub 官方更新日志", url: "https://github.blog/changelog/2026-11-17-mai-code-2-and-mai-code-2-flash-in-github-copilot" },
   { date: "2026-11-05", text: "OpenAI 发布 GPT-6 Cyber，用于在研究者指定的范围内查找和验证软件漏洞。首批获批的 Daybreak Red 客户可通过 API 和 Codex 使用。", source: "OpenAI 发布公告", url: "https://openai.com/index/introducing-gpt-6-cyber" },
   { date: "2026-11-05", text: "Google 发布 Gemini Omni 1.2 Flash，支持生成最长 15 秒的视频，并可用后续指令逐轮编辑。Gemini API、Google Vids 和 Gemini 企业产品开始提供该模型。", source: "Google 开发者公告", url: "https://blog.google/innovation-and-ai/technology/developers-tools/introducing-gemini-omni-1-2-flash/" },
   { date: "2026-11-05", checked: true, text: "核对 Kimi K3.1 Pro 权重：Moonshot AI 已在官方模型仓库提供下载、自部署说明和专用许可。托管 API 的模型标识为 kimi-k3.1-pro。", source: "Moonshot AI 官方模型卡", url: "https://huggingface.co/moonshotai/Kimi-K3.1-Pro" },
@@ -2774,6 +2781,7 @@ const SOURCES = [
   { group: "Freebuff", urls: [
     "https://freebuff.com/",
     "https://github.com/CodebuffAI/freebuff",
+    "https://github.com/CodebuffAI/freebuff/blob/main/README.md",
     "https://freebuff.com/privacy-policy",
   ]},
   { group: "Kimchi", urls: [
@@ -2835,6 +2843,7 @@ const SOURCES = [
   ]},
   { group: "DeepSeek", urls: [ "https://api-docs.deepseek.com/quick_start/pricing" ]},
   { group: "GitHub Copilot", urls: [
+    "https://github.blog/changelog/2026-11-17-mai-code-2-and-mai-code-2-flash-in-github-copilot",
     "https://github.blog/changelog/2026-10-14-hydrafusion-updates-and-new-max-option",
     "https://docs.github.com/en/early-access/copilot/hydrafusion",
     "https://github.com/features/copilot/plans",
@@ -2919,6 +2928,7 @@ const SOURCES = [
   { group: "Kimi Code Plan / MiniMax Token Plan / 小米 MiMo Token Plan", urls: [
     "https://www.kimi.com/code",
     "https://platform.minimax.cn/docs/guides/pricing-token-plan.md",
+    "https://platform.minimax.cn/docs/m-plan/intro.md",
     "https://mimo.mi.com/docs/zh-CN/price/token-plan",
     "https://mimo.mi.com/docs/zh-CN/price/pay-as-you-go",
   ]},
@@ -2953,6 +2963,8 @@ const SOURCES = [
     "https://blog.csdn.net/jarvisuni/article/details/158928785",
   ]},
   { group: "OpenCode / R4 Coder / Command Code", urls: [
+    "https://opencode.ai/docs/console/go/",
+    "https://opencode.ai/inference/go/v1/models",
     "https://opencode.ai/v2/docs/console/go/",
     "https://opencode.ai/v2/docs/console/models/",
     "https://opencode.ai/changelog",
@@ -3045,7 +3057,7 @@ const UNCERTAIN = [
 /* 逐条官方核价记录；由 audit/pricing-verification-2026-10-04.json 维护。 */
 /** @type {PriceChecks} */
 const PRICE_CHECKS = {
-  "checkedAt": "2026-10-26",
+  "checkedAt": "2026-11-21",
   "sources": {
     "claude-plans": {
       "url": "https://claude.com/pricing",
@@ -3733,6 +3745,41 @@ const PRICE_CHECKS = {
       "url": "https://about.fb.com/news/2026/10/introducing-muse-wonder-models/",
       "evidence": "10-12历史公告确认Wonder API/Muse Code与Full订阅入口；核查日不作新品或GA发布日期。",
       "checkedAt": "2026-10-26"
+    },
+    "official-opencode-go-20261121": {
+      "url": "https://opencode.ai/docs/console/go/",
+      "evidence": "2026-11-21 打开官方 Go 文档：Go $10/月、Go Plus $40/月、Go Teams $20/人/月且至少 2 人。付费模型共用一个额度；各模型美元数是只用该模型时的月度全额。5 小时窗口为月度的 20%，每周为 50%。GLM-5.3 的更高额度至 2026-11-22。Gemini 4 Argon 的 50% 折扣至 2026-11-30。Go 与 Go Plus 覆盖订阅者本人和工作区 API key。未列年付。",
+      "checkedAt": "2026-11-21"
+    },
+    "official-opencode-go-models-20261121": {
+      "url": "https://opencode.ai/inference/go/v1/models",
+      "evidence": "2026-11-21 读取官方模型接口。只用该模型时的月度美元：Go / Plus 的 GLM-5.3 为 500 / 1000，DeepSeek V4.1 Flash 为 100 / 200，Gemini 4 Argon 为 30 / 120，Hy4 为 60 / 240，MiniMax M3.1 Flash 为 20 / 80，Kimi K3.1 Pro 与 Qwen4 Max 均为 15 / 60。Teams 各模型比 Go 高 5。Argon 标价自 2026-12-01 起乘 2。Argon 的 training 为 false；Muse Spark Contributor 与 Iceman Contributor Free 的 training 为 true。",
+      "checkedAt": "2026-11-21"
+    },
+    "official-kiro-pricing-20261121": {
+      "url": "https://kiro.dev/pricing/",
+      "evidence": "2026-11-21 打开官方定价页。个人月费仍为 Free $0/50 credits、Pro $20/1,000、Pro+ $40/2,000、Pro Max $100/5,000、Power $200/10,000，加购 $0.04/credit，税另计，未列年付。首次从 Free 升到 Pro：当月剩余时间免费，另有 500 trial credits，12 个月内使用；11 月 1 日前升级的仍保留 $20 抵扣。付费模型包括 Auto、GPT-5.6 Sol/Terra/Luna、Claude Opus 5.5 / Opus 5 / Sonnet 5.5 / Haiku 5.5、Grok 4.7 等。信用池为每席每月 $20、每席 500 credits、至少 2 席。付费个人档的账单地址国家列表包含中国。",
+      "checkedAt": "2026-11-21"
+    },
+    "official-kimchi-pricing-20261121": {
+      "url": "https://kimchi.dev/pricing",
+      "evidence": "2026-11-21 打开官方定价页，区域为 United States。Coder 仍为 $20/月、含 $25 credits；Teams 仍为 $35/席/月，页面列 $45 credits。Code Review 附加项为 $25/用户/月。Workspaces 只写 Book a call，未标价。未列年付。",
+      "checkedAt": "2026-11-21"
+    },
+    "official-kimchi-models-20261121": {
+      "url": "https://docs.kimchi.dev/docs/model-apis-pricing",
+      "evidence": "2026-11-21 打开官方模型价目。deepseek-v4.1-flash 于 2026-12-02 停服，替代 deepseek-v4.1-flash-1017，同为每百万 tokens 输入 $0.30、输出 $1.20。kimi-k3 与 minimax-m3 于 2026-12-17 停服。kimi-k3.1-pro 为输入 $2、输出 $10；minimax-m3.1-flash 为输入 $0.15、输出 $0.60。",
+      "checkedAt": "2026-11-21"
+    },
+    "official-freebuff-readme-20261121": {
+      "url": "https://raw.githubusercontent.com/CodebuffAI/freebuff/main/README.md",
+      "evidence": "2026-11-21 读取官方仓库 README。价格仍不列出，免费入口为 $0。有限访问每天 5 小时，VPN 或代理为 4 小时；1 小时等于 5 Freebucks。支持地区为完整访问，其他地区与 VPN 为有限访问，并写明所有国家可用。GLM 5.3 Flash、MiMo 2.6 Pro、GPT-6.1 Sol、Gemini 4 Argon、Gemini 3.8 Flash 已从目录移除。付费档另含 GPT-6 Luna、Muse Spark 1.3、Muse Ember、Claude Haiku 5.5、GPT-6.1 Terra，但没有金额。",
+      "checkedAt": "2026-11-21"
+    },
+    "official-volc-promo-20261121": {
+      "url": "https://docs.volcengine.com/docs/ark/coding-plan-personal-universal-promotion?lang=zh",
+      "evidence": "2026-11-21 打开官方活动页。活动时间为 2026年6月8日至2026年11月8日。页面写明当前活动已结束；结束后的新购、续费或升配不再享受本次权益。Lite 原价 40 元、活动价 9.9 元；Pro 原价 200 元、活动价 49.9 元。年付未写。",
+      "checkedAt": "2026-11-21"
     }
   },
   "rows": {
@@ -4216,11 +4263,12 @@ const PRICE_CHECKS = {
     },
     "plan:plan-0040": {
       "status": "changed",
-      "checkedAt": "2026-10-15",
+      "checkedAt": "2026-11-21",
       "sourceIds": [
-        "opencode-go-news-20261015"
+        "official-opencode-go-20261121",
+        "official-opencode-go-models-20261121"
       ],
-      "reason": "更新官方当前模型权益和端点；$10 常规月费及未公布年付价保持不变。"
+      "reason": "备注改用中文称呼多人档，避免和模型名里的 Claude 被搜索串成另一家团队套餐。价格与额度数字不变。"
     },
     "plan:plan-0041": {
       "status": "custom",
@@ -4500,48 +4548,44 @@ const PRICE_CHECKS = {
       "reason": "确认 Provider 为 $15/月加 processing fee，此外再按 API 用量付费；充值余额不过期。不是单纯零月费 PAYG，未列年付价。"
     },
     "plan:plan-0074": {
-      "status": "verified",
-      "checkedAt": "2026-10-04",
+      "status": "changed",
+      "checkedAt": "2026-11-21",
       "sourceIds": [
-        "relays-kiro"
+        "official-kiro-pricing-20261121"
       ],
-      "reason": "确认免费 $0/月；priceY=0 是免费口径，不表示有年付订阅。首次升级送 $20 credits 是一次性奖励，不影响付费档正常续费价。"
+      "reason": "免费档仍为 $0 与 50 credits。按现行定价页更正模型名单，以及首次升级不再普遍赠送 $20 抵扣。"
     },
     "plan:plan-0075": {
       "status": "changed",
-      "checkedAt": "2026-10-04",
+      "checkedAt": "2026-11-21",
       "sourceIds": [
-        "relays-kiro",
-        "relays-kiro-subscription"
+        "official-kiro-pricing-20261121"
       ],
-      "reason": "确认正常美元月费与库存相同，官网计价原文为每用户每月。social login / AWS Builder ID 用户可自行订阅，团队使用要求每位开发者拥有独立订阅；不能仅凭 per user 将个人档归为团队 seat=true。在本项目 seat 会使其退出 isPersonalMonthly 与 eligibleProfiles，因此保持库存个人分类；税另计，首次升级 $20 账单抵扣不改变正常续费价，现行页未列年付价。"
+      "reason": "Pro 月费仍为 $20。入口改为 Kiro 自家 IDE、CLI、Web 与 Crew，不把兼容接口写成排除自家客户端的条件。官网计价原文为每用户每月，不能仅凭 per user 将个人档归为团队。在本项目 seat 会使其退出 isPersonalMonthly 与 eligibleProfiles，因此保持库存个人分类。税另计，未列年付。"
     },
     "plan:plan-0076": {
-      "status": "changed",
-      "checkedAt": "2026-10-04",
+      "status": "verified",
+      "checkedAt": "2026-11-21",
       "sourceIds": [
-        "relays-kiro",
-        "relays-kiro-subscription"
+        "official-kiro-pricing-20261121"
       ],
-      "reason": "确认正常美元月费与库存相同，官网计价原文为每用户每月。social login / AWS Builder ID 用户可自行订阅，团队使用要求每位开发者拥有独立订阅；不能仅凭 per user 将个人档归为团队 seat=true。在本项目 seat 会使其退出 isPersonalMonthly 与 eligibleProfiles，因此保持库存个人分类；税另计，首次升级 $20 账单抵扣不改变正常续费价，现行页未列年付价。"
+      "reason": "Pro+ 月费仍为 $40，个人档不按席位归类。在本项目 seat 会使其退出 isPersonalMonthly 与 eligibleProfiles，因此保持库存个人分类。"
     },
     "plan:plan-0077": {
-      "status": "changed",
-      "checkedAt": "2026-10-04",
+      "status": "verified",
+      "checkedAt": "2026-11-21",
       "sourceIds": [
-        "relays-kiro",
-        "relays-kiro-subscription"
+        "official-kiro-pricing-20261121"
       ],
-      "reason": "确认正常美元月费与库存相同，官网计价原文为每用户每月。social login / AWS Builder ID 用户可自行订阅，团队使用要求每位开发者拥有独立订阅；不能仅凭 per user 将个人档归为团队 seat=true。在本项目 seat 会使其退出 isPersonalMonthly 与 eligibleProfiles，因此保持库存个人分类；税另计，首次升级 $20 账单抵扣不改变正常续费价，现行页未列年付价。"
+      "reason": "Pro Max 月费仍为 $100，个人档不按席位归类。在本项目 seat 会使其退出 isPersonalMonthly 与 eligibleProfiles，因此保持库存个人分类。"
     },
     "plan:plan-0078": {
-      "status": "changed",
-      "checkedAt": "2026-10-04",
+      "status": "verified",
+      "checkedAt": "2026-11-21",
       "sourceIds": [
-        "relays-kiro",
-        "relays-kiro-subscription"
+        "official-kiro-pricing-20261121"
       ],
-      "reason": "确认正常美元月费与库存相同，官网计价原文为每用户每月。social login / AWS Builder ID 用户可自行订阅，团队使用要求每位开发者拥有独立订阅；不能仅凭 per user 将个人档归为团队 seat=true。在本项目 seat 会使其退出 isPersonalMonthly 与 eligibleProfiles，因此保持库存个人分类；税另计，首次升级 $20 账单抵扣不改变正常续费价，现行页未列年付价。"
+      "reason": "Power 月费仍为 $200，个人档不按席位归类。在本项目 seat 会使其退出 isPersonalMonthly 与 eligibleProfiles，因此保持库存个人分类。"
     },
     "plan:plan-0079": {
       "status": "verified",
@@ -4577,11 +4621,12 @@ const PRICE_CHECKS = {
     },
     "plan:plan-0089": {
       "status": "changed",
-      "checkedAt": "2026-10-15",
+      "checkedAt": "2026-11-21",
       "sourceIds": [
-        "opencode-go-news-20261015"
+        "official-opencode-go-20261121",
+        "official-opencode-go-models-20261121"
       ],
-      "reason": "移除笼统3–4×描述，采用官方逐模型月限额；$40常规月费及未公布年付价保持不变。"
+      "reason": "备注改用中文称呼多人档。月费与额度数字不变。"
     },
     "plan:plan-0090": {
       "status": "verified",
@@ -5637,22 +5682,20 @@ const PRICE_CHECKS = {
       "reason": "官方明确目录及后续月价200元。Coding Plan页说09:30补货，Token Plan概述说售罄不补充，库存存在官方文档冲突，保留限购且不承诺可购买。"
     },
     "plan:plan-0210": {
-      "status": "verified",
-      "checkedAt": "2026-10-04",
+      "status": "changed",
+      "checkedAt": "2026-11-21",
       "sourceIds": [
-        "cn-volc-price",
-        "cn-volc-promo"
+        "official-volc-promo-20261121"
       ],
-      "reason": "官网公开常规月价与当前活动：新老用户均最多享两个月优惠，新购、续费、升配共用资格；第三个月恢复原价。年付折扣未公开。"
+      "reason": "常规月价仍为 40 元。两个月 9.9 元优惠已经结束，备注不再写成仍在活动期内。"
     },
     "plan:plan-0211": {
-      "status": "verified",
-      "checkedAt": "2026-10-04",
+      "status": "changed",
+      "checkedAt": "2026-11-21",
       "sourceIds": [
-        "cn-volc-price",
-        "cn-volc-promo"
+        "official-volc-promo-20261121"
       ],
-      "reason": "官网公开常规月价与当前活动：新老用户均最多享两个月优惠，新购、续费、升配共用资格；第三个月恢复原价。年付折扣未公开。"
+      "reason": "常规月价仍为 200 元。两个月 49.9 元优惠已经结束，备注不再写成仍在活动期内。"
     },
     "plan:plan-0212": {
       "status": "verified",
@@ -5988,14 +6031,12 @@ const PRICE_CHECKS = {
       "reason": "新收录：付费层介绍价输入 $2.00、输出 $10.00（含 thinking）、缓存 $0.10，至 2026-11-30；2026-12-01 起 $4 / $20 / $0.20，写在备注。免费层不可用。"
     },
     "plan:plan-0225": {
-      "status": "verified",
-      "checkedAt": "2026-10-15",
+      "status": "changed",
+      "checkedAt": "2026-11-21",
       "sourceIds": [
-        "freebuff-home-20261015",
-        "freebuff-readme-20261015",
-        "freebuff-privacy-20261015"
+        "official-freebuff-readme-20261121"
       ],
-      "reason": "从官方定价、文档核实并首次收录；收录日不视为产品发布日，未知年价及资格不推算。"
+      "reason": "免费档仍为 $0。按官方 README 改写每日小时额度、地区差异和现行模型目录；README 不列付费价格，不新增付费套餐。"
     },
     "plan:plan-0226": {
       "status": "verified",
@@ -6006,24 +6047,22 @@ const PRICE_CHECKS = {
       "reason": "从官方定价、文档核实并首次收录；收录日不视为产品发布日，未知年价及资格不推算。"
     },
     "plan:plan-0227": {
-      "status": "verified",
-      "checkedAt": "2026-10-15",
+      "status": "changed",
+      "checkedAt": "2026-11-21",
       "sourceIds": [
-        "kimchi-pricing-20261015",
-        "kimchi-inference-20261015",
-        "kimchi-terms-20261015"
+        "official-kimchi-pricing-20261121",
+        "official-kimchi-models-20261121"
       ],
-      "reason": "从官方定价、文档核实并首次收录；收录日不视为产品发布日，未知年价及资格不推算。"
+      "reason": "Coder 月费仍为 $20、含 $25 credits。按官方价目写入即将停服的模型和替代单价，并注明 Code Review 附加项。"
     },
     "plan:plan-0228": {
-      "status": "verified",
-      "checkedAt": "2026-10-15",
+      "status": "changed",
+      "checkedAt": "2026-11-21",
       "sourceIds": [
-        "kimchi-pricing-20261015",
-        "kimchi-inference-20261015",
-        "kimchi-terms-20261015"
+        "official-kimchi-pricing-20261121",
+        "official-kimchi-models-20261121"
       ],
-      "reason": "从官方定价、文档核实并首次收录；收录日不视为产品发布日，未知年价及资格不推算。"
+      "reason": "Teams 月费仍为每席 $35，页面仍列 $45 credits。模型停服日和替代单价与 Coder 的官方价目相同。"
     },
     "plan:plan-0229": {
       "status": "custom",
