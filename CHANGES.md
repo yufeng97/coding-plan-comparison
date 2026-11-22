@@ -2,6 +2,13 @@
 
 > 按数据核查和代码修复批次记录。
 
+## 2026-11-22 每日巡检：Gemini 4 Neon 与 OpenCode Go 额度
+
+- 核对日 2026-11-22。Gemini API 定价页确认 Gemini 4 Neon 付费层为每百万 tokens 输入 $3、缓存 $0.15、输出 $15，免费层不可用。同页补入 Gemini 4 Carbon 与 Gemini 4 Hydrogen 的标准档。Argon 介绍价未变。
+- 2026-11-18 官方博客：付费 Google AI Pro 与 Ultra 可在 Gemini 应用选择 Neon，并可在 Antigravity 使用。订阅比较页本次未重开，月价未改。
+- GitHub 更新日志同日向 Copilot Pro+、Max、Business、Enterprise 开放 Neon，不含 Free 与 Pro。Copilot 价目与 API 标准价一致。各档月价未改。
+- OpenCode Go / Go Plus 月费仍为 $10 / $40。付费模型改为共用额度。只用单一模型时，Go 的 GLM-5.3 / DeepSeek V4.1 Flash / Gemini 4 Argon 为 $500 / $100 / $30，Plus 为 $1000 / $200 / $120。GLM-5.3 更高额度至 2026-11-22。Go Teams 写在备注，未新开套餐。
+
 ## 2026-11-05 模型发布动态与每日采集
 
 - 11 月 5 日收录 GPT-6 Cyber 的首批访问资格和 Gemini Omni 1.2 Flash 的开发者入口。11 月 4 日收录 SWE-2 Flash、混元 Hy4、Ripple-65B Preview 和 Images 2.6。

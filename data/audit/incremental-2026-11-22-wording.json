@@ -1,0 +1,27 @@
+{
+  "sources": [
+    {
+      "id": "opencode-go-20261122",
+      "url": "https://opencode.ai/docs/console/go/",
+      "evidence": "2026-11-22 打开 OpenCode Go 文档。Go 仍为 $10/月，Go Plus 仍为 $40/月，未列年付。付费模型共用一个额度；各模型美元数是只用该模型时的月度全额。5 小时窗口为月度 20%，每周 50%，按付费周期重置。文档写 Gemini 4 Argon 的 50% 折扣至 2026-11-30，GLM-5.3 更高额度至 2026-11-22。Go Teams 为 $20/人/月、至少 2 人，每名成员自有额度。Muse Spark Contributor 与 Iceman Contributor Free 会用提示和补全训练。"
+    }
+  ],
+  "records": [
+    {
+      "kind": "plan",
+      "id": "plan-0040",
+      "vendor": "OpenCode (Anomaly/SST)",
+      "name": "OpenCode Go",
+      "status": "changed",
+      "checkedAt": "2026-11-22",
+      "sourceIds": ["opencode-go-20261122"],
+      "reason": "月费与额度不变。同页每人每月 $20、至少 2 人的档位仍只写在备注，称多人档，不单列套餐。",
+      "old": {
+        "note": "月费仍为 $10，未列年付。各模型美元数是只用该模型时的全额，不能相加。GLM-5.3 更高额度至 2026-11-22，其后金额文档未公布。Gemini 4 Argon 的 50% 折扣至 2026-11-30，接口自 2026-12-01 起标价乘 2。同页 Go Teams 为每人每月 $20、至少 2 人，每名成员自有额度，各模型比本档高 $5。Muse Spark Contributor 与 Iceman Contributor Free 会用提示和补全训练"
+      },
+      "patch": {
+        "note": "月费仍为 $10，未列年付。各模型美元数是只用该模型时的全额，不能相加。GLM-5.3 更高额度至 2026-11-22，其后金额文档未公布。Gemini 4 Argon 的 50% 折扣至 2026-11-30，接口自 2026-12-01 起标价乘 2。同页多人档为每人每月 $20、至少 2 人，每名成员自有额度，各模型比本档高 $5。Muse Spark Contributor 与 Iceman Contributor Free 会用提示和补全训练"
+      }
+    }
+  ]
+}
