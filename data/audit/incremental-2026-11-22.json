@@ -1,0 +1,240 @@
+{
+  "sources": [
+    {
+      "id": "google-api-pricing-20261122",
+      "url": "https://ai.google.dev/gemini-api/docs/pricing",
+      "evidence": "2026-11-22 打开 Gemini API 定价页。Gemini 4 Neon（gemini-4-neon）付费层每百万 tokens 输入 $3.00、输出（含 thinking）$15.00、缓存 $0.15，免费层不可用，只支持隐式缓存。Gemini 4 Carbon 免费层不可用，介绍价至 2026-11-30 为输入 $2.00、输出 $10.00、缓存 $0.10，2026-12-01 起 $4.00 / $20.00 / $0.20。Gemini 4 Hydrogen 免费层输入、输出与缓存免费，付费层 $1.50 / $7.50 / $0.075。Gemini 4 Argon 标准价仍为介绍价至 2026-11-30 的 $2.00 / $10.00 / $0.10，之后 $4.00 / $20.00 / $0.20。四款都只写明隐式缓存。"
+    },
+    {
+      "id": "google-neon-blog-20261122",
+      "url": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-neon/",
+      "evidence": "Google 官方博客 2026-11-18：Gemini 4 Neon 定价为每百万 tokens 输入 $3、缓存 $0.15、输出 $15，上下文 1M。付费 Google AI Pro 与 Ultra 可在 Antigravity 使用，Pro 与 Ultra 可在 Gemini 应用的模型菜单选择，也可在 AI Studio 试用。公告未写 Google AI Plus。"
+    },
+    {
+      "id": "copilot-neon-20261122",
+      "url": "https://github.blog/changelog/2026-11-18-gemini-4-neon-in-github-copilot",
+      "evidence": "GitHub 更新日志 2026-11-18：Gemini 4 Neon 在 Copilot 正式可用，向 Pro+、Max、Business 与 Enterprise 开放，不含 Free 与 Pro。按供应商牌价从用量计费。Business 与 Enterprise 管理员可在模型策略中关闭。逐步开放。同日模型价目页列出输入 $3.00、缓存 $0.15、输出 $15.00。"
+    },
+    {
+      "id": "copilot-models-20261122",
+      "url": "https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing",
+      "evidence": "2026-11-22 打开 Copilot 模型价目。Gemini 4 Neon 为正式版，每百万 tokens 输入 $3.00、缓存输入 $0.15、输出 $15.00。同页 Gemini 4 Carbon 与 Argon 的介绍价至 2026-12-01 为 $2.00 / $0.10 / $10.00，之后 Carbon 为 $4.00 / $0.20 / $20.00。Hydrogen 为 $1.50 / $0.075 / $7.50。本页不按套餐列出资格。"
+    },
+    {
+      "id": "opencode-go-20261122",
+      "url": "https://opencode.ai/docs/console/go/",
+      "evidence": "2026-11-22 打开 OpenCode Go 文档。Go 仍为 $10/月，Go Plus 仍为 $40/月，未列年付。付费模型共用一个额度；各模型美元数是只用该模型时的月度全额。5 小时窗口为月度 20%，每周 50%，按付费周期重置。文档写 Gemini 4 Argon 的 50% 折扣至 2026-11-30，GLM-5.3 更高额度至 2026-11-22。Go Teams 为 $20/人/月、至少 2 人，每名成员自有额度。Muse Spark Contributor 与 Iceman Contributor Free 会用提示和补全训练。"
+    },
+    {
+      "id": "opencode-go-models-20261122",
+      "url": "https://opencode.ai/inference/go/v1/models",
+      "evidence": "2026-11-22 读取 Go 模型接口。只用单一模型时的月度全额：Go / Plus 的 GLM-5.3 为 $500 / $1000，GLM-5.3-Flash 为 $60 / $180，DeepSeek V4.1 Flash 为 $100 / $200，Gemini 4 Argon 为 $30 / $120，Kimi K3 与 Kimi K3.1 Pro 为 $15 / $60。Argon 标价自 2026-12-01 起乘 2。接口没有写出 GLM-5.3 更高额度结束后的金额。"
+    }
+  ],
+  "records": [
+    {
+      "kind": "api",
+      "id": "Google|Gemini 4 Neon",
+      "vendor": "Google",
+      "name": "Gemini 4 Neon",
+      "status": "verified",
+      "checkedAt": "2026-11-22",
+      "sourceIds": ["google-api-pricing-20261122", "google-neon-blog-20261122"],
+      "reason": "定价页与发布博客一致：付费层输入 $3、缓存 $0.15、输出 $15，免费层不可用，只支持隐式缓存。",
+      "patch": {}
+    },
+    {
+      "kind": "api",
+      "id": "Google|Gemini 4 Carbon",
+      "vendor": "Google",
+      "name": "Gemini 4 Carbon",
+      "status": "verified",
+      "checkedAt": "2026-11-22",
+      "sourceIds": ["google-api-pricing-20261122"],
+      "reason": "定价页标准档：免费层不可用。介绍价至 2026-11-30 为输入 $2、输出 $10、缓存 $0.10，2026-12-01 起 $4 / $20 / $0.20。只支持隐式缓存。",
+      "patch": {}
+    },
+    {
+      "kind": "api",
+      "id": "Google|Gemini 4 Hydrogen",
+      "vendor": "Google",
+      "name": "Gemini 4 Hydrogen",
+      "status": "verified",
+      "checkedAt": "2026-11-22",
+      "sourceIds": ["google-api-pricing-20261122"],
+      "reason": "定价页标准档：免费层输入、输出与缓存免费；付费层输入 $1.50、输出 $7.50、缓存 $0.075。只支持隐式缓存。",
+      "patch": {}
+    },
+    {
+      "kind": "api",
+      "id": "Google|Gemini 4 Argon",
+      "vendor": "Google",
+      "name": "Gemini 4 Argon",
+      "status": "verified",
+      "checkedAt": "2026-11-22",
+      "sourceIds": ["google-api-pricing-20261122", "copilot-models-20261122"],
+      "reason": "定价页标准介绍价未变：至 2026-11-30 为输入 $2、输出 $10、缓存 $0.10，2026-12-01 起 $4 / $20 / $0.20。本次不改备注里的 Batch 与 Priority。",
+      "patch": {}
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0017",
+      "vendor": "Google",
+      "name": "Google AI Pro",
+      "status": "changed",
+      "checkedAt": "2026-11-22",
+      "sourceIds": ["google-neon-blog-20261122"],
+      "reason": "月价未在订阅比较页重核。发布博客写明付费 Pro 可在 Gemini 应用选择 Gemini 4 Neon，并可在 Antigravity 使用。",
+      "old": {
+        "models": "Gemini 3.1 Pro、Deep Research、Gemini Spark",
+        "note": "美国月付 $19.99、年付 $199.99（折月约 $16.67）；含 $10/月 GCP credits；Gemini 4 Argon 只在 Gemini 应用与搜索 AI 模式中提供，Antigravity 与 API 不含"
+      },
+      "patch": {
+        "models": "Gemini 3.1 Pro、Deep Research、Gemini Spark、Gemini 4 Neon",
+        "note": "美国月付 $19.99、年付 $199.99（折月约 $16.67）；含 $10/月 GCP credits；Gemini 4 Argon 只在 Gemini 应用与搜索 AI 模式中提供，Antigravity 与 API 不含。2026-11-18 起付费 Pro 可在 Gemini 应用选择 Gemini 4 Neon，并可在 Antigravity 使用；本次未重开订阅比较页"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0018",
+      "vendor": "Google",
+      "name": "Google AI Ultra（5x）",
+      "status": "changed",
+      "checkedAt": "2026-11-22",
+      "sourceIds": ["google-neon-blog-20261122"],
+      "reason": "月价未在订阅比较页重核。发布博客写明付费 Ultra 可在 Gemini 应用选择 Gemini 4 Neon，并可在 Antigravity 使用。",
+      "old": {
+        "models": "Gemini 4 Argon、Gemini 3.1 Pro、Deep Think、Gemini Agent",
+        "note": "2026-05-19 I/O 起 $249.99 降至 $99.99；20TB 存储；Gemini 4 Argon 可在 Antigravity app、CLI 与 IDE 扩展使用（独立 Antigravity IDE 不支持）"
+      },
+      "patch": {
+        "models": "Gemini 4 Argon、Gemini 4 Neon、Gemini 3.1 Pro、Deep Think、Gemini Agent",
+        "note": "2026-05-19 I/O 起 $249.99 降至 $99.99；20TB 存储；Gemini 4 Argon 可在 Antigravity app、CLI 与 IDE 扩展使用（独立 Antigravity IDE 不支持）。2026-11-18 起付费 Ultra 可在 Gemini 应用选择 Gemini 4 Neon，并可在 Antigravity 使用；本次未重开订阅比较页"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0040",
+      "vendor": "OpenCode (Anomaly/SST)",
+      "name": "OpenCode Go",
+      "status": "changed",
+      "checkedAt": "2026-11-22",
+      "sourceIds": ["opencode-go-20261122", "opencode-go-models-20261122"],
+      "reason": "月费仍为 $10。付费模型改为共用额度。接口当前只用单一模型时 GLM-5.3 为 $500、DeepSeek V4.1 Flash 为 $100、Gemini 4 Argon 为 $30。GLM-5.3 更高额度至 2026-11-22。",
+      "old": {
+        "quota": "逐模型月度美元上限：$15 档（Kimi K3、GLM-5.3、Haiku 5.5 等）、$30/$60 档、DeepSeek V4.1 Flash $80；Gemini 4 Argon Contributor 限时 2× 为 $60；5h=月度20%、周=50%、月=100%",
+        "models": "GLM-5.3/Flash、Kimi K3/K2.7 Code、DeepSeek V4.1、Qwen3.8、MiniMax M3、Grok 4.7、GPT 6 Luna、Claude Haiku 5.5、Gemini 4 Argon Contributor 等；Step 5 Preview Free 等为限时免费",
+        "note": "独立订阅，$10/月；每工作区仅1名成员。Argon Contributor 的提示和补全可能用于 Google 模型训练，非 ZDR；2× 用量促销结束日未公布；各模型适用上限不可相加",
+        "quotaSharing": null
+      },
+      "patch": {
+        "quota": "付费模型共用一个月度额度。只用单一模型时：GLM-5.3 $500、GLM-5.3-Flash $60、DeepSeek V4.1 Flash $100、Gemini 4 Argon $30、Kimi K3 与 Kimi K3.1 Pro $15。5 小时窗口为月度 20%，每周 50%",
+        "models": "GLM-5.3/Flash、Kimi K3/K3.1 Pro/K2.7 Code、DeepSeek V4.1 Flash/V4 Pro、Qwen4 Max、Qwen3.8、MiniMax M3/M3.1 Flash、MiMo-V2.6、Grok 4.7、GPT-6 Luna、Claude Haiku 5.5、Gemini 4 Argon、Hy4、Muse Spark Contributor 等；另有 Beam Free、Hy4 flash Free、LongCat 2.5 Free 等限时免费",
+        "note": "月费仍为 $10，未列年付。各模型美元数是只用该模型时的全额，不能相加。GLM-5.3 更高额度至 2026-11-22，其后金额文档未公布。Gemini 4 Argon 的 50% 折扣至 2026-11-30，接口自 2026-12-01 起标价乘 2。同页 Go Teams 为每人每月 $20、至少 2 人，每名成员自有额度，各模型比本档高 $5。Muse Spark Contributor 与 Iceman Contributor Free 会用提示和补全训练",
+        "quotaSharing": "shared"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0089",
+      "vendor": "OpenCode (Anomaly/SST)",
+      "name": "OpenCode Go Plus",
+      "status": "changed",
+      "checkedAt": "2026-11-22",
+      "sourceIds": ["opencode-go-20261122", "opencode-go-models-20261122"],
+      "reason": "月费仍为 $40。付费模型改为共用额度。接口当前只用单一模型时 GLM-5.3 为 $1000、DeepSeek V4.1 Flash 为 $200、Gemini 4 Argon 为 $120。",
+      "old": {
+        "quota": "逐模型5h/周/月窗口：Kimi K3月$60、GLM-5.3月$120、GLM-5.3-Flash/K2.7 Code月$180、DeepSeek V4.1 Flash月$160；Argon Contributor 限时2×月$240。5h=20%、周=50%、月=100%",
+        "note": "$40/月，逐模型限额不同，不能笼统视为Go的3–4×；每工作区仅1名成员，Contributor模型的数据训练政策同Go；各模型适用上限不可相加",
+        "quotaSharing": null
+      },
+      "patch": {
+        "quota": "付费模型共用一个月度额度。只用单一模型时：GLM-5.3 $1000、GLM-5.3-Flash $180、DeepSeek V4.1 Flash $200、Gemini 4 Argon $120、Kimi K3 与 Kimi K3.1 Pro $60。5 小时窗口为月度 20%，每周 50%",
+        "note": "月费仍为 $40，未列年付。各模型美元数是只用该模型时的全额，不能相加。GLM-5.3 更高额度至 2026-11-22。Gemini 4 Argon 的 50% 折扣至 2026-11-30。训练与保留政策以 Go 文档为准，不再把 Gemini 4 Argon 记为 Contributor",
+        "quotaSharing": "shared"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0091",
+      "vendor": "GitHub Copilot",
+      "name": "Pro",
+      "status": "changed",
+      "checkedAt": "2026-11-22",
+      "sourceIds": ["copilot-neon-20261122"],
+      "reason": "月价未改。2026-11-18 更新日志把 Gemini 4 Neon 开放给 Pro+、Max、Business 与 Enterprise，未列入 Pro。",
+      "old": {
+        "note": "$10 基础 + $5 弹性 credits；仅月付；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费"
+      },
+      "patch": {
+        "note": "$10 基础 + $5 弹性 credits；仅月付；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费。2026-11-18 起 Gemini 4 Neon 未列入本档"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0092",
+      "vendor": "GitHub Copilot",
+      "name": "Pro+",
+      "status": "changed",
+      "checkedAt": "2026-11-22",
+      "sourceIds": ["copilot-neon-20261122", "copilot-models-20261122"],
+      "reason": "月价未改。更新日志向 Pro+ 开放 Gemini 4 Neon，按供应商牌价计费。价目页为输入 $3、缓存 $0.15、输出 $15。",
+      "old": {
+        "models": "Pro 全部 + Claude Opus 4.8/5/5.5、Fable 5/5.1、GPT-5.6 Sol、GPT-6 Astra/Sol、GPT-6.1 Sol、Gemini 4 Argon 等旗舰",
+        "modelIncludes": ["Claude Opus 4.8/5/5.5", "Fable 5/5.1", "GPT-5.6 Sol", "GPT-6 Astra/Sol", "GPT-6.1 Sol", "Gemini 4 Argon"]
+      },
+      "patch": {
+        "models": "Pro 全部 + Claude Opus 4.8/5/5.5、Fable 5/5.1、GPT-5.6 Sol、GPT-6 Astra/Sol、GPT-6.1 Sol、Gemini 4 Argon、Gemini 4 Neon 等旗舰",
+        "modelIncludes": ["Claude Opus 4.8/5/5.5", "Fable 5/5.1", "GPT-5.6 Sol", "GPT-6 Astra/Sol", "GPT-6.1 Sol", "Gemini 4 Argon", "Gemini 4 Neon"]
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0093",
+      "vendor": "GitHub Copilot",
+      "name": "Max",
+      "status": "changed",
+      "checkedAt": "2026-11-22",
+      "sourceIds": ["copilot-neon-20261122"],
+      "reason": "月价未改。更新日志把 Max 与 Pro+ 一并列入 Gemini 4 Neon，模型池仍沿用 Pro+。",
+      "old": {
+        "note": "2026 新增个人最高档；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费"
+      },
+      "patch": {
+        "note": "2026 新增个人最高档；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费。2026-11-18 起含 Gemini 4 Neon，与 Pro+ 同一模型池，逐步开放"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0094",
+      "vendor": "GitHub Copilot",
+      "name": "Business",
+      "status": "changed",
+      "checkedAt": "2026-11-22",
+      "sourceIds": ["copilot-neon-20261122", "copilot-models-20261122"],
+      "reason": "月价未改。更新日志向 Business 开放 Gemini 4 Neon，管理员可在模型策略中关闭。按供应商牌价计费。",
+      "old": {
+        "models": "含旗舰模型（含 Gemini 4 Argon）+ Copilot CLI/App"
+      },
+      "patch": {
+        "models": "含旗舰模型（含 Gemini 4 Argon、Gemini 4 Neon）+ Copilot CLI/App"
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0095",
+      "vendor": "GitHub Copilot",
+      "name": "Enterprise",
+      "status": "changed",
+      "checkedAt": "2026-11-22",
+      "sourceIds": ["copilot-neon-20261122", "copilot-models-20261122"],
+      "reason": "月价未改。更新日志向 Enterprise 开放 Gemini 4 Neon，管理员可在模型策略中关闭。按供应商牌价计费。",
+      "old": {
+        "models": "旗舰模型优先访问（含 Gemini 4 Argon）+ 自定义模型"
+      },
+      "patch": {
+        "models": "旗舰模型优先访问（含 Gemini 4 Argon、Gemini 4 Neon）+ 自定义模型"
+      }
+    }
+  ]
+}
