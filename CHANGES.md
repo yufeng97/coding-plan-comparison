@@ -2,6 +2,13 @@
 
 > 按数据核查和代码修复批次记录。
 
+## 2026-11-23 每日巡检
+
+- **GPT-6.2**：11 月 17 日发布 Astra 与 Sol。API 标准短上下文为 Astra $8 / 缓存 $0.40 / $40，Sol $2 / $0.10 / $10（每百万 tokens）。Plus 与标准 Business 的 5 小时估算为 Astra 6–50 条、Sol 17–180 条，写在额度与备注。模型栏保持原有 GPT-6 / 6.1 写法，推荐卡因此仍显示 6.1 Sol 与 GPT-6 Astra。Pro $200 的 Ultrafast 只含 Sol，Pro $500 两个模型都可开；订阅内按 6 倍，已购 credits 至 2027-02-28 按 3 倍。Enterprise 与 Edu 默认关闭。
+- **OpenCode Go**：月费仍为 $10 / $40。2026-11-23 模型接口的单模型月度上限改为 GLM-5.3 $200 / $400、DeepSeek V4.1 Flash $100 / $200、Gemini 4 Argon $30 / $120。Argon 的 50% 折扣写明至 11 月 30 日。新增按人计费的多人档（`plan-0238`，官网英文名 Go Teams，每人 $20/月，至少 2 人）。未合并的 PR #24 已用 `plan-0235` 表示同一档，合并时只保留一个永久 ID，额度以本次接口为准。
+- **Amp**：模型选择器取代 Dial。当前 Staff Pick 为 Claude Opus 5.5。未重开定价页，不改月费。
+- **Kimchi**：托管模型预告退役，deepseek-v4.1-flash 为 12 月 2 日，kimi-k3 与 minimax-m3 为 12 月 17 日。订阅月费未改。
+
 ## 2026-11-05 模型发布动态与每日采集
 
 - 11 月 5 日收录 GPT-6 Cyber 的首批访问资格和 Gemini Omni 1.2 Flash 的开发者入口。11 月 4 日收录 SWE-2 Flash、混元 Hy4、Ripple-65B Preview 和 Images 2.6。

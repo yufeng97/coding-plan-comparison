@@ -1,0 +1,381 @@
+{
+  "checkedAt": "2026-11-23",
+  "incremental": true,
+  "totals": {
+    "plans": 233,
+    "api": 42,
+    "payg": 10
+  },
+  "sources": [
+    {
+      "id": "openai-gpt62-announce-20261123",
+      "url": "https://openai.com/index/introducing-gpt-6-2-astra-sol",
+      "evidence": "2026-11-17 官方公告：GPT-6.2 Astra 短上下文标准价输入 $8、缓存 $0.40、输出 $40（每百万 tokens），比 GPT-6 Astra 的输入和输出低 20%，缓存低 60%。GPT-6.2 Sol 沿用 GPT-6.1 Sol 的 $2 / $0.10 / $10。模型标识 gpt-6.2-astra 与 gpt-6.2-sol。Plus、Pro、Enterprise、Edu 可在 ChatGPT Work 与 Codex 使用；Pro $500 两个模型都可开 Ultrafast，Pro $200 从 Sol 开始可开 Ultrafast。",
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "openai-api-pricing-20261123",
+      "url": "https://developers.openai.com/api/docs/pricing",
+      "evidence": "标准档短上下文（≤272K）：gpt-6.2-astra 输入 $8、输出 $40、缓存 $0.40，长上下文 $16 / $60 / $0.80；gpt-6.2-sol 输入 $2、输出 $10、缓存 $0.10，长上下文 $4 / $15 / $0.20。Fast 为上述标准价 2 倍。Ultrafast 至 2027-02-28（太平洋时间）为标准价 3 倍，2027-03-01 起 6 倍。Batch 为标准价一半。Flex 表没有这两个型号。gpt-6-astra 标准价仍为 $10 / $50、缓存 $1。",
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "openai-codex-pricing-20261123",
+      "url": "https://learn.chatgpt.com/docs/pricing",
+      "evidence": "Plus 与标准 Business 的本地消息估算（每 5 小时）：GPT-6.2 Astra 6–50、GPT-6.2 Sol 17–180、GPT-6 Astra 5–45、GPT-6.1 Sol 15–160、GPT-6 Sol 15–150、GPT-6 Luna 350–3,000。Pro 目前没有 5 小时上限。功能表写明 GPT-6.2 Astra 与 Sol 可用于 Plus、Pro、Business、Enterprise 与 Edu；Enterprise 与 Edu 默认关闭，管理员开启后可用。Fast：6.2 订阅内与 credits 都按 2 倍。Ultrafast：6.2 订阅内按 6 倍；用已购 credits 或符合条件的企业按量，至 2027-02-28 按 3 倍，2027-03-01（太平洋时间）起按 6 倍。GPT-5.6 Sol 的 credits 仍列为 100 / 10 / 500，页面仍写促销至少到 2026-11-21，没有公布之后的新牌价。",
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "openai-gpt62-whats-new-20261123",
+      "url": "https://learn.chatgpt.com/docs/whats-new/gpt-62-astra-sol",
+      "evidence": "Work 的网页、桌面和移动端以及 Codex：Plus、Pro、Business、Enterprise、Edu 可用；Enterprise 与 Edu 须管理员先开启。Pro $200 的 Ultrafast 只含 Sol；Pro $500 以及符合条件并已开启权限的 Enterprise、Edu 两个模型都可开 Ultrafast。API 两个模型在上线时都支持 Ultrafast。",
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "openai-speed-20261123",
+      "url": "https://learn.chatgpt.com/docs/agent-configuration/speed",
+      "evidence": "Ultrafast 可用型号取决于档位，并指向按 Pro 分列的说明。Pro $500 两个 GPT-6.2 模型都可用。Enterprise 与 Edu 的符合条件工作区两个模型都支持，Ultrafast 权限默认关闭。GPT-6 Astra 与 GPT-6.1 Sol 的 Ultrafast 仍限于 Pro $500 及符合条件的 Enterprise、Edu。",
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "opencode-go-docs-20261123",
+      "url": "https://opencode.ai/docs/console/go/",
+      "evidence": "Go $10/月、Go Plus $40/月，付费模型共用一套额度。官网第三档英文名为 Go Teams：每人 $20/月、至少 2 人；每名成员自有额度，每个模型比 Go 高 $5。5 小时为月度 20%，每周 50%。Go 与 Go Plus 覆盖订阅者及其工作区 API 密钥，其他受邀成员使用免费模型或工作区余额。Gemini 4 Argon 的 50% 折扣写明至 2026-11-30。旧地址 /v2/docs/console/go/ 会 301 到本页。",
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "opencode-go-models-20261123",
+      "url": "https://opencode.ai/inference/go/v1/models",
+      "evidence": "2026-11-23 模型接口的单模型月度美元上限（Go / Plus / 按成员计费档）：GLM-5.3 200/400/205，GLM-5.3-Flash 60/180/65，DeepSeek V4.1 Flash 100/200/105，DeepSeek V4 Pro 15/60/20，Kimi K3、Kimi K3.1 Pro、Claude Haiku 5.5、GPT-6 Luna 均为 15/60/20，Kimi K2.7 Code 与 MiniMax M3 为 60/180/65，Gemini 4 Argon 30/120/35。Gemini 4 Argon 的 training 为 false、零数据保留为 false。Muse Spark Contributor 的 training 为 true。Beam、Iceman Contributor、Hy4 Flash 的月度上限字段为空，文档称限时免费。",
+      "checkedAt": "2026-11-23"
+    }
+  ],
+  "records": [
+    {
+      "kind": "api",
+      "id": "OpenAI|gpt-6.2-astra",
+      "vendor": "OpenAI",
+      "name": "gpt-6.2-astra",
+      "status": "verified",
+      "checkedAt": "2026-11-23",
+      "sourceIds": [
+        "openai-api-pricing-20261123",
+        "openai-gpt62-announce-20261123"
+      ],
+      "reason": "新增行。标准短上下文输入 $8、缓存 $0.40、输出 $40；长上下文、Fast、Batch 与限时 Ultrafast 写在备注。",
+      "patch": {},
+      "current": {
+        "vendor": "OpenAI",
+        "model": "gpt-6.2-astra",
+        "cur": "USD",
+        "inUSD": 8,
+        "outUSD": 40,
+        "apiCache": 0.4
+      }
+    },
+    {
+      "kind": "api",
+      "id": "OpenAI|gpt-6.2-sol",
+      "vendor": "OpenAI",
+      "name": "gpt-6.2-sol",
+      "status": "verified",
+      "checkedAt": "2026-11-23",
+      "sourceIds": [
+        "openai-api-pricing-20261123",
+        "openai-gpt62-announce-20261123"
+      ],
+      "reason": "新增行。标准短上下文与 GPT-6.1 Sol 相同：输入 $2、缓存 $0.10、输出 $10。长上下文、Fast、Batch 与限时 Ultrafast 写在备注。",
+      "patch": {},
+      "current": {
+        "vendor": "OpenAI",
+        "model": "gpt-6.2-sol",
+        "cur": "USD",
+        "inUSD": 2,
+        "outUSD": 10,
+        "apiCache": 0.1
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0010",
+      "vendor": "OpenAI",
+      "name": "ChatGPT Plus",
+      "status": "changed",
+      "checkedAt": "2026-11-23",
+      "sourceIds": [
+        "openai-codex-pricing-20261123",
+        "openai-gpt62-whats-new-20261123",
+        "openai-speed-20261123"
+      ],
+      "reason": "月价仍为 $20。Plus 的 Codex 估算加入 GPT-6.2 Astra 6–50 条/5 小时、GPT-6.2 Sol 17–180 条/5 小时，原有型号区间未变。Fast 对 6.2 按 2 倍计入。Ultrafast 不对 Plus 开放。",
+      "old": {
+        "quota": "Codex 本地消息/5h（官方估算区间）：GPT-6.1 Sol 15–160 条、GPT-6 Sol 15–150 条、Luna 350–3,000 条、Astra 5–45 条；另有每周限额",
+        "models": "GPT-6.1 Sol / GPT-6 Sol / Luna / Astra、GPT-5.6 系列",
+        "note": "超额可购 credits top-up 或转 API 按量；无年付；ChatGPT Work 与 Codex 用量共享"
+      },
+      "patch": {
+        "quota": "Codex 本地消息/5h（官方估算，Plus 与标准 Business 相同）：GPT-6.2 Astra 6–50 条、GPT-6.2 Sol 17–180 条、GPT-6.1 Sol 15–160 条、GPT-6 Sol 15–150 条、Luna 350–3,000 条、GPT-6 Astra 5–45 条；另有每周限额",
+        "models": "GPT-6.2 Astra / Sol、GPT-6.1 Sol、GPT-6 Sol / Luna / Astra、GPT-5.6 系列",
+        "note": "超额可购 credits 或转 API 按量；无年付；ChatGPT Work 与 Codex 用量共享。GPT-6.2 的 Fast 按 2 倍计入额度。Ultrafast 不对 Plus 开放。Free 与 Go 仍只列出 GPT-6 Luna"
+      },
+      "current": {
+        "vendor": "OpenAI",
+        "plan": "ChatGPT Plus",
+        "priceM": 20,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0011",
+      "vendor": "OpenAI",
+      "name": "ChatGPT Pro（$100）",
+      "status": "changed",
+      "checkedAt": "2026-11-23",
+      "sourceIds": [
+        "openai-codex-pricing-20261123",
+        "openai-gpt62-whats-new-20261123",
+        "openai-speed-20261123"
+      ],
+      "reason": "月价仍为 $100，目前仍无 5 小时上限。模型说明补上 GPT-6.2。本档文档没有 Ultrafast。",
+      "old": {
+        "models": "GPT-6 全系（Astra/Sol/6.1 Sol/Luna）、GPT-5.6 系列",
+        "note": "官方页标 From $100/month，实际 $100/$200/$500 三档；此前的 5x/20x 倍率口径官方页已不再标注"
+      },
+      "patch": {
+        "models": "GPT-6.2 Astra / Sol、GPT-6 全系（Astra/Sol/6.1 Sol/Luna）、GPT-5.6 系列",
+        "note": "官方页标 From $100/month，实际 $100/$200/$500 三档；此前的 5x/20x 倍率口径官方页已不再标注。本档未提供 Ultrafast"
+      },
+      "current": {
+        "vendor": "OpenAI",
+        "plan": "ChatGPT Pro（$100）",
+        "priceM": 100,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0012",
+      "vendor": "OpenAI",
+      "name": "ChatGPT Pro（$200）",
+      "status": "changed",
+      "checkedAt": "2026-11-23",
+      "sourceIds": [
+        "openai-gpt62-announce-20261123",
+        "openai-gpt62-whats-new-20261123",
+        "openai-codex-pricing-20261123"
+      ],
+      "reason": "月价仍为 $200，目前仍无 5 小时上限。新增：Ultrafast 可用 GPT-6.2 Sol，不能用于 GPT-6.2 Astra。订阅内按 6 倍计入；已购 credits 至 2027-02-28 按 3 倍，2027-03-01（太平洋时间）起按 6 倍。",
+      "old": {
+        "note": "官方定价文档确认 $200/月；具体额度以用量仪表盘为准"
+      },
+      "patch": {
+        "note": "官方定价文档确认 $200/月，目前无 5 小时上限，具体额度以用量仪表盘为准。Ultrafast 只开放 GPT-6.2 Sol：订阅内按 6 倍计入；已购 credits 至 2027-02-28 按 3 倍，2027-03-01（太平洋时间）起按 6 倍。不能对 GPT-6.2 Astra 使用 Ultrafast"
+      },
+      "current": {
+        "vendor": "OpenAI",
+        "plan": "ChatGPT Pro（$200）",
+        "priceM": 200,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0013",
+      "vendor": "OpenAI",
+      "name": "ChatGPT Pro（$500）",
+      "status": "changed",
+      "checkedAt": "2026-11-23",
+      "sourceIds": [
+        "openai-gpt62-whats-new-20261123",
+        "openai-speed-20261123",
+        "openai-codex-pricing-20261123",
+        "openai-api-pricing-20261123"
+      ],
+      "reason": "月价仍为 $500。GPT-6.2 Astra 与 Sol 都可开 Ultrafast，订阅内按 6 倍；credits 与符合条件的企业按量至 2027-02-28 按 3 倍，其后按 6 倍。GPT-6 Astra 与 GPT-6.1 Sol 的 Ultrafast 仍是订阅内 8 倍、credits 6 倍。",
+      "old": {
+        "note": "2026-09 底新增档位；Ultrafast 另有符合条件的 Enterprise/Edu 可用"
+      },
+      "patch": {
+        "note": "2026-09 底新增档位。GPT-6.2 Astra 与 Sol 都可开 Ultrafast，订阅内按 6 倍计入；已购 credits 与符合条件的企业按量至 2027-02-28 按 3 倍，2027-03-01（太平洋时间）起按 6 倍。GPT-6 Astra 与 GPT-6.1 Sol 的 Ultrafast 仍为订阅内 8 倍、credits 6 倍，并可供符合条件的 Enterprise/Edu 使用"
+      },
+      "current": {
+        "vendor": "OpenAI",
+        "plan": "ChatGPT Pro（$500）",
+        "priceM": 500,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0014",
+      "vendor": "OpenAI",
+      "name": "ChatGPT Business",
+      "status": "changed",
+      "checkedAt": "2026-11-23",
+      "sourceIds": [
+        "openai-codex-pricing-20261123",
+        "openai-gpt62-whats-new-20261123"
+      ],
+      "reason": "席位月价未改。标准 Business 的 5 小时估算与 Plus 相同，并包含 GPT-6.2 Astra 与 Sol。",
+      "old": {
+        "models": "GPT-6 系列"
+      },
+      "patch": {
+        "models": "GPT-6.2 Astra / Sol、GPT-6 系列。标准席位的 5 小时估算与 Plus 相同"
+      },
+      "current": {
+        "vendor": "OpenAI",
+        "plan": "ChatGPT Business",
+        "priceM": 25,
+        "priceY": 20,
+        "cur": "USD",
+        "seat": true
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0015",
+      "vendor": "OpenAI",
+      "name": "ChatGPT Enterprise",
+      "status": "changed",
+      "checkedAt": "2026-11-23",
+      "sourceIds": [
+        "openai-codex-pricing-20261123",
+        "openai-gpt62-whats-new-20261123",
+        "openai-speed-20261123"
+      ],
+      "reason": "仍为询价。GPT-6.2 默认关闭，管理员开启后可用；无灵活定价时每席用量与 Plus 相同。Ultrafast 权限默认关闭。",
+      "old": {
+        "note": "联系销售"
+      },
+      "patch": {
+        "note": "联系销售。GPT-6.2 Astra 与 Sol 默认关闭，管理员在工作区模型设置中开启后，ChatGPT Work 与 Codex 可用；无灵活定价时每席用量与 Plus 相同。Ultrafast 需所有者另行开启，默认关闭"
+      },
+      "current": {
+        "vendor": "OpenAI",
+        "plan": "ChatGPT Enterprise",
+        "priceM": null,
+        "priceY": null,
+        "cur": "USD",
+        "seat": true
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0040",
+      "vendor": "OpenCode (Anomaly/SST)",
+      "name": "OpenCode Go",
+      "status": "changed",
+      "checkedAt": "2026-11-23",
+      "sourceIds": [
+        "opencode-go-docs-20261123",
+        "opencode-go-models-20261123"
+      ],
+      "reason": "月费仍为 $10。2026-11-23 模型接口的单模型月度上限已变：GLM-5.3 为 $200，不再是库内的 $15 档；DeepSeek V4.1 Flash 为 $100；Gemini 4 Argon 为 $30，文档写明 50% 折扣至 2026-11-30。付费模型共用额度。旧文档地址会跳转。",
+      "old": {
+        "quota": "逐模型月度美元上限：$15 档（Kimi K3、GLM-5.3、Haiku 5.5 等）、$30/$60 档、DeepSeek V4.1 Flash $80；Gemini 4 Argon Contributor 限时 2× 为 $60；5h=月度20%、周=50%、月=100%",
+        "models": "GLM-5.3/Flash、Kimi K3/K2.7 Code、DeepSeek V4.1、Qwen3.8、MiniMax M3、Grok 4.7、GPT 6 Luna、Claude Haiku 5.5、Gemini 4 Argon Contributor 等；Step 5 Preview Free 等为限时免费",
+        "note": "独立订阅，$10/月；每工作区仅1名成员。Argon Contributor 的提示和补全可能用于 Google 模型训练，非 ZDR；2× 用量促销结束日未公布；各模型适用上限不可相加",
+        "url": "https://opencode.ai/v2/docs/console/go/"
+      },
+      "patch": {
+        "quota": "付费模型共用额度。只用单一模型时的月度美元上限：GLM-5.3 $200、GLM-5.3-Flash $60、DeepSeek V4.1 Flash $100、DeepSeek V4 Pro $15、Kimi K3 / K3.1 Pro / Haiku 5.5 / GPT-6 Luna $15、Kimi K2.7 Code / MiniMax M3 $60、Gemini 4 Argon $30（文档写 50% 折扣至 2026-11-30）。5 小时为月度 20%，每周 50%，按月 100%",
+        "models": "GLM-5.3/Flash、Kimi K3/K3.1 Pro/K2.7 Code、DeepSeek V4.1 Flash/V4 Pro、Qwen3.8 与 Qwen4 Max、MiniMax M3/M3.1 Flash、Grok 4.7、GPT-6 Luna、Claude Haiku 5.5、Gemini 4 Argon、Hy4、LongCat 2.5、Muse Spark 1.2/1.3 Contributor 等；Beam、Iceman Contributor、Hy4 Flash 为限时免费",
+        "note": "独立订阅，$10/月。订阅者与工作区 API 密钥可用付费额度；受邀的其他成员只用免费模型或工作区余额。Gemini 4 Argon 请求最多保留 55 天，50% 折扣至 2026-11-30，其后的上限未单列。Muse Spark Contributor 可用提示和补全训练，不是零数据保留。各模型适用上限不可相加",
+        "url": "https://opencode.ai/docs/console/go/"
+      },
+      "current": {
+        "vendor": "OpenCode (Anomaly/SST)",
+        "plan": "OpenCode Go",
+        "priceM": 10,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0089",
+      "vendor": "OpenCode (Anomaly/SST)",
+      "name": "OpenCode Go Plus",
+      "status": "changed",
+      "checkedAt": "2026-11-23",
+      "sourceIds": [
+        "opencode-go-docs-20261123",
+        "opencode-go-models-20261123"
+      ],
+      "reason": "月费仍为 $40。单模型月度上限按 2026-11-23 接口改为 GLM-5.3 $400、DeepSeek V4.1 Flash $200、Gemini 4 Argon $120 等，不再沿用 $120 / $160 / $240。",
+      "old": {
+        "quota": "逐模型5h/周/月窗口：Kimi K3月$60、GLM-5.3月$120、GLM-5.3-Flash/K2.7 Code月$180、DeepSeek V4.1 Flash月$160；Argon Contributor 限时2×月$240。5h=20%、周=50%、月=100%",
+        "note": "$40/月，逐模型限额不同，不能笼统视为Go的3–4×；每工作区仅1名成员，Contributor模型的数据训练政策同Go；各模型适用上限不可相加",
+        "url": "https://opencode.ai/v2/docs/console/go/"
+      },
+      "patch": {
+        "quota": "付费模型共用额度。只用单一模型时的月度美元上限：GLM-5.3 $400、GLM-5.3-Flash $180、DeepSeek V4.1 Flash $200、DeepSeek V4 Pro $60、Kimi K3 / K3.1 Pro / Haiku 5.5 / GPT-6 Luna $60、Kimi K2.7 Code / MiniMax M3 $180、Gemini 4 Argon $120（50% 折扣至 2026-11-30）。5 小时为月度 20%，每周 50%，按月 100%",
+        "note": "$40/月。覆盖订阅者与工作区 API 密钥，不是按人数计费。各模型适用上限不可相加，也不能把 Plus 看成 Go 的固定倍数。Argon 的保留与折扣、Muse Spark Contributor 的训练条款同 Go",
+        "url": "https://opencode.ai/docs/console/go/"
+      },
+      "current": {
+        "vendor": "OpenCode (Anomaly/SST)",
+        "plan": "OpenCode Go Plus",
+        "priceM": 40,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0238",
+      "vendor": "OpenCode (Anomaly/SST)",
+      "name": "OpenCode Go 多人档",
+      "status": "verified",
+      "checkedAt": "2026-11-23",
+      "sourceIds": [
+        "opencode-go-docs-20261123",
+        "opencode-go-models-20261123"
+      ],
+      "reason": "新档：每人 $20/月，至少 2 人。每名成员自有一套共用额度，单模型月度上限比 Go 高 $5。官网英文名为 Go Teams。",
+      "patch": {},
+      "new": {
+        "id": "plan-0238",
+        "vendor": "OpenCode (Anomaly/SST)",
+        "plan": "OpenCode Go 多人档",
+        "cat": "team",
+        "region": "intl",
+        "fieldRefs": {
+          "models": "plan-0040",
+          "tools": "plan-0040"
+        },
+        "priceM": 20,
+        "priceY": null,
+        "cur": "USD",
+        "seat": true,
+        "windowPeriod": "5h",
+        "quotaSharing": "shared",
+        "quota": "每名成员独立额度，付费模型在该成员内共用。单模型月度上限比 Go 高 $5：GLM-5.3 $205、GLM-5.3-Flash $65、DeepSeek V4.1 Flash $105、Gemini 4 Argon $35，$15 档为 $20，$60 档为 $65。5 小时为月度 20%，每周 50%，按月 100%",
+        "models": "同 Go",
+        "tools": "同 Go",
+        "note": "官网英文名为 Go Teams。每人 $20/月，至少 2 人，因此最低 $40/月。第二名成员不另收费；其后在周期中加入的成员收取 $20 并获得完整月度额度。服务账号不包含。超额用量默认开启，可在 Go 页面关闭",
+        "url": "https://opencode.ai/docs/console/go/"
+      },
+      "current": {
+        "vendor": "OpenCode (Anomaly/SST)",
+        "plan": "OpenCode Go 多人档",
+        "priceM": 20,
+        "priceY": null,
+        "cur": "USD",
+        "seat": true
+      }
+    }
+  ]
+}

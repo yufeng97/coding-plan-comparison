@@ -10,7 +10,7 @@ const RATE_USD_CNY = 6.67;
 /* 同一汇率日期：Frankfurter USD/INR=94.48、USD/CNY=6.6684；保留印度原价。 */
 const RATE_INR_CNY = 6.6684 / 94.48;
 const META = {
-    updated: "2026-11-05",
+    updated: "2026-11-23",
     rate: RATE_USD_CNY,
     rateAsOf: "2026-11-05",
     rateSource: "https://api.frankfurter.dev/v1/2026-11-05?base=USD&symbols=CNY,INR",
@@ -331,43 +331,43 @@ const PLANS: Plan[] = [
         url: "https://learn.chatgpt.com/docs/pricing" },
     { id: "plan-0010", vendor: "OpenAI", plan: "ChatGPT Plus", cat: "official", region: "intl", priceM: 20, priceY: null, cur: "USD", seat: false,
         windowPeriod: "5h",
-        quota: "Codex 本地消息/5h（官方估算区间）：GPT-6.1 Sol 15–160 条、GPT-6 Sol 15–150 条、Luna 350–3,000 条、Astra 5–45 条；另有每周限额",
+        quota: "Codex 本地消息/5h（官方估算，Plus 与标准 Business 相同）：GPT-6.2 Astra 6–50 条、GPT-6.2 Sol 17–180 条、GPT-6.1 Sol 15–160 条、GPT-6 Sol 15–150 条、Luna 350–3,000 条、GPT-6 Astra 5–45 条；另有每周限额",
         models: "GPT-6.1 Sol / GPT-6 Sol / Luna / Astra、GPT-5.6 系列",
         tools: "Codex（Web/CLI/IDE/iOS）、云任务",
-        note: "超额可购 credits top-up 或转 API 按量；无年付；ChatGPT Work 与 Codex 用量共享",
+        note: "超额可购 credits 或转 API 按量；无年付；ChatGPT Work 与 Codex 用量共享。GPT-6.2 的 Fast 按 2 倍计入额度。Ultrafast 不对 Plus 开放。Free 与 Go 仍只列出 GPT-6 Luna",
         url: "https://learn.chatgpt.com/docs/pricing" },
     { id: "plan-0011", vendor: "OpenAI", plan: "ChatGPT Pro（$100）", cat: "official", region: "intl", priceM: 100, priceY: null, cur: "USD", seat: false,
         windowPeriod: "none",
         quota: "官方 2026-10-01 页面口径：Pro 各档目前无 5 小时上限（用量见仪表盘）；含 Plus 全部模型与权益",
         models: "GPT-6 全系（Astra/Sol/6.1 Sol/Luna）、GPT-5.6 系列",
         tools: "Codex 全端 + 云 VM 任务",
-        note: "官方页标 From $100/month，实际 $100/$200/$500 三档；此前的 5x/20x 倍率口径官方页已不再标注",
+        note: "官方页标 From $100/month，实际 $100/$200/$500 三档；此前的 5x/20x 倍率口径官方页已不再标注。本档未提供 Ultrafast",
         url: "https://learn.chatgpt.com/docs/pricing" },
     { id: "plan-0012", fieldRefs: { "models": "plan-0011", "quota": "plan-0011" }, vendor: "OpenAI", plan: "ChatGPT Pro（$200）", cat: "official", region: "intl", priceM: 200, priceY: null, cur: "USD", seat: false,
         windowPeriod: "none",
         quota: "同 Pro $100：目前无 5 小时上限，配额高于 $100 档（官方未公布具体倍率）",
         models: "同 Pro $100",
         tools: "Codex 全端 + 云 VM 任务",
-        note: "官方定价文档确认 $200/月；具体额度以用量仪表盘为准",
+        note: "官方定价文档确认 $200/月，目前无 5 小时上限，具体额度以用量仪表盘为准。Ultrafast 只开放 GPT-6.2 Sol：订阅内按 6 倍计入；已购 credits 至 2027-02-28 按 3 倍，2027-03-01（太平洋时间）起按 6 倍。不能对 GPT-6.2 Astra 使用 Ultrafast",
         url: "https://learn.chatgpt.com/docs/pricing" },
     { id: "plan-0013", fieldRefs: { "models": "plan-0011", "quota": "plan-0012" }, vendor: "OpenAI", plan: "ChatGPT Pro（$500）", cat: "official", region: "intl", priceM: 500, priceY: null, cur: "USD", seat: false,
         windowPeriod: "none",
         quota: "同 Pro $200：目前无 5 小时上限；独享 Ultrafast（GPT-6 Astra 与 GPT-6.1 Sol，订阅内按 8x 计量、credits 按 6x）",
         models: "同 Pro $100 + Ultrafast（GPT-6 Astra / GPT-6.1 Sol）",
         tools: "Codex 全端 + 云 VM 任务",
-        note: "2026-09 底新增档位；Ultrafast 另有符合条件的 Enterprise/Edu 可用",
+        note: "2026-09 底新增档位。GPT-6.2 Astra 与 Sol 都可开 Ultrafast，订阅内按 6 倍计入；已购 credits 与符合条件的企业按量至 2027-02-28 按 3 倍，2027-03-01（太平洋时间）起按 6 倍。GPT-6 Astra 与 GPT-6.1 Sol 的 Ultrafast 仍为订阅内 8 倍、credits 6 倍，并可供符合条件的 Enterprise/Edu 使用",
         url: "https://learn.chatgpt.com/docs/pricing" },
     { id: "plan-0014", vendor: "OpenAI", plan: "ChatGPT Business", cat: "team", region: "intl", priceM: 25, priceY: 20, cur: "USD", seat: true,
         quota: "标准席位限额同 Plus；另有 $100 Premium 席位（官方未公布与 Pro 档的用量倍率）",
         models: "GPT-6 系列",
         tools: "Codex（含 CLI/IDE）、SAML SSO、MFA",
-        note: "原 ChatGPT Team 计划已并入 Business；2+ 用户",
+        note: "原 ChatGPT Team 计划已并入 Business；2+ 用户。GPT-6.2 Astra 与 Sol 可用于标准席位，5 小时估算与 Plus 相同",
         url: "https://learn.chatgpt.com/docs/pricing" },
     { id: "plan-0015", vendor: "OpenAI", plan: "ChatGPT Enterprise", cat: "team", region: "intl", priceM: null, priceY: null, cur: "USD", seat: true,
         quota: "flexible pricing：credits 按量，无固定限额",
         models: "全模型",
         tools: "Codex 全端、SCIM、EKM、审计 API",
-        note: "联系销售",
+        note: "联系销售。GPT-6.2 Astra 与 Sol 默认关闭，管理员在工作区模型设置中开启后，ChatGPT Work 与 Codex 可用；无灵活定价时每席用量与 Plus 相同。Ultrafast 需所有者另行开启，默认关闭",
         url: "https://learn.chatgpt.com/docs/pricing" },
     { id: "plan-0016", vendor: "Google", plan: "Google AI Plus", cat: "official", region: "intl", priceM: 4.99, priceY: null, cur: "USD", seat: false,
         windowPeriod: "5h", codingSurface: false,
@@ -588,11 +588,11 @@ const PLANS: Plan[] = [
         url: "https://opencode.ai/v2/docs/console/models/" },
     { id: "plan-0040", vendor: "OpenCode (Anomaly/SST)", plan: "OpenCode Go", cat: "tool", region: "intl", priceM: 10, priceY: null, cur: "USD", seat: false,
         windowPeriod: "5h",
-        quota: "逐模型月度美元上限：$15 档（Kimi K3、GLM-5.3、Haiku 5.5 等）、$30/$60 档、DeepSeek V4.1 Flash $80；Gemini 4 Argon Contributor 限时 2× 为 $60；5h=月度20%、周=50%、月=100%",
-        models: "GLM-5.3/Flash、Kimi K3/K2.7 Code、DeepSeek V4.1、Qwen3.8、MiniMax M3、Grok 4.7、GPT 6 Luna、Claude Haiku 5.5、Gemini 4 Argon Contributor 等；Step 5 Preview Free 等为限时免费",
+        quota: "付费模型共用额度。只用单一模型时的月度美元上限：GLM-5.3 $200、GLM-5.3-Flash $60、DeepSeek V4.1 Flash $100、DeepSeek V4 Pro $15、Kimi K3 / K3.1 Pro / Haiku 5.5 / GPT-6 Luna $15、Kimi K2.7 Code / MiniMax M3 $60、Gemini 4 Argon $30（文档写 50% 折扣至 2026-11-30）。5 小时为月度 20%，每周 50%，按月 100%",
+        models: "GLM-5.3/Flash、Kimi K3/K3.1 Pro/K2.7 Code、DeepSeek V4.1 Flash/V4 Pro、Qwen3.8 与 Qwen4 Max、MiniMax M3/M3.1 Flash、Grok 4.7、GPT-6 Luna、Claude Haiku 5.5、Gemini 4 Argon、Hy4、LongCat 2.5、Muse Spark 1.2/1.3 Contributor 等；Beam、Iceman Contributor、Hy4 Flash 为限时免费",
         tools: "OpenCode 及经验证兼容客户端（Claude Code、Codex、ZCode、Kilo Code CLI、Hermes 等，须保留稳定会话标识，部分客户端需更新）；端点 opencode.ai/inference/go/v1",
-        note: "独立订阅，$10/月；每工作区仅1名成员。Argon Contributor 的提示和补全可能用于 Google 模型训练，非 ZDR；2× 用量促销结束日未公布；各模型适用上限不可相加",
-        url: "https://opencode.ai/v2/docs/console/go/" },
+        note: "独立订阅，$10/月。订阅者与工作区 API 密钥可用付费额度；受邀的其他成员只用免费模型或工作区余额。Gemini 4 Argon 请求最多保留 55 天，50% 折扣至 2026-11-30，其后的上限未单列。Muse Spark Contributor 可用提示和补全训练，不是零数据保留。各模型适用上限不可相加",
+        url: "https://opencode.ai/docs/console/go/" },
     { id: "plan-0041", vendor: "OpenCode (Anomaly/SST)", plan: "OpenCode Enterprise", cat: "team", region: "intl", priceM: null, priceY: null, cur: "USD", seat: true,
         quota: "私有化/自有 LLM 网关场景不按 token 收费",
         models: "任意（可强制仅用内部 AI 网关）",
@@ -908,11 +908,18 @@ const PLANS: Plan[] = [
         url: "https://canopywave.com/codingplan" },
     { id: "plan-0089", fieldRefs: { "models": "plan-0040", "tools": "plan-0040" }, vendor: "OpenCode (Anomaly/SST)", plan: "OpenCode Go Plus", cat: "tool", region: "intl", priceM: 40, priceY: null, cur: "USD", seat: false,
         windowPeriod: "5h",
-        quota: "逐模型5h/周/月窗口：Kimi K3月$60、GLM-5.3月$120、GLM-5.3-Flash/K2.7 Code月$180、DeepSeek V4.1 Flash月$160；Argon Contributor 限时2×月$240。5h=20%、周=50%、月=100%",
+        quota: "付费模型共用额度。只用单一模型时的月度美元上限：GLM-5.3 $400、GLM-5.3-Flash $180、DeepSeek V4.1 Flash $200、DeepSeek V4 Pro $60、Kimi K3 / K3.1 Pro / Haiku 5.5 / GPT-6 Luna $60、Kimi K2.7 Code / MiniMax M3 $180、Gemini 4 Argon $120（50% 折扣至 2026-11-30）。5 小时为月度 20%，每周 50%，按月 100%",
         models: "同 Go",
         tools: "同 Go",
-        note: "$40/月，逐模型限额不同，不能笼统视为Go的3–4×；每工作区仅1名成员，Contributor模型的数据训练政策同Go；各模型适用上限不可相加",
-        url: "https://opencode.ai/v2/docs/console/go/" },
+        note: "$40/月。覆盖订阅者与工作区 API 密钥，不是按人数计费。各模型适用上限不可相加，也不能把 Plus 看成 Go 的固定倍数。Argon 的保留与折扣、Muse Spark Contributor 的训练条款同 Go",
+        url: "https://opencode.ai/docs/console/go/" },
+    { id: "plan-0238", fieldRefs: { "models": "plan-0040", "tools": "plan-0040" }, vendor: "OpenCode (Anomaly/SST)", plan: "OpenCode Go 多人档", cat: "team", region: "intl", priceM: 20, priceY: null, cur: "USD", seat: true,
+        windowPeriod: "5h", quotaSharing: "shared",
+        quota: "每名成员独立额度，付费模型在该成员内共用。单模型月度上限比 Go 高 $5：GLM-5.3 $205、GLM-5.3-Flash $65、DeepSeek V4.1 Flash $105、Gemini 4 Argon $35，$15 档为 $20，$60 档为 $65。5 小时为月度 20%，每周 50%，按月 100%",
+        models: "同 Go",
+        tools: "同 Go",
+        note: "官网英文名为 Go Teams。每人 $20/月，至少 2 人，因此最低 $40/月。第二名成员不另收费；其后在周期中加入的成员收取 $20 并获得完整月度额度。服务账号不包含。超额用量默认开启，可在 Go 页面关闭",
+        url: "https://opencode.ai/docs/console/go/" },
     /* ---------- 第三方工具订阅 · 国际 ---------- */
     { id: "plan-0090", vendor: "GitHub Copilot", plan: "Free", cat: "tool", region: "intl", priceM: 0, priceY: 0, cur: "USD", seat: false,
         windowPeriod: "month",
@@ -1870,6 +1877,12 @@ const API_PRICES: ApiPrice[] = [
     { vendor: "OpenAI", model: "gpt-6-astra", label: "GPT-6 Astra", region: "intl", cur: "USD", inUSD: 10, outUSD: 50, apiCache: 1,
         note: "缓存输入 $1；长上下文档 $20/$75；Fast 模式 $20/$100；Ultrafast $60/$300、缓存 $6；Batch/Flex 5 折",
         url: "https://developers.openai.com/api/docs/pricing" },
+    { vendor: "OpenAI", model: "gpt-6.2-astra", label: "GPT-6.2 Astra", region: "intl", cur: "USD", inUSD: 8, outUSD: 40, apiCache: 0.4,
+        note: "2026-11-17 发布。短上下文（≤272K）输入 $8 / 缓存 $0.40 / 输出 $40；长上下文 $16 / $0.80 / $60。Fast 短上下文 $16/$80、缓存 $0.80。Ultrafast 至 2027-02-28（太平洋时间）为标准价 3 倍，短上下文 $24/$120、缓存 $1.20；2027-03-01 起 6 倍。Batch 为标准价一半。无 Flex。",
+        url: "https://developers.openai.com/api/docs/pricing" },
+    { vendor: "OpenAI", model: "gpt-6.2-sol", label: "GPT-6.2 Sol", region: "intl", cur: "USD", inUSD: 2, outUSD: 10, apiCache: 0.1,
+        note: "短上下文与 GPT-6.1 Sol 相同：输入 $2 / 缓存 $0.10 / 输出 $10；长上下文 $4 / $0.20 / $15。Fast 短上下文 $4/$20、缓存 $0.20。Ultrafast 至 2027-02-28（太平洋时间）为标准价 3 倍，短上下文 $6/$30、缓存 $0.30；2027-03-01 起 6 倍。Batch 为标准价一半。无 Flex。",
+        url: "https://developers.openai.com/api/docs/pricing" },
     { vendor: "OpenAI", model: "gpt-6.1-sol", label: "GPT-6.1 Sol", region: "intl", cur: "USD", inUSD: 2, outUSD: 10, apiCache: 0.1,
         note: "2026-09-29 DevDay 发布；缓存输入 $0.10（GPT-6 Sol 的一半）；长上下文(>272K) $4/$15、缓存 $0.20；Fast $4/$20；Ultrafast（2026-10-08 起）$12/$60、缓存 $0.60；Batch/Flex 5 折；官方称编码对齐 Astra、约其 1/5 价",
         url: "https://developers.openai.com/api/docs/pricing" },
@@ -2636,6 +2649,10 @@ const ESTIMATES: QuotaRow[] = [
 /* date 是来源写明的发生日。checked 表示这只是本站核对到该状态的日子，不是公告日。 */
 /** @type {DynamicItem[]} */
 const DYNAMICS: DynamicItem[] = [
+    { date: "2026-11-23", checked: true, text: "核对 OpenCode Go：月费仍为 $10 / $40。付费模型共用额度。2026-11-23 模型接口的单模型月度上限为 Go / Plus：GLM-5.3 $200 / $400，DeepSeek V4.1 Flash $100 / $200，Gemini 4 Argon $30 / $120。文档写明 Argon 的 50% 折扣至 2026-11-30，折扣结束后的上限未单列。另有按人计费的 Go Teams，每人 $20/月、至少 2 人，每名成员的单模型上限比 Go 高 $5。", source: "OpenCode 官方 Go 文档与模型接口", url: "https://opencode.ai/docs/console/go/" },
+    { date: "2026-11-23", checked: true, text: "Amp 文档中的模型选择器已取代 Dial 的四档模式。未改过设置时，新线程从 Staff Pick 开始，当前为 Claude Opus 5.5；原先 low / medium / high / ultra 分别对应 GLM-5.3-Flash、Claude Opus 5.5、GPT-6 Astra、Claude Fable 5.2。本次未重开定价页，不改月费。", source: "Amp 官方模型选择器文档", url: "https://ampcode.com/docs/model-selector" },
+    { date: "2026-11-23", checked: true, text: "Kimchi 官方模型计费文档预告托管模型退役：deepseek-v4.1-flash 于 2026-12-02 停止，改用同价的 deepseek-v4.1-flash-1017；kimi-k3 与 minimax-m3 于 2026-12-17 停止，分别改用 kimi-k3.1-pro 与 minimax-m3.1-flash。订阅月费本次未改。", source: "Kimchi 官方模型计费文档", url: "https://docs.kimchi.dev/docs/model-apis-pricing" },
+    { date: "2026-11-17", text: "OpenAI 发布 GPT-6.2 Astra 与 GPT-6.2 Sol，API 标识为 gpt-6.2-astra 与 gpt-6.2-sol。标准短上下文价格为 Astra 输入 $8 / 缓存 $0.40 / 输出 $40，Sol 输入 $2 / 缓存 $0.10 / 输出 $10（每百万 tokens）。Plus、Pro、Business、Enterprise 与 Edu 可在 ChatGPT Work 和 Codex 使用；Enterprise 与 Edu 默认关闭，须管理员开启。Plus 的本地消息估算为 Astra 6–50 条/5 小时、Sol 17–180 条/5 小时。Pro $200 的 Ultrafast 只含 Sol，Pro $500 两个模型都可开；订阅内按 6 倍计入，已购 credits 至 2027-02-28 按 3 倍、2027-03-01 起按 6 倍。", source: "OpenAI 发布公告与 API / Codex 定价文档", url: "https://openai.com/index/introducing-gpt-6-2-astra-sol" },
     { date: "2026-11-05", text: "OpenAI 发布 GPT-6 Cyber，用于在研究者指定的范围内查找和验证软件漏洞。首批获批的 Daybreak Red 客户可通过 API 和 Codex 使用。", source: "OpenAI 发布公告", url: "https://openai.com/index/introducing-gpt-6-cyber" },
     { date: "2026-11-05", text: "Google 发布 Gemini Omni 1.2 Flash，支持生成最长 15 秒的视频，并可用后续指令逐轮编辑。Gemini API、Google Vids 和 Gemini 企业产品开始提供该模型。", source: "Google 开发者公告", url: "https://blog.google/innovation-and-ai/technology/developers-tools/introducing-gemini-omni-1-2-flash/" },
     { date: "2026-11-05", checked: true, text: "核对 Kimi K3.1 Pro 权重：Moonshot AI 已在官方模型仓库提供下载、自部署说明和专用许可。托管 API 的模型标识为 kimi-k3.1-pro。", source: "Moonshot AI 官方模型卡", url: "https://huggingface.co/moonshotai/Kimi-K3.1-Pro" },
@@ -2763,8 +2780,11 @@ const SOURCES: SourceGroup[] = [
     { group: "OpenAI（Codex）", urls: [
             "https://developers.openai.com/api/docs/deprecations",
             "https://developers.openai.com/api/docs/models/gpt-5.3-codex",
+            "https://developers.openai.com/api/docs/pricing",
             "https://learn.chatgpt.com/docs/pricing",
             "https://learn.chatgpt.com/docs/agent-configuration/speed",
+            "https://learn.chatgpt.com/docs/whats-new/gpt-62-astra-sol",
+            "https://openai.com/index/introducing-gpt-6-2-astra-sol",
             "https://openai.com/index/introducing-gpt-6-1-sol",
             "https://developers.openai.com/api/docs/changelog",
         ] },
@@ -2830,6 +2850,7 @@ const SOURCES: SourceGroup[] = [
         ] },
     { group: "Roo Code / Kilo Code / Amp", urls: [
             "https://ampcode.com/news/use-your-claude-plan",
+            "https://ampcode.com/docs/model-selector",
             "https://ampcode.com/docs/the-dial",
             "https://roomote.dev/",
             "https://github.com/RooCodeInc/Roo-Code",
@@ -2915,6 +2936,8 @@ const SOURCES: SourceGroup[] = [
             "https://blog.csdn.net/jarvisuni/article/details/158928785",
         ] },
     { group: "OpenCode / R4 Coder / Command Code", urls: [
+            "https://opencode.ai/docs/console/go/",
+            "https://opencode.ai/inference/go/v1/models",
             "https://opencode.ai/v2/docs/console/go/",
             "https://opencode.ai/v2/docs/console/models/",
             "https://opencode.ai/changelog",
@@ -2968,7 +2991,7 @@ const SOURCES: SourceGroup[] = [
 const UNCERTAIN: string[] = [
     "Freebuff 的模型池与 Freebucks 因地区和客户端而异；旧发布文章、生成式 FAQ 与当前官方 README 的额度不同，不承诺全地区无限量，也未确认中国大陆属于 full access。数据使用说明据当前 README；隐私页 10-13 更新版本将于 11-12 生效，不能作为当前已生效政策。",
     "Kimchi Teams 的 $45 月 credits 是否按席位累计未说明，不能乘席位折算；企业档模型费按合同。HumanLayer 软件 sessions 不等于模型推理额度，三档均需自备账户/API。新收录三家的年付价及中国大陆购买资格未核实。",
-    "Amp Megawatt 正文的 agent 用量与定价卡片的自备模型文案存在差异，未推算固定 tokens；连接外部 ChatGPT/Claude 不会新增原订阅额度，Claude 仅覆盖 Claude Code 模式。OpenCode Argon Contributor 非 ZDR，提示和补全可能用于模型训练，其 2× 用量促销结束日未公布。",
+    "Amp Megawatt 正文的 agent 用量与定价卡片的自备模型文案存在差异，未推算固定 tokens；连接外部 ChatGPT/Claude 不会新增原订阅额度，Claude 仅覆盖 Claude Code 模式。OpenCode 的 Gemini 4 Argon 请求最多保留 55 天，50% 折扣至 2026-11-30，折扣结束后的月度上限未单列；Muse Spark Contributor 可用提示和补全训练，不是零数据保留。",
     "价格逐条核查状态、核查日期与官网链接见来源栏；待核实历史价不参与推荐和排行，未列年付价不等于厂商不存在年付方案。",
     "图中黄色估算柱与额度表的≈估行采用已说明的假设，不能作为厂商承诺的 token 数；官方周 tokens 与请求数、积分和月池分开标注。",
     "汇率日期与官网原价核查日期分别记录；USD 按页面标注的参考汇率折算，INR 按同日 USD/CNY 与 USD/INR 交叉汇率换算，仅作人民币对比。",
@@ -3005,7 +3028,7 @@ const UNCERTAIN: string[] = [
 /* 逐条官方核价记录；由 audit/pricing-verification-2026-10-04.json 维护。 */
 /** @type {PriceChecks} */
 const PRICE_CHECKS: PriceChecks = {
-    "checkedAt": "2026-10-26",
+    "checkedAt": "2026-11-23",
     "sources": {
         "claude-plans": {
             "url": "https://claude.com/pricing",
@@ -3693,6 +3716,41 @@ const PRICE_CHECKS: PriceChecks = {
             "url": "https://about.fb.com/news/2026/10/introducing-muse-wonder-models/",
             "evidence": "10-12历史公告确认Wonder API/Muse Code与Full订阅入口；核查日不作新品或GA发布日期。",
             "checkedAt": "2026-10-26"
+        },
+        "openai-gpt62-announce-20261123": {
+            "url": "https://openai.com/index/introducing-gpt-6-2-astra-sol",
+            "evidence": "2026-11-17 官方公告：GPT-6.2 Astra 短上下文标准价输入 $8、缓存 $0.40、输出 $40（每百万 tokens），比 GPT-6 Astra 的输入和输出低 20%，缓存低 60%。GPT-6.2 Sol 沿用 GPT-6.1 Sol 的 $2 / $0.10 / $10。模型标识 gpt-6.2-astra 与 gpt-6.2-sol。Plus、Pro、Enterprise、Edu 可在 ChatGPT Work 与 Codex 使用；Pro $500 两个模型都可开 Ultrafast，Pro $200 从 Sol 开始可开 Ultrafast。",
+            "checkedAt": "2026-11-23"
+        },
+        "openai-api-pricing-20261123": {
+            "url": "https://developers.openai.com/api/docs/pricing",
+            "evidence": "标准档短上下文（≤272K）：gpt-6.2-astra 输入 $8、输出 $40、缓存 $0.40，长上下文 $16 / $60 / $0.80；gpt-6.2-sol 输入 $2、输出 $10、缓存 $0.10，长上下文 $4 / $15 / $0.20。Fast 为上述标准价 2 倍。Ultrafast 至 2027-02-28（太平洋时间）为标准价 3 倍，2027-03-01 起 6 倍。Batch 为标准价一半。Flex 表没有这两个型号。gpt-6-astra 标准价仍为 $10 / $50、缓存 $1。",
+            "checkedAt": "2026-11-23"
+        },
+        "openai-codex-pricing-20261123": {
+            "url": "https://learn.chatgpt.com/docs/pricing",
+            "evidence": "Plus 与标准 Business 的本地消息估算（每 5 小时）：GPT-6.2 Astra 6–50、GPT-6.2 Sol 17–180、GPT-6 Astra 5–45、GPT-6.1 Sol 15–160、GPT-6 Sol 15–150、GPT-6 Luna 350–3,000。Pro 目前没有 5 小时上限。功能表写明 GPT-6.2 Astra 与 Sol 可用于 Plus、Pro、Business、Enterprise 与 Edu；Enterprise 与 Edu 默认关闭，管理员开启后可用。Fast：6.2 订阅内与 credits 都按 2 倍。Ultrafast：6.2 订阅内按 6 倍；用已购 credits 或符合条件的企业按量，至 2027-02-28 按 3 倍，2027-03-01（太平洋时间）起按 6 倍。GPT-5.6 Sol 的 credits 仍列为 100 / 10 / 500，页面仍写促销至少到 2026-11-21，没有公布之后的新牌价。",
+            "checkedAt": "2026-11-23"
+        },
+        "openai-gpt62-whats-new-20261123": {
+            "url": "https://learn.chatgpt.com/docs/whats-new/gpt-62-astra-sol",
+            "evidence": "Work 的网页、桌面和移动端以及 Codex：Plus、Pro、Business、Enterprise、Edu 可用；Enterprise 与 Edu 须管理员先开启。Pro $200 的 Ultrafast 只含 Sol；Pro $500 以及符合条件并已开启权限的 Enterprise、Edu 两个模型都可开 Ultrafast。API 两个模型在上线时都支持 Ultrafast。",
+            "checkedAt": "2026-11-23"
+        },
+        "openai-speed-20261123": {
+            "url": "https://learn.chatgpt.com/docs/agent-configuration/speed",
+            "evidence": "Ultrafast 可用型号取决于档位，并指向按 Pro 分列的说明。Pro $500 两个 GPT-6.2 模型都可用。Enterprise 与 Edu 的符合条件工作区两个模型都支持，Ultrafast 权限默认关闭。GPT-6 Astra 与 GPT-6.1 Sol 的 Ultrafast 仍限于 Pro $500 及符合条件的 Enterprise、Edu。",
+            "checkedAt": "2026-11-23"
+        },
+        "opencode-go-docs-20261123": {
+            "url": "https://opencode.ai/docs/console/go/",
+            "evidence": "Go $10/月、Go Plus $40/月，付费模型共用一套额度。官网第三档英文名为 Go Teams：每人 $20/月、至少 2 人；每名成员自有额度，每个模型比 Go 高 $5。5 小时为月度 20%，每周 50%。Go 与 Go Plus 覆盖订阅者及其工作区 API 密钥，其他受邀成员使用免费模型或工作区余额。Gemini 4 Argon 的 50% 折扣写明至 2026-11-30。旧地址 /v2/docs/console/go/ 会 301 到本页。",
+            "checkedAt": "2026-11-23"
+        },
+        "opencode-go-models-20261123": {
+            "url": "https://opencode.ai/inference/go/v1/models",
+            "evidence": "2026-11-23 模型接口的单模型月度美元上限（Go / Plus / 按成员计费档）：GLM-5.3 200/400/205，GLM-5.3-Flash 60/180/65，DeepSeek V4.1 Flash 100/200/105，DeepSeek V4 Pro 15/60/20，Kimi K3、Kimi K3.1 Pro、Claude Haiku 5.5、GPT-6 Luna 均为 15/60/20，Kimi K2.7 Code 与 MiniMax M3 为 60/180/65，Gemini 4 Argon 30/120/35。Gemini 4 Argon 的 training 为 false、零数据保留为 false。Muse Spark Contributor 的 training 为 true。Beam、Iceman Contributor、Hy4 Flash 的月度上限字段为空，文档称限时免费。",
+            "checkedAt": "2026-11-23"
         }
     },
     "rows": {
@@ -3773,52 +3831,62 @@ const PRICE_CHECKS: PriceChecks = {
             "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
         },
         "plan:plan-0010": {
-            "status": "verified",
-            "checkedAt": "2026-10-04",
+            "status": "changed",
+            "checkedAt": "2026-11-23",
             "sourceIds": [
-                "openai-plans"
+                "openai-codex-pricing-20261123",
+                "openai-gpt62-whats-new-20261123"
             ],
-            "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
+            "reason": "额度与备注保留 GPT-6.2 的 5 小时条数和 Fast 倍率。模型栏恢复原写法，避免推荐卡把本档显示成只有 6.2，而盖住仍在售的 6.1 Sol 与 GPT-6 Astra。"
         },
         "plan:plan-0011": {
-            "status": "verified",
-            "checkedAt": "2026-10-04",
+            "status": "changed",
+            "checkedAt": "2026-11-23",
             "sourceIds": [
-                "openai-plans"
+                "openai-codex-pricing-20261123",
+                "openai-gpt62-whats-new-20261123"
             ],
-            "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
+            "reason": "模型栏恢复「GPT-6 全系」原括号。6.2 的资格写在各档备注和动态，不把较新小版本写进全系括号。"
         },
         "plan:plan-0012": {
-            "status": "verified",
-            "checkedAt": "2026-10-04",
+            "status": "changed",
+            "checkedAt": "2026-11-23",
             "sourceIds": [
-                "openai-plans"
+                "openai-gpt62-announce-20261123",
+                "openai-gpt62-whats-new-20261123",
+                "openai-codex-pricing-20261123"
             ],
-            "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
+            "reason": "月价仍为 $200，目前仍无 5 小时上限。新增：Ultrafast 可用 GPT-6.2 Sol，不能用于 GPT-6.2 Astra。订阅内按 6 倍计入；已购 credits 至 2027-02-28 按 3 倍，2027-03-01（太平洋时间）起按 6 倍。"
         },
         "plan:plan-0013": {
             "status": "changed",
-            "checkedAt": "2026-10-13",
+            "checkedAt": "2026-11-23",
             "sourceIds": [
-                "openai-codex-speed-20261013"
+                "openai-gpt62-whats-new-20261123",
+                "openai-speed-20261123",
+                "openai-codex-pricing-20261123",
+                "openai-api-pricing-20261123"
             ],
-            "reason": "月价 $500 不变；Ultrafast 自 10-08 起同时支持 GPT-6 Astra 与 GPT-6.1 Sol，订阅内按 8 倍计量、credits 按 6 倍计费。"
+            "reason": "月价仍为 $500。GPT-6.2 Astra 与 Sol 都可开 Ultrafast，订阅内按 6 倍；credits 与符合条件的企业按量至 2027-02-28 按 3 倍，其后按 6 倍。GPT-6 Astra 与 GPT-6.1 Sol 的 Ultrafast 仍是订阅内 8 倍、credits 6 倍。"
         },
         "plan:plan-0014": {
-            "status": "verified",
-            "checkedAt": "2026-10-04",
+            "status": "changed",
+            "checkedAt": "2026-11-23",
             "sourceIds": [
-                "openai-plans"
+                "openai-codex-pricing-20261123",
+                "openai-gpt62-whats-new-20261123"
             ],
-            "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
+            "reason": "模型栏恢复「GPT-6 系列」。标准席位与 Plus 相同的 5 小时估算改写在备注，避免模型栏的新版本号改变推荐卡显示。"
         },
         "plan:plan-0015": {
-            "status": "custom",
-            "checkedAt": "2026-10-04",
+            "status": "changed",
+            "checkedAt": "2026-11-23",
             "sourceIds": [
-                "openai-plans"
+                "openai-codex-pricing-20261123",
+                "openai-gpt62-whats-new-20261123",
+                "openai-speed-20261123"
             ],
-            "reason": "官方Enterprise需联系销售，无公开固定价。"
+            "reason": "仍为询价。GPT-6.2 默认关闭，管理员开启后可用；无灵活定价时每席用量与 Plus 相同。Ultrafast 权限默认关闭。"
         },
         "plan:plan-0016": {
             "status": "changed",
@@ -4176,11 +4244,12 @@ const PRICE_CHECKS: PriceChecks = {
         },
         "plan:plan-0040": {
             "status": "changed",
-            "checkedAt": "2026-10-15",
+            "checkedAt": "2026-11-23",
             "sourceIds": [
-                "opencode-go-news-20261015"
+                "opencode-go-docs-20261123",
+                "opencode-go-models-20261123"
             ],
-            "reason": "更新官方当前模型权益和端点；$10 常规月费及未公布年付价保持不变。"
+            "reason": "月费仍为 $10。2026-11-23 模型接口的单模型月度上限已变：GLM-5.3 为 $200，不再是库内的 $15 档；DeepSeek V4.1 Flash 为 $100；Gemini 4 Argon 为 $30，文档写明 50% 折扣至 2026-11-30。付费模型共用额度。旧文档地址会跳转。"
         },
         "plan:plan-0041": {
             "status": "custom",
@@ -4537,11 +4606,12 @@ const PRICE_CHECKS: PriceChecks = {
         },
         "plan:plan-0089": {
             "status": "changed",
-            "checkedAt": "2026-10-15",
+            "checkedAt": "2026-11-23",
             "sourceIds": [
-                "opencode-go-news-20261015"
+                "opencode-go-docs-20261123",
+                "opencode-go-models-20261123"
             ],
-            "reason": "移除笼统3–4×描述，采用官方逐模型月限额；$40常规月费及未公布年付价保持不变。"
+            "reason": "月费仍为 $40。单模型月度上限按 2026-11-23 接口改为 GLM-5.3 $400、DeepSeek V4.1 Flash $200、Gemini 4 Argon $120 等，不再沿用 $120 / $160 / $240。"
         },
         "plan:plan-0090": {
             "status": "verified",
@@ -6082,6 +6152,33 @@ const PRICE_CHECKS: PriceChecks = {
                 "meta-models-current-20261026"
             ],
             "reason": "10-26 重读官方四档订阅，美元月价与原10-14记录一致；补充默认Contributor及关闭后的额度边界、韩国和Windows语音限制，不构造涨价。"
+        },
+        "api:OpenAI|gpt-6.2-astra": {
+            "status": "verified",
+            "checkedAt": "2026-11-23",
+            "sourceIds": [
+                "openai-api-pricing-20261123",
+                "openai-gpt62-announce-20261123"
+            ],
+            "reason": "新增行。标准短上下文输入 $8、缓存 $0.40、输出 $40；长上下文、Fast、Batch 与限时 Ultrafast 写在备注。"
+        },
+        "api:OpenAI|gpt-6.2-sol": {
+            "status": "verified",
+            "checkedAt": "2026-11-23",
+            "sourceIds": [
+                "openai-api-pricing-20261123",
+                "openai-gpt62-announce-20261123"
+            ],
+            "reason": "新增行。标准短上下文与 GPT-6.1 Sol 相同：输入 $2、缓存 $0.10、输出 $10。长上下文、Fast、Batch 与限时 Ultrafast 写在备注。"
+        },
+        "plan:plan-0238": {
+            "status": "verified",
+            "checkedAt": "2026-11-23",
+            "sourceIds": [
+                "opencode-go-docs-20261123",
+                "opencode-go-models-20261123"
+            ],
+            "reason": "新档：每人 $20/月，至少 2 人。每名成员自有一套共用额度，单模型月度上限比 Go 高 $5。官网英文名为 Go Teams。"
         }
     }
 };
@@ -6215,7 +6312,7 @@ const BENCHMARK_SUMMARY: BenchmarkSummary = { "schemaVersion": 1, "checkedAt": "
 
 /* 自动生成：npm run maintenance:build。导航「我的关注」未读提醒用的套餐变更 ID 与复查间隔；完整变更见 maintenance-data.js（按需加载）。 */
 /** @type {MaintenanceSummary} */
-const MAINTENANCE_SUMMARY: MaintenanceSummary = { "schemaVersion": 1, "staleAfterDays": 14, "changes": [{ "id": "plan-0224", "changeId": "change-4f218b72dacbc36c28cff472" }, { "id": "plan-0222", "changeId": "change-7bb3de5626c0a953174c9649" }, { "id": "plan-0221", "changeId": "change-db81a7a10d44a611b7950a07" }, { "id": "plan-0223", "changeId": "change-f6e1d5f7128a01d4787fbf6b" }, { "id": "plan-0040", "changeId": "change-15f5d31c6e8b463993648b38" }, { "id": "plan-0127", "changeId": "change-2ae693cc1d1f2b71f282c21b" }, { "id": "plan-0039", "changeId": "change-53233e0b148a39f9bf7112dd" }, { "id": "plan-0228", "changeId": "change-5515d59692180521d962c029" }, { "id": "plan-0227", "changeId": "change-6a3893ad79362c9cfa9b8e48" }, { "id": "plan-0092", "changeId": "change-6bc6df8e107656825f53ac72" }, { "id": "plan-0230", "changeId": "change-7033bbf6398cc976a79d799e" }, { "id": "plan-0089", "changeId": "change-8241744f587f88bb9081dd81" }, { "id": "plan-0225", "changeId": "change-9d7173303251f49317337d22" }, { "id": "plan-0091", "changeId": "change-9fc53e3ab3d78dbafd89b1a0" }, { "id": "plan-0094", "changeId": "change-a018c88c11698cfecf999863" }, { "id": "plan-0095", "changeId": "change-ae02d5d674403a35dbe5cb9a" }, { "id": "plan-0093", "changeId": "change-bdc8f2924acdf684623367fa" }, { "id": "plan-0229", "changeId": "change-bfb8db87ab8b9a77f63aa696" }, { "id": "plan-0126", "changeId": "change-c1af7accef97bac98822d9eb" }, { "id": "plan-0231", "changeId": "change-c515c861ae4ab9cd119e8a20" }, { "id": "plan-0232", "changeId": "change-dd4b9bdeef95be64fcec1ad6" }, { "id": "plan-0226", "changeId": "change-fc5560986f2e74a0d756cfa6" }, { "id": "plan-0092", "changeId": "change-1a9c094306a4b8d518ea71bd" }, { "id": "plan-0224", "changeId": "change-1e92d0efd88a842e6dbcf5f2" }, { "id": "plan-0094", "changeId": "change-451f08c4ebe113de4e4de9bc" }, { "id": "plan-0018", "changeId": "change-82f1725e0bd394f2390d9e76" }, { "id": "plan-0222", "changeId": "change-8fcb085c06b794b2f599e7d2" }, { "id": "plan-0223", "changeId": "change-b5452ecfdff2f9867de07ca1" }, { "id": "plan-0221", "changeId": "change-bf99e20cc2de31e8b4614432" }, { "id": "plan-0017", "changeId": "change-d7a069852d2ffc239d61c0e5" }, { "id": "plan-0016", "changeId": "change-d94cb07f37527fd06c9cc1b0" }, { "id": "plan-0095", "changeId": "change-e25a4e2dcaa833a4ffc9b3c7" }, { "id": "plan-0096", "changeId": "change-0b06380cd89f6485db9eda14" }, { "id": "plan-0216", "changeId": "change-1b6ba8b6cfa68a93e86979b0" }, { "id": "plan-0006", "changeId": "change-1e37795fc06e1ba51fe8ac00" }, { "id": "plan-0098", "changeId": "change-22d7f8da4a3682977dd91c82" }, { "id": "plan-0025", "changeId": "change-275df2271ad0b1589415cd2d" }, { "id": "plan-0026", "changeId": "change-32527572330ca65b201dd10b" }, { "id": "plan-0099", "changeId": "change-335f01f430472e8277fb98d7" }, { "id": "plan-0220", "changeId": "change-38ed48266f362048a7553326" }, { "id": "plan-0095", "changeId": "change-3c704d5feda6494ce3ef6e8f" }, { "id": "plan-0091", "changeId": "change-3fbfc58974b733142929d1da" }, { "id": "plan-0213", "changeId": "change-448b6054b5f776b2b1558d29" }, { "id": "plan-0218", "changeId": "change-4b4ed277e67ae1f78b0ae4dc" }, { "id": "plan-0217", "changeId": "change-4e04840c90de0c6e4b0b3917" }, { "id": "plan-0013", "changeId": "change-674064063fb6d0f2a0100da3" }, { "id": "plan-0003", "changeId": "change-72fedbdce78e01a5ded89b43" }, { "id": "plan-0214", "changeId": "change-7cca6ceb8b757d39d6ae2f9a" }, { "id": "plan-0023", "changeId": "change-7f5d3df973101d4ce4b83957" }, { "id": "plan-0219", "changeId": "change-8206cc5c3512000df26cfd9d" }, { "id": "plan-0102", "changeId": "change-870a9310ba08288505e6fdde" }, { "id": "plan-0005", "changeId": "change-8a3995cf02d1607a8c978b42" }, { "id": "plan-0103", "changeId": "change-8b40222f8a5c880f9f7a676a" }, { "id": "plan-0215", "changeId": "change-928d3b86d2be689a22528633" }, { "id": "plan-0004", "changeId": "change-a19395449fa2b39372a73e95" }, { "id": "plan-0092", "changeId": "change-a22185256844ee8caf81a9ca" }, { "id": "plan-0094", "changeId": "change-be419e92b67bc5e585819631" }, { "id": "plan-0100", "changeId": "change-f5a81c0184ee5e43c3181499" }, { "id": "plan-0101", "changeId": "change-f978ae82afb2cf9f2c3a3d1f" }, { "id": "plan-0135", "changeId": "change-1ddd2f26b385ca4cce5c0889" }, { "id": "plan-0101", "changeId": "change-255d9ace38e030ac418c588e" }, { "id": "plan-0033", "changeId": "change-3182b6de09f4ddd7c58e06f0" }, { "id": "plan-0134", "changeId": "change-3f6953b4667c1dd71f3a9ec6" }, { "id": "plan-0026", "changeId": "change-480f09d4107d62f910374368" }, { "id": "plan-0197", "changeId": "change-503b4179a50e7cf33d46eab1" }, { "id": "plan-0102", "changeId": "change-5dd6fd47e0331163af1b6c6e" }, { "id": "plan-0017", "changeId": "change-5e5a0320dc4615f448119a35" }, { "id": "plan-0139", "changeId": "change-67a89830e048c3cc060aa4b8" }, { "id": "plan-0154", "changeId": "change-717c2777ffebf7b15a65edc9" }, { "id": "plan-0025", "changeId": "change-72dda49670b16f04542dc0e8" }, { "id": "plan-0156", "changeId": "change-7f021aeddba731b72a8bc19a" }, { "id": "plan-0097", "changeId": "change-91702b0165a550bf34053640" }, { "id": "plan-0138", "changeId": "change-925841d5dc56d189fb387575" }, { "id": "plan-0032", "changeId": "change-a34ee27e1bc9661f445d3d90" }, { "id": "plan-0160", "changeId": "change-c54acaae59581333114da30f" }, { "id": "plan-0016", "changeId": "change-d0e2173924d84dc157d0522d" }, { "id": "plan-0149", "changeId": "change-d4c060d1224d283a18e43f10" }, { "id": "plan-0155", "changeId": "change-feeb742795ef7f3f0970bf39" }, { "id": "plan-0031", "changeId": "change-ff4c63f9bac95e9d5c32726f" }] };
+const MAINTENANCE_SUMMARY: MaintenanceSummary = { "schemaVersion": 1, "staleAfterDays": 14, "changes": [{ "id": "plan-0040", "changeId": "change-10efce0ced03633d14143827" }, { "id": "plan-0089", "changeId": "change-112eb32c00945691898e8ece" }, { "id": "plan-0015", "changeId": "change-14c565069f5ff9122ee0fa23" }, { "id": "plan-0013", "changeId": "change-5b3ea2a972c1d9c3f49665e1" }, { "id": "plan-0011", "changeId": "change-5b75cb07866792fe4c83d87c" }, { "id": "plan-0014", "changeId": "change-692ad941190786790010edf3" }, { "id": "plan-0010", "changeId": "change-6b3780731bf12a68598fe4b9" }, { "id": "plan-0014", "changeId": "change-7584b4de59fdb2a65b682a69" }, { "id": "plan-0012", "changeId": "change-994ffbfac1b144eb6acb9ca6" }, { "id": "plan-0010", "changeId": "change-baea16f868ea0810f84ec6f3" }, { "id": "plan-0011", "changeId": "change-e2dc1f0b60fb24c93b6ed3bf" }, { "id": "plan-0238", "changeId": "change-e6ff9b6c56ad82053aea4324" }, { "id": "plan-0224", "changeId": "change-4f218b72dacbc36c28cff472" }, { "id": "plan-0222", "changeId": "change-7bb3de5626c0a953174c9649" }, { "id": "plan-0221", "changeId": "change-db81a7a10d44a611b7950a07" }, { "id": "plan-0223", "changeId": "change-f6e1d5f7128a01d4787fbf6b" }, { "id": "plan-0040", "changeId": "change-15f5d31c6e8b463993648b38" }, { "id": "plan-0127", "changeId": "change-2ae693cc1d1f2b71f282c21b" }, { "id": "plan-0039", "changeId": "change-53233e0b148a39f9bf7112dd" }, { "id": "plan-0228", "changeId": "change-5515d59692180521d962c029" }, { "id": "plan-0227", "changeId": "change-6a3893ad79362c9cfa9b8e48" }, { "id": "plan-0092", "changeId": "change-6bc6df8e107656825f53ac72" }, { "id": "plan-0230", "changeId": "change-7033bbf6398cc976a79d799e" }, { "id": "plan-0089", "changeId": "change-8241744f587f88bb9081dd81" }, { "id": "plan-0225", "changeId": "change-9d7173303251f49317337d22" }, { "id": "plan-0091", "changeId": "change-9fc53e3ab3d78dbafd89b1a0" }, { "id": "plan-0094", "changeId": "change-a018c88c11698cfecf999863" }, { "id": "plan-0095", "changeId": "change-ae02d5d674403a35dbe5cb9a" }, { "id": "plan-0093", "changeId": "change-bdc8f2924acdf684623367fa" }, { "id": "plan-0229", "changeId": "change-bfb8db87ab8b9a77f63aa696" }, { "id": "plan-0126", "changeId": "change-c1af7accef97bac98822d9eb" }, { "id": "plan-0231", "changeId": "change-c515c861ae4ab9cd119e8a20" }, { "id": "plan-0232", "changeId": "change-dd4b9bdeef95be64fcec1ad6" }, { "id": "plan-0226", "changeId": "change-fc5560986f2e74a0d756cfa6" }, { "id": "plan-0092", "changeId": "change-1a9c094306a4b8d518ea71bd" }, { "id": "plan-0224", "changeId": "change-1e92d0efd88a842e6dbcf5f2" }, { "id": "plan-0094", "changeId": "change-451f08c4ebe113de4e4de9bc" }, { "id": "plan-0018", "changeId": "change-82f1725e0bd394f2390d9e76" }, { "id": "plan-0222", "changeId": "change-8fcb085c06b794b2f599e7d2" }, { "id": "plan-0223", "changeId": "change-b5452ecfdff2f9867de07ca1" }, { "id": "plan-0221", "changeId": "change-bf99e20cc2de31e8b4614432" }, { "id": "plan-0017", "changeId": "change-d7a069852d2ffc239d61c0e5" }, { "id": "plan-0016", "changeId": "change-d94cb07f37527fd06c9cc1b0" }, { "id": "plan-0095", "changeId": "change-e25a4e2dcaa833a4ffc9b3c7" }, { "id": "plan-0096", "changeId": "change-0b06380cd89f6485db9eda14" }, { "id": "plan-0216", "changeId": "change-1b6ba8b6cfa68a93e86979b0" }, { "id": "plan-0006", "changeId": "change-1e37795fc06e1ba51fe8ac00" }, { "id": "plan-0098", "changeId": "change-22d7f8da4a3682977dd91c82" }, { "id": "plan-0025", "changeId": "change-275df2271ad0b1589415cd2d" }, { "id": "plan-0026", "changeId": "change-32527572330ca65b201dd10b" }, { "id": "plan-0099", "changeId": "change-335f01f430472e8277fb98d7" }, { "id": "plan-0220", "changeId": "change-38ed48266f362048a7553326" }, { "id": "plan-0095", "changeId": "change-3c704d5feda6494ce3ef6e8f" }, { "id": "plan-0091", "changeId": "change-3fbfc58974b733142929d1da" }, { "id": "plan-0213", "changeId": "change-448b6054b5f776b2b1558d29" }, { "id": "plan-0218", "changeId": "change-4b4ed277e67ae1f78b0ae4dc" }, { "id": "plan-0217", "changeId": "change-4e04840c90de0c6e4b0b3917" }, { "id": "plan-0013", "changeId": "change-674064063fb6d0f2a0100da3" }, { "id": "plan-0003", "changeId": "change-72fedbdce78e01a5ded89b43" }, { "id": "plan-0214", "changeId": "change-7cca6ceb8b757d39d6ae2f9a" }, { "id": "plan-0023", "changeId": "change-7f5d3df973101d4ce4b83957" }, { "id": "plan-0219", "changeId": "change-8206cc5c3512000df26cfd9d" }, { "id": "plan-0102", "changeId": "change-870a9310ba08288505e6fdde" }, { "id": "plan-0005", "changeId": "change-8a3995cf02d1607a8c978b42" }, { "id": "plan-0103", "changeId": "change-8b40222f8a5c880f9f7a676a" }, { "id": "plan-0215", "changeId": "change-928d3b86d2be689a22528633" }, { "id": "plan-0004", "changeId": "change-a19395449fa2b39372a73e95" }, { "id": "plan-0092", "changeId": "change-a22185256844ee8caf81a9ca" }, { "id": "plan-0094", "changeId": "change-be419e92b67bc5e585819631" }, { "id": "plan-0100", "changeId": "change-f5a81c0184ee5e43c3181499" }, { "id": "plan-0101", "changeId": "change-f978ae82afb2cf9f2c3a3d1f" }, { "id": "plan-0135", "changeId": "change-1ddd2f26b385ca4cce5c0889" }, { "id": "plan-0101", "changeId": "change-255d9ace38e030ac418c588e" }, { "id": "plan-0033", "changeId": "change-3182b6de09f4ddd7c58e06f0" }, { "id": "plan-0134", "changeId": "change-3f6953b4667c1dd71f3a9ec6" }, { "id": "plan-0026", "changeId": "change-480f09d4107d62f910374368" }, { "id": "plan-0197", "changeId": "change-503b4179a50e7cf33d46eab1" }, { "id": "plan-0102", "changeId": "change-5dd6fd47e0331163af1b6c6e" }, { "id": "plan-0017", "changeId": "change-5e5a0320dc4615f448119a35" }, { "id": "plan-0139", "changeId": "change-67a89830e048c3cc060aa4b8" }, { "id": "plan-0154", "changeId": "change-717c2777ffebf7b15a65edc9" }, { "id": "plan-0025", "changeId": "change-72dda49670b16f04542dc0e8" }, { "id": "plan-0156", "changeId": "change-7f021aeddba731b72a8bc19a" }, { "id": "plan-0097", "changeId": "change-91702b0165a550bf34053640" }, { "id": "plan-0138", "changeId": "change-925841d5dc56d189fb387575" }, { "id": "plan-0032", "changeId": "change-a34ee27e1bc9661f445d3d90" }, { "id": "plan-0160", "changeId": "change-c54acaae59581333114da30f" }, { "id": "plan-0016", "changeId": "change-d0e2173924d84dc157d0522d" }, { "id": "plan-0149", "changeId": "change-d4c060d1224d283a18e43f10" }, { "id": "plan-0155", "changeId": "change-feeb742795ef7f3f0970bf39" }, { "id": "plan-0031", "changeId": "change-ff4c63f9bac95e9d5c32726f" }] };
 
 /* 项目公开入口与纠错提交渠道。 */
 const PUBLIC_PROJECT = Object.freeze({
