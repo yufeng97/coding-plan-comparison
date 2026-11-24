@@ -2,6 +2,288 @@
   "schemaVersion": 1,
   "changes": [
     {
+      "changeId": "change-0c10faa33720bb2ee155eb4e",
+      "id": "plan-0159",
+      "kind": "plan",
+      "vendor": "智谱 BigModel",
+      "name": "GLM Coding V3 Max",
+      "checkedAt": "2026-11-24",
+      "sourceUrls": [
+        "https://docs.bigmodel.cn/cn/coding-plan/overview.md",
+        "https://docs.bigmodel.cn/cn/guide/models/glm-5.4",
+        "https://www.bigmodel.cn/glm-coding"
+      ],
+      "fields": [
+        "models",
+        "quota"
+      ],
+      "before": {
+        "models": "GLM-5.3、GLM-5.3-Flash",
+        "quota": "每 5 小时 28,000 积分 + 每周 140,000 积分"
+      },
+      "after": {
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash（抵扣系数：GLM-5.4 输入 4.6/缓存 1.1/输出 16；GLM-5.3 为 6.9/1.7/24；Flash 2.3/0.56/8）",
+        "quota": "每 5 小时 28,000 积分 + 每周 140,000 积分；95% 缓存命中时官方估算每周 GLM-5.4 约 10.14–20.28 亿 tokens"
+      },
+      "plan": "GLM Coding V3 Max"
+    },
+    {
+      "changeId": "change-27c2fb2939da3ec5d6aaef97",
+      "id": "plan-0126",
+      "kind": "plan",
+      "vendor": "Sourcegraph Amp",
+      "name": "Hobby",
+      "checkedAt": "2026-11-24",
+      "sourceUrls": [
+        "https://ampcode.com/docs/model-selector"
+      ],
+      "fields": [
+        "models"
+      ],
+      "before": {
+        "models": "BYOK；可连接 ChatGPT Plus/Pro；Claude Pro/Max 仅 Claude Code 模式（均受原订阅模型资格/额度限制）"
+      },
+      "after": {
+        "models": "未自选时 Staff Pick 当前为 Claude Opus 5.5；也可 BYOK。ChatGPT Plus/Pro 与 Claude 订阅只覆盖各自模型，Claude 含 Claude Code 模式，均受原订阅额度限制"
+      },
+      "plan": "Hobby"
+    },
+    {
+      "changeId": "change-3fd3810a5a5ded05b0ea8e98",
+      "id": "plan-0127",
+      "kind": "plan",
+      "vendor": "Sourcegraph Amp",
+      "name": "Individual（Megawatt）",
+      "checkedAt": "2026-11-24",
+      "sourceUrls": [
+        "https://ampcode.com/docs/model-selector"
+      ],
+      "fields": [
+        "models",
+        "note"
+      ],
+      "before": {
+        "models": "Amp 自动路由/按量模型，或自有 Key；可连接 ChatGPT Plus/Pro；Claude Pro/Max 仅 Claude Code 模式",
+        "note": "Megawatt $20/月（不变）；ChatGPT/Claude 模型资格与用量由原订阅决定；Amp 自有模式、orbs 及未被外部订阅覆盖的工具可能消耗 Amp credits。官方卡片与正文对 agent 用量口径有差异，未推断调价；既有 Gigawatt $200/月、480,000 orb 分钟为此前核实记录，本轮未重新核价"
+      },
+      "after": {
+        "models": "未自选时 Staff Pick 当前为 Claude Opus 5.5；也可按量或自有 Key。ChatGPT Plus/Pro 与 Claude 订阅只覆盖各自模型，Claude 含 Claude Code 模式",
+        "note": "Megawatt $20/月（不变）；ChatGPT/Claude 模型资格与用量由原订阅决定；Amp 自有模式、orbs 及未被外部订阅覆盖的工具可能消耗 Amp credits。官方卡片与正文对 agent 用量口径有差异，未推断调价；既有 Gigawatt $200/月、480,000 orb 分钟为此前核实记录，本轮未重新核价。2026-11-24 模型选择器文档确认 Dial 已由选择器取代，Staff Pick 为 Claude Opus 5.5；未重开定价页"
+      },
+      "plan": "Individual（Megawatt）"
+    },
+    {
+      "changeId": "change-51ba40940bf3fa22f41785ac",
+      "id": "plan-0160",
+      "kind": "plan",
+      "vendor": "智谱 BigModel",
+      "name": "GLM Coding Plan 团队标准版",
+      "checkedAt": "2026-11-24",
+      "sourceUrls": [
+        "https://docs.bigmodel.cn/cn/coding-plan/team",
+        "https://docs.bigmodel.cn/cn/guide/models/glm-5.4"
+      ],
+      "fields": [
+        "models",
+        "quota"
+      ],
+      "before": {
+        "models": "GLM-5.3、GLM-5.3-Flash",
+        "quota": "每席位每 5 小时 15,000 积分 + 每周 66,000 积分；2 席位起购，无上限"
+      },
+      "after": {
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash（抵扣系数：GLM-5.4 输入 4.6/缓存 1.1/输出 16；GLM-5.3 为 6.9/1.7/24；Flash 2.3/0.56/8）",
+        "quota": "每席位每 5 小时 15,000 积分 + 每周 66,000 积分；2 席位起购，无上限；95% 缓存命中时官方估算每周 GLM-5.4 约 4.79–9.57 亿 tokens"
+      },
+      "plan": "GLM Coding Plan 团队标准版"
+    },
+    {
+      "changeId": "change-54f22ab0b3188489c4bb2680",
+      "id": "plan-0157",
+      "kind": "plan",
+      "vendor": "智谱 BigModel",
+      "name": "GLM Coding V3 Lite",
+      "checkedAt": "2026-11-24",
+      "sourceUrls": [
+        "https://docs.bigmodel.cn/cn/coding-plan/overview.md",
+        "https://docs.bigmodel.cn/cn/guide/models/glm-5.4",
+        "https://www.bigmodel.cn/glm-coding"
+      ],
+      "fields": [
+        "models",
+        "quota"
+      ],
+      "before": {
+        "models": "GLM-5.3、GLM-5.3-Flash（旧版 5.2/5.1 自动路由至 5.3）",
+        "quota": "每 5 小时 2,000 积分 + 每周 10,000 积分（积分=(输入×6.9+缓存×1.7+输出×24)/10000）"
+      },
+      "after": {
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash（GLM-5.4 抵扣 4.6/1.1/16，GLM-5.3 为 6.9/1.7/24，Flash 为 2.3/0.56/8；建议 GLM-5.4 客户端上下文 512000。旧版 5.2/5.1 自动路由至 5.3）",
+        "quota": "每 5 小时 2,000 积分 + 每周 10,000 积分；95% 缓存命中时官方估算每周 GLM-5.4 约 0.72–1.46 亿 tokens"
+      },
+      "plan": "GLM Coding V3 Lite"
+    },
+    {
+      "changeId": "change-6702fe36a38e04c4f1055a24",
+      "id": "plan-0228",
+      "kind": "plan",
+      "vendor": "Kimchi",
+      "name": "Teams",
+      "checkedAt": "2026-11-24",
+      "sourceUrls": [
+        "https://docs.kimchi.dev/docs/model-apis-pricing",
+        "https://kimchi.dev/pricing"
+      ],
+      "fields": [
+        "models",
+        "note"
+      ],
+      "before": {
+        "models": "Kimi K3、GLM 5.3 / Flash、DeepSeek V4.1 Flash、MiniMax M3 等托管开放权重模型，按路由和可用性",
+        "note": "每席位月价；官网入口为 Book a call。税另计，credit 分配范围未说明，不能按席位推算总额度；超额模型及外部 provider 路由费用另计。"
+      },
+      "after": {
+        "models": "托管价目表现含 Kimi K3、GLM-5.3/Flash、DeepSeek V4.1 Flash、MiniMax M3，以及 kimi-k3.1-pro、minimax-m3.1-flash、deepseek-v4.1-flash-1017；按路由和可用性",
+        "note": "每席位月价仍为 $35（2026-11-24），入口为 Book a call。税另计；页面列 $45/月 credits，是否逐席累计未说明，不能按席位推算总额度。托管模型退役日、替代单价和外部 provider 附加费（输入 $0.20、缓存输入 $0.02、输出 $0.30 / 百万 token）同 Coder。Code Review 附加项为 $25/用户/月。"
+      },
+      "plan": "Teams"
+    },
+    {
+      "changeId": "change-8224c3922f0f66819fcce2e1",
+      "id": "plan-0227",
+      "kind": "plan",
+      "vendor": "Kimchi",
+      "name": "Coder",
+      "checkedAt": "2026-11-24",
+      "sourceUrls": [
+        "https://docs.kimchi.dev/docs/model-apis-pricing",
+        "https://kimchi.dev/pricing"
+      ],
+      "fields": [
+        "models",
+        "note"
+      ],
+      "before": {
+        "models": "Kimi K3、GLM 5.3 / Flash、DeepSeek V4.1 Flash、MiniMax M3 等托管开放权重模型，按路由和可用性",
+        "note": "公开月付价，税另计；模型 credit 不是固定 tokens 或无限推理。超额按公开用量价；外部 provider 路由另有 token surcharge。Kimi K2.7 将于 2026-10-19 退役，不作为长期主力模型。"
+      },
+      "after": {
+        "models": "托管价目表现含 Kimi K3、GLM-5.3/Flash、DeepSeek V4.1 Flash、MiniMax M3，以及 kimi-k3.1-pro、minimax-m3.1-flash、deepseek-v4.1-flash-1017；按路由和可用性",
+        "note": "公开月付价仍为 $20（2026-11-24），税另计；含 $25/月 credits，不是固定 tokens。deepseek-v4.1-flash 于 2026-12-02 退役，替代 deepseek-v4.1-flash-1017，同为 $0.30/$0.006/$1.20。kimi-k3 与 minimax-m3 于 2026-12-17 退役；kimi-k3.1-pro 为 $2/$0.20/$10（K3 为 $3/$0.30/$15），minimax-m3.1-flash 为 $0.15/$0.015/$0.60（M3 为 $0.30/$0.06/$1.20）。外部 provider 附加费为每百万 token 输入 $0.20、缓存输入 $0.02、输出 $0.30。Code Review 附加项为 $25/用户/月，须申请开通。"
+      },
+      "plan": "Coder"
+    },
+    {
+      "changeId": "change-bbda84ea014a1ce1d259696c",
+      "id": "plan-0158",
+      "kind": "plan",
+      "vendor": "智谱 BigModel",
+      "name": "GLM Coding V3 Pro",
+      "checkedAt": "2026-11-24",
+      "sourceUrls": [
+        "https://docs.bigmodel.cn/cn/coding-plan/overview.md",
+        "https://docs.bigmodel.cn/cn/guide/models/glm-5.4",
+        "https://www.bigmodel.cn/glm-coding"
+      ],
+      "fields": [
+        "models",
+        "quota"
+      ],
+      "before": {
+        "models": "GLM-5.3、GLM-5.3-Flash（抵扣系数：GLM-5.3 输入 6.9/缓存 1.7/输出 24；Flash 2.3/0.56/8）",
+        "quota": "每 5 小时 12,000 积分 + 每周 60,000 积分"
+      },
+      "after": {
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash（抵扣系数：GLM-5.4 输入 4.6/缓存 1.1/输出 16；GLM-5.3 为 6.9/1.7/24；Flash 2.3/0.56/8）",
+        "quota": "每 5 小时 12,000 积分 + 每周 60,000 积分；95% 缓存命中时官方估算每周 GLM-5.4 约 4.4–8.70 亿 tokens"
+      },
+      "plan": "GLM Coding V3 Pro"
+    },
+    {
+      "changeId": "change-cd0f4817922a07efd314c13f",
+      "id": "plan-0033",
+      "kind": "plan",
+      "vendor": "Z.ai",
+      "name": "GLM Coding V3 Max",
+      "checkedAt": "2026-11-24",
+      "sourceUrls": [
+        "https://docs.z.ai/devpack/overview.md",
+        "https://docs.z.ai/guides/llm/glm-5.4.md"
+      ],
+      "fields": [
+        "models",
+        "note",
+        "quota"
+      ],
+      "before": {
+        "models": "GLM-5.3、GLM-5.3-Flash",
+        "note": "当前月付 $168，季付 $403.2，年付 $1411.2；旧公告金额已过时。非高峰减半及限时活动按官方使用文档执行",
+        "quota": "28,000 credits/5h + 140,000 credits/周；官方估算 676–1,463M tokens/周（Flash 约 2,047–4,433M/周）"
+      },
+      "after": {
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash（抵扣系数输入/缓存/输出：5.4 为 4.6/1.1/16，5.3 为 6.9/1.7/24，Flash 为 2.3/0.56/8）",
+        "note": "当前月付 $168，季付 $403.2，年付 $1411.2；旧公告金额已过时。非高峰减半及限时活动按官方使用文档执行。2026-11-24 订阅页未展示金额，上述月费未改",
+        "quota": "28,000 credits/5h + 140,000 credits/周；95% 缓存命中时官方估算每周 GLM-5.4 约 1,014–2,028M、GLM-5.3 约 676–1,352M、Flash 约 2,047–4,095M tokens"
+      },
+      "plan": "GLM Coding V3 Max"
+    },
+    {
+      "changeId": "change-e775c4b2650b216fd301759b",
+      "id": "plan-0031",
+      "kind": "plan",
+      "vendor": "Z.ai",
+      "name": "GLM Coding V3 Lite",
+      "checkedAt": "2026-11-24",
+      "sourceUrls": [
+        "https://docs.z.ai/devpack/overview.md",
+        "https://docs.z.ai/guides/llm/glm-5.4.md"
+      ],
+      "fields": [
+        "models",
+        "note",
+        "quota"
+      ],
+      "before": {
+        "models": "GLM-5.3、GLM-5.3-Flash",
+        "note": "当前月付 $18，季付 $43.2，年付 $151.2；旧公告金额已过时。非高峰减半及限时活动按官方使用文档执行",
+        "quota": "2,000 credits/5h + 10,000 credits/周；官方估算 48–104M tokens/周（GLM-5.3）"
+      },
+      "after": {
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash（抵扣系数输入/缓存/输出：5.4 为 4.6/1.1/16，5.3 为 6.9/1.7/24，Flash 为 2.3/0.56/8）",
+        "note": "当前月付 $18，季付 $43.2，年付 $151.2；旧公告金额已过时。非高峰减半及限时活动按官方使用文档执行。2026-11-24 订阅页未展示金额，上述月费未改；周限额用户使用 GLM-5.4 时官方写可用额度至 GLM-5.3 的 1.5 倍，积分上限未变",
+        "quota": "2,000 credits/5h + 10,000 credits/周；95% 缓存命中时官方估算每周 GLM-5.4 约 72–146M、GLM-5.3 约 48–97M、Flash 约 146–292M tokens"
+      },
+      "plan": "GLM Coding V3 Lite"
+    },
+    {
+      "changeId": "change-fd96e74cc1ff12feaec4984b",
+      "id": "plan-0032",
+      "kind": "plan",
+      "vendor": "Z.ai",
+      "name": "GLM Coding V3 Pro",
+      "checkedAt": "2026-11-24",
+      "sourceUrls": [
+        "https://docs.z.ai/devpack/overview.md",
+        "https://docs.z.ai/guides/llm/glm-5.4.md"
+      ],
+      "fields": [
+        "models",
+        "note",
+        "quota"
+      ],
+      "before": {
+        "models": "GLM-5.3、GLM-5.3-Flash",
+        "note": "当前月付 $80，季付 $192，年付 $672；旧公告金额已过时。非高峰减半及限时活动按官方使用文档执行",
+        "quota": "12,000 credits/5h + 60,000 credits/周；官方估算 290–627M tokens/周（Flash 约 877–1,901M/周）"
+      },
+      "after": {
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash（抵扣系数输入/缓存/输出：5.4 为 4.6/1.1/16，5.3 为 6.9/1.7/24，Flash 为 2.3/0.56/8）",
+        "note": "当前月付 $80，季付 $192，年付 $672；旧公告金额已过时。非高峰减半及限时活动按官方使用文档执行。2026-11-24 订阅页未展示金额，上述月费未改",
+        "quota": "12,000 credits/5h + 60,000 credits/周；95% 缓存命中时官方估算每周 GLM-5.4 约 440–870M、GLM-5.3 约 290–580M、Flash 约 877–1,755M tokens"
+      },
+      "plan": "GLM Coding V3 Pro"
+    },
+    {
       "changeId": "change-4f218b72dacbc36c28cff472",
       "id": "plan-0224",
       "kind": "plan",
