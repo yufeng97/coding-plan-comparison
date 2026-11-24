@@ -415,7 +415,7 @@ test("国内 Claude Code 不限预算使用 Max 20x 作国际参考，与主计�
   assert.equal(picked.withinBudget, true);
   assert.equal(app.knownTokens(own.p, own.headline), 0, "未公开 token 量时不按月费制造额度");
   const mainText = (await renderCard(mainCard(main, app.eligibleProfiles()))).text;
-  assert.match(mainText, /Claude Code 兼容接入 · GLM-5\.3/);
+  assert.match(mainText, /Claude Code 兼容接入 · GLM-5\.4/);
   assert.match(mainText, /支持 Claude Code 不代表附赠 Claude 模型/);
   const ownModel = ownCard(main);
   const card = await renderCard(ownModel);
@@ -497,7 +497,7 @@ test("推荐显示套餐明确支持的 GLM 与 GPT Sol 版本，不用用途角
   const app = page.runtime;
   const { mainCard } = await pickerView();
   const name = (id: string) => { const p = plan(app, id); return app.roleDisplayName(p, app.planProfile(p).headline); };
-  assert.equal(name("plan-0157"), "GLM-5.3");
+  assert.equal(name("plan-0157"), "GLM-5.4");
   assert.equal(name("plan-0088"), "GLM-5.2");
   assert.equal(name("plan-0202"), "GLM-5");
   assert.equal(name("plan-0082"), "GLM-5");

@@ -2,6 +2,12 @@
 
 > 按数据核查和代码修复批次记录。
 
+## 2026-11-24 每日巡检
+
+- 智谱与 Z.ai 的 GLM Coding Plan 全档可用 GLM-5.4。个人档积分上限未变；抵扣系数为输入 4.6、缓存 1.1、输出 16。官方写周限额用户使用该模型时可用额度至 GLM-5.3 的 1.5 倍。模型 API 尚未开放。国内月价仍为 ¥118 / ¥538 / ¥1078。Z.ai 订阅页未展示金额。团队高级版/Premium 的积分已写入说明，月费未读到，未新增套餐。
+- Kimchi 的 Coder $20 与 Teams $35 未变。deepseek-v4.1-flash 将于 2026-12-02 退役，kimi-k3 与 minimax-m3 将于 2026-12-17 退役；替代型号单价不同，外部 provider 缓存输入附加费为 $0.02/百万 token。Code Review 附加项为 $25/用户/月。
+- Amp 的 Dial 已由模型选择器取代，Staff Pick 当前为 Claude Opus 5.5。未重开定价页。
+
 ## 2026-11-05 模型发布动态与每日采集
 
 - 11 月 5 日收录 GPT-6 Cyber 的首批访问资格和 Gemini Omni 1.2 Flash 的开发者入口。11 月 4 日收录 SWE-2 Flash、混元 Hy4、Ripple-65B Preview 和 Images 2.6。
