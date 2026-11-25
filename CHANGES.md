@@ -2,6 +2,14 @@
 
 > 按数据核查和代码修复批次记录。
 
+## 2026-11-25 每日巡检
+
+- 核对 Google AI 计划与 Gemini API：Plus / Pro / Ultra 月价未变。Plus 的 Gemini 应用可用 Hydrogen；Pro 在应用、AI Studio 与 Antigravity 提供 Neon，搜索 AI 模式提供 Carbon；Ultra 提供更高的 Carbon 与 Neon。Neon 标准价 $3 / 缓存 $0.15 / $15，Hydrogen 免费层不收费、付费 $1.50 / $7.50。同步器不能新增 API 行，这三档未写入 API 表。
+- 核对 GitHub Copilot 模型表：Pro 增加 Hydrogen、MAI Code 2 与 Flash、GPT-6.1 Terra；Pro+ 及以上增加 Neon、Carbon 与 GPT-6.2。Opus 5 已退役，Opus 4.8 仅年付个人档仍可用。各档月价未改。
+- 核对智谱与 Z.ai：GLM-5.4 全档可用，系数 4.6 / 1.1 / 16。2026-11-24 至 12-24，GLM-5.3-Flash 按原系数 50% 结算。个人档月价与积分上限未改。
+- 核对 OpenCode Go：月费仍为 $10 / $40。新增多人档 Go Teams，每人 $20/月、至少 2 人，永久 ID `plan-0239`。模型接口月度上限已按当日响应更新，Argon 50% 折扣至 2026-11-30。
+- Cognition 发布 SWE-2.1 与 Ultrafast。公告未写订阅资格和加价，未改 Devin 套餐。
+
 ## 2026-11-05 模型发布动态与每日采集
 
 - 11 月 5 日收录 GPT-6 Cyber 的首批访问资格和 Gemini Omni 1.2 Flash 的开发者入口。11 月 4 日收录 SWE-2 Flash、混元 Hy4、Ripple-65B Preview 和 Images 2.6。

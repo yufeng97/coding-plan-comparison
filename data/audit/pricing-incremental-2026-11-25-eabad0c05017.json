@@ -1,0 +1,635 @@
+{
+  "checkedAt": "2026-11-25",
+  "incremental": true,
+  "totals": {
+    "plans": 233,
+    "api": 40,
+    "payg": 10
+  },
+  "sources": [
+    {
+      "id": "google-ai-plans-20261125",
+      "url": "https://one.google.com/about/google-ai-plans/",
+      "evidence": "2026-11-25 打开 Google AI 计划页。Plus $4.99/月，对比表存储为 400 GB 或 2 TB；Pro $19.99/月、年付 $199.99，5 TB，$10/月 GCP credits，Colab 200 计算单元；Ultra 5x $99.99、20 TB、$40/月 GCP credits、Colab 1,000；Ultra 20x $199.99、30 TB、$100/月 GCP credits。FAQ：Plus 的 Gemini 应用含 Gemini 4 Hydrogen；Pro 含 Hydrogen，并在 Gemini 应用、AI Studio、Antigravity 提供 Neon，搜索 AI 模式提供 Carbon；Ultra 在应用、AI Studio 与 Antigravity 提供更高的 Carbon 与 Neon。该页未再点名 Argon。"
+    },
+    {
+      "id": "gemini-api-pricing-20261125",
+      "url": "https://ai.google.dev/gemini-api/docs/pricing",
+      "evidence": "2026-11-25 定价页标准档：gemini-4-neon 输入 $3.00、输出 $15.00、缓存 $0.15，免费层不可用，只支持隐式缓存，Batch $1.50/$7.50、缓存 $0.075，Priority $5.40/$27、缓存 $0.27。gemini-4-hydrogen 免费层输入/输出/缓存不收费，付费 $1.50/$7.50、缓存 $0.075。gemini-4-carbon 与 gemini-4-argon 标准价至 2026-11-30 为 $2/$10、缓存 $0.10，2026-12-01 起 $4/$20、缓存 $0.20。"
+    },
+    {
+      "id": "copilot-supported-models-20261125",
+      "url": "https://docs.github.com/en/copilot/reference/ai-models/supported-models",
+      "evidence": "2026-11-25 计划表：Pro 含 Gemini 4 Hydrogen、MAI Code 2、MAI Code 2 Flash、GPT-6.1 Terra、Sonnet 5/5.5、Haiku 4.5/5.5、Gemini 3.8 Flash、GPT-5.3-Codex、GPT-5.6 Luna、GPT-6 Luna、Grok 4.5–4.7、Kimi K3、MAI-Code-1.1-Flash；不含 Neon、Carbon、Argon、GPT-6.2。Pro+、Max、Business、Enterprise 另含 Neon、Carbon、Argon、GPT-6.2 Astra/Sol、Opus 5.5、Fable 5/5.1/5.2。脚注：Sonnet 4.6 与 Opus 4.8 已退役，仅年付个人档仍可用；Opus 5 于 2026-11-16 退役。Free 与 Student 只通过自动选模使用模型。"
+    },
+    {
+      "id": "copilot-model-pricing-20261125",
+      "url": "https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing",
+      "evidence": "2026-11-25 每百万 token：Gemini 4 Neon $3 / 缓存 $0.15 / $15；Hydrogen $1.50 / $0.075 / $7.50；Carbon 促销至 2026-12-01 为 $2 / $0.10 / $10，其后 $4 / $0.20 / $20。MAI Code 2 促销至 2027-05-17 为 $0.50 / $0.025 / $2.50，其后 $1 / $0.05 / $5；MAI Code 2 Flash 促销 $0.05 / $0.005 / $0.25，其后 $0.10 / $0.01 / $0.50。"
+    },
+    {
+      "id": "bigmodel-coding-plan-20261125",
+      "url": "https://docs.bigmodel.cn/cn/coding-plan/overview.md",
+      "evidence": "2026-11-25 概览：所有套餐支持 GLM-5.4、GLM-5.3、GLM-5.3-Flash。5.4 系数输入 4.6、缓存 1.1、输出 16，建议客户端上下文 512000。5.3 仍为 6.9/1.7/24。Lite/Pro/Max 积分仍为 2,000/12,000/28,000 每 5 小时与 10,000/60,000/140,000 每周。2026-11-24 至 12-24，GLM-5.3-Flash 按原系数 50% 结算，表内暂列 1.15/0.28/4。95% 缓存时 5.4 周估算 Lite 0.72–1.46 亿、Pro 4.4–8.70 亿、Max 10.14–20.28 亿 tokens。团队用量细则指向另一页，本次未重读。"
+    },
+    {
+      "id": "zai-coding-plan-20261125",
+      "url": "https://docs.z.ai/devpack/overview.md",
+      "evidence": "2026-11-25 英文概览：所有计划支持 GLM-5.4、GLM-5.3、GLM-5.3-Flash，系数与国内相同（5.4 为 4.6/1.1/16）。积分上限未变。文档写 Starting at just 18 USD per month。95% 缓存周估算（百万 tokens）：5.4 Lite 72–146、Pro 440–870、Max 1,014–2,028。Flash 限时 50% 至 2026-12-24。本次未打开订阅结账页，未改季付与年付。"
+    },
+    {
+      "id": "opencode-go-20261125",
+      "url": "https://opencode.ai/docs/console/go/",
+      "evidence": "2026-11-25 文档：Go $10/月、Go Plus $40/月、Go Teams $20/人/月且至少 2 人。每名成员独立限额，每个模型比 Go 高 $5。5 小时为月度 20%，周为 50%。旧 v2 文档 URL 301 到本页。Gemini 4 Argon 的 50% 折扣至 2026-11-30，其后上限未单列。决策与嵌入模型无 Go 折扣，Go 月上限 $10、Plus $40、Teams $15。"
+    },
+    {
+      "id": "opencode-go-models-20261125",
+      "url": "https://opencode.ai/inference/go/v1/models",
+      "evidence": "2026-11-25 公开模型接口 monthly_usage（美元/月，只使用该模型）：GLM-5.3 为 Go 200、Plus 400、Teams 205；GLM-5.3-Flash 60/180/65；DeepSeek V4.1 Flash 100/200/105；Kimi K3 15/60/20；Kimi K3.1 Pro 60/120/65；Gemini 4 Argon 30/120/35。隐私表写 Argon 保留 55 天；接口 training 与 zdr 均为 false。"
+    }
+  ],
+  "records": [
+    {
+      "kind": "plan",
+      "id": "plan-0016",
+      "vendor": "Google",
+      "name": "Google AI Plus",
+      "status": "changed",
+      "checkedAt": "2026-11-25",
+      "sourceIds": [
+        "google-ai-plans-20261125"
+      ],
+      "reason": "月价仍为 $4.99。计划页改为 Gemini 应用可用 Gemini 4 Hydrogen，存储对比表为 400 GB 或 2 TB，未见第二个月费。",
+      "patch": {
+        "models": "Gemini 4 Hydrogen；Gemini 应用内另有有限的 Gemini Omni Flash",
+        "note": "当前美国官网 $4.99/月。对比表存储为 400 GB 或 2 TB，未见第二个月费。2026-11-25 计划页写 Gemini 应用可用 Gemini 4 Hydrogen，未写 Antigravity。地区实付以结账页为准"
+      },
+      "old": {
+        "models": "Gemini 3.6 Flash、Deep Research",
+        "note": "当前美国官网 $4.99/月；400GB 存储；地区实付以结账页为准"
+      },
+      "current": {
+        "vendor": "Google",
+        "plan": "Google AI Plus",
+        "priceM": 4.99,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0017",
+      "vendor": "Google",
+      "name": "Google AI Pro",
+      "status": "changed",
+      "checkedAt": "2026-11-25",
+      "sourceIds": [
+        "google-ai-plans-20261125",
+        "gemini-api-pricing-20261125"
+      ],
+      "reason": "月付 $19.99、年付 $199.99 与 $10/月 GCP credits 未变。计划页现写 Hydrogen、Neon 与搜索中的 Carbon，未再点名 Argon。",
+      "patch": {
+        "models": "Gemini 4 Hydrogen、Gemini 4 Neon；搜索 AI 模式可用 Gemini 4 Carbon",
+        "note": "美国月付 $19.99、年付 $199.99（折月约 $16.67）；含 $10/月 GCP credits。2026-11-25 计划页：含 Plus 的 Hydrogen；Gemini 应用、AI Studio 与 Antigravity 提供 Neon；搜索 AI 模式提供 Carbon。Colab 200 计算单元/月。该页未再点名 Argon。"
+      },
+      "old": {
+        "models": "Gemini 3.1 Pro、Deep Research、Gemini Spark",
+        "note": "美国月付 $19.99、年付 $199.99（折月约 $16.67）；含 $10/月 GCP credits；Gemini 4 Argon 只在 Gemini 应用与搜索 AI 模式中提供，Antigravity 与 API 不含"
+      },
+      "current": {
+        "vendor": "Google",
+        "plan": "Google AI Pro",
+        "priceM": 19.99,
+        "priceY": 16.67,
+        "annualTotal": 199.99,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0018",
+      "vendor": "Google",
+      "name": "Google AI Ultra（5x）",
+      "status": "changed",
+      "checkedAt": "2026-11-25",
+      "sourceIds": [
+        "google-ai-plans-20261125",
+        "gemini-api-pricing-20261125"
+      ],
+      "reason": "月价仍为 $99.99。计划页写更高的 Carbon 与 Neon，GCP credits 为 $40/月，Colab 为 1,000 计算单元。未再点名 Argon。",
+      "patch": {
+        "models": "Gemini 4 Carbon、Gemini 4 Neon、Gemini 4 Hydrogen",
+        "note": "月付 $99.99（2026-05-19 起由 $249.99 下调）；20TB 存储；对比表为 $40/月 GCP credits、Colab 1,000 计算单元/月。2026-11-25：应用、AI Studio 与 Antigravity 提供更高的 Carbon 与 Neon。该页未再点名 Argon，也未把 Project Genie 划入本档。"
+      },
+      "old": {
+        "models": "Gemini 4 Argon、Gemini 3.1 Pro、Deep Think、Gemini Agent",
+        "note": "2026-05-19 I/O 起 $249.99 降至 $99.99；20TB 存储；Gemini 4 Argon 可在 Antigravity app、CLI 与 IDE 扩展使用（独立 Antigravity IDE 不支持）"
+      },
+      "current": {
+        "vendor": "Google",
+        "plan": "Google AI Ultra（5x）",
+        "priceM": 99.99,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0019",
+      "vendor": "Google",
+      "name": "Google AI Ultra（20x）",
+      "status": "changed",
+      "checkedAt": "2026-11-25",
+      "sourceIds": [
+        "google-ai-plans-20261125"
+      ],
+      "reason": "对比表仍为 $199.99/月、30TB、$100/月 GCP credits。Project Genie 是否仅本档独占，页面未分开标注，不改原独占写法。",
+      "patch": {
+        "note": "30TB 存储、$100/月 GCP credits。2026-11-25 对比表仍为 $199.99/月。FAQ 写 Project Genie 仅 Ultra 可用，未区分 5x 与 20x，本次不改独占标记。"
+      },
+      "old": {
+        "note": "30TB 存储、$100/月 GCP credits"
+      },
+      "current": {
+        "vendor": "Google",
+        "plan": "Google AI Ultra（20x）",
+        "priceM": 199.99,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0091",
+      "vendor": "GitHub Copilot",
+      "name": "Pro",
+      "status": "changed",
+      "checkedAt": "2026-11-25",
+      "sourceIds": [
+        "copilot-supported-models-20261125",
+        "copilot-model-pricing-20261125"
+      ],
+      "reason": "月价与 1,500 credits 未改。模型表新增 Hydrogen、MAI Code 2 与 Flash、GPT-6.1 Terra，并去掉已不在表内的旧型号。不含 Neon 与 GPT-6.2。",
+      "patch": {
+        "models": "Claude Haiku 4.5/5.5、Sonnet 5/5.5，Gemini 3.8 Flash、Gemini 4 Hydrogen，GPT-5.3-Codex、GPT-5.6 Luna、GPT-6 Luna、GPT-6.1 Terra，Kimi K3，Grok 4.5–4.7，MAI-Code-1.1-Flash、MAI Code 2、MAI Code 2 Flash（不含旗舰）",
+        "note": "$10 基础 + $5 弹性 credits；仅月付。2026-11-25 模型表不含 Gemini 4 Neon、Carbon、Argon 与 GPT-6.2。Sonnet 4.6 已于 2026-09-01 退役，仅年付 Pro/Pro+ 仍可用。MAI Code 2 促销价至 2027-05-17 为每百万 token 输入 $0.50、缓存 $0.025、输出 $2.50，Flash 为 $0.05/$0.005/$0.25。Free 只通过自动选模使用模型。"
+      },
+      "old": {
+        "models": "Claude Haiku 4.5/5.5、Sonnet 4.6/5/5.5，Gemini 3.7–3.8 Flash，GPT-5 mini、GPT-5.3-Codex、GPT-5.4/5.4 mini、GPT-5.6 Luna/Terra、GPT-6 Luna，Kimi K3，Grok 4.5–4.7，MAI-Code-1.1-Flash 等（不含旗舰）",
+        "note": "$10 基础 + $5 弹性 credits；仅月付；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费"
+      },
+      "current": {
+        "vendor": "GitHub Copilot",
+        "plan": "Pro",
+        "priceM": 10,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0092",
+      "vendor": "GitHub Copilot",
+      "name": "Pro+",
+      "status": "changed",
+      "checkedAt": "2026-11-25",
+      "sourceIds": [
+        "copilot-supported-models-20261125",
+        "copilot-model-pricing-20261125"
+      ],
+      "reason": "月价与 7,000 credits 未改。模型表确认 Neon、Carbon、GPT-6.2、Fable 5.2 与 Opus 5.5；Opus 5 已退役，Opus 4.8 仅年付个人档。",
+      "patch": {
+        "modelIncludes": [
+          "Claude Opus 5.5",
+          "Fable 5/5.1/5.2",
+          "GPT-5.6 Sol",
+          "GPT-6 Astra/Sol",
+          "GPT-6.1 Sol",
+          "GPT-6.2 Astra/Sol",
+          "Gemini 4 Argon",
+          "Gemini 4 Carbon",
+          "Gemini 4 Neon"
+        ],
+        "models": "Pro 全部 + Claude Opus 5.5、Fable 5/5.1/5.2、GPT-5.6 Sol、GPT-6 Astra/Sol、GPT-6.1 Sol、GPT-6.2 Astra/Sol、Gemini 4 Argon/Carbon/Neon 等旗舰",
+        "note": "4x+ Pro 用量；含审计日志。月价未改。Opus 5 已于 2026-11-16 退役；Opus 4.8 仅年付个人档仍可用，月付不含。Gemini 4 Neon 在 Copilot 为每百万 token $3 / 缓存 $0.15 / $15。"
+      },
+      "old": {
+        "modelIncludes": [
+          "Claude Opus 4.8/5/5.5",
+          "Fable 5/5.1",
+          "GPT-5.6 Sol",
+          "GPT-6 Astra/Sol",
+          "GPT-6.1 Sol",
+          "Gemini 4 Argon"
+        ],
+        "models": "Pro 全部 + Claude Opus 4.8/5/5.5、Fable 5/5.1、GPT-5.6 Sol、GPT-6 Astra/Sol、GPT-6.1 Sol、Gemini 4 Argon 等旗舰",
+        "note": "4x+ Pro 用量；含审计日志；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费"
+      },
+      "current": {
+        "vendor": "GitHub Copilot",
+        "plan": "Pro+",
+        "priceM": 39,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0093",
+      "vendor": "GitHub Copilot",
+      "name": "Max",
+      "status": "changed",
+      "checkedAt": "2026-11-25",
+      "sourceIds": [
+        "copilot-supported-models-20261125"
+      ],
+      "reason": "月价未改。模型池随 Pro+，包含 Neon 与 GPT-6.2。",
+      "patch": {
+        "models": "旗舰模型优先访问（与 Pro+ 相同，含 Gemini 4 Neon/Carbon、GPT-6.2 与 Claude Opus 5.5）"
+      },
+      "old": {
+        "models": "旗舰模型优先访问（Pro+ 同级模型池）"
+      },
+      "current": {
+        "vendor": "GitHub Copilot",
+        "plan": "Max",
+        "priceM": 100,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0094",
+      "vendor": "GitHub Copilot",
+      "name": "Business",
+      "status": "changed",
+      "checkedAt": "2026-11-25",
+      "sourceIds": [
+        "copilot-supported-models-20261125"
+      ],
+      "reason": "席位月价未改。模型表含 Neon、Carbon 与 GPT-6.2。",
+      "patch": {
+        "models": "含旗舰模型（含 Gemini 4 Argon、Carbon、Neon 与 GPT-6.2 Astra/Sol）+ Copilot CLI/App"
+      },
+      "old": {
+        "models": "含旗舰模型（含 Gemini 4 Argon）+ Copilot CLI/App"
+      },
+      "current": {
+        "vendor": "GitHub Copilot",
+        "plan": "Business",
+        "priceM": 19,
+        "priceY": null,
+        "cur": "USD",
+        "seat": true
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0095",
+      "vendor": "GitHub Copilot",
+      "name": "Enterprise",
+      "status": "changed",
+      "checkedAt": "2026-11-25",
+      "sourceIds": [
+        "copilot-supported-models-20261125"
+      ],
+      "reason": "席位月价未改。模型表含 Neon、Carbon 与 GPT-6.2。",
+      "patch": {
+        "models": "旗舰模型优先访问（含 Gemini 4 Argon、Carbon、Neon 与 GPT-6.2 Astra/Sol）+ 自定义模型"
+      },
+      "old": {
+        "models": "旗舰模型优先访问（含 Gemini 4 Argon）+ 自定义模型"
+      },
+      "current": {
+        "vendor": "GitHub Copilot",
+        "plan": "Enterprise",
+        "priceM": 39,
+        "priceY": null,
+        "cur": "USD",
+        "seat": true
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0157",
+      "vendor": "智谱 BigModel",
+      "name": "GLM Coding V3 Lite",
+      "status": "changed",
+      "checkedAt": "2026-11-25",
+      "sourceIds": [
+        "bigmodel-coding-plan-20261125"
+      ],
+      "reason": "月价与积分上限未改。概览确认 GLM-5.4 系数，并新增至 2026-12-24 的 Flash 半价活动。",
+      "patch": {
+        "quota": "每 5 小时 2,000 积分 + 每周 10,000 积分。GLM-5.4 抵扣为输入 4.6、缓存 1.1、输出 16；GLM-5.3 仍为 6.9/1.7/24。95% 缓存时 GLM-5.4 约 0.72–1.46 亿 tokens/周",
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash（5.4 系数输入 4.6、缓存 1.1、输出 16；建议客户端上下文 512000）",
+        "note": "连续包月/包季 8 折约 ¥94.4/月；连续包年 7 折 ¥82.6/月（2026-10-01 购买页在售）；工作日 14:00–18:00 高峰，非高峰积分 5 折；双节活动与夜间畅用已于 10-07 结束；老用户可按旧价 ¥49/月续费。2026-11-24 至 2026-12-24，GLM-5.3-Flash 按原抵扣系数的 50% 结算（概览表暂列为输入 1.15、缓存 0.28、输出 4）。"
+      },
+      "old": {
+        "quota": "每 5 小时 2,000 积分 + 每周 10,000 积分（积分=(输入×6.9+缓存×1.7+输出×24)/10000）",
+        "models": "GLM-5.3、GLM-5.3-Flash（旧版 5.2/5.1 自动路由至 5.3）",
+        "note": "连续包月/包季 8 折约 ¥94.4/月；连续包年 7 折 ¥82.6/月（2026-10-01 购买页在售）；工作日 14:00–18:00 高峰，非高峰积分 5 折；双节活动与夜间畅用已于 10-07 结束；老用户可按旧价 ¥49/月续费"
+      },
+      "current": {
+        "vendor": "智谱 BigModel",
+        "plan": "GLM Coding V3 Lite",
+        "priceM": 118,
+        "priceY": 82.6,
+        "cur": "CNY",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0158",
+      "vendor": "智谱 BigModel",
+      "name": "GLM Coding V3 Pro",
+      "status": "changed",
+      "checkedAt": "2026-11-25",
+      "sourceIds": [
+        "bigmodel-coding-plan-20261125"
+      ],
+      "reason": "月价与积分上限未改。模型加入 GLM-5.4，并记录 Flash 限时半价。",
+      "patch": {
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash（5.4 系数输入 4.6、缓存 1.1、输出 16；建议客户端上下文 512000）",
+        "note": "连续包月/包季 8 折约 ¥430.4/月；连续包年 7 折 ¥376.6/月（2026-10-01 购买页在售）；双节活动与夜间畅用已于 10-07 结束；老用户可按 V2 价 ¥149/月续费。2026-11-24 至 2026-12-24，GLM-5.3-Flash 按原抵扣系数的 50% 结算（概览表暂列为输入 1.15、缓存 0.28、输出 4）。"
+      },
+      "old": {
+        "models": "GLM-5.3、GLM-5.3-Flash（抵扣系数：GLM-5.3 输入 6.9/缓存 1.7/输出 24；Flash 2.3/0.56/8）",
+        "note": "连续包月/包季 8 折约 ¥430.4/月；连续包年 7 折 ¥376.6/月（2026-10-01 购买页在售）；双节活动与夜间畅用已于 10-07 结束；老用户可按 V2 价 ¥149/月续费"
+      },
+      "current": {
+        "vendor": "智谱 BigModel",
+        "plan": "GLM Coding V3 Pro",
+        "priceM": 538,
+        "priceY": 376.6,
+        "cur": "CNY",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0159",
+      "vendor": "智谱 BigModel",
+      "name": "GLM Coding V3 Max",
+      "status": "changed",
+      "checkedAt": "2026-11-25",
+      "sourceIds": [
+        "bigmodel-coding-plan-20261125"
+      ],
+      "reason": "月价与积分上限未改。模型加入 GLM-5.4，并记录 Flash 限时半价。",
+      "patch": {
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash（5.4 系数输入 4.6、缓存 1.1、输出 16；建议客户端上下文 512000）",
+        "note": "连续包月/包季 8 折约 ¥862.4/月；连续包年 7 折 ¥754.6/月（2026-10-01 购买页在售）；双节活动与夜间畅用已于 10-07 结束；老用户可按 ¥469/月续费；官方称较按量 API 最高省 92%。2026-11-24 至 2026-12-24，GLM-5.3-Flash 按原抵扣系数的 50% 结算（概览表暂列为输入 1.15、缓存 0.28、输出 4）。"
+      },
+      "old": {
+        "models": "GLM-5.3、GLM-5.3-Flash",
+        "note": "连续包月/包季 8 折约 ¥862.4/月；连续包年 7 折 ¥754.6/月（2026-10-01 购买页在售）；双节活动与夜间畅用已于 10-07 结束；老用户可按 ¥469/月续费；官方称较按量 API 最高省 92%"
+      },
+      "current": {
+        "vendor": "智谱 BigModel",
+        "plan": "GLM Coding V3 Max",
+        "priceM": 1078,
+        "priceY": 754.6,
+        "cur": "CNY",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0160",
+      "vendor": "智谱 BigModel",
+      "name": "GLM Coding Plan 团队标准版",
+      "status": "changed",
+      "checkedAt": "2026-11-25",
+      "sourceIds": [
+        "bigmodel-coding-plan-20261125"
+      ],
+      "reason": "概览写所有套餐支持 GLM-5.4。团队页本次未重读，席位价与积分上限未改。",
+      "patch": {
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash",
+        "note": "官网公开价 ¥598/席位/月，年付 9 折约 ¥538.2/席位/月；2 席起。超额限时按 API 刊例价 9 折；IP 白名单、集中账单。2026-11-25 概览写所有套餐支持 GLM-5.4；团队用量细则未重读，席位价与积分上限未改。"
+      },
+      "old": {
+        "models": "GLM-5.3、GLM-5.3-Flash",
+        "note": "官网公开价 ¥598/席位/月，年付 9 折约 ¥538.2/席位/月；2 席起。超额限时按 API 刊例价 9 折；IP 白名单、集中账单。"
+      },
+      "current": {
+        "vendor": "智谱 BigModel",
+        "plan": "GLM Coding Plan 团队标准版",
+        "priceM": 598,
+        "priceY": 538.2,
+        "cur": "CNY",
+        "seat": true
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0031",
+      "vendor": "Z.ai",
+      "name": "GLM Coding V3 Lite",
+      "status": "changed",
+      "checkedAt": "2026-11-25",
+      "sourceIds": [
+        "zai-coding-plan-20261125"
+      ],
+      "reason": "月价未改。概览确认 GLM-5.4 与 Flash 限时半价，并按 95% 缓存更新周估算。",
+      "patch": {
+        "quota": "2,000 credits/5h + 10,000 credits/周；95% 缓存时 GLM-5.4 约 72–146M tokens/周（GLM-5.3 约 48–97M）",
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash（5.4 系数输入 4.6、缓存 1.1、输出 16）",
+        "note": "当前月付 $18，季付 $43.2，年付 $151.2；旧公告金额已过时。本次未重开结账页，季付与年付未改。非高峰减半。2026-11-24 至 2026-12-24，GLM-5.3-Flash 按原系数 50% 结算。"
+      },
+      "old": {
+        "quota": "2,000 credits/5h + 10,000 credits/周；官方估算 48–104M tokens/周（GLM-5.3）",
+        "models": "GLM-5.3、GLM-5.3-Flash",
+        "note": "当前月付 $18，季付 $43.2，年付 $151.2；旧公告金额已过时。非高峰减半及限时活动按官方使用文档执行"
+      },
+      "current": {
+        "vendor": "Z.ai",
+        "plan": "GLM Coding V3 Lite",
+        "priceM": 18,
+        "priceY": 12.6,
+        "annualTotal": 151.2,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0032",
+      "vendor": "Z.ai",
+      "name": "GLM Coding V3 Pro",
+      "status": "changed",
+      "checkedAt": "2026-11-25",
+      "sourceIds": [
+        "zai-coding-plan-20261125"
+      ],
+      "reason": "月价未改。概览确认 GLM-5.4 与 Flash 限时半价，并按 95% 缓存更新周估算。",
+      "patch": {
+        "quota": "12,000 credits/5h + 60,000 credits/周；95% 缓存时 GLM-5.4 约 440–870M tokens/周",
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash（5.4 系数输入 4.6、缓存 1.1、输出 16）",
+        "note": "当前月付 $80，季付 $192，年付 $672；旧公告金额已过时。本次未重开结账页，季付与年付未改。非高峰减半。2026-11-24 至 2026-12-24，GLM-5.3-Flash 按原系数 50% 结算。"
+      },
+      "old": {
+        "quota": "12,000 credits/5h + 60,000 credits/周；官方估算 290–627M tokens/周（Flash 约 877–1,901M/周）",
+        "models": "GLM-5.3、GLM-5.3-Flash",
+        "note": "当前月付 $80，季付 $192，年付 $672；旧公告金额已过时。非高峰减半及限时活动按官方使用文档执行"
+      },
+      "current": {
+        "vendor": "Z.ai",
+        "plan": "GLM Coding V3 Pro",
+        "priceM": 80,
+        "priceY": 56,
+        "annualTotal": 672,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0033",
+      "vendor": "Z.ai",
+      "name": "GLM Coding V3 Max",
+      "status": "changed",
+      "checkedAt": "2026-11-25",
+      "sourceIds": [
+        "zai-coding-plan-20261125"
+      ],
+      "reason": "月价未改。概览确认 GLM-5.4 与 Flash 限时半价，并按 95% 缓存更新周估算。",
+      "patch": {
+        "quota": "28,000 credits/5h + 140,000 credits/周；95% 缓存时 GLM-5.4 约 1,014–2,028M tokens/周",
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash（5.4 系数输入 4.6、缓存 1.1、输出 16）",
+        "note": "当前月付 $168，季付 $403.2，年付 $1411.2；旧公告金额已过时。本次未重开结账页，季付与年付未改。非高峰减半。2026-11-24 至 2026-12-24，GLM-5.3-Flash 按原系数 50% 结算。"
+      },
+      "old": {
+        "quota": "28,000 credits/5h + 140,000 credits/周；官方估算 676–1,463M tokens/周（Flash 约 2,047–4,433M/周）",
+        "models": "GLM-5.3、GLM-5.3-Flash",
+        "note": "当前月付 $168，季付 $403.2，年付 $1411.2；旧公告金额已过时。非高峰减半及限时活动按官方使用文档执行"
+      },
+      "current": {
+        "vendor": "Z.ai",
+        "plan": "GLM Coding V3 Max",
+        "priceM": 168,
+        "priceY": 117.6,
+        "annualTotal": 1411.2,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0040",
+      "vendor": "OpenCode (Anomaly/SST)",
+      "name": "OpenCode Go",
+      "status": "changed",
+      "checkedAt": "2026-11-25",
+      "sourceIds": [
+        "opencode-go-20261125",
+        "opencode-go-models-20261125"
+      ],
+      "reason": "月费仍为 $10。模型接口的月度上限已变，Argon 为 $30 且 50% 折扣至 2026-11-30。文档 URL 已从 v2 路径 301 过来。",
+      "patch": {
+        "quota": "逐模型月度美元上限（只使用该模型）：GLM-5.3 $200、GLM-5.3-Flash $60、DeepSeek V4.1 Flash $100、Kimi K3 $15、Kimi K3.1 Pro $60、Gemini 4 Argon $30。5h=月度20%、周=50%、月=100%。各模型上限不可相加",
+        "models": "GLM-5.3/Flash、Kimi K3/K3.1 Pro/K2.7 Code、DeepSeek V4.1 Flash 与 V4 Pro、Qwen3.8/Qwen4 Max、MiniMax M3/M3.1 Flash、Grok 4.7、GPT-6 Luna、GPT-5.6 Luna、Claude Haiku 5.5、Gemini 4 Argon、Hy4、LongCat 2.5 等；另有限时免费模型",
+        "note": "$10/月；每工作区 1 名成员。2026-11-25 模型接口见额度。Gemini 4 Argon 50% 折扣至 2026-11-30，其后上限未单列；隐私表写保留 55 天。旧 v2 文档地址已 301。",
+        "url": "https://opencode.ai/docs/console/go/"
+      },
+      "old": {
+        "quota": "逐模型月度美元上限：$15 档（Kimi K3、GLM-5.3、Haiku 5.5 等）、$30/$60 档、DeepSeek V4.1 Flash $80；Gemini 4 Argon Contributor 限时 2× 为 $60；5h=月度20%、周=50%、月=100%",
+        "models": "GLM-5.3/Flash、Kimi K3/K2.7 Code、DeepSeek V4.1、Qwen3.8、MiniMax M3、Grok 4.7、GPT 6 Luna、Claude Haiku 5.5、Gemini 4 Argon Contributor 等；Step 5 Preview Free 等为限时免费",
+        "note": "独立订阅，$10/月；每工作区仅1名成员。Argon Contributor 的提示和补全可能用于 Google 模型训练，非 ZDR；2× 用量促销结束日未公布；各模型适用上限不可相加",
+        "url": "https://opencode.ai/v2/docs/console/go/"
+      },
+      "current": {
+        "vendor": "OpenCode (Anomaly/SST)",
+        "plan": "OpenCode Go",
+        "priceM": 10,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0089",
+      "vendor": "OpenCode (Anomaly/SST)",
+      "name": "OpenCode Go Plus",
+      "status": "changed",
+      "checkedAt": "2026-11-25",
+      "sourceIds": [
+        "opencode-go-20261125",
+        "opencode-go-models-20261125"
+      ],
+      "reason": "月费仍为 $40。接口月度上限示例已改为 GLM-5.3 $400、Argon $120，不再沿用 2× 的 $240。",
+      "patch": {
+        "quota": "逐模型月度美元上限（只使用该模型）：GLM-5.3 $400、GLM-5.3-Flash $180、DeepSeek V4.1 Flash $200、Kimi K3 $60、Gemini 4 Argon $120。5h=20%、周=50%、月=100%。各模型上限不可相加",
+        "note": "$40/月。不能笼统视为 Go 的固定倍数。Argon 50% 折扣与 Go 相同，至 2026-11-30，其后上限未单列。",
+        "url": "https://opencode.ai/docs/console/go/"
+      },
+      "old": {
+        "quota": "逐模型5h/周/月窗口：Kimi K3月$60、GLM-5.3月$120、GLM-5.3-Flash/K2.7 Code月$180、DeepSeek V4.1 Flash月$160；Argon Contributor 限时2×月$240。5h=20%、周=50%、月=100%",
+        "note": "$40/月，逐模型限额不同，不能笼统视为Go的3–4×；每工作区仅1名成员，Contributor模型的数据训练政策同Go；各模型适用上限不可相加",
+        "url": "https://opencode.ai/v2/docs/console/go/"
+      },
+      "current": {
+        "vendor": "OpenCode (Anomaly/SST)",
+        "plan": "OpenCode Go Plus",
+        "priceM": 40,
+        "priceY": null,
+        "cur": "USD",
+        "seat": false
+      }
+    },
+    {
+      "kind": "plan",
+      "id": "plan-0239",
+      "vendor": "OpenCode (Anomaly/SST)",
+      "name": "OpenCode Go Teams",
+      "status": "verified",
+      "checkedAt": "2026-11-25",
+      "sourceIds": [
+        "opencode-go-20261125",
+        "opencode-go-models-20261125"
+      ],
+      "reason": "官网新增多人档，英文名 Go Teams。每人 $20/月，至少 2 人。每名成员的模型月上限比 Go 高 $5。",
+      "new": {
+        "id": "plan-0239",
+        "vendor": "OpenCode (Anomaly/SST)",
+        "plan": "OpenCode Go Teams",
+        "cat": "team",
+        "region": "intl",
+        "priceM": 20,
+        "priceY": null,
+        "cur": "USD",
+        "seat": true,
+        "fieldRefs": {
+          "models": "plan-0040",
+          "tools": "plan-0040"
+        },
+        "windowPeriod": "5h",
+        "quota": "每名成员独立月度上限，每个模型比 Go 高 $5（GLM-5.3 $205、DeepSeek V4.1 Flash $105、Gemini 4 Argon $35）。至少 2 人。5h=月度20%、周=50%、月=100%",
+        "models": "同 Go",
+        "tools": "同 Go",
+        "note": "$20/人/月，至少 2 人，工作区最低 $40/月。文档写第二席包含下一位加入的成员且不加价；其后月中加入按 $20 收费并给足月额度。服务账号不包含。决策与嵌入模型无 Go 折扣，月上限 $15。",
+        "url": "https://opencode.ai/docs/console/go/"
+      },
+      "patch": {},
+      "current": {
+        "vendor": "OpenCode (Anomaly/SST)",
+        "plan": "OpenCode Go Teams",
+        "priceM": 20,
+        "priceY": null,
+        "cur": "USD",
+        "seat": true
+      }
+    }
+  ]
+}
