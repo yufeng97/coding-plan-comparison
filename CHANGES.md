@@ -2,6 +2,13 @@
 
 > 按数据核查和代码修复批次记录。
 
+## 2026-11-26 每日巡检
+
+- 智谱与 Z.ai 概览确认全档可用 GLM-5.4（系数 4.6 / 1.1 / 16）。个人积分上限未变。2026-11-24 至 12-24，GLM-5.3-Flash 按原系数 50% 结算。国内购买页与 Z.ai 结账页未重开，月价未改。套餐模型栏仍写 GLM-5.3，GLM-5.4 记在备注：推荐卡会把模型栏里的最高版本当成额度型号，而现有额度行仍按 GLM-5.3 系数折算。
+- OpenCode Go / Go Plus 月费仍为 $10 / $40。按模型接口更正逐模型月度上限，并新增 Go Teams：每人 $20/月，至少 2 人。Gemini 4 Argon 的 50% 折扣写明至 2026-11-30。
+- GitHub Copilot 模型表：Pro 含 Hydrogen、MAI Code 2 与 GPT-6.1 Terra，不含 Neon、Carbon 与 GPT-6.2；Pro+ 及以上含这三项。月价未改。代码审查在未选择计费方式时，2026-12-30 起改向组织计费。
+- Cognition 于 2026-11-24 发布 SWE-2.1 与 Ultrafast。公告未写订阅加价，Devin 月费未改。
+
 ## 2026-11-05 模型发布动态与每日采集
 
 - 11 月 5 日收录 GPT-6 Cyber 的首批访问资格和 Gemini Omni 1.2 Flash 的开发者入口。11 月 4 日收录 SWE-2 Flash、混元 Hy4、Ripple-65B Preview 和 Images 2.6。
