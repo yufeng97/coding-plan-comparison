@@ -2,20 +2,20 @@
    On-demand data uses var: a late request from before a retry may still execute, and running twice only reassigns the same data. */
 var MAINTENANCE = {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-06",
-  "checkedThrough": "2026-10-26",
+  "generatedAt": "2026-11-26",
+  "checkedThrough": "2026-11-26",
   "staleAfterDays": 14,
   "rssSite": "https://coding-plan-comparison-tau.vercel.app/",
   "inputHashes": {
-    "data": "4603c562e29afff071737eb2dda7a063acd7e54db82c0ba183ea13ea6860a3b2",
-    "history": "61db167c12121a959a157d91445a902803a478bdeda539be4b22a52ed9b67ecd",
+    "data": "ec829fbdfe93ead68a6291f3325bd633a27c3cf2985c222677edc623ca943c6a",
+    "history": "76b9bc06e837a852c4753e1d760bea043e0d08e7797c6a9b3c91d3022097f6dd",
     "calendar": "a7184cae7537b7e9bf2cca89a76ed291a2959d654c861f00f9b7b629073b529c"
   },
   "summary": {
-    "total": 282,
-    "verified": 240,
+    "total": 283,
+    "verified": 241,
     "unverified": 24,
-    "stale": 276
+    "stale": 269
   },
   "records": [
     {
@@ -28,7 +28,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://claude.com/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -41,7 +41,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://claude.com/pricing"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -55,7 +55,7 @@ var MAINTENANCE = {
         "https://claude.com/pricing",
         "https://support.claude.com/en/articles/17154008-monthly-api-credits-for-max-and-team-plans"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -69,7 +69,7 @@ var MAINTENANCE = {
         "https://claude.com/pricing",
         "https://support.claude.com/en/articles/17154008-monthly-api-credits-for-max-and-team-plans"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -83,7 +83,7 @@ var MAINTENANCE = {
         "https://claude.com/pricing",
         "https://support.claude.com/en/articles/17154008-monthly-api-credits-for-max-and-team-plans"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -97,7 +97,7 @@ var MAINTENANCE = {
         "https://claude.com/pricing",
         "https://support.claude.com/en/articles/17154008-monthly-api-credits-for-max-and-team-plans"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -110,7 +110,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://claude.com/pricing"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -123,7 +123,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://learn.chatgpt.com/docs/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -136,7 +136,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://learn.chatgpt.com/docs/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -149,7 +149,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://learn.chatgpt.com/docs/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -162,7 +162,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://learn.chatgpt.com/docs/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -175,7 +175,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://learn.chatgpt.com/docs/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -188,7 +188,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://learn.chatgpt.com/docs/agent-configuration/speed"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -201,7 +201,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://learn.chatgpt.com/docs/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -214,7 +214,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://learn.chatgpt.com/docs/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -227,7 +227,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://one.google.com/about/google-ai-plans/"
       ],
-      "ageDays": 23,
+      "ageDays": 43,
       "stale": true
     },
     {
@@ -242,7 +242,7 @@ var MAINTENANCE = {
         "https://antigravity.google/docs/models",
         "https://one.google.com/about/google-ai-plans/"
       ],
-      "ageDays": 23,
+      "ageDays": 43,
       "stale": true
     },
     {
@@ -256,7 +256,7 @@ var MAINTENANCE = {
         "https://antigravity.google/docs/models",
         "https://one.google.com/about/google-ai-plans/"
       ],
-      "ageDays": 23,
+      "ageDays": 43,
       "stale": true
     },
     {
@@ -269,7 +269,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://one.google.com/about/google-ai-plans/"
       ],
-      "ageDays": 23,
+      "ageDays": 43,
       "stale": true
     },
     {
@@ -282,7 +282,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/"
       ],
-      "ageDays": 28,
+      "ageDays": 48,
       "stale": true
     },
     {
@@ -295,7 +295,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://codeassist.google/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -308,7 +308,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://codeassist.google/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -323,7 +323,7 @@ var MAINTENANCE = {
         "https://docs.x.ai/x-subscription/pricing",
         "https://x.ai/news/x-subscription"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -337,7 +337,7 @@ var MAINTENANCE = {
         "https://docs.x.ai/x-subscription/overview",
         "https://x.ai/news/x-subscription"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -351,7 +351,7 @@ var MAINTENANCE = {
         "https://docs.x.ai/x-subscription/overview",
         "https://x.ai/news/x-subscription"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -365,7 +365,7 @@ var MAINTENANCE = {
         "https://docs.x.ai/x-subscription/overview",
         "https://x.ai/news/x-subscription"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -379,7 +379,7 @@ var MAINTENANCE = {
         "https://docs.x.ai/x-subscription/overview",
         "https://x.ai/news/x-subscription"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -395,7 +395,7 @@ var MAINTENANCE = {
         "https://docs.x.ai/x-subscription/usage-limits",
         "https://x.ai/news/x-subscription"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -411,7 +411,7 @@ var MAINTENANCE = {
         "https://docs.x.ai/x-subscription/usage-limits",
         "https://x.ai/news/x-subscription"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -427,7 +427,7 @@ var MAINTENANCE = {
         "https://docs.x.ai/x-subscription/usage-limits",
         "https://x.ai/news/x-subscription"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -443,7 +443,7 @@ var MAINTENANCE = {
         "https://docs.x.ai/x-subscription/usage-limits",
         "https://x.ai/news/x-subscription"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -459,7 +459,7 @@ var MAINTENANCE = {
         "https://docs.x.ai/x-subscription/usage-limits",
         "https://x.ai/news/x-subscription"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -476,7 +476,7 @@ var MAINTENANCE = {
         "https://docs.x.ai/x-subscription/usage-limits",
         "https://x.ai/news/x-subscription"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -493,7 +493,7 @@ var MAINTENANCE = {
         "https://docs.x.ai/x-subscription/usage-limits",
         "https://x.ai/news/x-subscription"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -510,7 +510,7 @@ var MAINTENANCE = {
         "https://docs.x.ai/x-subscription/usage-limits",
         "https://x.ai/news/x-subscription"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -523,7 +523,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://mistral.ai/pricing/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -536,7 +536,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://mistral.ai/pricing/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -549,7 +549,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://mistral.ai/pricing/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -557,39 +557,39 @@ var MAINTENANCE = {
       "kind": "plan",
       "vendor": "Z.ai",
       "name": "GLM Coding V3 Lite",
-      "checkedAt": "2026-10-04",
+      "checkedAt": "2026-11-26",
       "status": "changed",
       "sourceUrls": [
-        "https://z.ai/subscribe"
+        "https://docs.z.ai/devpack/overview.md"
       ],
-      "ageDays": 33,
-      "stale": true
+      "ageDays": 0,
+      "stale": false
     },
     {
       "id": "plan-0032",
       "kind": "plan",
       "vendor": "Z.ai",
       "name": "GLM Coding V3 Pro",
-      "checkedAt": "2026-10-04",
+      "checkedAt": "2026-11-26",
       "status": "changed",
       "sourceUrls": [
-        "https://z.ai/subscribe"
+        "https://docs.z.ai/devpack/overview.md"
       ],
-      "ageDays": 33,
-      "stale": true
+      "ageDays": 0,
+      "stale": false
     },
     {
       "id": "plan-0033",
       "kind": "plan",
       "vendor": "Z.ai",
       "name": "GLM Coding V3 Max",
-      "checkedAt": "2026-10-04",
+      "checkedAt": "2026-11-26",
       "status": "changed",
       "sourceUrls": [
-        "https://z.ai/subscribe"
+        "https://docs.z.ai/devpack/overview.md"
       ],
-      "ageDays": 33,
-      "stale": true
+      "ageDays": 0,
+      "stale": false
     },
     {
       "id": "plan-0034",
@@ -601,7 +601,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://docs.z.ai/devpack/transition"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -614,7 +614,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://docs.z.ai/devpack/transition"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -627,7 +627,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://docs.z.ai/devpack/notice/usage-revision"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -640,7 +640,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://docs.z.ai/devpack/notice/usage-revision"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -653,7 +653,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://docs.z.ai/devpack/notice/usage-revision"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -666,7 +666,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://opencode.ai/v2/docs/console/models/"
       ],
-      "ageDays": 22,
+      "ageDays": 42,
       "stale": true
     },
     {
@@ -674,13 +674,13 @@ var MAINTENANCE = {
       "kind": "plan",
       "vendor": "OpenCode (Anomaly/SST)",
       "name": "OpenCode Go",
-      "checkedAt": "2026-10-15",
+      "checkedAt": "2026-11-26",
       "status": "changed",
       "sourceUrls": [
-        "https://opencode.ai/v2/docs/console/go/"
+        "https://opencode.ai/docs/console/go/"
       ],
-      "ageDays": 22,
-      "stale": true
+      "ageDays": 0,
+      "stale": false
     },
     {
       "id": "plan-0041",
@@ -692,7 +692,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://opencode.ai/docs/enterprise"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -705,7 +705,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://r4.codes/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -718,7 +718,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://r4.codes/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -731,7 +731,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://r4.codes/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -744,7 +744,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://r4.codes/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -757,7 +757,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://zenmux.ai/docs/guide/subscription.html"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -770,7 +770,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://zenmux.ai/docs/guide/subscription.html"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -783,7 +783,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://zenmux.ai/docs/guide/subscription.html"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -796,7 +796,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://zenmux.ai/docs/guide/subscription.html"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -809,7 +809,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://zenmux.ai/docs/guide/pay-as-you-go.html"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -823,7 +823,7 @@ var MAINTENANCE = {
         "https://codex.packycode.com/pricing",
         "https://packyapi.com/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -836,7 +836,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://codex.packycode.com/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -849,7 +849,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.aicodemirror.com/api/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -862,7 +862,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.aicodemirror.com/api/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -875,7 +875,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.aicodemirror.com/api/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -889,7 +889,7 @@ var MAINTENANCE = {
         "https://docs.88code.org/88code/pricing.html",
         "https://www.88code.ai/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -903,7 +903,7 @@ var MAINTENANCE = {
         "https://docs.88code.org/88code/pricing.html",
         "https://www.88code.ai/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -917,7 +917,7 @@ var MAINTENANCE = {
         "https://docs.88code.org/88code/pricing.html",
         "https://www.88code.ai/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -931,7 +931,7 @@ var MAINTENANCE = {
         "https://docs.88code.org/88code/pricing.html",
         "https://www.88code.ai/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -945,7 +945,7 @@ var MAINTENANCE = {
         "https://docs.88code.org/88code/pricing.html",
         "https://www.88code.ai/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -959,7 +959,7 @@ var MAINTENANCE = {
         "https://docs.88code.org/88code/pricing.html",
         "https://www.88code.ai/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -972,7 +972,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.duckcoding.ai/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -986,7 +986,7 @@ var MAINTENANCE = {
         "https://www.aigocode.com/en",
         "https://www.aigocode.net/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1000,7 +1000,7 @@ var MAINTENANCE = {
         "https://www.aigocode.com/en",
         "https://www.aigocode.net/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1014,7 +1014,7 @@ var MAINTENANCE = {
         "https://www.aigocode.com/en",
         "https://www.aigocode.net/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1028,7 +1028,7 @@ var MAINTENANCE = {
         "https://devpass.llmgateway.io/",
         "https://devpass.llmgateway.io/legal/terms"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1043,7 +1043,7 @@ var MAINTENANCE = {
         "https://chutes.ai/news/community-announcement-february",
         "https://chutes.ai/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1056,7 +1056,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://commandcode.ai/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1069,7 +1069,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://commandcode.ai/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1082,7 +1082,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://commandcode.ai/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1095,7 +1095,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://commandcode.ai/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1108,7 +1108,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://commandcode.ai/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1121,7 +1121,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://commandcode.ai/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1134,7 +1134,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://kiro.dev/pricing/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1148,7 +1148,7 @@ var MAINTENANCE = {
         "https://kiro.dev/docs/billing/subscription-portal/",
         "https://kiro.dev/pricing/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1162,7 +1162,7 @@ var MAINTENANCE = {
         "https://kiro.dev/docs/billing/subscription-portal/",
         "https://kiro.dev/pricing/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1176,7 +1176,7 @@ var MAINTENANCE = {
         "https://kiro.dev/docs/billing/subscription-portal/",
         "https://kiro.dev/pricing/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1190,7 +1190,7 @@ var MAINTENANCE = {
         "https://kiro.dev/docs/billing/subscription-portal/",
         "https://kiro.dev/pricing/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1203,7 +1203,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://factory.com/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1216,7 +1216,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://factory.com/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1229,7 +1229,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://factory.com/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1242,7 +1242,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.xfyun.cn/doc/spark/CodingPlan.html"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1255,7 +1255,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.xfyun.cn/doc/spark/CodingPlan.html"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1268,7 +1268,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://platform.stepfun.com/docs/zh/step-plan/overview"
       ],
-      "ageDays": 28,
+      "ageDays": 48,
       "stale": true
     },
     {
@@ -1281,7 +1281,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://platform.stepfun.com/docs/zh/step-plan/overview"
       ],
-      "ageDays": 28,
+      "ageDays": 48,
       "stale": true
     },
     {
@@ -1294,7 +1294,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://platform.stepfun.com/docs/zh/step-plan/overview"
       ],
-      "ageDays": 28,
+      "ageDays": 48,
       "stale": true
     },
     {
@@ -1307,7 +1307,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://platform.stepfun.com/docs/zh/step-plan/overview"
       ],
-      "ageDays": 28,
+      "ageDays": 48,
       "stale": true
     },
     {
@@ -1320,7 +1320,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://canopywave.com/codingplan"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1328,13 +1328,28 @@ var MAINTENANCE = {
       "kind": "plan",
       "vendor": "OpenCode (Anomaly/SST)",
       "name": "OpenCode Go Plus",
-      "checkedAt": "2026-10-15",
+      "checkedAt": "2026-11-26",
       "status": "changed",
       "sourceUrls": [
-        "https://opencode.ai/v2/docs/console/go/"
+        "https://opencode.ai/docs/console/go/",
+        "https://opencode.ai/inference/go/v1/models"
       ],
-      "ageDays": 22,
-      "stale": true
+      "ageDays": 0,
+      "stale": false
+    },
+    {
+      "id": "plan-0240",
+      "kind": "plan",
+      "vendor": "OpenCode (Anomaly/SST)",
+      "name": "OpenCode Go Teams",
+      "checkedAt": "2026-11-26",
+      "status": "changed",
+      "sourceUrls": [
+        "https://opencode.ai/docs/console/go/",
+        "https://opencode.ai/inference/go/v1/models"
+      ],
+      "ageDays": 0,
+      "stale": false
     },
     {
       "id": "plan-0090",
@@ -1346,7 +1361,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://docs.github.com/en/copilot/get-started/plans"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -1354,28 +1369,26 @@ var MAINTENANCE = {
       "kind": "plan",
       "vendor": "GitHub Copilot",
       "name": "Pro",
-      "checkedAt": "2026-10-15",
+      "checkedAt": "2026-11-26",
       "status": "changed",
       "sourceUrls": [
-        "https://docs.github.com/en/early-access/copilot/hydrafusion",
-        "https://github.blog/changelog/2026-10-14-hydrafusion-updates-and-new-max-option"
+        "https://docs.github.com/en/copilot/reference/ai-models/supported-models"
       ],
-      "ageDays": 22,
-      "stale": true
+      "ageDays": 0,
+      "stale": false
     },
     {
       "id": "plan-0092",
       "kind": "plan",
       "vendor": "GitHub Copilot",
       "name": "Pro+",
-      "checkedAt": "2026-10-15",
+      "checkedAt": "2026-11-26",
       "status": "changed",
       "sourceUrls": [
-        "https://docs.github.com/en/early-access/copilot/hydrafusion",
-        "https://github.blog/changelog/2026-10-14-hydrafusion-updates-and-new-max-option"
+        "https://docs.github.com/en/copilot/reference/ai-models/supported-models"
       ],
-      "ageDays": 22,
-      "stale": true
+      "ageDays": 0,
+      "stale": false
     },
     {
       "id": "plan-0093",
@@ -1388,7 +1401,7 @@ var MAINTENANCE = {
         "https://docs.github.com/en/early-access/copilot/hydrafusion",
         "https://github.blog/changelog/2026-10-14-hydrafusion-updates-and-new-max-option"
       ],
-      "ageDays": 22,
+      "ageDays": 42,
       "stale": true
     },
     {
@@ -1396,28 +1409,28 @@ var MAINTENANCE = {
       "kind": "plan",
       "vendor": "GitHub Copilot",
       "name": "Business",
-      "checkedAt": "2026-10-15",
+      "checkedAt": "2026-11-26",
       "status": "changed",
       "sourceUrls": [
-        "https://docs.github.com/en/early-access/copilot/hydrafusion",
-        "https://github.blog/changelog/2026-10-14-hydrafusion-updates-and-new-max-option"
+        "https://docs.github.com/en/copilot/reference/ai-models/supported-models",
+        "https://github.blog/changelog/2026-11-25-copilot-code-review-billing-will-default-to-the-organization"
       ],
-      "ageDays": 22,
-      "stale": true
+      "ageDays": 0,
+      "stale": false
     },
     {
       "id": "plan-0095",
       "kind": "plan",
       "vendor": "GitHub Copilot",
       "name": "Enterprise",
-      "checkedAt": "2026-10-15",
+      "checkedAt": "2026-11-26",
       "status": "changed",
       "sourceUrls": [
-        "https://docs.github.com/en/early-access/copilot/hydrafusion",
-        "https://github.blog/changelog/2026-10-14-hydrafusion-updates-and-new-max-option"
+        "https://docs.github.com/en/copilot/reference/ai-models/supported-models",
+        "https://github.blog/changelog/2026-11-25-copilot-code-review-billing-will-default-to-the-organization"
       ],
-      "ageDays": 22,
-      "stale": true
+      "ageDays": 0,
+      "stale": false
     },
     {
       "id": "plan-0096",
@@ -1431,7 +1444,7 @@ var MAINTENANCE = {
         "https://docs.x.ai/x-subscription/overview",
         "https://x.ai/news/x-subscription"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -1444,7 +1457,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://cursor.com/docs/models-and-pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1459,7 +1472,7 @@ var MAINTENANCE = {
         "https://docs.x.ai/x-subscription/overview",
         "https://x.ai/news/x-subscription"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -1474,7 +1487,7 @@ var MAINTENANCE = {
         "https://docs.x.ai/x-subscription/overview",
         "https://x.ai/news/x-subscription"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -1489,7 +1502,7 @@ var MAINTENANCE = {
         "https://docs.x.ai/x-subscription/overview",
         "https://x.ai/news/x-subscription"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -1504,7 +1517,7 @@ var MAINTENANCE = {
         "https://docs.x.ai/x-subscription/overview",
         "https://x.ai/news/x-subscription"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -1519,7 +1532,7 @@ var MAINTENANCE = {
         "https://docs.x.ai/x-subscription/overview",
         "https://x.ai/news/x-subscription"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -1534,7 +1547,7 @@ var MAINTENANCE = {
         "https://docs.x.ai/x-subscription/overview",
         "https://x.ai/news/x-subscription"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -1548,7 +1561,7 @@ var MAINTENANCE = {
         "https://devin.ai/pricing",
         "https://docs.devin.ai/admin/billing/self-serve"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1563,7 +1576,7 @@ var MAINTENANCE = {
         "https://docs.devin.ai/admin/billing/self-serve",
         "https://docs.devin.ai/desktop/accounts/quota"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1577,7 +1590,7 @@ var MAINTENANCE = {
         "https://devin.ai/pricing",
         "https://docs.devin.ai/admin/billing/self-serve"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1591,7 +1604,7 @@ var MAINTENANCE = {
         "https://devin.ai/pricing",
         "https://docs.devin.ai/admin/billing/self-serve"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1605,7 +1618,7 @@ var MAINTENANCE = {
         "https://devin.ai/pricing",
         "https://docs.devin.ai/admin/billing/self-serve"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1619,7 +1632,7 @@ var MAINTENANCE = {
         "https://devin.ai/pricing",
         "https://docs.devin.ai/admin/billing/self-serve"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1633,7 +1646,7 @@ var MAINTENANCE = {
         "https://devin.ai/pricing",
         "https://docs.devin.ai/admin/billing/self-serve"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1647,7 +1660,7 @@ var MAINTENANCE = {
         "https://devin.ai/pricing",
         "https://docs.devin.ai/admin/billing/enterprise"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1660,7 +1673,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://zed.dev/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1673,7 +1686,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://zed.dev/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1686,7 +1699,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://zed.dev/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1700,7 +1713,7 @@ var MAINTENANCE = {
         "https://docs.augmentcode.com/models/token-based-pricing",
         "https://www.augmentcode.com/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1713,7 +1726,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.augmentcode.com/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1727,7 +1740,7 @@ var MAINTENANCE = {
         "https://docs.cline.bot/getting-started/cline-provider",
         "https://github.com/cline/cline"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1740,7 +1753,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://docs.cline.bot/getting-started/clinepass"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1753,7 +1766,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://github.com/RooCodeInc/Roo-Code"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1766,7 +1779,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://roomote.dev/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1779,7 +1792,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://roomote.dev/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1792,7 +1805,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://roomote.dev/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1805,7 +1818,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://roomote.dev/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1818,7 +1831,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://kilo.ai/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1831,7 +1844,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://kilo.ai/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1846,7 +1859,7 @@ var MAINTENANCE = {
         "https://ampcode.com/news/use-your-claude-plan",
         "https://ampcode.com/pricing"
       ],
-      "ageDays": 22,
+      "ageDays": 42,
       "stale": true
     },
     {
@@ -1861,7 +1874,7 @@ var MAINTENANCE = {
         "https://ampcode.com/news/use-your-claude-plan",
         "https://ampcode.com/pricing"
       ],
-      "ageDays": 22,
+      "ageDays": 42,
       "stale": true
     },
     {
@@ -1875,7 +1888,7 @@ var MAINTENANCE = {
         "https://www.jetbrains.com/ai-ides/buy/",
         "https://www.jetbrains.com/help/ai-assistant/licensing-and-subscriptions.html"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1889,7 +1902,7 @@ var MAINTENANCE = {
         "https://www.jetbrains.com/ai-ides/buy/",
         "https://www.jetbrains.com/help/ai-assistant/licensing-and-subscriptions.html"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1903,7 +1916,7 @@ var MAINTENANCE = {
         "https://www.jetbrains.com/ai-ides/buy/",
         "https://www.jetbrains.com/help/ai-assistant/licensing-and-subscriptions.html"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1917,7 +1930,7 @@ var MAINTENANCE = {
         "https://www.jetbrains.com/ai-ides/buy/",
         "https://www.jetbrains.com/help/ai-assistant/licensing-and-subscriptions.html"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1930,7 +1943,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://openrouter.ai/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1943,7 +1956,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://docs.lovable.dev/introduction/subscription-plans"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1956,7 +1969,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://docs.lovable.dev/introduction/subscription-plans"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1969,7 +1982,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://docs.lovable.dev/introduction/subscription-plans"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1982,7 +1995,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://docs.lovable.dev/introduction/subscription-plans"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -1995,7 +2008,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://bolt.new/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2008,7 +2021,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://bolt.new/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2021,7 +2034,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://bolt.new/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2034,7 +2047,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://bolt.new/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2048,7 +2061,7 @@ var MAINTENANCE = {
         "https://replit.com/blog/pro-plan",
         "https://replit.com/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2062,7 +2075,7 @@ var MAINTENANCE = {
         "https://replit.com/blog/pro-plan",
         "https://replit.com/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2075,7 +2088,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://replit.com/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2088,7 +2101,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://aws.amazon.com/q/developer/pricing/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2101,7 +2114,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://aws.amazon.com/q/developer/pricing/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2114,7 +2127,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://qoder.com.cn/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2127,7 +2140,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://qoder.com.cn/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2140,7 +2153,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://qoder.com.cn/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2153,7 +2166,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.codebuddy.cn/pricing/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2166,7 +2179,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.huaweicloud.com/product/codearts.html"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2179,7 +2192,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://docs.bigmodel.cn/cn/coding-plan/notice/usage-revision"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2192,7 +2205,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://docs.bigmodel.cn/cn/coding-plan/notice/usage-revision"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2205,7 +2218,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://docs.bigmodel.cn/cn/coding-plan/notice/usage-revision"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2218,7 +2231,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://docs.bigmodel.cn/cn/coding-plan/notice/usage-revision"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2231,7 +2244,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://docs.bigmodel.cn/cn/coding-plan/notice/usage-revision"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2244,7 +2257,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://docs.bigmodel.cn/cn/coding-plan/notice/usage-revision"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2252,52 +2265,52 @@ var MAINTENANCE = {
       "kind": "plan",
       "vendor": "智谱 BigModel",
       "name": "GLM Coding V3 Lite",
-      "checkedAt": "2026-10-04",
-      "status": "verified",
+      "checkedAt": "2026-11-26",
+      "status": "changed",
       "sourceUrls": [
-        "https://bigmodel.cn/glm-coding"
+        "https://docs.bigmodel.cn/cn/coding-plan/overview.md"
       ],
-      "ageDays": 33,
-      "stale": true
+      "ageDays": 0,
+      "stale": false
     },
     {
       "id": "plan-0158",
       "kind": "plan",
       "vendor": "智谱 BigModel",
       "name": "GLM Coding V3 Pro",
-      "checkedAt": "2026-10-04",
-      "status": "verified",
+      "checkedAt": "2026-11-26",
+      "status": "changed",
       "sourceUrls": [
-        "https://bigmodel.cn/glm-coding"
+        "https://docs.bigmodel.cn/cn/coding-plan/overview.md"
       ],
-      "ageDays": 33,
-      "stale": true
+      "ageDays": 0,
+      "stale": false
     },
     {
       "id": "plan-0159",
       "kind": "plan",
       "vendor": "智谱 BigModel",
       "name": "GLM Coding V3 Max",
-      "checkedAt": "2026-10-04",
-      "status": "verified",
+      "checkedAt": "2026-11-26",
+      "status": "changed",
       "sourceUrls": [
-        "https://bigmodel.cn/glm-coding"
+        "https://docs.bigmodel.cn/cn/coding-plan/overview.md"
       ],
-      "ageDays": 33,
-      "stale": true
+      "ageDays": 0,
+      "stale": false
     },
     {
       "id": "plan-0160",
       "kind": "plan",
       "vendor": "智谱 BigModel",
       "name": "GLM Coding Plan 团队标准版",
-      "checkedAt": "2026-10-04",
+      "checkedAt": "2026-11-26",
       "status": "changed",
       "sourceUrls": [
-        "https://bigmodel.cn/glm-coding"
+        "https://docs.bigmodel.cn/cn/coding-plan/overview.md"
       ],
-      "ageDays": 33,
-      "stale": true
+      "ageDays": 0,
+      "stale": false
     },
     {
       "id": "plan-0161",
@@ -2309,7 +2322,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.kimi.com/membership/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2322,7 +2335,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.kimi.com/membership/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2335,7 +2348,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.kimi.com/membership/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2348,7 +2361,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://platform.minimax.cn/docs/guides/pricing-token-plan"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2361,7 +2374,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://platform.minimax.cn/docs/guides/pricing-token-plan"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2374,7 +2387,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://platform.minimax.cn/docs/guides/pricing-token-plan"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2387,7 +2400,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://mimo.mi.com/docs/zh-CN/price/token-plan"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2400,7 +2413,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://mimo.mi.com/docs/zh-CN/price/token-plan"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2413,7 +2426,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://mimo.mi.com/docs/zh-CN/price/token-plan"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2426,7 +2439,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://mimo.mi.com/docs/zh-CN/price/token-plan"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2439,7 +2452,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://mimo.mi.com/docs/zh-CN/price/token-plan"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2452,7 +2465,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://mimo.mi.com/docs/zh-CN/price/token-plan"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2465,7 +2478,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://mimo.mi.com/docs/zh-CN/price/token-plan"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2478,7 +2491,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://cloud.tencent.com/document/product/1823/130060"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2491,7 +2504,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://cloud.tencent.com/document/product/1823/130060"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2504,7 +2517,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://cloud.tencent.com/document/product/1823/130060"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2517,7 +2530,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://cloud.tencent.com/document/product/1823/130060"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2530,7 +2543,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://cloud.baidu.com/product/qianfan_home/token_plan_personal.html"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2543,7 +2556,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://cloud.baidu.com/product/qianfan_home/token_plan_personal.html"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2556,7 +2569,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://cloud.baidu.com/product/qianfan_home/token_plan_personal.html"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2569,7 +2582,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://cloud.baidu.com/product/qianfan_home/token_plan_personal.html"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2582,7 +2595,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.qiniu.com/ai/plan"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2595,7 +2608,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.qiniu.com/ai/plan"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2608,7 +2621,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.qiniu.com/ai/plan"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2621,7 +2634,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://qoder.com.cn/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2634,7 +2647,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://qoder.com.cn/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2647,7 +2660,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://qoder.com.cn/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2660,7 +2673,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.codebuddy.cn/pricing/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2673,7 +2686,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.codebuddy.cn/pricing/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2686,7 +2699,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.codebuddy.cn/pricing/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2699,7 +2712,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.codebuddy.cn/pricing/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2712,7 +2725,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.trae.cn/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2725,7 +2738,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.trae.cn/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2738,7 +2751,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.trae.cn/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2751,7 +2764,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.trae.cn/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2764,7 +2777,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.trae.cn/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2777,7 +2790,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.trae.ai/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2790,7 +2803,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.dumate.cn/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2803,7 +2816,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.dumate.cn/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2816,7 +2829,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://www.dumate.cn/"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2829,7 +2842,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://comate.baidu.com/zh/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2842,7 +2855,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://cloud.tencent.com/document/product/1823/130092"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2855,7 +2868,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://cloud.tencent.com/document/product/1823/130092"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2868,7 +2881,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://help.aliyun.com/zh/model-studio/token-plan-overview"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2881,7 +2894,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://help.aliyun.com/zh/model-studio/token-plan-overview"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2894,7 +2907,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://help.aliyun.com/zh/model-studio/token-plan-overview"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2907,7 +2920,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://help.aliyun.com/zh/model-studio/token-plan-overview"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2920,7 +2933,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://help.aliyun.com/zh/model-studio/token-plan-overview"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2934,7 +2947,7 @@ var MAINTENANCE = {
         "https://help.aliyun.com/zh/model-studio/coding-plan",
         "https://help.aliyun.com/zh/model-studio/token-plan-overview"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2948,7 +2961,7 @@ var MAINTENANCE = {
         "https://docs.volcengine.com/docs/ark/coding-plan-personal-universal-promotion?lang=zh",
         "https://docs.volcengine.com/docs/ark/model-pricing?lang=zh"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2962,7 +2975,7 @@ var MAINTENANCE = {
         "https://docs.volcengine.com/docs/ark/coding-plan-personal-universal-promotion?lang=zh",
         "https://docs.volcengine.com/docs/ark/model-pricing?lang=zh"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2976,7 +2989,7 @@ var MAINTENANCE = {
         "https://docs.volcengine.com/docs/ark/agent-plan-personal-plan-overview?lang=zh",
         "https://docs.volcengine.com/docs/ark/model-pricing?lang=zh"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -2991,7 +3004,7 @@ var MAINTENANCE = {
         "https://freebuff.com/privacy-policy",
         "https://github.com/CodebuffAI/freebuff"
       ],
-      "ageDays": 22,
+      "ageDays": 42,
       "stale": true
     },
     {
@@ -3004,7 +3017,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://kimchi.dev/pricing"
       ],
-      "ageDays": 22,
+      "ageDays": 42,
       "stale": true
     },
     {
@@ -3019,7 +3032,7 @@ var MAINTENANCE = {
         "https://kimchi.dev/pricing",
         "https://kimchi.dev/terms-of-service"
       ],
-      "ageDays": 22,
+      "ageDays": 42,
       "stale": true
     },
     {
@@ -3034,7 +3047,7 @@ var MAINTENANCE = {
         "https://kimchi.dev/pricing",
         "https://kimchi.dev/terms-of-service"
       ],
-      "ageDays": 22,
+      "ageDays": 42,
       "stale": true
     },
     {
@@ -3048,7 +3061,7 @@ var MAINTENANCE = {
         "https://kimchi.dev/pricing",
         "https://kimchi.dev/terms-of-service"
       ],
-      "ageDays": 22,
+      "ageDays": 42,
       "stale": true
     },
     {
@@ -3062,7 +3075,7 @@ var MAINTENANCE = {
         "https://docs.humanlayer.com/",
         "https://www.humanlayer.dev/"
       ],
-      "ageDays": 22,
+      "ageDays": 42,
       "stale": true
     },
     {
@@ -3076,7 +3089,7 @@ var MAINTENANCE = {
         "https://docs.humanlayer.com/",
         "https://www.humanlayer.dev/"
       ],
-      "ageDays": 22,
+      "ageDays": 42,
       "stale": true
     },
     {
@@ -3090,7 +3103,7 @@ var MAINTENANCE = {
         "https://docs.humanlayer.com/",
         "https://www.humanlayer.dev/"
       ],
-      "ageDays": 22,
+      "ageDays": 42,
       "stale": true
     },
     {
@@ -3106,8 +3119,8 @@ var MAINTENANCE = {
         "https://dev.meta.ai/docs/muse-code/subscriptions",
         "https://dev.meta.ai/products/muse-code"
       ],
-      "ageDays": 11,
-      "stale": false
+      "ageDays": 31,
+      "stale": true
     },
     {
       "id": "plan-0222",
@@ -3122,8 +3135,8 @@ var MAINTENANCE = {
         "https://dev.meta.ai/docs/muse-code/subscriptions",
         "https://dev.meta.ai/products/muse-code"
       ],
-      "ageDays": 11,
-      "stale": false
+      "ageDays": 31,
+      "stale": true
     },
     {
       "id": "plan-0223",
@@ -3138,8 +3151,8 @@ var MAINTENANCE = {
         "https://dev.meta.ai/docs/muse-code/subscriptions",
         "https://dev.meta.ai/products/muse-code"
       ],
-      "ageDays": 11,
-      "stale": false
+      "ageDays": 31,
+      "stale": true
     },
     {
       "id": "plan-0224",
@@ -3154,8 +3167,8 @@ var MAINTENANCE = {
         "https://dev.meta.ai/docs/muse-code/subscriptions",
         "https://dev.meta.ai/products/muse-code"
       ],
-      "ageDays": 11,
-      "stale": false
+      "ageDays": 31,
+      "stale": true
     },
     {
       "id": "Anthropic|Claude Sonnet 5.5",
@@ -3167,7 +3180,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://platform.claude.com/docs/en/about-claude/pricing"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -3180,7 +3193,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://platform.claude.com/docs/en/about-claude/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3193,7 +3206,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://platform.claude.com/docs/en/about-claude/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3206,7 +3219,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://platform.claude.com/docs/en/about-claude/pricing"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -3219,7 +3232,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://developers.openai.com/api/docs/pricing"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -3232,7 +3245,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://developers.openai.com/api/docs/pricing"
       ],
-      "ageDays": 24,
+      "ageDays": 44,
       "stale": true
     },
     {
@@ -3245,7 +3258,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://developers.openai.com/api/docs/models/gpt-6-sol"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3258,7 +3271,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://developers.openai.com/api/docs/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3271,7 +3284,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://developers.openai.com/api/docs/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3284,7 +3297,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://developers.openai.com/api/docs/models/gpt-5.6-terra"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3297,7 +3310,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://developers.openai.com/api/docs/models/gpt-5.6-luna"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3311,7 +3324,7 @@ var MAINTENANCE = {
         "https://developers.openai.com/api/docs/deprecations",
         "https://developers.openai.com/api/docs/models/gpt-5.3-codex"
       ],
-      "ageDays": 22,
+      "ageDays": 42,
       "stale": true
     },
     {
@@ -3324,7 +3337,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://ai.google.dev/gemini-api/docs/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3338,7 +3351,7 @@ var MAINTENANCE = {
         "https://ai.google.dev/gemini-api/docs/models/gemini-4-argon",
         "https://ai.google.dev/gemini-api/docs/pricing"
       ],
-      "ageDays": 23,
+      "ageDays": 43,
       "stale": true
     },
     {
@@ -3351,7 +3364,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://docs.z.ai/guides/overview/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3364,7 +3377,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://api-docs.deepseek.com/quick_start/pricing/?helper=penn&method=individual"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3377,7 +3390,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://api-docs.deepseek.com/quick_start/pricing/?helper=penn&method=individual"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3390,7 +3403,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://docs.bigmodel.cn/cn/guide/start/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3403,7 +3416,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://platform.kimi.com/docs/pricing/chat"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3416,7 +3429,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://platform.kimi.com/docs/pricing/chat"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3429,7 +3442,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://platform.minimax.cn/docs/guides/pricing-paygo"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3442,7 +3455,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://platform.minimax.cn/docs/guides/pricing-paygo"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3455,7 +3468,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://help.aliyun.com/zh/model-studio/qwen3-coder-next"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3468,7 +3481,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://help.aliyun.com/zh/model-studio/qwen3-coder-plus"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3481,7 +3494,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://help.aliyun.com/zh/model-studio/qwen3-coder-flash"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3494,7 +3507,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://docs.volcengine.com/docs/ark/model-pricing?lang=zh"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3507,7 +3520,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://docs.volcengine.com/docs/ark/model-pricing?lang=zh"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3520,7 +3533,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://platform.stepfun.com/docs/zh/guides/pricing/details"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3533,7 +3546,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://platform.stepfun.com/docs/zh/guides/pricing/details"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3546,7 +3559,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://cloud-rd.siliconflow.cn/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3559,7 +3572,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://cloud-rd.siliconflow.cn/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3572,7 +3585,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://cloud-rd.siliconflow.cn/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3585,7 +3598,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://cloud-rd.siliconflow.cn/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3598,7 +3611,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://help.aliyun.com/zh/model-studio/qwen3-8-flash"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3611,7 +3624,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://cloud.tencent.com/document/product/1823/130055"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3624,7 +3637,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://cloud.tencent.com/document/product/1823/130055"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3637,7 +3650,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://mimo.mi.com/docs/zh-CN/price/pay-as-you-go"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3650,7 +3663,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://mimo.mi.com/docs/zh-CN/price/pay-as-you-go"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3664,8 +3677,8 @@ var MAINTENANCE = {
         "https://dev.meta.ai/docs/models",
         "https://dev.meta.ai/docs/pricing-rate-limits"
       ],
-      "ageDays": 11,
-      "stale": false
+      "ageDays": 31,
+      "stale": true
     },
     {
       "id": "Meta|Muse Spark 1.3",
@@ -3678,8 +3691,8 @@ var MAINTENANCE = {
         "https://dev.meta.ai/docs/models",
         "https://dev.meta.ai/docs/pricing-rate-limits"
       ],
-      "ageDays": 11,
-      "stale": false
+      "ageDays": 31,
+      "stale": true
     },
     {
       "id": "DeepSeek|deepseek-flash",
@@ -3691,7 +3704,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://api-docs.deepseek.com/quick_start/pricing/?helper=penn&method=individual"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3704,7 +3717,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://api-docs.deepseek.com/quick_start/pricing/?helper=penn&method=individual"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3717,7 +3730,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://docs.z.ai/guides/overview/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3730,7 +3743,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://docs.z.ai/guides/overview/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3743,7 +3756,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://docs.bigmodel.cn/cn/guide/start/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3756,7 +3769,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://docs.bigmodel.cn/cn/guide/start/pricing"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3769,7 +3782,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://platform.kimi.com/docs/pricing/chat"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3782,7 +3795,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://platform.kimi.com/docs/pricing/chat"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3795,7 +3808,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://platform.minimax.cn/docs/guides/pricing-paygo"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     },
     {
@@ -3808,7 +3821,7 @@ var MAINTENANCE = {
       "sourceUrls": [
         "https://help.aliyun.com/zh/model-studio/qwen3-coder-plus"
       ],
-      "ageDays": 33,
+      "ageDays": 53,
       "stale": true
     }
   ],
@@ -3825,7 +3838,7 @@ var MAINTENANCE = {
       "reviewOn": "2026-10-19",
       "source": "https://docs.kimchi.dev/docs/model-apis-pricing",
       "note": "Kimchi 模型文档预告 Kimi K2.7 本日退役，仅指 Kimchi 托管入口，不推断 Moonshot API 或其他服务同步下线。",
-      "daysUntil": -18,
+      "daysUntil": -38,
       "overdue": true,
       "due": true
     },
@@ -3839,9 +3852,9 @@ var MAINTENANCE = {
       "reviewOn": "2026-11-09",
       "source": "https://docs.volcengine.com/docs/ark/coding-plan-personal-universal-promotion?lang=zh",
       "note": "原活动截至 11-08；常规续费价与个人资格需重新检查。",
-      "daysUntil": 3,
-      "overdue": false,
-      "due": false
+      "daysUntil": -17,
+      "overdue": true,
+      "due": true
     },
     {
       "id": "freebuff-privacy-20261112",
@@ -3853,9 +3866,9 @@ var MAINTENANCE = {
       "reviewOn": "2026-11-12",
       "source": "https://freebuff.com/privacy-policy",
       "note": "10-13 更新页注明 11-12 生效，目前仅作未来政策预告；届时核对有效版本、广告与训练条件。",
-      "daysUntil": 6,
-      "overdue": false,
-      "due": false
+      "daysUntil": -14,
+      "overdue": true,
+      "due": true
     },
     {
       "id": "sol-promotion-20261121",
@@ -3874,9 +3887,9 @@ var MAINTENANCE = {
         "plan-0014",
         "plan-0015"
       ],
-      "daysUntil": 16,
-      "overdue": false,
-      "due": false
+      "daysUntil": -4,
+      "overdue": true,
+      "due": true
     },
     {
       "id": "google-gemini4-argon-intro-price-20261201",
@@ -3886,7 +3899,7 @@ var MAINTENANCE = {
       "reviewOn": "2026-12-01",
       "source": "https://ai.google.dev/gemini-api/docs/pricing",
       "note": "官方写明介绍价 $2 / $10（缓存 $0.10）至 2026-11-30，12-01 起 $4 / $20 / $0.20；核对官网后再改 API 行，不按日期自动改价。",
-      "daysUntil": 25,
+      "daysUntil": 5,
       "overdue": false,
       "due": false
     },
@@ -3906,7 +3919,7 @@ var MAINTENANCE = {
         "plan-0021",
         "plan-0022"
       ],
-      "daysUntil": 56,
+      "daysUntil": 36,
       "overdue": false,
       "due": false
     },
@@ -3927,12 +3940,592 @@ var MAINTENANCE = {
         "plan-0014",
         "plan-0015"
       ],
-      "daysUntil": 146,
+      "daysUntil": 126,
       "overdue": false,
       "due": false
     }
   ],
   "changes": [
+    {
+      "changeId": "change-1a5ece9d9b042d1f7fd0b46c",
+      "id": "plan-0157",
+      "kind": "plan",
+      "vendor": "智谱 BigModel",
+      "name": "GLM Coding V3 Lite",
+      "checkedAt": "2026-11-26",
+      "sourceUrls": [
+        "https://docs.bigmodel.cn/cn/coding-plan/overview.md"
+      ],
+      "fields": [
+        "models",
+        "note"
+      ],
+      "before": {
+        "models": "GLM-5.3、GLM-5.3-Flash（旧版 5.2/5.1 自动路由至 5.3）",
+        "note": "连续包月/包季 8 折约 ¥94.4/月；连续包年 7 折 ¥82.6/月（2026-10-01 购买页在售）；工作日 14:00–18:00 高峰，非高峰积分 5 折；双节活动与夜间畅用已于 10-07 结束；老用户可按旧价 ¥49/月续费"
+      },
+      "after": {
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash（旧版 5.2/5.1 自动路由至 5.3）",
+        "note": "连续包月/包季 8 折约 ¥94.4/月；连续包年 7 折 ¥82.6/月（2026-10-01 购买页在售，本次未重开）；工作日 14:00–18:00 高峰，非高峰积分 5 折；双节活动与夜间畅用已于 10-07 结束；老用户可按旧价 ¥49/月续费。2026-11-26 概览：GLM-5.4 系数输入 4.6、缓存 1.1、输出 16。2026-11-24 至 12-24，GLM-5.3-Flash 按原系数 50% 结算。"
+      },
+      "plan": "GLM Coding V3 Lite"
+    },
+    {
+      "changeId": "change-1b944a8bdeaf8edba51ebe39",
+      "id": "plan-0159",
+      "kind": "plan",
+      "vendor": "智谱 BigModel",
+      "name": "GLM Coding V3 Max",
+      "checkedAt": "2026-11-26",
+      "sourceUrls": [
+        "https://docs.bigmodel.cn/cn/coding-plan/overview.md"
+      ],
+      "fields": [
+        "models",
+        "note"
+      ],
+      "before": {
+        "models": "GLM-5.3、GLM-5.3-Flash",
+        "note": "连续包月/包季 8 折约 ¥862.4/月；连续包年 7 折 ¥754.6/月（2026-10-01 购买页在售）；双节活动与夜间畅用已于 10-07 结束；老用户可按 ¥469/月续费；官方称较按量 API 最高省 92%"
+      },
+      "after": {
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash",
+        "note": "连续包月/包季 8 折约 ¥862.4/月；连续包年 7 折 ¥754.6/月（2026-10-01 购买页在售，本次未重开）；双节活动与夜间畅用已于 10-07 结束；老用户可按 ¥469/月续费；官方称较按量 API 最高省 92%。GLM-5.4 与 Flash 限时半价见 Lite/Pro。"
+      },
+      "plan": "GLM Coding V3 Max"
+    },
+    {
+      "changeId": "change-1f1af4f919a99bb605f1c43f",
+      "id": "plan-0240",
+      "kind": "plan",
+      "vendor": "OpenCode (Anomaly/SST)",
+      "name": "OpenCode Go Teams",
+      "checkedAt": "2026-11-26",
+      "sourceUrls": [
+        "https://opencode.ai/docs/console/go/",
+        "https://opencode.ai/inference/go/v1/models"
+      ],
+      "fields": [
+        "cat",
+        "cur",
+        "fieldRefs",
+        "models",
+        "note",
+        "plan",
+        "priceM",
+        "quota",
+        "quotaSharing",
+        "region",
+        "seat",
+        "tools",
+        "url",
+        "windowPeriod"
+      ],
+      "before": {
+        "cat": null,
+        "cur": null,
+        "fieldRefs": null,
+        "models": null,
+        "note": null,
+        "plan": null,
+        "priceM": null,
+        "quota": null,
+        "quotaSharing": null,
+        "region": null,
+        "seat": null,
+        "tools": null,
+        "url": null,
+        "windowPeriod": null
+      },
+      "after": {
+        "cat": "team",
+        "cur": "USD",
+        "fieldRefs": {
+          "models": "plan-0040",
+          "tools": "plan-0040"
+        },
+        "models": "同 Go",
+        "note": "$20/人/月，至少 2 人（最低 $40/月）。第二席在最低人数内不另收费；之后中途加入的成员收 $20 并获得完整月度额度。服务账号不包含。默认开启 Extra Usage，可在 Go 页关闭。Gemini 4 Argon 50% 折扣至 2026-11-30。",
+        "plan": "OpenCode Go Teams",
+        "priceM": 20,
+        "quota": "每名成员独立限额，每个模型比 Go 高 $5。示例：GLM-5.3 $205、DeepSeek V4.1 Flash $105、Gemini 4 Argon $35。5 小时=月度 20%，每周=50%，月=100%",
+        "quotaSharing": "separate",
+        "region": "intl",
+        "seat": true,
+        "tools": "同 Go",
+        "url": "https://opencode.ai/docs/console/go/",
+        "windowPeriod": "5h"
+      },
+      "plan": "OpenCode Go Teams"
+    },
+    {
+      "changeId": "change-1fad8dc4e2e03d2ea54e4e44",
+      "id": "plan-0157",
+      "kind": "plan",
+      "vendor": "智谱 BigModel",
+      "name": "GLM Coding V3 Lite",
+      "checkedAt": "2026-11-26",
+      "sourceUrls": [
+        "https://docs.bigmodel.cn/cn/coding-plan/overview.md"
+      ],
+      "fields": [
+        "models"
+      ],
+      "before": {
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash（旧版 5.2/5.1 自动路由至 5.3）"
+      },
+      "after": {
+        "models": "GLM-5.3、GLM-5.3-Flash（旧版 5.2/5.1 自动路由至 5.3）"
+      },
+      "plan": "GLM Coding V3 Lite"
+    },
+    {
+      "changeId": "change-2bea524e1b53b2426229cdbd",
+      "id": "plan-0091",
+      "kind": "plan",
+      "vendor": "GitHub Copilot",
+      "name": "Pro",
+      "checkedAt": "2026-11-26",
+      "sourceUrls": [
+        "https://docs.github.com/en/copilot/reference/ai-models/supported-models"
+      ],
+      "fields": [
+        "models",
+        "note"
+      ],
+      "before": {
+        "models": "Claude Haiku 4.5/5.5、Sonnet 4.6/5/5.5，Gemini 3.7–3.8 Flash，GPT-5 mini、GPT-5.3-Codex、GPT-5.4/5.4 mini、GPT-5.6 Luna/Terra、GPT-6 Luna，Kimi K3，Grok 4.5–4.7，MAI-Code-1.1-Flash 等（不含旗舰）",
+        "note": "$10 基础 + $5 弹性 credits；仅月付；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费"
+      },
+      "after": {
+        "models": "Claude Haiku 4.5/5.5、Sonnet 5/5.5，Sonnet 4.6（仅年付个人档），Gemini 3.8 Flash、Gemini 4 Hydrogen，GPT-5.3-Codex、GPT-5.6 Luna、GPT-6 Luna、GPT-6.1 Terra，Kimi K3，Grok 4.5–4.7，MAI-Code-1.1-Flash、MAI Code 2、MAI Code 2 Flash（不含 Argon、Carbon、Neon 与 GPT-6.2）",
+        "note": "$10 基础 + $5 弹性 credits；仅月付；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费。2026-11-26 模型表不含 Gemini 4 Neon/Carbon 与 GPT-6.2。"
+      },
+      "plan": "Pro"
+    },
+    {
+      "changeId": "change-4569b0069476879e2aadf093",
+      "id": "plan-0032",
+      "kind": "plan",
+      "vendor": "Z.ai",
+      "name": "GLM Coding V3 Pro",
+      "checkedAt": "2026-11-26",
+      "sourceUrls": [
+        "https://docs.z.ai/devpack/overview.md"
+      ],
+      "fields": [
+        "models"
+      ],
+      "before": {
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash"
+      },
+      "after": {
+        "models": "GLM-5.3、GLM-5.3-Flash"
+      },
+      "plan": "GLM Coding V3 Pro"
+    },
+    {
+      "changeId": "change-50f0f45afac03473691ac2cc",
+      "id": "plan-0031",
+      "kind": "plan",
+      "vendor": "Z.ai",
+      "name": "GLM Coding V3 Lite",
+      "checkedAt": "2026-11-26",
+      "sourceUrls": [
+        "https://docs.z.ai/devpack/overview.md"
+      ],
+      "fields": [
+        "models"
+      ],
+      "before": {
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash"
+      },
+      "after": {
+        "models": "GLM-5.3、GLM-5.3-Flash"
+      },
+      "plan": "GLM Coding V3 Lite"
+    },
+    {
+      "changeId": "change-57a0c27306e7ef2ecf014661",
+      "id": "plan-0158",
+      "kind": "plan",
+      "vendor": "智谱 BigModel",
+      "name": "GLM Coding V3 Pro",
+      "checkedAt": "2026-11-26",
+      "sourceUrls": [
+        "https://docs.bigmodel.cn/cn/coding-plan/overview.md"
+      ],
+      "fields": [
+        "models",
+        "note"
+      ],
+      "before": {
+        "models": "GLM-5.3、GLM-5.3-Flash（抵扣系数：GLM-5.3 输入 6.9/缓存 1.7/输出 24；Flash 2.3/0.56/8）",
+        "note": "连续包月/包季 8 折约 ¥430.4/月；连续包年 7 折 ¥376.6/月（2026-10-01 购买页在售）；双节活动与夜间畅用已于 10-07 结束；老用户可按 V2 价 ¥149/月续费"
+      },
+      "after": {
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash（抵扣系数：GLM-5.4 输入 4.6/缓存 1.1/输出 16；GLM-5.3 输入 6.9/缓存 1.7/输出 24；Flash 原 2.3/0.56/8，2026-11-24 至 12-24 按 50% 为 1.15/0.28/4）",
+        "note": "连续包月/包季 8 折约 ¥430.4/月；连续包年 7 折 ¥376.6/月（2026-10-01 购买页在售，本次未重开）；双节活动与夜间畅用已于 10-07 结束；老用户可按 V2 价 ¥149/月续费。积分上限未改。"
+      },
+      "plan": "GLM Coding V3 Pro"
+    },
+    {
+      "changeId": "change-590b6ab0998349815362102a",
+      "id": "plan-0160",
+      "kind": "plan",
+      "vendor": "智谱 BigModel",
+      "name": "GLM Coding Plan 团队标准版",
+      "checkedAt": "2026-11-26",
+      "sourceUrls": [
+        "https://docs.bigmodel.cn/cn/coding-plan/overview.md"
+      ],
+      "fields": [
+        "models",
+        "note"
+      ],
+      "before": {
+        "models": "GLM-5.3、GLM-5.3-Flash",
+        "note": "官网公开价 ¥598/席位/月，年付 9 折约 ¥538.2/席位/月；2 席起。超额限时按 API 刊例价 9 折；IP 白名单、集中账单。"
+      },
+      "after": {
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash",
+        "note": "官网公开价 ¥598/席位/月，年付 9 折约 ¥538.2/席位/月；2 席起。超额限时按 API 刊例价 9 折；IP 白名单、集中账单。2026-11-26 概览写所有套餐支持 GLM-5.4；团队用量细则本次未重读。"
+      },
+      "plan": "GLM Coding Plan 团队标准版"
+    },
+    {
+      "changeId": "change-61d37441317b128efb4554c0",
+      "id": "plan-0089",
+      "kind": "plan",
+      "vendor": "OpenCode (Anomaly/SST)",
+      "name": "OpenCode Go Plus",
+      "checkedAt": "2026-11-26",
+      "sourceUrls": [
+        "https://opencode.ai/docs/console/go/",
+        "https://opencode.ai/inference/go/v1/models"
+      ],
+      "fields": [
+        "note",
+        "quota"
+      ],
+      "before": {
+        "note": "$40/月，逐模型限额不同，不能笼统视为Go的3–4×；每工作区仅1名成员，Contributor模型的数据训练政策同Go；各模型适用上限不可相加",
+        "quota": "逐模型5h/周/月窗口：Kimi K3月$60、GLM-5.3月$120、GLM-5.3-Flash/K2.7 Code月$180、DeepSeek V4.1 Flash月$160；Argon Contributor 限时2×月$240。5h=20%、周=50%、月=100%"
+      },
+      "after": {
+        "note": "$40/月。不能笼统视为 Go 的固定倍数。每工作区仅 1 名成员。Gemini 4 Argon 50% 折扣至 2026-11-30，其后上限未单列。Muse Spark Contributor 的训练政策同 Go。",
+        "quota": "与 Go 共用同一套窗口：5 小时=20%，每周=50%，月=100%，各模型不可相加。单模型月度上限示例：GLM-5.3 $400、GLM-5.3-Flash $180、Kimi K3.1 Pro $120、DeepSeek V4.1 Flash $200、Gemini 4 Argon $120"
+      },
+      "plan": "OpenCode Go Plus"
+    },
+    {
+      "changeId": "change-6617f963440e87d8547fed59",
+      "id": "plan-0033",
+      "kind": "plan",
+      "vendor": "Z.ai",
+      "name": "GLM Coding V3 Max",
+      "checkedAt": "2026-11-26",
+      "sourceUrls": [
+        "https://docs.z.ai/devpack/overview.md"
+      ],
+      "fields": [
+        "models"
+      ],
+      "before": {
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash"
+      },
+      "after": {
+        "models": "GLM-5.3、GLM-5.3-Flash"
+      },
+      "plan": "GLM Coding V3 Max"
+    },
+    {
+      "changeId": "change-6cce3e62694bdc0d48fa613d",
+      "id": "plan-0094",
+      "kind": "plan",
+      "vendor": "GitHub Copilot",
+      "name": "Business",
+      "checkedAt": "2026-11-26",
+      "sourceUrls": [
+        "https://docs.github.com/en/copilot/reference/ai-models/supported-models",
+        "https://github.blog/changelog/2026-11-25-copilot-code-review-billing-will-default-to-the-organization"
+      ],
+      "fields": [
+        "models",
+        "note"
+      ],
+      "before": {
+        "models": "含旗舰模型（含 Gemini 4 Argon）+ Copilot CLI/App",
+        "note": "按授予席位计费；Copilot 代码审查默认扣发起成员的额度，组织可改为计入仓库所属组织（须启用 AI Credits 付费用量）；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费"
+      },
+      "after": {
+        "models": "含 Gemini 4 Argon/Carbon/Neon、GPT-6.2 Astra/Sol、Claude Opus 5.5、Fable 5/5.1/5.2 等旗舰 + Copilot CLI/App",
+        "note": "按授予席位计费。代码审查若尚未选择计费方式，2026-12-30 起改为向仓库所属组织计费（须已启用 AI Credits 付费用量）；已选 Member 或 Organization 的不变；无付费用量、账单锁定或无可计费客户的账户会设为 Member。HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费。"
+      },
+      "plan": "Business"
+    },
+    {
+      "changeId": "change-6d7f58ce5d5aefb57d7bd73c",
+      "id": "plan-0160",
+      "kind": "plan",
+      "vendor": "智谱 BigModel",
+      "name": "GLM Coding Plan 团队标准版",
+      "checkedAt": "2026-11-26",
+      "sourceUrls": [
+        "https://docs.bigmodel.cn/cn/coding-plan/overview.md"
+      ],
+      "fields": [
+        "models"
+      ],
+      "before": {
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash"
+      },
+      "after": {
+        "models": "GLM-5.3、GLM-5.3-Flash"
+      },
+      "plan": "GLM Coding Plan 团队标准版"
+    },
+    {
+      "changeId": "change-97f6fbdc3fc63f436f680598",
+      "id": "plan-0032",
+      "kind": "plan",
+      "vendor": "Z.ai",
+      "name": "GLM Coding V3 Pro",
+      "checkedAt": "2026-11-26",
+      "sourceUrls": [
+        "https://docs.z.ai/devpack/overview.md"
+      ],
+      "fields": [
+        "models",
+        "note"
+      ],
+      "before": {
+        "models": "GLM-5.3、GLM-5.3-Flash",
+        "note": "当前月付 $80，季付 $192，年付 $672；旧公告金额已过时。非高峰减半及限时活动按官方使用文档执行"
+      },
+      "after": {
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash",
+        "note": "当前月付 $80，季付 $192，年付 $672（本次未重开结账页）。模型与 Flash 限时半价同 Lite。"
+      },
+      "plan": "GLM Coding V3 Pro"
+    },
+    {
+      "changeId": "change-9fdefeb6f647b4354611b004",
+      "id": "plan-0033",
+      "kind": "plan",
+      "vendor": "Z.ai",
+      "name": "GLM Coding V3 Max",
+      "checkedAt": "2026-11-26",
+      "sourceUrls": [
+        "https://docs.z.ai/devpack/overview.md"
+      ],
+      "fields": [
+        "models",
+        "note"
+      ],
+      "before": {
+        "models": "GLM-5.3、GLM-5.3-Flash",
+        "note": "当前月付 $168，季付 $403.2，年付 $1411.2；旧公告金额已过时。非高峰减半及限时活动按官方使用文档执行"
+      },
+      "after": {
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash",
+        "note": "当前月付 $168，季付 $403.2，年付 $1411.2（本次未重开结账页）。模型与 Flash 限时半价同 Lite。"
+      },
+      "plan": "GLM Coding V3 Max"
+    },
+    {
+      "changeId": "change-a17d6f68db589475f31c6892",
+      "id": "plan-0159",
+      "kind": "plan",
+      "vendor": "智谱 BigModel",
+      "name": "GLM Coding V3 Max",
+      "checkedAt": "2026-11-26",
+      "sourceUrls": [
+        "https://docs.bigmodel.cn/cn/coding-plan/overview.md"
+      ],
+      "fields": [
+        "models"
+      ],
+      "before": {
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash"
+      },
+      "after": {
+        "models": "GLM-5.3、GLM-5.3-Flash"
+      },
+      "plan": "GLM Coding V3 Max"
+    },
+    {
+      "changeId": "change-a36b0c11a1a0b16d4b100d13",
+      "id": "plan-0095",
+      "kind": "plan",
+      "vendor": "GitHub Copilot",
+      "name": "Enterprise",
+      "checkedAt": "2026-11-26",
+      "sourceUrls": [
+        "https://docs.github.com/en/copilot/reference/ai-models/supported-models",
+        "https://github.blog/changelog/2026-11-25-copilot-code-review-billing-will-default-to-the-organization"
+      ],
+      "fields": [
+        "models",
+        "note"
+      ],
+      "before": {
+        "models": "旗舰模型优先访问（含 Gemini 4 Argon）+ 自定义模型",
+        "note": "Copilot 代码审查默认扣发起成员的额度，组织可改为计入仓库所属组织（须启用 AI Credits 付费用量）；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费"
+      },
+      "after": {
+        "models": "旗舰模型优先访问（含 Gemini 4 Argon/Carbon/Neon、GPT-6.2 与 Claude Opus 5.5）+ 自定义模型",
+        "note": "代码审查若尚未选择计费方式，2026-12-30 起改为向仓库所属组织计费（须已启用 AI Credits 付费用量）；已选 Member 或 Organization 的不变；企业托管该设置时由企业所有者选择。HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费。"
+      },
+      "plan": "Enterprise"
+    },
+    {
+      "changeId": "change-b661ced14b45512301533dec",
+      "id": "plan-0040",
+      "kind": "plan",
+      "vendor": "OpenCode (Anomaly/SST)",
+      "name": "OpenCode Go",
+      "checkedAt": "2026-11-26",
+      "sourceUrls": [
+        "https://opencode.ai/docs/console/go/"
+      ],
+      "fields": [
+        "models",
+        "tools"
+      ],
+      "before": {
+        "models": "GLM-5.3/Flash、Kimi K3/K3.1 Pro/K2.7 Code、DeepSeek V4.1 Flash/V4 Pro、Qwen3.8/Qwen4 Max、MiniMax M3/M3.1 Flash、MiMo-V2.6、Grok 4.7、GPT-6/5.6 Luna、Claude Haiku 5.5、Gemini 4 Argon、Hy4/Hy3、LongCat 2.5、Muse Spark 1.3/1.2 Contributor；另有 Beam、HungerG、Hy4 flash、Iceman 等限时免费模型",
+        "tools": "OpenCode；已验证客户端含 Hermes（v0.21.6+）、Claude Code、Codex、ZCode、Pi、jcode（v0.81.6+）、Kilo Code CLI。端点 opencode.ai/inference/go/v1"
+      },
+      "after": {
+        "models": "GLM-5.3/Flash、Kimi K3/K3.1 Pro/K2.7 Code、DeepSeek V4.1 Flash/V4 Pro、Qwen3.8/Qwen4 Max、MiniMax M3/M3.1 Flash、MiMo-V2.6、Grok 4.7、GPT 6 Luna、GPT-5.6 Luna、Claude Haiku 5.5、Gemini 4 Argon、Hy4/Hy3、LongCat 2.5、Muse Spark 1.3/1.2 Contributor；另有 Beam、HungerG、Hy4 flash、Iceman 等限时免费模型",
+        "tools": "OpenCode 及经验证兼容客户端（Claude Code、Codex、ZCode、Pi、jcode v0.81.6+、Kilo Code CLI、Hermes v0.21.6+，须保留稳定会话标识）；端点 opencode.ai/inference/go/v1"
+      },
+      "plan": "OpenCode Go"
+    },
+    {
+      "changeId": "change-bef7ec15fdf09ae85503c5b3",
+      "id": "plan-0092",
+      "kind": "plan",
+      "vendor": "GitHub Copilot",
+      "name": "Pro+",
+      "checkedAt": "2026-11-26",
+      "sourceUrls": [
+        "https://docs.github.com/en/copilot/reference/ai-models/supported-models"
+      ],
+      "fields": [
+        "modelIncludes",
+        "models",
+        "note"
+      ],
+      "before": {
+        "modelIncludes": [
+          "Claude Opus 4.8/5/5.5",
+          "Fable 5/5.1",
+          "GPT-5.6 Sol",
+          "GPT-6 Astra/Sol",
+          "GPT-6.1 Sol",
+          "Gemini 4 Argon"
+        ],
+        "models": "Pro 全部 + Claude Opus 4.8/5/5.5、Fable 5/5.1、GPT-5.6 Sol、GPT-6 Astra/Sol、GPT-6.1 Sol、Gemini 4 Argon 等旗舰",
+        "note": "4x+ Pro 用量；含审计日志；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费"
+      },
+      "after": {
+        "modelIncludes": [
+          "Claude Opus 4.8/5/5.5",
+          "Fable 5/5.1/5.2",
+          "GPT-5.6 Sol",
+          "GPT-6 Astra/Sol",
+          "GPT-6.1 Sol",
+          "GPT-6.2 Astra/Sol",
+          "Gemini 4 Argon",
+          "Gemini 4 Carbon",
+          "Gemini 4 Neon"
+        ],
+        "models": "Pro 全部 + Claude Opus 4.8/5/5.5、Fable 5/5.1/5.2、GPT-5.6 Sol、GPT-6 Astra/Sol、GPT-6.1 Sol、GPT-6.2 Astra/Sol、Gemini 4 Argon/Carbon/Neon 等旗舰",
+        "note": "4x+ Pro 用量；含审计日志；HydraFusion / Max 为研究预览，须启用预览及组织模型策略；仅使用本档许可模型，按实际模型标准 credits 计费，无额外编排费。2026-11-26 模型表含 GPT-6.2、Gemini 4 Neon/Carbon 与 Fable 5.2。Opus 5 已于 2026-11-16 退役；Opus 4.8 表内仅本档为 Included，脚注写年付个人档仍可用。"
+      },
+      "plan": "Pro+"
+    },
+    {
+      "changeId": "change-d4d2d7759924f97e98e4491f",
+      "id": "plan-0031",
+      "kind": "plan",
+      "vendor": "Z.ai",
+      "name": "GLM Coding V3 Lite",
+      "checkedAt": "2026-11-26",
+      "sourceUrls": [
+        "https://docs.z.ai/devpack/overview.md"
+      ],
+      "fields": [
+        "models",
+        "note"
+      ],
+      "before": {
+        "models": "GLM-5.3、GLM-5.3-Flash",
+        "note": "当前月付 $18，季付 $43.2，年付 $151.2；旧公告金额已过时。非高峰减半及限时活动按官方使用文档执行"
+      },
+      "after": {
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash",
+        "note": "当前月付 $18，季付 $43.2，年付 $151.2（本次未重开结账页）。概览仍写月费起价 $18。GLM-5.4 系数 4.6/1.1/16。2026-11-24 至 12-24，GLM-5.3-Flash 按原系数 50%。非高峰减半仍在。"
+      },
+      "plan": "GLM Coding V3 Lite"
+    },
+    {
+      "changeId": "change-e230744d450fa8db3bc9ca60",
+      "id": "plan-0040",
+      "kind": "plan",
+      "vendor": "OpenCode (Anomaly/SST)",
+      "name": "OpenCode Go",
+      "checkedAt": "2026-11-26",
+      "sourceUrls": [
+        "https://opencode.ai/docs/console/go/",
+        "https://opencode.ai/inference/go/v1/models"
+      ],
+      "fields": [
+        "models",
+        "note",
+        "quota",
+        "tools"
+      ],
+      "before": {
+        "models": "GLM-5.3/Flash、Kimi K3/K2.7 Code、DeepSeek V4.1、Qwen3.8、MiniMax M3、Grok 4.7、GPT 6 Luna、Claude Haiku 5.5、Gemini 4 Argon Contributor 等；Step 5 Preview Free 等为限时免费",
+        "note": "独立订阅，$10/月；每工作区仅1名成员。Argon Contributor 的提示和补全可能用于 Google 模型训练，非 ZDR；2× 用量促销结束日未公布；各模型适用上限不可相加",
+        "quota": "逐模型月度美元上限：$15 档（Kimi K3、GLM-5.3、Haiku 5.5 等）、$30/$60 档、DeepSeek V4.1 Flash $80；Gemini 4 Argon Contributor 限时 2× 为 $60；5h=月度20%、周=50%、月=100%",
+        "tools": "OpenCode 及经验证兼容客户端（Claude Code、Codex、ZCode、Kilo Code CLI、Hermes 等，须保留稳定会话标识，部分客户端需更新）；端点 opencode.ai/inference/go/v1"
+      },
+      "after": {
+        "models": "GLM-5.3/Flash、Kimi K3/K3.1 Pro/K2.7 Code、DeepSeek V4.1 Flash/V4 Pro、Qwen3.8/Qwen4 Max、MiniMax M3/M3.1 Flash、MiMo-V2.6、Grok 4.7、GPT-6/5.6 Luna、Claude Haiku 5.5、Gemini 4 Argon、Hy4/Hy3、LongCat 2.5、Muse Spark 1.3/1.2 Contributor；另有 Beam、HungerG、Hy4 flash、Iceman 等限时免费模型",
+        "note": "独立订阅，$10/月。Go 与 Go Plus 只覆盖订阅者本人和工作区 API key，每工作区 1 名成员。Gemini 4 Argon 50% 折扣至 2026-11-30，其后上限未单列，不要把现行数字乘 2。Muse Spark Contributor 可能用于训练，非 ZDR。",
+        "quota": "各模型共用一个月度额度，不可相加。单模型月度上限示例：GLM-5.3 $200、GLM-5.3-Flash $60、Kimi K3.1 Pro $60、Kimi K3 $15、DeepSeek V4.1 Flash $100、Gemini 4 Argon $30。5 小时=月度 20%，每周=50%，月=100%",
+        "tools": "OpenCode；已验证客户端含 Hermes（v0.21.6+）、Claude Code、Codex、ZCode、Pi、jcode（v0.81.6+）、Kilo Code CLI。端点 opencode.ai/inference/go/v1"
+      },
+      "plan": "OpenCode Go"
+    },
+    {
+      "changeId": "change-ed17989bd4b48787dad10577",
+      "id": "plan-0158",
+      "kind": "plan",
+      "vendor": "智谱 BigModel",
+      "name": "GLM Coding V3 Pro",
+      "checkedAt": "2026-11-26",
+      "sourceUrls": [
+        "https://docs.bigmodel.cn/cn/coding-plan/overview.md"
+      ],
+      "fields": [
+        "models",
+        "note"
+      ],
+      "before": {
+        "models": "GLM-5.4、GLM-5.3、GLM-5.3-Flash（抵扣系数：GLM-5.4 输入 4.6/缓存 1.1/输出 16；GLM-5.3 输入 6.9/缓存 1.7/输出 24；Flash 原 2.3/0.56/8，2026-11-24 至 12-24 按 50% 为 1.15/0.28/4）",
+        "note": "连续包月/包季 8 折约 ¥430.4/月；连续包年 7 折 ¥376.6/月（2026-10-01 购买页在售，本次未重开）；双节活动与夜间畅用已于 10-07 结束；老用户可按 V2 价 ¥149/月续费。积分上限未改。"
+      },
+      "after": {
+        "models": "GLM-5.3、GLM-5.3-Flash（抵扣系数：GLM-5.3 输入 6.9/缓存 1.7/输出 24；Flash 2.3/0.56/8）",
+        "note": "连续包月/包季 8 折约 ¥430.4/月；连续包年 7 折 ¥376.6/月（2026-10-01 购买页在售，本次未重开）；双节活动与夜间畅用已于 10-07 结束；老用户可按 V2 价 ¥149/月续费。积分上限未改。GLM-5.4 系数输入 4.6、缓存 1.1、输出 16。2026-11-24 至 12-24，GLM-5.3-Flash 按原系数 50%（表列 1.15/0.28/4）。"
+      },
+      "plan": "GLM Coding V3 Pro"
+    },
     {
       "changeId": "change-4f218b72dacbc36c28cff472",
       "id": "plan-0224",
@@ -7066,7 +7659,7 @@ var MAINTENANCE = {
     {
       "vendor": "GitHub Copilot",
       "path": "feeds/github-copilot-ed249d41.xml",
-      "changes": 12
+      "changes": 16
     },
     {
       "vendor": "Google",
@@ -7121,7 +7714,7 @@ var MAINTENANCE = {
     {
       "vendor": "OpenCode (Anomaly/SST)",
       "path": "feeds/opencode-anomaly-sst-b37c3c66.xml",
-      "changes": 3
+      "changes": 7
     },
     {
       "vendor": "OpenRouter",
@@ -7166,7 +7759,7 @@ var MAINTENANCE = {
     {
       "vendor": "Z.ai",
       "path": "feeds/z-ai-39e22747.xml",
-      "changes": 3
+      "changes": 9
     },
     {
       "vendor": "Zed",
@@ -7211,7 +7804,7 @@ var MAINTENANCE = {
     {
       "vendor": "智谱 BigModel",
       "path": "feeds/bigmodel-506d1ac0.xml",
-      "changes": 4
+      "changes": 12
     },
     {
       "vendor": "月之暗面 Kimi",
