@@ -2,6 +2,17 @@
 
 > 按数据核查和代码修复批次记录。
 
+## 2026-11-27 每日巡检
+
+- 核对 Kiro 定价页：个人五档月费与 credits 未变。新增团队积分池（`plan-0241`，每席 $20/月、500 credits，至少 2 席共享）。个人付费档模型改为官网当前列表。首次升级优惠改为当月剩余时间免费并送 500 个试用 credits。
+- 核对 Kimchi：Teams（`plan-0228`）席位上限改为 25，页面不再单列 $45 credits。新增代码审查附加项（`plan-0242`，$25/用户/月）。Coder 的 $20 与 $25 credits 未改。
+- 核对 Freebuff 官方 README：免费档仍为 $0。模型目录与有限访问的每日小时数按 README 更新。首页的不限量文案与 README 不一致，未据此改成无限额度，也未新增未标价的付费档。
+- 核对 OpenAI Codex 与 API 定价：订阅月费未变。Plus 额度说明补入 GPT-6.2 与 GPT-6.1 Terra 的 5 小时估算。GPT-6.2 与 GPT-6.1 Terra 的 API 标准价写入动态；增量同步不能新增 API 行，未写入 API 表，模型栏也未写入 GPT-6.2。GPT-5.6 Sol 页面仍保留原促销句和标价，未改。
+- 核对 Meta Muse Code：四档月费未改，模型栏加入 Muse Ember。每周额度没有数字。
+- 核对 Amp：Megawatt 仍为 $20/月。学生与教师为 $10/月，不作为默认续费价。Gigawatt 的 $200 未在本次静态正文出现，未改。
+- 核对 MiniMax：M3.1-Flash 的按量价写入动态。M Plan 概览没有月费，Token Plan 的 ¥49 / ¥119 / ¥469 未改。
+- 智谱 GLM-5.4、OpenCode Go Teams 与 GitHub Copilot 模型表已在未合并的 2026-11-26 巡检中提出，今日页面没有新的价格数字，本次不重复改那些记录。
+
 ## 2026-11-05 模型发布动态与每日采集
 
 - 11 月 5 日收录 GPT-6 Cyber 的首批访问资格和 Gemini Omni 1.2 Flash 的开发者入口。11 月 4 日收录 SWE-2 Flash、混元 Hy4、Ripple-65B Preview 和 Images 2.6。
