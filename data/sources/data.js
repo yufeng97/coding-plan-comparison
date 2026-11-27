@@ -11,7 +11,7 @@ const RATE_USD_CNY = 6.67;
 const RATE_INR_CNY = 6.6684 / 94.48;
 
 const META = {
-  updated: "2026-11-05",
+  updated: "2026-11-27",
   rate: RATE_USD_CNY,
   rateAsOf: "2026-11-05",
   rateSource: "https://api.frankfurter.dev/v1/2026-11-05?base=USD&symbols=CNY,INR",
@@ -308,17 +308,17 @@ const PLANS = [
     url: "https://learn.chatgpt.com/docs/pricing" },
   { id: "plan-0010", vendor: "OpenAI", plan: "ChatGPT Plus", cat: "official", region: "intl", priceM: 20, priceY: null, cur: "USD", seat: false,
     windowPeriod: "5h",
-    quota: "Codex 本地消息/5h（官方估算区间）：GPT-6.1 Sol 15–160 条、GPT-6 Sol 15–150 条、Luna 350–3,000 条、Astra 5–45 条；另有每周限额",
+    quota: "Codex 本地消息/5h（官方估算，Plus 与标准 Business 相同）：GPT-6.2 Astra 6–50 条、GPT-6.2 Sol 17–180 条、GPT-6 Astra 5–45 条、GPT-6.1 Sol 15–160 条、GPT-6.1 Terra 35–285 条、GPT-6 Sol 15–150 条、GPT-6 Luna 350–3,000 条；另有每周限额。云任务可能更费额度",
     models: "GPT-6.1 Sol / GPT-6 Sol / Luna / Astra、GPT-5.6 系列",
     tools: "Codex（Web/CLI/IDE/iOS）、云任务",
-    note: "超额可购 credits top-up 或转 API 按量；无年付；ChatGPT Work 与 Codex 用量共享",
+    note: "超额可购 credits top-up 或转 API 按量；无年付；ChatGPT Work 与 Codex 用量共享。2026-11-27 月费未改。GPT-6.2 的 credits 与 API 标准价见当日动态，未写入模型栏。",
     url: "https://learn.chatgpt.com/docs/pricing" },
   { id: "plan-0011", vendor: "OpenAI", plan: "ChatGPT Pro（$100）", cat: "official", region: "intl", priceM: 100, priceY: null, cur: "USD", seat: false,
     windowPeriod: "none",
     quota: "官方 2026-10-01 页面口径：Pro 各档目前无 5 小时上限（用量见仪表盘）；含 Plus 全部模型与权益",
     models: "GPT-6 全系（Astra/Sol/6.1 Sol/Luna）、GPT-5.6 系列",
     tools: "Codex 全端 + 云 VM 任务",
-    note: "官方页标 From $100/month，实际 $100/$200/$500 三档；此前的 5x/20x 倍率口径官方页已不再标注",
+    note: "官方页标 From $100/month，实际 $100/$200/$500 三档；此前的 5x/20x 倍率口径官方页已不再标注。2026-11-27 仍写 Pro 目前没有 5 小时上限。GPT-6.2 的估算与标价见当日动态，未写入模型栏。",
     url: "https://learn.chatgpt.com/docs/pricing" },
   { id: "plan-0012", fieldRefs: {"models":"plan-0011","quota":"plan-0011"}, vendor: "OpenAI", plan: "ChatGPT Pro（$200）", cat: "official", region: "intl", priceM: 200, priceY: null, cur: "USD", seat: false,
     windowPeriod: "none",
@@ -332,7 +332,7 @@ const PLANS = [
     quota: "同 Pro $200：目前无 5 小时上限；独享 Ultrafast（GPT-6 Astra 与 GPT-6.1 Sol，订阅内按 8x 计量、credits 按 6x）",
     models: "同 Pro $100 + Ultrafast（GPT-6 Astra / GPT-6.1 Sol）",
     tools: "Codex 全端 + 云 VM 任务",
-    note: "2026-09 底新增档位；Ultrafast 另有符合条件的 Enterprise/Edu 可用",
+    note: "2026-09 底新增档位；Ultrafast 另有符合条件的 Enterprise/Edu 可用。2026-11-27：GPT-6 Astra 与 GPT-6.1 Sol 的 Ultrafast 仍为订阅内 8 倍、credits 6 倍。GPT-6.2 Astra 与 Sol 的 Ultrafast 为订阅内 6 倍；用 credits 或符合条件的企业按量，在 2027-02-28（太平洋时间）前为 3 倍，其后为 6 倍。月费未改。",
     url: "https://learn.chatgpt.com/docs/pricing" },
   { id: "plan-0014", vendor: "OpenAI", plan: "ChatGPT Business", cat: "team", region: "intl", priceM: 25, priceY: 20, cur: "USD", seat: true,
     quota: "标准席位限额同 Plus；另有 $100 Premium 席位（官方未公布与 Pro 档的用量倍率）",
@@ -798,34 +798,41 @@ const PLANS = [
   /* ---- 2026-09 增补：AWS Kiro / Factory Droid / 讯飞 Astron / 阶跃 Step Plan / Canopy Wave / OpenCode Go Plus ---- */
   { id: "plan-0074", vendor: "AWS Kiro", plan: "Free", cat: "tool", region: "intl", priceM: 0, priceY: 0, cur: "USD", seat: false,
     quota: "50 credits/月（不结转）；加购 $0.04/credit（$5/125 起，12 个月有效）",
-    models: "开放权重模型（Qwen3 Coder Next、DeepSeek 3.2、MiniMax M2.1 等）+ Claude Sonnet 4.5",
+    models: "开放权重模型与 Claude Sonnet 4.5（有限制）",
     tools: "Kiro IDE / CLI / Agent",
-    note: "每月 1 日扣费；首次升级付费档送 $20 抵扣",
+    note: "每月 1 日扣费。2026-11-27 官网免费卡写开放权重模型与 Claude Sonnet 4.5，并有限制。第一次从免费档升到 Pro 时，当月剩余时间免费，并另给 500 个试用 credits，12 个月内有效。2026-11-01 之前已经升级的用户仍保留原来的 20 美元折扣。",
     url: "https://kiro.dev/pricing" },
   { id: "plan-0075", vendor: "AWS Kiro", plan: "Pro", cat: "tool", region: "intl", priceM: 20, priceY: null, cur: "USD", seat: false,
     quota: "1,000 credits/月（不结转）",
-    models: "Auto、Claude Sonnet 5 / Opus 5、GPT-5.6 系列、GLM-5 等（分区域可用）",
+    models: "Auto；GPT-5.6 Sol / Terra / Luna；Claude Opus 5、Opus 5.5、Sonnet 5.5、Haiku 5.5；Grok 4.7；Kimi K3、DeepSeek 3.2、MiniMax M2.5、GLM-5、Qwen3 Coder Next（分区域可用）",
     tools: "Kiro IDE / CLI / Agent",
-    note: "个人用户可通过 social login / AWS Builder ID 自行购买；官方计价原文为每用户每月，税另计，团队使用每位开发者须独立订阅。加购 $0.04/credit。首次升级 $20 账单抵扣属于一次性优惠，不能抵减正常续费价；官网现行页未列年付价。",
+    note: "个人用户可通过 social login 或 AWS Builder ID 自行购买；官网按每用户每月计价，税另计，未列年付。加购每个 credit 0.04 美元。2026-11-27：第一次从免费档升到 Pro，当月剩余时间免费并送 500 个试用 credits；直接购买更高档时，只支付与按比例 Pro 价格的差额。2026-11-01 之前升级的用户保留原来的 20 美元折扣。两人或以上可另买积分池席位，个人档仍不是按席计费。",
     url: "https://kiro.dev/pricing" },
   { id: "plan-0076", fieldRefs: {"models":"plan-0075","tools":"plan-0075"}, vendor: "AWS Kiro", plan: "Pro+", cat: "tool", region: "intl", priceM: 40, priceY: null, cur: "USD", seat: false,
     quota: "2,000 credits/月（不结转）",
     models: "同 Pro 档",
     tools: "同 Pro 档",
-    note: "个人用户可通过 social login / AWS Builder ID 自行购买；官方计价原文为每用户每月，税另计，团队使用每位开发者须独立订阅。加购 $0.04/credit。首次升级 $20 账单抵扣属于一次性优惠，不能抵减正常续费价；官网现行页未列年付价。",
+    note: "个人用户可通过 social login 或 AWS Builder ID 自行购买；官网按每用户每月计价，税另计，未列年付。加购每个 credit 0.04 美元。2026-11-27：第一次从免费档升到 Pro，当月剩余时间免费并送 500 个试用 credits；直接购买本档时，只支付与按比例 Pro 价格的差额。2026-11-01 之前升级的用户保留原来的 20 美元折扣。模型与 Pro 相同。个人档仍不是按席计费。",
     url: "https://kiro.dev/pricing" },
   { id: "plan-0077", fieldRefs: {"models":"plan-0075","tools":"plan-0075"}, vendor: "AWS Kiro", plan: "Pro Max", cat: "tool", region: "intl", priceM: 100, priceY: null, cur: "USD", seat: false,
     quota: "5,000 credits/月（不结转）",
     models: "同 Pro 档",
     tools: "同 Pro 档",
-    note: "个人用户可通过 social login / AWS Builder ID 自行购买；官方计价原文为每用户每月，税另计，团队使用每位开发者须独立订阅。加购 $0.04/credit。首次升级 $20 账单抵扣属于一次性优惠，不能抵减正常续费价；官网现行页未列年付价。",
+    note: "个人用户可通过 social login 或 AWS Builder ID 自行购买；官网按每用户每月计价，税另计，未列年付。加购每个 credit 0.04 美元。2026-11-27：第一次从免费档升到 Pro 的当月剩余时间免费，并送 500 个试用 credits；直接购买本档时，只支付与按比例 Pro 价格的差额。2026-11-01 之前升级的用户保留原来的 20 美元折扣。模型与 Pro 相同。个人档仍不是按席计费。",
     url: "https://kiro.dev/pricing" },
   { id: "plan-0078", fieldRefs: {"models":"plan-0075","tools":"plan-0075"}, vendor: "AWS Kiro", plan: "Power", cat: "tool", region: "intl", priceM: 200, priceY: null, cur: "USD", seat: false,
     quota: "10,000 credits/月（不结转）",
     models: "同 Pro 档",
     tools: "同 Pro 档",
-    note: "个人用户可通过 social login / AWS Builder ID 自行购买；官方计价原文为每用户每月，税另计，团队使用每位开发者须独立订阅。加购 $0.04/credit。首次升级 $20 账单抵扣属于一次性优惠，不能抵减正常续费价；官网现行页未列年付价。",
+    note: "个人用户可通过 social login 或 AWS Builder ID 自行购买；官网按每用户每月计价，税另计，未列年付。加购每个 credit 0.04 美元。2026-11-27：第一次从免费档升到 Pro 的当月剩余时间免费，并送 500 个试用 credits；直接购买本档时，只支付与按比例 Pro 价格的差额。2026-11-01 之前升级的用户保留原来的 20 美元折扣。模型与 Pro 相同。个人档仍不是按席计费。",
     url: "https://kiro.dev/pricing" },
+  { id: "plan-0241", vendor: "AWS Kiro", plan: "Teams（Credit pooling）", cat: "team", region: "intl", priceM: 20, priceY: null, cur: "USD", seat: true,
+    codingSurface: true, ownClient: true, includedModelQuota: true, modelAccess: "included", windowPeriod: "month", quotaSharing: "shared",
+    quota: "每席每月 500 credits，至少 2 席组成积分池后共享；加购每个 credit 0.04 美元",
+    models: "与个人付费档相同：Auto；GPT-5.6 Sol / Terra / Luna；Claude Opus 5、Opus 5.5、Sonnet 5.5、Haiku 5.5；Grok 4.7；以及页面列出的开放权重模型",
+    tools: "Kiro IDE / CLI / Agent；管理端可设用量上限、集中账单与 SSO",
+    note: "2026-11-27 官网团队档。税另计，未列年付。Enterprise 功能需联系销售，页面没有另一套席位月费。GovCloud 约比商业价高 20%，本次不单列。",
+    url: "https://kiro.dev/pricing/" },
   { id: "plan-0079", vendor: "Factory (Droid)", plan: "Droid Pro", cat: "tool", region: "intl", priceM: 20, priceY: null, cur: "USD", seat: false,
     windowPeriod: "5h",
     quota: "滚动限额（5h/7天/30天 三窗口）；官方不给绝对 token 数，第三方口径约 10M tokens/月（另有 bonus）",
@@ -1158,7 +1165,7 @@ const PLANS = [
     quota: "45,000 orb 分钟/月；官方正文仍称含 agent 用量、未公布固定额度；可自备 Key/外部订阅，orbs 不由外部订阅支付",
     models: "Amp 自动路由/按量模型，或自有 Key；可连接 ChatGPT Plus/Pro；Claude Pro/Max 仅 Claude Code 模式",
     tools: "Amp Web/macOS/iOS/CLI、orbs/自建 runner；Claude Code 模式（Claude Agent SDK）",
-    note: "Megawatt $20/月（不变）；ChatGPT/Claude 模型资格与用量由原订阅决定；Amp 自有模式、orbs 及未被外部订阅覆盖的工具可能消耗 Amp credits。官方卡片与正文对 agent 用量口径有差异，未推断调价；既有 Gigawatt $200/月、480,000 orb 分钟为此前核实记录，本轮未重新核价",
+    note: "Megawatt 标价仍为 $20/月、45,000 orb 分钟。2026-11-27 FAQ：学生与教师可按 $10/月购买 Megawatt，不把教育价写成默认续费价。上传额度：Hobby 每日 1 GiB、每月 3 GiB；付费档每日 30 GiB、每月 100 GiB。Gigawatt 的 $200 与 480,000 orb 分钟未出现在本次静态正文，沿用此前记录。ChatGPT/Claude 资格仍由原订阅决定。",
     url: "https://ampcode.com/pricing" },
 
   { id: "plan-0128", vendor: "JetBrains AI", plan: "AI Pro（个人）", cat: "tool", region: "intl", priceM: 10, priceY: 8.33, annualTotal: 100, cur: "USD", seat: false,
@@ -1761,10 +1768,10 @@ const PLANS = [
 
   { id: "plan-0225", vendor: "Freebuff", plan: "Free（广告支持）", cat: "tool", region: "intl", priceM: 0, priceY: null, cur: "USD", seat: false,
     codingSurface: true, ownClient: true, includedModelQuota: true, modelAccess: "included", windowPeriod: "unknown", quotaSharing: "unknown",
-    quota: "广告支持的免费模型推理；每日 Freebucks 与可用模型按地区、产品和客户端 picker 显示，不承诺无限量",
-    models: "MiMo 2.6 Flash、GLM 5.3 Flash、DeepSeek V4.1 Flash、Solar Mini 4 / Pro 4；其他模型按地区与档位",
+    quota: "README：有限访问每天 5 小时，VPN 或代理为 4 小时（1 小时 = 5 Freebucks）。实验模型不占小时。首页仍写不限量，小时额度以 README 为准",
+    models: "DeepSeek V4.1 Flash / Flash Slow / Flash Fast、Solar Mini 4、Solar Pro 4；Beam 1.0、Glyph Cluster、Nemotron 3.5 Lightning 不占小时。付费计划另有 GPT-6 Luna、Muse Spark 1.3、Muse Ember、Claude Haiku 5.5（100K）、GPT-6.1 Terra。README 写 GLM 5.3 Flash、MiMo 2.6 Pro、GPT-6.1 Sol、Gemini 4 Argon、Gemini 3.8 Flash 已退出",
     tools: "Freebuff CLI、桌面（macOS/Windows/Linux）、Cloud GitHub 仓库编程",
-    note: "含模型费用，无需 API key；连接外部 Claude Code/Codex 账户的模型另由原订阅承担。官方 README 说明消息/轨迹/文件可能用于广告个性化，带训练标记模型另有内容使用条件。隐私页 10-13 更新版本于 11-12 生效，仅作预告；旧文章与当前 README 额度不同，以实际地区/客户端为准。",
+    note: "含模型费用，无需 API key。连接外部 Claude Code 或 Codex 的用量由原订阅承担。README 写消息、轨迹和文件可能用于广告与训练。付费档金额 README 写明经常变动且不列出，本次不新增付费计划。",
     url: "https://freebuff.com/" },
   { id: "plan-0226", vendor: "Kimchi", plan: "Open source（BYOK）", cat: "tool", region: "intl", priceM: 0, priceY: null, cur: "USD", seat: false,
     codingSurface: true, ownClient: true, includedModelQuota: false, modelAccess: "byok", windowPeriod: "unknown", quotaSharing: "unknown",
@@ -1782,10 +1789,10 @@ const PLANS = [
     url: "https://kimchi.dev/pricing" },
   { id: "plan-0228", vendor: "Kimchi", plan: "Teams", cat: "team", region: "intl", priceM: 35, priceY: null, cur: "USD", seat: true,
     codingSurface: true, ownClient: true, includedModelQuota: true, modelAccess: "included", windowPeriod: "month", quotaSharing: "unknown",
-    quota: "官网列每月含 $45 模型 credits；最多 150 席位、无限队；credit 是否逐席位累计未说明",
+    quota: "定价页写 Everything in Coder（Coder 含每月 $25 credits），未再单列 $45；最多 25 席、无限团队。credits 是否逐席累计未说明",
     models: "Kimi K3、GLM 5.3 / Flash、DeepSeek V4.1 Flash、MiniMax M3 等托管开放权重模型，按路由和可用性",
     tools: "Kimchi CLI、Studio、Inference API、团队预算与 RBAC",
-    note: "每席位月价；官网入口为 Book a call。税另计，credit 分配范围未说明，不能按席位推算总额度；超额模型及外部 provider 路由费用另计。",
+    note: "每席 35 美元/月，入口为 Book a call。2026-11-27 页面席位上限为 25，不再写 150，也不再写每月 45 美元 credits。税另计；超额与外部 provider 路由另计。代码审查是另售附加项。",
     url: "https://kimchi.dev/pricing" },
   { id: "plan-0229", vendor: "Kimchi", plan: "Enterprise", cat: "team", region: "intl", priceM: null, priceY: null, cur: "USD", seat: false,
     codingSurface: true, ownClient: true, windowPeriod: "unknown", quotaSharing: "unknown",
@@ -1793,6 +1800,13 @@ const PLANS = [
     models: "Kimchi 托管或企业自托管模型，实际型号和额度按合同",
     tools: "Kimchi 企业编码平台、VPC 自托管选项、专属支持",
     note: "企业询价，不将展示能力推断为固定含模型额度；实际税费/commit/模型计费依订单。",
+    url: "https://kimchi.dev/pricing" },
+  { id: "plan-0242", vendor: "Kimchi", plan: "Code Review（附加项）", cat: "tool", region: "intl", priceM: 25, priceY: null, cur: "USD", seat: true,
+    codingSurface: true, ownClient: false, includedModelQuota: false, windowPeriod: "month",
+    quota: "每用户每月的代码审查附加项；发现计入预算上限。页面写仓库数不限",
+    models: "按仓库选择模型；是否另计推理未写明",
+    tools: "GitHub 与 GitLab 安装、每次推送复审、仓库级说明与排除路径、审计事件",
+    note: "2026-11-27 标价 25 美元/用户/月，入口为 Request Access。未写年付、税费，以及是否必须已有 Coder 或 Teams。不把未公布的推理包含关系写成含模型额度。",
     url: "https://kimchi.dev/pricing" },
   { id: "plan-0230", vendor: "HumanLayer", plan: "Starter（BYOK）", cat: "tool", region: "intl", priceM: 0, priceY: null, cur: "USD", seat: false,
     codingSurface: true, ownClient: true, includedModelQuota: false, modelAccess: "byok", windowPeriod: "month", quotaSharing: "unknown",
@@ -1818,30 +1832,30 @@ const PLANS = [
   { id: "plan-0221", vendor: "Meta", plan: "Muse Code Everyday Usage", cat: "official", region: "intl", priceM: 5, priceY: null, cur: "USD", seat: false,
     windowPeriod: "5h", codingSurface: true, ownClient: true,
     quota: "每 5 小时 10–50 条提示（含图片与视频上传）；用尽可升级或等待刷新",
-    models: "Muse Spark、Muse Wonder、Muse Image；不含 Muse Wonder Full",
+    models: "Muse Ember、Muse Spark、Muse Wonder、Muse Image；不含 Muse Wonder Full",
     tools: "Muse Code（终端与 CI 编程 Agent，macOS / Linux / Windows）；网页搜索、语音输入（Windows 不支持）",
-    note: "官方 $5/月，按首次订阅日自动续费，未列年付；升级立即生效并按剩余周期折算，降级下个周期生效，取消不退款。订阅外的 API 密钥用量按量计费；权益与可用性因地区而异；订阅默认 Contributor，内容可用于训练；可关闭，但额度较少、差额未公布。Muse Wonder 系列在韩国不可用",
+    note: "官方 $5/月，按首次订阅日自动续费，未列年付；升级立即生效并按剩余周期折算，降级下个周期生效，取消不退款。订阅外的 API 密钥用量按量计费；权益与可用性因地区而异；订阅默认 Contributor，内容可用于训练；可关闭，但额度较少、差额未公布。Muse Wonder 系列在韩国不可用。2026-11-27 订阅文档列入 Muse Ember，并写有每周额度，但没有给出每周条数。3D 的 Nano 本档可用。本次正文没有再次标出美元月费，月费未改。",
     url: "https://dev.meta.ai/products/muse-code" },
   { id: "plan-0222", vendor: "Meta", plan: "Muse Code High Usage", cat: "official", region: "intl", priceM: 15, priceY: null, cur: "USD", seat: false,
     windowPeriod: "5h", codingSurface: true, ownClient: true,
     quota: "Everyday 的 5 倍用量（以 Everyday 每 5 小时额度为基准）；更多多模态输入",
-    models: "Muse Spark、Muse Wonder、Muse Image；不含 Muse Wonder Full",
+    models: "Muse Ember、Muse Spark、Muse Wonder、Muse Image；不含 Muse Wonder Full",
     tools: "Muse Code（终端与 CI 编程 Agent，macOS / Linux / Windows）；网页搜索、语音输入（Windows 不支持）",
-    note: "官方 $15/月，按首次订阅日自动续费，未列年付；订阅默认 Contributor，内容可用于训练；可关闭，但额度较少、差额未公布。Muse Wonder 系列在韩国不可用",
+    note: "官方 $15/月，按首次订阅日自动续费，未列年付；订阅默认 Contributor，内容可用于训练；可关闭，但额度较少、差额未公布。Muse Wonder 系列在韩国不可用。2026-11-27 订阅文档列入 Muse Ember。3D 的 Nano 与 Pro 本档可用。每周额度没有数字。本次正文没有再次标出美元月费，月费未改。",
     url: "https://dev.meta.ai/products/muse-code" },
   { id: "plan-0223", vendor: "Meta", plan: "Muse Code Power Usage", cat: "official", region: "intl", priceM: 50, priceY: null, cur: "USD", seat: false,
     windowPeriod: "5h", codingSurface: true, ownClient: true,
     quota: "Everyday 的 20 倍用量（以 Everyday 每 5 小时额度为基准）；更大文件上传",
-    models: "Muse Wonder Full、Muse Wonder、Muse Spark、Muse Image",
+    models: "Muse Wonder Full、Muse Wonder、Muse Ember、Muse Spark、Muse Image",
     tools: "Muse Code（终端与 CI 编程 Agent，macOS / Linux / Windows）；网页搜索、语音输入（Windows 不支持）",
-    note: "官方 $50/月，按首次订阅日自动续费，未列年付；Muse Wonder Full 只在 Power 及以上订阅提供，不开放 API；含新功能抢先体验；订阅默认 Contributor，内容可用于训练；可关闭，但额度较少、差额未公布。Muse Wonder 系列在韩国不可用",
+    note: "官方 $50/月，按首次订阅日自动续费，未列年付；Muse Wonder Full 只在 Power 及以上订阅提供，不开放 API；含新功能抢先体验；订阅默认 Contributor，内容可用于训练；可关闭，但额度较少、差额未公布。Muse Wonder 系列在韩国不可用。2026-11-27 订阅文档列入 Muse Ember。每周额度没有数字。本次正文没有再次标出美元月费，月费未改。",
     url: "https://dev.meta.ai/products/muse-code" },
   { id: "plan-0224", vendor: "Meta", plan: "Muse Code Maximum Usage", cat: "official", region: "intl", priceM: 200, priceY: null, cur: "USD", seat: false,
     windowPeriod: "5h", codingSurface: true, ownClient: true,
     quota: "Everyday 的 80 倍用量（以 Everyday 每 5 小时额度为基准）；用尽只能等待刷新",
-    models: "Muse Wonder Full、Muse Wonder、Muse Spark、Muse Image",
+    models: "Muse Wonder Full、Muse Wonder、Muse Ember、Muse Spark、Muse Image",
     tools: "Muse Code（终端与 CI 编程 Agent，macOS / Linux / Windows）；网页搜索、语音输入（Windows 不支持）",
-    note: "官方 $200/月，按首次订阅日自动续费，未列年付；最高档，用尽后只能等待刷新；订阅默认 Contributor，内容可用于训练；可关闭，但额度较少、差额未公布。Muse Wonder 系列在韩国不可用",
+    note: "官方 $200/月，按首次订阅日自动续费，未列年付；最高档，用尽后只能等待刷新；订阅默认 Contributor，内容可用于训练；可关闭，但额度较少、差额未公布。Muse Wonder 系列在韩国不可用。2026-11-27 订阅文档列入 Muse Ember。每周额度没有数字。本次正文没有再次标出美元月费，月费未改。",
     url: "https://dev.meta.ai/products/muse-code" }
 ];
 
@@ -2673,6 +2687,13 @@ const ESTIMATES = [
 /* date 是来源写明的发生日。checked 表示这只是本站核对到该状态的日子，不是公告日。 */
 /** @type {DynamicItem[]} */
 const DYNAMICS = [
+  { date: "2026-11-27", checked: true, text: "核对 Kiro 定价页：Free / Pro / Pro+ / Pro Max / Power 仍为 $0 / $20 / $40 / $100 / $200，credits 仍为 50 / 1,000 / 2,000 / 5,000 / 10,000，加购仍为 $0.04。新增团队积分池，每席 $20/月、500 credits，至少 2 席共享。个人付费档可选模型改为 GPT-5.6 Sol/Terra/Luna、Claude Opus 5.5 与 Opus 5、Sonnet 5.5、Haiku 5.5、Grok 4.7，以及 Kimi K3、DeepSeek 3.2、MiniMax M2.5、GLM-5、Qwen3 Coder Next。首次从 Free 升到 Pro 改为当月剩余时间免费并送 500 个试用 credits；2026-11-01 前已升级的仍保留 $20 折扣。未列年付。", source: "Kiro 官方定价页", url: "https://kiro.dev/pricing/" },
+  { date: "2026-11-27", checked: true, text: "核对 Kimchi 定价页：Coder 仍为 $20/月含 $25 credits。Teams 仍为 $35/席/月，席位上限改为 25，页面不再单列 $45 credits，只写包含 Coder 的内容。新增代码审查附加项 $25/用户/月，入口为申请开通，模型按仓库选择，未说明推理是否另计。Workspaces 仍无公开价格。", source: "Kimchi 官方定价页", url: "https://kimchi.dev/pricing" },
+  { date: "2026-11-27", checked: true, text: "核对 Freebuff 官方 README：免费档仍为 $0。有限访问为每天 5 小时，VPN 或代理为 4 小时。常规模型改为 DeepSeek V4.1 Flash 系列与 Solar Mini 4 / Pro 4，另有不占小时的实验模型。GLM 5.3 Flash、MiMo 2.6 Pro、GPT-6.1 Sol、Gemini 4 Argon 与 Gemini 3.8 Flash 已退出目录。付费计划提到 GPT-6 Luna、Muse Spark 1.3、Muse Ember、Haiku 5.5 与 GPT-6.1 Terra，但 README 不列价格，因此不新增付费档。首页仍写不限量，与 README 不一致，小时额度采用 README。", source: "Freebuff 官方仓库 README", url: "https://raw.githubusercontent.com/CodebuffAI/freebuff/main/README.md" },
+  { date: "2026-11-27", checked: true, text: "核对 OpenAI Codex 与 API 定价：订阅月费未变。Plus 与标准 Business 的 5 小时估算加入 GPT-6.2 Astra 6–50 条、GPT-6.2 Sol 17–180 条、GPT-6.1 Terra 35–285 条。标准速度 credits（每百万输入/缓存/输出）GPT-6.2 Sol 为 50 / 2.5 / 250，Astra 为 200 / 10 / 1,000。API 标准价 gpt-6.2-astra 为 $8 / $0.40 / $40，gpt-6.2-sol 为 $2 / $0.10 / $10，gpt-6.1-terra 为 $1 / $0.05 / $5。增量同步不能新增 API 行，未写入 API 表，模型栏也未写入 GPT-6.2。Pro $500 的 GPT-6.2 Ultrafast 为订阅内 6 倍，credits 与符合条件的企业按量在 2027-02-28 前为 3 倍。GPT-5.6 Sol 页面仍写促销至少到 2026-11-21，并仍列出原 credits 与 API 标价，本次不改该价。", source: "OpenAI Codex 定价文档 / API 定价", url: "https://learn.chatgpt.com/docs/pricing" },
+  { date: "2026-11-27", checked: true, text: "核对 Meta Muse Code 订阅文档：Everyday 起列入 Muse Ember，5 小时条数与 5 / 20 / 80 倍关系未变，Wonder Full 仍从 Power 起。文档另写每周额度，但没有给出每周条数。本次正文没有再次标出 $5 / $15 / $50 / $200，月费未改。", source: "Meta Muse Code 订阅文档", url: "https://dev.meta.ai/docs/muse-code/subscriptions" },
+  { date: "2026-11-27", checked: true, text: "核对 MiniMax 定价概览：新增 MiniMax-M3.1-Flash，输入 ¥1.00、输出 ¥4.00、缓存读取 ¥0.10（每百万 tokens）。M3 在 512K 以内的标准价仍为 ¥2.10 / ¥8.40、缓存 ¥0.42。官方 M Plan 概览把档位写成 Go、Explore（3 倍）和 Build（12 倍），可用文本模型为 M3.1 Flash，但没有公布月费，因此不改 Token Plan 的 ¥49 / ¥119 / ¥469，也不把 M3.1-Flash 手写进 API 表。", source: "MiniMax 定价概览", url: "https://platform.minimaxi.com/docs/pricing/overview.md" },
+  { date: "2026-11-27", checked: true, text: "核对 Amp 定价页：Megawatt 仍为 $20/月、45,000 orb 分钟。学生与教师可按 $10/月购买，不把教育价写成默认续费价。Hobby 上传额度为每日 1 GiB、每月 3 GiB，付费档为每日 30 GiB、每月 100 GiB。Gigawatt 的 $200 没有出现在本次静态正文，未改。", source: "Amp 官方定价页", url: "https://ampcode.com/pricing" },
   { date: "2026-11-05", text: "OpenAI 发布 GPT-6 Cyber，用于在研究者指定的范围内查找和验证软件漏洞。首批获批的 Daybreak Red 客户可通过 API 和 Codex 使用。", source: "OpenAI 发布公告", url: "https://openai.com/index/introducing-gpt-6-cyber" },
   { date: "2026-11-05", text: "Google 发布 Gemini Omni 1.2 Flash，支持生成最长 15 秒的视频，并可用后续指令逐轮编辑。Gemini API、Google Vids 和 Gemini 企业产品开始提供该模型。", source: "Google 开发者公告", url: "https://blog.google/innovation-and-ai/technology/developers-tools/introducing-gemini-omni-1-2-flash/" },
   { date: "2026-11-05", checked: true, text: "核对 Kimi K3.1 Pro 权重：Moonshot AI 已在官方模型仓库提供下载、自部署说明和专用许可。托管 API 的模型标识为 kimi-k3.1-pro。", source: "Moonshot AI 官方模型卡", url: "https://huggingface.co/moonshotai/Kimi-K3.1-Pro" },
@@ -3005,8 +3026,8 @@ const SOURCES = [
 /* 未能完全核实 / 存在不确定性的项（页脚展示） */
 /** @type {string[]} */
 const UNCERTAIN = [
-  "Freebuff 的模型池与 Freebucks 因地区和客户端而异；旧发布文章、生成式 FAQ 与当前官方 README 的额度不同，不承诺全地区无限量，也未确认中国大陆属于 full access。数据使用说明据当前 README；隐私页 10-13 更新版本将于 11-12 生效，不能作为当前已生效政策。",
-  "Kimchi Teams 的 $45 月 credits 是否按席位累计未说明，不能乘席位折算；企业档模型费按合同。HumanLayer 软件 sessions 不等于模型推理额度，三档均需自备账户/API。新收录三家的年付价及中国大陆购买资格未核实。",
+  "Freebuff 首页仍写不限量，官方 README 则写有限访问每天 5 小时、VPN 或代理 4 小时；小时额度采用 README。付费计划提到若干模型但 README 不列价格，未新增付费档。中国大陆是否属于 full access 仍未核实。",
+  "Kimchi Teams 页面不再单列 $45 credits，只写包含 Coder（Coder 为每月 $25 credits），席位上限为 25；credits 是否逐席累计仍未说明，不能乘席位折算。代码审查为 $25/用户/月，推理是否另计未写明。企业档模型费按合同。HumanLayer 软件 sessions 不等于模型推理额度，三档均需自备账户/API。年付价及中国大陆购买资格未核实。",
   "Amp Megawatt 正文的 agent 用量与定价卡片的自备模型文案存在差异，未推算固定 tokens；连接外部 ChatGPT/Claude 不会新增原订阅额度，Claude 仅覆盖 Claude Code 模式。OpenCode Argon Contributor 非 ZDR，提示和补全可能用于模型训练，其 2× 用量促销结束日未公布。",
   "价格逐条核查状态、核查日期与官网链接见来源栏；待核实历史价不参与推荐和排行，未列年付价不等于厂商不存在年付方案。",
   "图中黄色估算柱与额度表的≈估行采用已说明的假设，不能作为厂商承诺的 token 数；官方周 tokens 与请求数、积分和月池分开标注。",
@@ -3022,7 +3043,7 @@ const UNCERTAIN = [
   "Gemini 4 Argon 在 Gemini 应用与搜索中按「部分国家」逐步开放；订阅内用量只写「Expanded / Higher」，没有可折算的 tokens 或请求数，额度表不做折算。API 介绍价 12-01 起翻倍，届时按复核日历更新。",
   "华为云 CodeArts 套餐价（基础 ¥60 / 专业 ¥200 / 企业 ¥600/人/月）为 DevOps 全套研发平台价，非编程助手单独售价。",
   "Kimi Code Plan 各档（¥99/199/699）为连续包月价，单月原价是否更高未确认；各档具体编程积分数值未公开（官方仅说明'5 小时滚动窗口 + 月总额度'机制）。",
-  "MiniMax Token Plan 各档每月 token 总量（约 6 亿/18 亿/71 亿）为第三方估算；年付价未经官方确认。",
+  "MiniMax Token Plan 各档每月 token 总量（约 6 亿/18 亿/71 亿）为第三方估算；年付价未经官方确认。2026-11-27 的 M Plan 概览改写为 Go / Explore / Build，但没有公布月费，因此未改 ¥49 / ¥119 / ¥469。",
   "qwen3.8-flash-next 没有单独的托管计费 ID，线上服务是 qwen3.8-flash（华北2 ¥0.8/¥2.7，缓存 ¥0.1）。百炼 Coding Plan 官方列表仍不含该模型，表中该行是同一请求额度的牌价对照。",
   "Command Code、Canopy Wave、DevPass、百炼 qwen3.7-plus 的分项牌价来自 OpenRouter 模型列表（输入/输出/缓存），不是这些套餐自己的价目；套餐若有折扣或模型系数，实际 tokens 会偏离。Spark X2 在 OpenRouter 与硅基流动都没有逐 token 价，额度表未单列。",
   "小米 Token Plan 的每周 tokens 由官方每 token Credits 系数按 95% 缓存、80/20 折算，不是官方公布的周配额；夜间 0.8 倍未计入。团队版与个人版每席额度相同，额度表只列个人四档。",
@@ -3045,7 +3066,7 @@ const UNCERTAIN = [
 /* 逐条官方核价记录；由 audit/pricing-verification-2026-10-04.json 维护。 */
 /** @type {PriceChecks} */
 const PRICE_CHECKS = {
-  "checkedAt": "2026-10-26",
+  "checkedAt": "2026-11-27",
   "sources": {
     "claude-plans": {
       "url": "https://claude.com/pricing",
@@ -3733,6 +3754,41 @@ const PRICE_CHECKS = {
       "url": "https://about.fb.com/news/2026/10/introducing-muse-wonder-models/",
       "evidence": "10-12历史公告确认Wonder API/Muse Code与Full订阅入口；核查日不作新品或GA发布日期。",
       "checkedAt": "2026-10-26"
+    },
+    "official-kiro-20261127": {
+      "url": "https://kiro.dev/pricing/",
+      "evidence": "2026-11-27 打开定价页。Free $0/月含 50 credits，Pro / Pro+ / Pro Max / Power 仍为 $20 / $40 / $100 / $200 每用户每月，对应 1,000 / 2,000 / 5,000 / 10,000 credits，加购 $0.04/credit。团队积分池为 $20/席/月、每席 500 credits，至少 2 席共享。免费档写开放权重模型与 Claude Sonnet 4.5。可选模型写明 Auto，以及 GPT-5.6 Sol/Terra/Luna、Claude Opus 5.5、Opus 5、Sonnet 5.5、Haiku 5.5、Grok 4.7，和 Kimi K3、DeepSeek 3.2、MiniMax M2.5、GLM-5、Qwen3 Coder Next。首次从 Free 升到 Pro：当月剩余时间免费，另送 500 trial credits（12 个月内）；直接买更高档只付与按比例 Pro 价的差额。2026-11-01 前已升级的保留 $20 折扣。未列年付。GovCloud 约高 20%，未单列。",
+      "checkedAt": "2026-11-27"
+    },
+    "official-kimchi-20261127": {
+      "url": "https://kimchi.dev/pricing",
+      "evidence": "2026-11-27 打开定价页。Coder 仍为 $20/月并写明含 $25 monthly credits，最多 3 席、1 个团队。Teams 仍为 $35/席/月，入口为 Book a call；对比表写最多 25 席、无限团队，并写 Everything in Coder。页面不再出现 $45 credits 或 150 席。Code Review 标为 $25/用户/月，Request Access，仓库数 Unlimited，发现计入预算上限，模型按仓库选择。Workspaces 仅 Book a call，无公开金额。Open source 仍为自备推理。",
+      "checkedAt": "2026-11-27"
+    },
+    "official-freebuff-readme-20261127": {
+      "url": "https://raw.githubusercontent.com/CodebuffAI/freebuff/main/README.md",
+      "evidence": "2026-11-27 读取官方仓库 README。常规选择器列出 DeepSeek V4.1 Flash、Flash Slow、Flash Fast、Solar Mini 4、Solar Pro 4，以及不占小时的 Beam 1.0、Glyph Cluster、Nemotron 3.5 Lightning。付费计划另列 GPT-6 Luna、Muse Spark 1.3、Muse Ember、Claude Haiku 5.5（100K）、GPT-6.1 Terra（每天两个 session）。README 写 GLM 5.3 Flash、MiMo 2.6 Pro、GPT-6.1 Sol、Gemini 4 Argon、Gemini 3.8 Flash 已退出目录，且价格经常变动故不列出。有限访问每天 5 小时，VPN 或代理为 4 小时；2026-10-15 起 1 小时 = 5 Freebucks。同日首页 freebuff.com 仍写 Unlimited usage 与 100% free，未列小时数，因此小时额度采用 README，不把首页营销句写成无限额度，也不新增未标价的付费档。",
+      "checkedAt": "2026-11-27"
+    },
+    "official-meta-muse-20261127": {
+      "url": "https://dev.meta.ai/docs/muse-code/subscriptions",
+      "evidence": "2026-11-27 打开 Muse Code 订阅文档。Everyday 写明可用 Muse Ember、Muse Spark、Muse Wonder 和 Muse Image，每 5 小时 10–50 条提示；High 为 5 倍且不含 Wonder Full；Power 起含 Muse Wonder Full，为 20 倍；Maximum 为 80 倍。文档写另有每周额度，但没有给出每周条数。3D 的 Nano 各档可用，Pro 从 High 起。本次抓到的正文没有再次标出 $5 / $15 / $50 / $200，月费未改。",
+      "checkedAt": "2026-11-27"
+    },
+    "official-openai-codex-20261127": {
+      "url": "https://learn.chatgpt.com/docs/pricing",
+      "evidence": "2026-11-27 打开 Codex 定价文档。月费未变：Free $0、Go $8、Plus $20、Pro 为 $100 / $200 / $500、Business 年付 $20/用户/月、月付 $25。Plus 与标准 Business 的本地消息估算新增 GPT-6.2 Astra 6–50、GPT-6.2 Sol 17–180、GPT-6.1 Terra 35–285，原有 GPT-6.1 Sol 15–160、GPT-6 Sol 15–150、GPT-6 Astra 5–45、GPT-6 Luna 350–3,000 仍在。Pro 仍写目前没有 5 小时上限，Ultrafast 仍只在 Pro $500。GPT-6.2 Ultrafast 订阅内 6 倍；credits 与符合条件的企业按量在 2027-02-28（太平洋时间）前为 3 倍，其后 6 倍。GPT-6 Astra 与 GPT-6.1 Sol 的 Ultrafast 仍为订阅内 8 倍、credits 6 倍。标准速度 credits（每百万输入/缓存/输出）：GPT-6.2 Sol 50 / 2.5 / 250，GPT-6.2 Astra 200 / 10 / 1,000。GPT-5.6 Sol 仍写促销至少到 2026-11-21，页面仍列 100 / 10 / 500 credits，本次不改该价。",
+      "checkedAt": "2026-11-27"
+    },
+    "official-openai-api-20261127": {
+      "url": "https://developers.openai.com/api/docs/pricing",
+      "evidence": "2026-11-27 打开 API 定价页的标准档价目。gpt-6.2-astra 为输入 $8、缓存 $0.40、输出 $40；gpt-6.2-sol 为输入 $2、缓存 $0.10、输出 $10；gpt-6.1-terra 为输入 $1、缓存 $0.05、输出 $5。已在库的 gpt-6-astra、gpt-6.1-sol、gpt-6-sol、gpt-6-luna、gpt-5.6-sol 标准价与现记录一致。增量同步不能新增 API 行，这些新型号的标准价写入当日动态，不手改 API 表。",
+      "checkedAt": "2026-11-27"
+    },
+    "official-amp-20261127": {
+      "url": "https://ampcode.com/pricing",
+      "evidence": "2026-11-27 打开定价页。Hobby 仍免费。Individual 可见标价为 Megawatt $20/月、45,000 orb 分钟。FAQ 写学生和教师可按 $10/月购买 Megawatt。上传额度：Hobby 每日 1 GiB、每月 3 GiB；付费档每日 30 GiB、每月 100 GiB。Gigawatt 的 $200 与 480,000 分钟没有出现在本次静态正文，不改该记录。",
+      "checkedAt": "2026-11-27"
     }
   },
   "rows": {
@@ -3813,20 +3869,21 @@ const PRICE_CHECKS = {
       "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
     },
     "plan:plan-0010": {
-      "status": "verified",
-      "checkedAt": "2026-10-04",
+      "status": "changed",
+      "checkedAt": "2026-11-27",
       "sourceIds": [
-        "openai-plans"
+        "official-openai-codex-20261127",
+        "official-openai-api-20261127"
       ],
-      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
+      "reason": "Plus 月费仍为 20 美元。2026-11-27 的 5 小时估算表加入 GPT-6.2 与 GPT-6.1 Terra。模型栏不写入 GPT-6.2，因为现有回归要求 OpenAI 套餐不匹配 GPT-6.2 Sol，该测试不在数据白名单。API 标准价见当日动态，未手改 API 表。"
     },
     "plan:plan-0011": {
-      "status": "verified",
-      "checkedAt": "2026-10-04",
+      "status": "changed",
+      "checkedAt": "2026-11-27",
       "sourceIds": [
-        "openai-plans"
+        "official-openai-codex-20261127"
       ],
-      "reason": "与官方原币种标价核对；税费及地区实付以结账页为准。"
+      "reason": "Pro 仍为 100、200、500 美元三档，并写目前没有 5 小时上限。月费未改。GPT-6.2 不写入模型栏。"
     },
     "plan:plan-0012": {
       "status": "verified",
@@ -3838,11 +3895,11 @@ const PRICE_CHECKS = {
     },
     "plan:plan-0013": {
       "status": "changed",
-      "checkedAt": "2026-10-13",
+      "checkedAt": "2026-11-27",
       "sourceIds": [
-        "openai-codex-speed-20261013"
+        "official-openai-codex-20261127"
       ],
-      "reason": "月价 $500 不变；Ultrafast 自 10-08 起同时支持 GPT-6 Astra 与 GPT-6.1 Sol，订阅内按 8 倍计量、credits 按 6 倍计费。"
+      "reason": "500 美元月费未改，Ultrafast 仍只在这一档。GPT-6 Astra 与 GPT-6.1 Sol 的订阅内倍率仍为 8 倍。GPT-6.2 的 Ultrafast 订阅内为 6 倍，credits 与符合条件的企业按量在 2027-02-28 前为 3 倍。"
     },
     "plan:plan-0014": {
       "status": "verified",
@@ -4500,48 +4557,44 @@ const PRICE_CHECKS = {
       "reason": "确认 Provider 为 $15/月加 processing fee，此外再按 API 用量付费；充值余额不过期。不是单纯零月费 PAYG，未列年付价。"
     },
     "plan:plan-0074": {
-      "status": "verified",
-      "checkedAt": "2026-10-04",
+      "status": "changed",
+      "checkedAt": "2026-11-27",
       "sourceIds": [
-        "relays-kiro"
+        "official-kiro-20261127"
       ],
-      "reason": "确认免费 $0/月；priceY=0 是免费口径，不表示有年付订阅。首次升级送 $20 credits 是一次性奖励，不影响付费档正常续费价。"
+      "reason": "免费档仍为 0 美元、每月 50 credits。定价卡写开放权重模型与 Claude Sonnet 4.5，并有限制。首次升级优惠的说法已改到付费档备注。"
     },
     "plan:plan-0075": {
       "status": "changed",
-      "checkedAt": "2026-10-04",
+      "checkedAt": "2026-11-27",
       "sourceIds": [
-        "relays-kiro",
-        "relays-kiro-subscription"
+        "official-kiro-20261127"
       ],
-      "reason": "确认正常美元月费与库存相同，官网计价原文为每用户每月。social login / AWS Builder ID 用户可自行订阅，团队使用要求每位开发者拥有独立订阅；不能仅凭 per user 将个人档归为团队 seat=true。在本项目 seat 会使其退出 isPersonalMonthly 与 eligibleProfiles，因此保持库存个人分类；税另计，首次升级 $20 账单抵扣不改变正常续费价，现行页未列年付价。"
+      "reason": "确认正常美元月费与库存相同，官网计价原文为每用户每月。不能仅凭 per user 把个人档当成团队档。在本项目 seat 会使其退出 isPersonalMonthly 与 eligibleProfiles，因此保持库存个人分类。2026-11-27 个人档月费未变。模型改为当前页列出的 Auto、GPT-5.6、Claude Opus 5 与 Opus 5.5 等。首次升级改为当月剩余时间免费外加 500 个试用 credits。两人或以上的积分池是单独团队档。"
     },
     "plan:plan-0076": {
       "status": "changed",
-      "checkedAt": "2026-10-04",
+      "checkedAt": "2026-11-27",
       "sourceIds": [
-        "relays-kiro",
-        "relays-kiro-subscription"
+        "official-kiro-20261127"
       ],
-      "reason": "确认正常美元月费与库存相同，官网计价原文为每用户每月。social login / AWS Builder ID 用户可自行订阅，团队使用要求每位开发者拥有独立订阅；不能仅凭 per user 将个人档归为团队 seat=true。在本项目 seat 会使其退出 isPersonalMonthly 与 eligibleProfiles，因此保持库存个人分类；税另计，首次升级 $20 账单抵扣不改变正常续费价，现行页未列年付价。"
+      "reason": "确认正常美元月费与库存相同，官网计价原文为每用户每月。不能仅凭 per user 把个人档当成团队档。在本项目 seat 会使其退出 isPersonalMonthly 与 eligibleProfiles，因此保持库存个人分类。月费与 2,000 credits 未变，备注与 Pro 的试用说明一起更新。"
     },
     "plan:plan-0077": {
       "status": "changed",
-      "checkedAt": "2026-10-04",
+      "checkedAt": "2026-11-27",
       "sourceIds": [
-        "relays-kiro",
-        "relays-kiro-subscription"
+        "official-kiro-20261127"
       ],
-      "reason": "确认正常美元月费与库存相同，官网计价原文为每用户每月。social login / AWS Builder ID 用户可自行订阅，团队使用要求每位开发者拥有独立订阅；不能仅凭 per user 将个人档归为团队 seat=true。在本项目 seat 会使其退出 isPersonalMonthly 与 eligibleProfiles，因此保持库存个人分类；税另计，首次升级 $20 账单抵扣不改变正常续费价，现行页未列年付价。"
+      "reason": "确认正常美元月费与库存相同，官网计价原文为每用户每月。不能仅凭 per user 把个人档当成团队档。在本项目 seat 会使其退出 isPersonalMonthly 与 eligibleProfiles，因此保持库存个人分类。月费与 5,000 credits 未变。"
     },
     "plan:plan-0078": {
       "status": "changed",
-      "checkedAt": "2026-10-04",
+      "checkedAt": "2026-11-27",
       "sourceIds": [
-        "relays-kiro",
-        "relays-kiro-subscription"
+        "official-kiro-20261127"
       ],
-      "reason": "确认正常美元月费与库存相同，官网计价原文为每用户每月。social login / AWS Builder ID 用户可自行订阅，团队使用要求每位开发者拥有独立订阅；不能仅凭 per user 将个人档归为团队 seat=true。在本项目 seat 会使其退出 isPersonalMonthly 与 eligibleProfiles，因此保持库存个人分类；税另计，首次升级 $20 账单抵扣不改变正常续费价，现行页未列年付价。"
+      "reason": "确认正常美元月费与库存相同，官网计价原文为每用户每月。不能仅凭 per user 把个人档当成团队档。在本项目 seat 会使其退出 isPersonalMonthly 与 eligibleProfiles，因此保持库存个人分类。月费与 10,000 credits 未变。"
     },
     "plan:plan-0079": {
       "status": "verified",
@@ -4913,13 +4966,11 @@ const PRICE_CHECKS = {
     },
     "plan:plan-0127": {
       "status": "changed",
-      "checkedAt": "2026-10-15",
+      "checkedAt": "2026-11-27",
       "sourceIds": [
-        "amp-claude-mode-20261015",
-        "amp-dial-pricing-20261015",
-        "amp-plan-pricing-20261015"
+        "official-amp-20261127"
       ],
-      "reason": "新增 Claude Code 模式及外部订阅费用边界；Hobby 免费、Megawatt $20/月不变。"
+      "reason": "Megawatt 标价仍为 20 美元/月、45,000 orb 分钟。学生和教师为 10 美元/月，不把教育价写成默认续费价。Gigawatt 的 200 美元没有出现在本次静态正文，不改。"
     },
     "plan:plan-0128": {
       "status": "unverified",
@@ -5988,14 +6039,12 @@ const PRICE_CHECKS = {
       "reason": "新收录：付费层介绍价输入 $2.00、输出 $10.00（含 thinking）、缓存 $0.10，至 2026-11-30；2026-12-01 起 $4 / $20 / $0.20，写在备注。免费层不可用。"
     },
     "plan:plan-0225": {
-      "status": "verified",
-      "checkedAt": "2026-10-15",
+      "status": "changed",
+      "checkedAt": "2026-11-27",
       "sourceIds": [
-        "freebuff-home-20261015",
-        "freebuff-readme-20261015",
-        "freebuff-privacy-20261015"
+        "official-freebuff-readme-20261127"
       ],
-      "reason": "从官方定价、文档核实并首次收录；收录日不视为产品发布日，未知年价及资格不推算。"
+      "reason": "免费档仍为 0 美元。官方 README 改写了模型目录和有限访问的每日小时数。首页仍写不限量，与 README 不一致，小时额度采用 README，不新增未标价的付费档。"
     },
     "plan:plan-0226": {
       "status": "verified",
@@ -6016,14 +6065,12 @@ const PRICE_CHECKS = {
       "reason": "从官方定价、文档核实并首次收录；收录日不视为产品发布日，未知年价及资格不推算。"
     },
     "plan:plan-0228": {
-      "status": "verified",
-      "checkedAt": "2026-10-15",
+      "status": "changed",
+      "checkedAt": "2026-11-27",
       "sourceIds": [
-        "kimchi-pricing-20261015",
-        "kimchi-inference-20261015",
-        "kimchi-terms-20261015"
+        "official-kimchi-20261127"
       ],
-      "reason": "从官方定价、文档核实并首次收录；收录日不视为产品发布日，未知年价及资格不推算。"
+      "reason": "席位月费仍为 35 美元。2026-11-27 页面把席位上限写成 25，不再写 150，也不再单列 45 美元 credits。卡片写 Everything in Coder，而 Coder 仍写每月 25 美元 credits。是否逐席累计仍未说明。"
     },
     "plan:plan-0229": {
       "status": "custom",
@@ -6081,47 +6128,51 @@ const PRICE_CHECKS = {
     },
     "plan:plan-0221": {
       "status": "changed",
-      "checkedAt": "2026-10-26",
+      "checkedAt": "2026-11-27",
       "sourceIds": [
-        "meta-product-current-20261026",
-        "meta-subscriptions-current-20261026",
-        "meta-code-current-20261026",
-        "meta-models-current-20261026"
+        "official-meta-muse-20261127"
       ],
-      "reason": "10-26 重读官方四档订阅，美元月价与原10-14记录一致；补充默认Contributor及关闭后的额度边界、韩国和Windows语音限制，不构造涨价。"
+      "reason": "订阅文档把 Muse Ember 列入 Everyday。每 5 小时 10–50 条提示未变。每周额度没有数字。本次正文没有再次标出美元月费，5 美元月费未改。"
     },
     "plan:plan-0222": {
       "status": "changed",
-      "checkedAt": "2026-10-26",
+      "checkedAt": "2026-11-27",
       "sourceIds": [
-        "meta-product-current-20261026",
-        "meta-subscriptions-current-20261026",
-        "meta-code-current-20261026",
-        "meta-models-current-20261026"
+        "official-meta-muse-20261127"
       ],
-      "reason": "10-26 重读官方四档订阅，美元月价与原10-14记录一致；补充默认Contributor及关闭后的额度边界、韩国和Windows语音限制，不构造涨价。"
+      "reason": "High 仍为 Everyday 的 5 倍，且文档在 Power 才写 Muse Wonder Full。Muse Ember 随 Everyday 权益列入。15 美元月费本次正文未再标出，未改。"
     },
     "plan:plan-0223": {
       "status": "changed",
-      "checkedAt": "2026-10-26",
+      "checkedAt": "2026-11-27",
       "sourceIds": [
-        "meta-product-current-20261026",
-        "meta-subscriptions-current-20261026",
-        "meta-code-current-20261026",
-        "meta-models-current-20261026"
+        "official-meta-muse-20261127"
       ],
-      "reason": "10-26 重读官方四档订阅，美元月价与原10-14记录一致；补充默认Contributor及关闭后的额度边界、韩国和Windows语音限制，不构造涨价。"
+      "reason": "Power 仍含 Muse Wonder Full，倍率为 Everyday 的 20 倍。模型栏补上 Muse Ember。50 美元月费本次正文未再标出，未改。"
     },
     "plan:plan-0224": {
       "status": "changed",
-      "checkedAt": "2026-10-26",
+      "checkedAt": "2026-11-27",
       "sourceIds": [
-        "meta-product-current-20261026",
-        "meta-subscriptions-current-20261026",
-        "meta-code-current-20261026",
-        "meta-models-current-20261026"
+        "official-meta-muse-20261127"
       ],
-      "reason": "10-26 重读官方四档订阅，美元月价与原10-14记录一致；补充默认Contributor及关闭后的额度边界、韩国和Windows语音限制，不构造涨价。"
+      "reason": "Maximum 仍为 Everyday 的 80 倍，并含 Muse Wonder Full。模型栏补上 Muse Ember。200 美元月费本次正文未再标出，未改。"
+    },
+    "plan:plan-0241": {
+      "status": "changed",
+      "checkedAt": "2026-11-27",
+      "sourceIds": [
+        "official-kiro-20261127"
+      ],
+      "reason": "2026-11-27 定价页新增团队积分池：每席每月 20 美元，含 500 credits，至少两席后共享。加购每个 credit 0.04 美元。未列年付。Enterprise 联系销售，未另给一套席位月费。GovCloud 约高两成，未单列。"
+    },
+    "plan:plan-0242": {
+      "status": "changed",
+      "checkedAt": "2026-11-27",
+      "sourceIds": [
+        "official-kimchi-20261127"
+      ],
+      "reason": "2026-11-27 定价页把代码审查标为每用户每月 25 美元，入口是申请开通，仓库数不限。发现计入预算上限。页面写自选模型，未说明推理是否另计，因此不写成包含固定模型额度。旧证据里曾出现 15 美元，本次以现行页为准，不改旧来源。"
     }
   }
 };
