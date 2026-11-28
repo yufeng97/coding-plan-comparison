@@ -2,6 +2,13 @@
 
 > 按数据核查和代码修复批次记录。
 
+## 2026-11-28 每日巡检
+
+- 核对 Kimchi 定价页与托管模型价表。Coder 仍为 $20/月、含 $25 credits；Teams 仍为 $35/席/月，席位上限改为 25，页面不再单列 $45 credits。是否每席另含 $25 credits 未说明。
+- 价表写明三款托管模型的停服日：deepseek-v4.1-flash 为 2026-12-02，kimi-k3 与 minimax-m3 为 2026-12-17。外部路由的缓存输入附加费为每百万 tokens $0.02。订阅月费未改，单价写在动态里。
+- Code Review 与 Workspaces 没有公开月费，未新增档位。
+- AutoClaw 博客写 GLM-5.4 已接入 GLM Coding Plan，V2、V3 与团队版在 AutoClaw 中使用时用量额度为 1.5 倍。未改月价，模型栏仍为 GLM-5.3。
+
 ## 2026-11-05 模型发布动态与每日采集
 
 - 11 月 5 日收录 GPT-6 Cyber 的首批访问资格和 Gemini Omni 1.2 Flash 的开发者入口。11 月 4 日收录 SWE-2 Flash、混元 Hy4、Ripple-65B Preview 和 Images 2.6。

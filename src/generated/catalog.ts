@@ -10,7 +10,7 @@ const RATE_USD_CNY = 6.67;
 /* 同一汇率日期：Frankfurter USD/INR=94.48、USD/CNY=6.6684；保留印度原价。 */
 const RATE_INR_CNY = 6.6684 / 94.48;
 const META = {
-    updated: "2026-11-05",
+    updated: "2026-11-28",
     rate: RATE_USD_CNY,
     rateAsOf: "2026-11-05",
     rateSource: "https://api.frankfurter.dev/v1/2026-11-05?base=USD&symbols=CNY,INR",
@@ -1758,14 +1758,14 @@ const PLANS: Plan[] = [
         quota: "每月含 $25 模型 credits；最多 3 席位、1 队，按模型 token 单价消耗",
         models: "Kimi K3、GLM 5.3 / Flash、DeepSeek V4.1 Flash、MiniMax M3 等托管开放权重模型，按路由和可用性",
         tools: "Kimchi CLI coding agent、Inference API",
-        note: "公开月付价，税另计；模型 credit 不是固定 tokens 或无限推理。超额按公开用量价；外部 provider 路由另有 token surcharge。Kimi K2.7 将于 2026-10-19 退役，不作为长期主力模型。",
+        note: "公开月付价，税另计；模型 credit 不是固定 tokens 或无限推理。超额按公开用量价。外部供应商路由在原厂牌价之外，每百万 tokens 另加输入 $0.20、缓存输入 $0.02、输出 $0.30。价表写 deepseek-v4.1-flash 于 2026-12-02 停服，同价改用 deepseek-v4.1-flash-1017；kimi-k3 与 minimax-m3 于 2026-12-17 停服，分别改用 kimi-k3.1-pro 与 minimax-m3.1-flash。单价见当日动态。Kimi K2.7 已不在现行价表。",
         url: "https://kimchi.dev/pricing" },
     { id: "plan-0228", vendor: "Kimchi", plan: "Teams", cat: "team", region: "intl", priceM: 35, priceY: null, cur: "USD", seat: true,
         codingSurface: true, ownClient: true, includedModelQuota: true, modelAccess: "included", windowPeriod: "month", quotaSharing: "unknown",
-        quota: "官网列每月含 $45 模型 credits；最多 150 席位、无限队；credit 是否逐席位累计未说明",
+        quota: "定价页不再单列团队月 credits。Teams 写包含 Coder 的全部内容，Coder 含每月 $25 credits，是否按席发放未说明。最多 25 席、无限团队。",
         models: "Kimi K3、GLM 5.3 / Flash、DeepSeek V4.1 Flash、MiniMax M3 等托管开放权重模型，按路由和可用性",
         tools: "Kimchi CLI、Studio、Inference API、团队预算与 RBAC",
-        note: "每席位月价；官网入口为 Book a call。税另计，credit 分配范围未说明，不能按席位推算总额度；超额模型及外部 provider 路由费用另计。",
+        note: "每席位月价；官网入口为 Book a call。税另计。2026-11-28 定价页为最多 25 席，不再单列 $45 credits。是否每席都含 Coder 的 $25 credits 仍未说明，不能按席位推算总额度。超额与外部路由附加费见 Coder 备注。三个托管模型的停服日同 Coder。",
         url: "https://kimchi.dev/pricing" },
     { id: "plan-0229", vendor: "Kimchi", plan: "Enterprise", cat: "team", region: "intl", priceM: null, priceY: null, cur: "USD", seat: false,
         codingSurface: true, ownClient: true, windowPeriod: "unknown", quotaSharing: "unknown",
@@ -2636,6 +2636,9 @@ const ESTIMATES: QuotaRow[] = [
 /* date 是来源写明的发生日。checked 表示这只是本站核对到该状态的日子，不是公告日。 */
 /** @type {DynamicItem[]} */
 const DYNAMICS: DynamicItem[] = [
+    { date: "2026-11-28", checked: true, text: "核对 Kimchi 托管模型价表：外部供应商路由在原厂牌价之外，每百万 tokens 另加输入 $0.20、缓存输入 $0.02、输出 $0.30。deepseek-v4.1-flash 于 2026-12-02 停服，同价改用 deepseek-v4.1-flash-1017（输入 $0.30、缓存 $0.006、输出 $1.20）。kimi-k3（输入 $3.00、缓存 $0.30、输出 $15.00）与 minimax-m3（输入 $0.30、缓存 $0.06、输出 $1.20）于 2026-12-17 停服，分别改用 kimi-k3.1-pro（$2.00 / $0.20 / $10.00）与 minimax-m3.1-flash（$0.15 / $0.015 / $0.60）。同表现价还有 glm-5.3 $1.40 / $0.14 / $4.40、glm-5.3-flash $0.15 / $0.03 / $0.50、deepseek-v4-flash-0731 $0.14 / $0.07 / $0.28、gemma-4-31b $0.09 / $0.05 / $0.34、muse-spark-open-fp4 $1.25 / $0.15 / $4.25。Coder 仍为 $20/月，Teams 仍为 $35/席/月。这些单价不另建按量行。", source: "Kimchi 官方模型计费文档", url: "https://docs.kimchi.dev/docs/model-apis-pricing" },
+    { date: "2026-11-28", checked: true, text: "核对 Kimchi 定价页：Teams 最多 25 席、无限团队，不再单列 $45 credits，并写包含 Coder 的全部内容；Coder 含每月 $25 credits，但是否按席发放未说明。Code Review 与 Workspaces 是附加项，定价页没有公开月费。Code Review 产品页写没有按席位的机器人定价，审查计入已设预算上限。本次不新增未标价档。", source: "Kimchi 官方定价页", url: "https://kimchi.dev/pricing" },
+    { date: "2026-11-23", text: "AutoClaw 博客：GLM-5.4 已可在 GLM Coding Plan 中使用。V2、V3 与团队版在 AutoClaw 里使用 GLM-5.4 时，用量额度为 1.5 倍。博客没有月费，也没有说明与概览抵扣系数如何换算。本次只核对这篇博客，没有重开概览页，因此不改各档月价，模型栏仍写 GLM-5.3。", source: "AutoClaw 官方模型博客", url: "https://autoclaw.z.ai/blog/model/GLM-5.4/" },
     { date: "2026-11-05", text: "OpenAI 发布 GPT-6 Cyber，用于在研究者指定的范围内查找和验证软件漏洞。首批获批的 Daybreak Red 客户可通过 API 和 Codex 使用。", source: "OpenAI 发布公告", url: "https://openai.com/index/introducing-gpt-6-cyber" },
     { date: "2026-11-05", text: "Google 发布 Gemini Omni 1.2 Flash，支持生成最长 15 秒的视频，并可用后续指令逐轮编辑。Gemini API、Google Vids 和 Gemini 企业产品开始提供该模型。", source: "Google 开发者公告", url: "https://blog.google/innovation-and-ai/technology/developers-tools/introducing-gemini-omni-1-2-flash/" },
     { date: "2026-11-05", checked: true, text: "核对 Kimi K3.1 Pro 权重：Moonshot AI 已在官方模型仓库提供下载、自部署说明和专用许可。托管 API 的模型标识为 kimi-k3.1-pro。", source: "Moonshot AI 官方模型卡", url: "https://huggingface.co/moonshotai/Kimi-K3.1-Pro" },
@@ -2740,6 +2743,7 @@ const SOURCES: SourceGroup[] = [
         ] },
     { group: "Kimchi", urls: [
             "https://kimchi.dev/pricing",
+            "https://kimchi.dev/code-reviewer",
             "https://kimchi.dev/terms-of-service",
             "https://docs.kimchi.dev/docs/model-apis-pricing",
         ] },
@@ -2791,6 +2795,7 @@ const SOURCES: SourceGroup[] = [
         ] },
     { group: "Mistral", urls: ["https://mistral.ai/pricing", "https://mistral.ai/news/mistral-large-4/"] },
     { group: "Z.ai", urls: [
+            "https://autoclaw.z.ai/blog/model/GLM-5.4/",
             "https://autoclaw.z.ai/blog/model/GLM-Legal/",
             "https://docs.z.ai/devpack/overview.md",
             "https://docs.z.ai/devpack/transition.md",
@@ -2967,7 +2972,7 @@ const SOURCES: SourceGroup[] = [
 /** @type {string[]} */
 const UNCERTAIN: string[] = [
     "Freebuff 的模型池与 Freebucks 因地区和客户端而异；旧发布文章、生成式 FAQ 与当前官方 README 的额度不同，不承诺全地区无限量，也未确认中国大陆属于 full access。数据使用说明据当前 README；隐私页 10-13 更新版本将于 11-12 生效，不能作为当前已生效政策。",
-    "Kimchi Teams 的 $45 月 credits 是否按席位累计未说明，不能乘席位折算；企业档模型费按合同。HumanLayer 软件 sessions 不等于模型推理额度，三档均需自备账户/API。新收录三家的年付价及中国大陆购买资格未核实。",
+    "Kimchi Teams 定价页不再单列 $45 月 credits，最多 25 席；页面写包含 Coder 的全部内容，Coder 含每月 $25 credits，是否按席发放未说明，不能乘席位折算。企业档、Code Review 与 Workspaces 没有公开月费。HumanLayer 软件 sessions 不等于模型推理额度，三档均需自备账户/API。新收录三家的年付价及中国大陆购买资格未核实。",
     "Amp Megawatt 正文的 agent 用量与定价卡片的自备模型文案存在差异，未推算固定 tokens；连接外部 ChatGPT/Claude 不会新增原订阅额度，Claude 仅覆盖 Claude Code 模式。OpenCode Argon Contributor 非 ZDR，提示和补全可能用于模型训练，其 2× 用量促销结束日未公布。",
     "价格逐条核查状态、核查日期与官网链接见来源栏；待核实历史价不参与推荐和排行，未列年付价不等于厂商不存在年付方案。",
     "图中黄色估算柱与额度表的≈估行采用已说明的假设，不能作为厂商承诺的 token 数；官方周 tokens 与请求数、积分和月池分开标注。",
@@ -3005,7 +3010,7 @@ const UNCERTAIN: string[] = [
 /* 逐条官方核价记录；由 audit/pricing-verification-2026-10-04.json 维护。 */
 /** @type {PriceChecks} */
 const PRICE_CHECKS: PriceChecks = {
-    "checkedAt": "2026-10-26",
+    "checkedAt": "2026-11-28",
     "sources": {
         "claude-plans": {
             "url": "https://claude.com/pricing",
@@ -3693,6 +3698,21 @@ const PRICE_CHECKS: PriceChecks = {
             "url": "https://about.fb.com/news/2026/10/introducing-muse-wonder-models/",
             "evidence": "10-12历史公告确认Wonder API/Muse Code与Full订阅入口；核查日不作新品或GA发布日期。",
             "checkedAt": "2026-10-26"
+        },
+        "kimchi-pricing-20261128": {
+            "url": "https://kimchi.dev/pricing",
+            "evidence": "2026-11-28 打开定价页。Coder 仍为 $20/月，含 $25 月 credits，最多 3 席、1 个团队。Teams 仍为 $35/席/月，入口为 Book a call，写包含 Coder 的全部内容，最多 25 席、无限团队，页面不再单列 $45 credits，也没有 150 席。企业档仍为定制。Code Review 与 Workspaces 只作为附加项出现，没有公开月费。",
+            "checkedAt": "2026-11-28"
+        },
+        "kimchi-inference-20261128": {
+            "url": "https://docs.kimchi.dev/docs/model-apis-pricing",
+            "evidence": "2026-11-28 打开托管模型价表。外部供应商路由在原厂牌价之外，每百万 tokens 另加输入 $0.20、缓存输入 $0.02、输出 $0.30。deepseek-v4.1-flash 于 2026-12-02 停服，同价改用 deepseek-v4.1-flash-1017。kimi-k3 与 minimax-m3 于 2026-12-17 停服，分别改用 kimi-k3.1-pro 与 minimax-m3.1-flash。订阅月费不在该页。",
+            "checkedAt": "2026-11-28"
+        },
+        "kimchi-code-review-20261128": {
+            "url": "https://kimchi.dev/code-reviewer",
+            "evidence": "2026-11-28 打开 Code Review 产品页。页面写没有按席位的机器人定价，审查按用量计入已设预算上限。没有公开的每月附加费。",
+            "checkedAt": "2026-11-28"
         }
     },
     "rows": {
@@ -5959,40 +5979,39 @@ const PRICE_CHECKS: PriceChecks = {
         },
         "plan:plan-0226": {
             "status": "verified",
-            "checkedAt": "2026-10-15",
+            "checkedAt": "2026-11-28",
             "sourceIds": [
-                "kimchi-pricing-20261015"
+                "kimchi-pricing-20261128"
             ],
-            "reason": "从官方定价、文档核实并首次收录；收录日不视为产品发布日，未知年价及资格不推算。"
+            "reason": "定价页仍写开源档下载后自备推理，不包含托管推理，月费仍为 0。"
         },
         "plan:plan-0227": {
-            "status": "verified",
-            "checkedAt": "2026-10-15",
+            "status": "changed",
+            "checkedAt": "2026-11-28",
             "sourceIds": [
-                "kimchi-pricing-20261015",
-                "kimchi-inference-20261015",
-                "kimchi-terms-20261015"
+                "kimchi-pricing-20261128",
+                "kimchi-inference-20261128"
             ],
-            "reason": "从官方定价、文档核实并首次收录；收录日不视为产品发布日，未知年价及资格不推算。"
+            "reason": "月费仍为 $20，每月仍含 $25 credits。价表更新了停服日，外部路由的缓存输入附加费改为 $0.02/百万 tokens。"
         },
         "plan:plan-0228": {
-            "status": "verified",
-            "checkedAt": "2026-10-15",
+            "status": "changed",
+            "checkedAt": "2026-11-28",
             "sourceIds": [
-                "kimchi-pricing-20261015",
-                "kimchi-inference-20261015",
-                "kimchi-terms-20261015"
+                "kimchi-pricing-20261128",
+                "kimchi-inference-20261128",
+                "kimchi-code-review-20261128"
             ],
-            "reason": "从官方定价、文档核实并首次收录；收录日不视为产品发布日，未知年价及资格不推算。"
+            "reason": "月费仍为 $35/席。定价页改为最多 25 席，不再单列 $45 credits；是否每席另含 Coder 的 $25 credits 仍未说明。"
         },
         "plan:plan-0229": {
             "status": "custom",
-            "checkedAt": "2026-10-15",
+            "checkedAt": "2026-11-28",
             "sourceIds": [
-                "kimchi-pricing-20261015",
-                "kimchi-terms-20261015"
+                "kimchi-pricing-20261128",
+                "kimchi-code-review-20261128"
             ],
-            "reason": "从官方定价、文档核实并首次收录；收录日不视为产品发布日，未知年价及资格不推算。"
+            "reason": "企业档仍为定制报价，页面没有公开月费。Code Review 与 Workspaces 没有公开月费，本次不新增档位。"
         },
         "plan:plan-0230": {
             "status": "verified",
@@ -6215,7 +6234,7 @@ const BENCHMARK_SUMMARY: BenchmarkSummary = { "schemaVersion": 1, "checkedAt": "
 
 /* 自动生成：npm run maintenance:build。导航「我的关注」未读提醒用的套餐变更 ID 与复查间隔；完整变更见 maintenance-data.js（按需加载）。 */
 /** @type {MaintenanceSummary} */
-const MAINTENANCE_SUMMARY: MaintenanceSummary = { "schemaVersion": 1, "staleAfterDays": 14, "changes": [{ "id": "plan-0224", "changeId": "change-4f218b72dacbc36c28cff472" }, { "id": "plan-0222", "changeId": "change-7bb3de5626c0a953174c9649" }, { "id": "plan-0221", "changeId": "change-db81a7a10d44a611b7950a07" }, { "id": "plan-0223", "changeId": "change-f6e1d5f7128a01d4787fbf6b" }, { "id": "plan-0040", "changeId": "change-15f5d31c6e8b463993648b38" }, { "id": "plan-0127", "changeId": "change-2ae693cc1d1f2b71f282c21b" }, { "id": "plan-0039", "changeId": "change-53233e0b148a39f9bf7112dd" }, { "id": "plan-0228", "changeId": "change-5515d59692180521d962c029" }, { "id": "plan-0227", "changeId": "change-6a3893ad79362c9cfa9b8e48" }, { "id": "plan-0092", "changeId": "change-6bc6df8e107656825f53ac72" }, { "id": "plan-0230", "changeId": "change-7033bbf6398cc976a79d799e" }, { "id": "plan-0089", "changeId": "change-8241744f587f88bb9081dd81" }, { "id": "plan-0225", "changeId": "change-9d7173303251f49317337d22" }, { "id": "plan-0091", "changeId": "change-9fc53e3ab3d78dbafd89b1a0" }, { "id": "plan-0094", "changeId": "change-a018c88c11698cfecf999863" }, { "id": "plan-0095", "changeId": "change-ae02d5d674403a35dbe5cb9a" }, { "id": "plan-0093", "changeId": "change-bdc8f2924acdf684623367fa" }, { "id": "plan-0229", "changeId": "change-bfb8db87ab8b9a77f63aa696" }, { "id": "plan-0126", "changeId": "change-c1af7accef97bac98822d9eb" }, { "id": "plan-0231", "changeId": "change-c515c861ae4ab9cd119e8a20" }, { "id": "plan-0232", "changeId": "change-dd4b9bdeef95be64fcec1ad6" }, { "id": "plan-0226", "changeId": "change-fc5560986f2e74a0d756cfa6" }, { "id": "plan-0092", "changeId": "change-1a9c094306a4b8d518ea71bd" }, { "id": "plan-0224", "changeId": "change-1e92d0efd88a842e6dbcf5f2" }, { "id": "plan-0094", "changeId": "change-451f08c4ebe113de4e4de9bc" }, { "id": "plan-0018", "changeId": "change-82f1725e0bd394f2390d9e76" }, { "id": "plan-0222", "changeId": "change-8fcb085c06b794b2f599e7d2" }, { "id": "plan-0223", "changeId": "change-b5452ecfdff2f9867de07ca1" }, { "id": "plan-0221", "changeId": "change-bf99e20cc2de31e8b4614432" }, { "id": "plan-0017", "changeId": "change-d7a069852d2ffc239d61c0e5" }, { "id": "plan-0016", "changeId": "change-d94cb07f37527fd06c9cc1b0" }, { "id": "plan-0095", "changeId": "change-e25a4e2dcaa833a4ffc9b3c7" }, { "id": "plan-0096", "changeId": "change-0b06380cd89f6485db9eda14" }, { "id": "plan-0216", "changeId": "change-1b6ba8b6cfa68a93e86979b0" }, { "id": "plan-0006", "changeId": "change-1e37795fc06e1ba51fe8ac00" }, { "id": "plan-0098", "changeId": "change-22d7f8da4a3682977dd91c82" }, { "id": "plan-0025", "changeId": "change-275df2271ad0b1589415cd2d" }, { "id": "plan-0026", "changeId": "change-32527572330ca65b201dd10b" }, { "id": "plan-0099", "changeId": "change-335f01f430472e8277fb98d7" }, { "id": "plan-0220", "changeId": "change-38ed48266f362048a7553326" }, { "id": "plan-0095", "changeId": "change-3c704d5feda6494ce3ef6e8f" }, { "id": "plan-0091", "changeId": "change-3fbfc58974b733142929d1da" }, { "id": "plan-0213", "changeId": "change-448b6054b5f776b2b1558d29" }, { "id": "plan-0218", "changeId": "change-4b4ed277e67ae1f78b0ae4dc" }, { "id": "plan-0217", "changeId": "change-4e04840c90de0c6e4b0b3917" }, { "id": "plan-0013", "changeId": "change-674064063fb6d0f2a0100da3" }, { "id": "plan-0003", "changeId": "change-72fedbdce78e01a5ded89b43" }, { "id": "plan-0214", "changeId": "change-7cca6ceb8b757d39d6ae2f9a" }, { "id": "plan-0023", "changeId": "change-7f5d3df973101d4ce4b83957" }, { "id": "plan-0219", "changeId": "change-8206cc5c3512000df26cfd9d" }, { "id": "plan-0102", "changeId": "change-870a9310ba08288505e6fdde" }, { "id": "plan-0005", "changeId": "change-8a3995cf02d1607a8c978b42" }, { "id": "plan-0103", "changeId": "change-8b40222f8a5c880f9f7a676a" }, { "id": "plan-0215", "changeId": "change-928d3b86d2be689a22528633" }, { "id": "plan-0004", "changeId": "change-a19395449fa2b39372a73e95" }, { "id": "plan-0092", "changeId": "change-a22185256844ee8caf81a9ca" }, { "id": "plan-0094", "changeId": "change-be419e92b67bc5e585819631" }, { "id": "plan-0100", "changeId": "change-f5a81c0184ee5e43c3181499" }, { "id": "plan-0101", "changeId": "change-f978ae82afb2cf9f2c3a3d1f" }, { "id": "plan-0135", "changeId": "change-1ddd2f26b385ca4cce5c0889" }, { "id": "plan-0101", "changeId": "change-255d9ace38e030ac418c588e" }, { "id": "plan-0033", "changeId": "change-3182b6de09f4ddd7c58e06f0" }, { "id": "plan-0134", "changeId": "change-3f6953b4667c1dd71f3a9ec6" }, { "id": "plan-0026", "changeId": "change-480f09d4107d62f910374368" }, { "id": "plan-0197", "changeId": "change-503b4179a50e7cf33d46eab1" }, { "id": "plan-0102", "changeId": "change-5dd6fd47e0331163af1b6c6e" }, { "id": "plan-0017", "changeId": "change-5e5a0320dc4615f448119a35" }, { "id": "plan-0139", "changeId": "change-67a89830e048c3cc060aa4b8" }, { "id": "plan-0154", "changeId": "change-717c2777ffebf7b15a65edc9" }, { "id": "plan-0025", "changeId": "change-72dda49670b16f04542dc0e8" }, { "id": "plan-0156", "changeId": "change-7f021aeddba731b72a8bc19a" }, { "id": "plan-0097", "changeId": "change-91702b0165a550bf34053640" }, { "id": "plan-0138", "changeId": "change-925841d5dc56d189fb387575" }, { "id": "plan-0032", "changeId": "change-a34ee27e1bc9661f445d3d90" }, { "id": "plan-0160", "changeId": "change-c54acaae59581333114da30f" }, { "id": "plan-0016", "changeId": "change-d0e2173924d84dc157d0522d" }, { "id": "plan-0149", "changeId": "change-d4c060d1224d283a18e43f10" }, { "id": "plan-0155", "changeId": "change-feeb742795ef7f3f0970bf39" }, { "id": "plan-0031", "changeId": "change-ff4c63f9bac95e9d5c32726f" }] };
+const MAINTENANCE_SUMMARY: MaintenanceSummary = { "schemaVersion": 1, "staleAfterDays": 14, "changes": [{ "id": "plan-0228", "changeId": "change-7a4610d13d8a28bb69cba6cc" }, { "id": "plan-0227", "changeId": "change-a49f484bd599422669cb695a" }, { "id": "plan-0224", "changeId": "change-4f218b72dacbc36c28cff472" }, { "id": "plan-0222", "changeId": "change-7bb3de5626c0a953174c9649" }, { "id": "plan-0221", "changeId": "change-db81a7a10d44a611b7950a07" }, { "id": "plan-0223", "changeId": "change-f6e1d5f7128a01d4787fbf6b" }, { "id": "plan-0040", "changeId": "change-15f5d31c6e8b463993648b38" }, { "id": "plan-0127", "changeId": "change-2ae693cc1d1f2b71f282c21b" }, { "id": "plan-0039", "changeId": "change-53233e0b148a39f9bf7112dd" }, { "id": "plan-0228", "changeId": "change-5515d59692180521d962c029" }, { "id": "plan-0227", "changeId": "change-6a3893ad79362c9cfa9b8e48" }, { "id": "plan-0092", "changeId": "change-6bc6df8e107656825f53ac72" }, { "id": "plan-0230", "changeId": "change-7033bbf6398cc976a79d799e" }, { "id": "plan-0089", "changeId": "change-8241744f587f88bb9081dd81" }, { "id": "plan-0225", "changeId": "change-9d7173303251f49317337d22" }, { "id": "plan-0091", "changeId": "change-9fc53e3ab3d78dbafd89b1a0" }, { "id": "plan-0094", "changeId": "change-a018c88c11698cfecf999863" }, { "id": "plan-0095", "changeId": "change-ae02d5d674403a35dbe5cb9a" }, { "id": "plan-0093", "changeId": "change-bdc8f2924acdf684623367fa" }, { "id": "plan-0229", "changeId": "change-bfb8db87ab8b9a77f63aa696" }, { "id": "plan-0126", "changeId": "change-c1af7accef97bac98822d9eb" }, { "id": "plan-0231", "changeId": "change-c515c861ae4ab9cd119e8a20" }, { "id": "plan-0232", "changeId": "change-dd4b9bdeef95be64fcec1ad6" }, { "id": "plan-0226", "changeId": "change-fc5560986f2e74a0d756cfa6" }, { "id": "plan-0092", "changeId": "change-1a9c094306a4b8d518ea71bd" }, { "id": "plan-0224", "changeId": "change-1e92d0efd88a842e6dbcf5f2" }, { "id": "plan-0094", "changeId": "change-451f08c4ebe113de4e4de9bc" }, { "id": "plan-0018", "changeId": "change-82f1725e0bd394f2390d9e76" }, { "id": "plan-0222", "changeId": "change-8fcb085c06b794b2f599e7d2" }, { "id": "plan-0223", "changeId": "change-b5452ecfdff2f9867de07ca1" }, { "id": "plan-0221", "changeId": "change-bf99e20cc2de31e8b4614432" }, { "id": "plan-0017", "changeId": "change-d7a069852d2ffc239d61c0e5" }, { "id": "plan-0016", "changeId": "change-d94cb07f37527fd06c9cc1b0" }, { "id": "plan-0095", "changeId": "change-e25a4e2dcaa833a4ffc9b3c7" }, { "id": "plan-0096", "changeId": "change-0b06380cd89f6485db9eda14" }, { "id": "plan-0216", "changeId": "change-1b6ba8b6cfa68a93e86979b0" }, { "id": "plan-0006", "changeId": "change-1e37795fc06e1ba51fe8ac00" }, { "id": "plan-0098", "changeId": "change-22d7f8da4a3682977dd91c82" }, { "id": "plan-0025", "changeId": "change-275df2271ad0b1589415cd2d" }, { "id": "plan-0026", "changeId": "change-32527572330ca65b201dd10b" }, { "id": "plan-0099", "changeId": "change-335f01f430472e8277fb98d7" }, { "id": "plan-0220", "changeId": "change-38ed48266f362048a7553326" }, { "id": "plan-0095", "changeId": "change-3c704d5feda6494ce3ef6e8f" }, { "id": "plan-0091", "changeId": "change-3fbfc58974b733142929d1da" }, { "id": "plan-0213", "changeId": "change-448b6054b5f776b2b1558d29" }, { "id": "plan-0218", "changeId": "change-4b4ed277e67ae1f78b0ae4dc" }, { "id": "plan-0217", "changeId": "change-4e04840c90de0c6e4b0b3917" }, { "id": "plan-0013", "changeId": "change-674064063fb6d0f2a0100da3" }, { "id": "plan-0003", "changeId": "change-72fedbdce78e01a5ded89b43" }, { "id": "plan-0214", "changeId": "change-7cca6ceb8b757d39d6ae2f9a" }, { "id": "plan-0023", "changeId": "change-7f5d3df973101d4ce4b83957" }, { "id": "plan-0219", "changeId": "change-8206cc5c3512000df26cfd9d" }, { "id": "plan-0102", "changeId": "change-870a9310ba08288505e6fdde" }, { "id": "plan-0005", "changeId": "change-8a3995cf02d1607a8c978b42" }, { "id": "plan-0103", "changeId": "change-8b40222f8a5c880f9f7a676a" }, { "id": "plan-0215", "changeId": "change-928d3b86d2be689a22528633" }, { "id": "plan-0004", "changeId": "change-a19395449fa2b39372a73e95" }, { "id": "plan-0092", "changeId": "change-a22185256844ee8caf81a9ca" }, { "id": "plan-0094", "changeId": "change-be419e92b67bc5e585819631" }, { "id": "plan-0100", "changeId": "change-f5a81c0184ee5e43c3181499" }, { "id": "plan-0101", "changeId": "change-f978ae82afb2cf9f2c3a3d1f" }, { "id": "plan-0135", "changeId": "change-1ddd2f26b385ca4cce5c0889" }, { "id": "plan-0101", "changeId": "change-255d9ace38e030ac418c588e" }, { "id": "plan-0033", "changeId": "change-3182b6de09f4ddd7c58e06f0" }, { "id": "plan-0134", "changeId": "change-3f6953b4667c1dd71f3a9ec6" }, { "id": "plan-0026", "changeId": "change-480f09d4107d62f910374368" }, { "id": "plan-0197", "changeId": "change-503b4179a50e7cf33d46eab1" }, { "id": "plan-0102", "changeId": "change-5dd6fd47e0331163af1b6c6e" }, { "id": "plan-0017", "changeId": "change-5e5a0320dc4615f448119a35" }, { "id": "plan-0139", "changeId": "change-67a89830e048c3cc060aa4b8" }, { "id": "plan-0154", "changeId": "change-717c2777ffebf7b15a65edc9" }, { "id": "plan-0025", "changeId": "change-72dda49670b16f04542dc0e8" }, { "id": "plan-0156", "changeId": "change-7f021aeddba731b72a8bc19a" }, { "id": "plan-0097", "changeId": "change-91702b0165a550bf34053640" }, { "id": "plan-0138", "changeId": "change-925841d5dc56d189fb387575" }, { "id": "plan-0032", "changeId": "change-a34ee27e1bc9661f445d3d90" }, { "id": "plan-0160", "changeId": "change-c54acaae59581333114da30f" }, { "id": "plan-0016", "changeId": "change-d0e2173924d84dc157d0522d" }, { "id": "plan-0149", "changeId": "change-d4c060d1224d283a18e43f10" }, { "id": "plan-0155", "changeId": "change-feeb742795ef7f3f0970bf39" }, { "id": "plan-0031", "changeId": "change-ff4c63f9bac95e9d5c32726f" }] };
 
 /* 项目公开入口与纠错提交渠道。 */
 const PUBLIC_PROJECT = Object.freeze({
