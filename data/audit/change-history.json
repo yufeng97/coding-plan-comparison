@@ -2,6 +2,54 @@
   "schemaVersion": 1,
   "changes": [
     {
+      "changeId": "change-7a4610d13d8a28bb69cba6cc",
+      "id": "plan-0228",
+      "kind": "plan",
+      "vendor": "Kimchi",
+      "name": "Teams",
+      "checkedAt": "2026-11-28",
+      "sourceUrls": [
+        "https://docs.kimchi.dev/docs/model-apis-pricing",
+        "https://kimchi.dev/code-reviewer",
+        "https://kimchi.dev/pricing"
+      ],
+      "fields": [
+        "note",
+        "quota"
+      ],
+      "before": {
+        "note": "每席位月价；官网入口为 Book a call。税另计，credit 分配范围未说明，不能按席位推算总额度；超额模型及外部 provider 路由费用另计。",
+        "quota": "官网列每月含 $45 模型 credits；最多 150 席位、无限队；credit 是否逐席位累计未说明"
+      },
+      "after": {
+        "note": "每席位月价；官网入口为 Book a call。税另计。2026-11-28 定价页为最多 25 席，不再单列 $45 credits。是否每席都含 Coder 的 $25 credits 仍未说明，不能按席位推算总额度。超额与外部路由附加费见 Coder 备注。三个托管模型的停服日同 Coder。",
+        "quota": "定价页不再单列团队月 credits。Teams 写包含 Coder 的全部内容，Coder 含每月 $25 credits，是否按席发放未说明。最多 25 席、无限团队。"
+      },
+      "plan": "Teams"
+    },
+    {
+      "changeId": "change-a49f484bd599422669cb695a",
+      "id": "plan-0227",
+      "kind": "plan",
+      "vendor": "Kimchi",
+      "name": "Coder",
+      "checkedAt": "2026-11-28",
+      "sourceUrls": [
+        "https://docs.kimchi.dev/docs/model-apis-pricing",
+        "https://kimchi.dev/pricing"
+      ],
+      "fields": [
+        "note"
+      ],
+      "before": {
+        "note": "公开月付价，税另计；模型 credit 不是固定 tokens 或无限推理。超额按公开用量价；外部 provider 路由另有 token surcharge。Kimi K2.7 将于 2026-10-19 退役，不作为长期主力模型。"
+      },
+      "after": {
+        "note": "公开月付价，税另计；模型 credit 不是固定 tokens 或无限推理。超额按公开用量价。外部供应商路由在原厂牌价之外，每百万 tokens 另加输入 $0.20、缓存输入 $0.02、输出 $0.30。价表写 deepseek-v4.1-flash 于 2026-12-02 停服，同价改用 deepseek-v4.1-flash-1017；kimi-k3 与 minimax-m3 于 2026-12-17 停服，分别改用 kimi-k3.1-pro 与 minimax-m3.1-flash。单价见当日动态。Kimi K2.7 已不在现行价表。"
+      },
+      "plan": "Coder"
+    },
+    {
       "changeId": "change-4f218b72dacbc36c28cff472",
       "id": "plan-0224",
       "kind": "plan",
